@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Node.js + TypeScript + MongoDB — Production Schema Design</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --surface: #111520;
+    --surface2: #161c2e;
+    --border: #1e2840;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --accent3: #f59e0b;
+    --green: #10b981;
+    --red: #f87171;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --heading: #f8fafc;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding: 72px 40px 60px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,229,255,.12), transparent),
+                radial-gradient(ellipse 50% 40% at 80% 100%, rgba(124,58,237,.1), transparent);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-block;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .12em;
+    padding: 4px 14px;
+    border-radius: 100px;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 800;
+    color: var(--heading);
+    line-height: 1.15;
+    letter-spacing: -.02em;
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero p {
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 15px;
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 28px;
+  }
+  .pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 5px 16px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--muted);
+  }
+
+  /* ── LAYOUT ── */
+  .wrapper {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 0 28px 100px;
+  }
+
+  /* ── TOC ── */
+  .toc {
+    margin: 48px 0 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 32px;
+  }
+  .toc h2 {
+    font-size: 13px;
+    letter-spacing: .1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .toc ol {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px 24px;
+    padding-left: 0;
+    list-style: none;
+    counter-reset: toc;
+  }
+  .toc li { counter-increment: toc; display: flex; align-items: baseline; gap: 8px; }
+  .toc li::before { content: counter(toc, decimal-leading-zero); font-family: var(--mono); font-size: 11px; color: var(--accent); flex-shrink: 0; }
+  .toc a { color: var(--text); text-decoration: none; font-size: 13.5px; }
+  .toc a:hover { color: var(--accent); }
+
+  /* ── SECTIONS ── */
+  .section {
+    margin-top: 60px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .section-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(0,229,255,.07);
+    border: 1px solid rgba(0,229,255,.2);
+    padding: 4px 10px;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--heading);
+  }
+
+  /* ── TREE ── */
+  .tree-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.9;
+    color: var(--text);
+  }
+  .tree-box .dir  { color: var(--accent); }
+  .tree-box .file { color: var(--text); }
+  .tree-box .comment { color: var(--muted); }
+
+  /* ── CARDS GRID ── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--text);
+    transition: border-color .2s, transform .2s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .card .label { font-size: 10px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+
+  /* ── CODE BLOCKS ── */
+  .code-wrap { position: relative; margin-top: 20px; }
+  .code-lang {
+    position: absolute;
+    top: 0; right: 0;
+    background: var(--accent2);
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    padding: 3px 12px;
+    border-radius: 0 10px 0 8px;
+  }
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.85;
+    tab-size: 2;
+  }
+
+  /* — syntax tokens — */
+  .k  { color: #c792ea; } /* keyword */
+  .s  { color: #c3e88d; } /* string */
+  .n  { color: var(--accent); } /* name */
+  .c  { color: var(--muted); font-style: italic; } /* comment */
+  .v  { color: #f78c6c; } /* value / type */
+  .p  { color: #89ddff; } /* punctuation */
+  .m  { color: var(--accent3); } /* method */
+  .t  { color: var(--accent3); } /* type annotation */
+  .e  { color: var(--green); } /* enum value */
+
+  /* ── HTTP METHOD BADGES ── */
+  .methods { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+  .method-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px;
+    transition: border-color .2s;
+  }
+  .method-row:hover { border-color: var(--border); }
+  .method-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    letter-spacing: .06em;
+  }
+  .post  { background: rgba(16,185,129,.15); color: var(--green); border: 1px solid rgba(16,185,129,.3); }
+  .get   { background: rgba(0,229,255,.1);   color: var(--accent); border: 1px solid rgba(0,229,255,.25); }
+  .put   { background: rgba(245,158,11,.1);  color: var(--accent3); border: 1px solid rgba(245,158,11,.25); }
+  .patch { background: rgba(124,58,237,.12); color: #a78bfa; border: 1px solid rgba(124,58,237,.3); }
+  .del   { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.25); }
+  .method-info h4 { font-size: 14px; color: var(--heading); font-weight: 600; }
+  .method-info p  { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .method-info code { font-family: var(--mono); font-size: 12px; color: var(--text); background: var(--surface2); padding: 1px 7px; border-radius: 4px; }
+
+  /* ── FLOW PIPELINE ── */
+  .pipeline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0;
+    margin-top: 8px;
+  }
+  .pipe-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pipe-arrow {
+    color: var(--muted);
+    font-size: 18px;
+    padding: 0 6px;
+  }
+
+  /* ── PRODUCTION ROADMAP ── */
+  .roadmap {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+    counter-reset: road;
+  }
+  .road-item {
+    counter-increment: road;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    transition: border-color .2s;
+  }
+  .road-item:hover { border-color: var(--accent2); }
+  .road-item::before {
+    content: counter(road, decimal-leading-zero);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  /* ── SCHEMA OPTIONS TABLE ── */
+  .opts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .opt-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 12px 16px;
+  }
+  .opt-item code { font-family: var(--mono); font-size: 12.5px; color: var(--accent3); }
+  .opt-item p { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* ── CALLOUT ── */
+  .callout {
+    display: flex;
+    gap: 14px;
+    background: rgba(0,229,255,.05);
+    border: 1px solid rgba(0,229,255,.15);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-top: 16px;
+  }
+  .callout-icon { font-size: 18px; flex-shrink: 0; }
+  .callout p { font-size: 13px; color: var(--muted); }
+  .callout strong { color: var(--text); }
+
+  /* ── QUERY TABLE ── */
+  .q-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .q-table th {
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .q-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    vertical-align: top;
+  }
+  .q-table tr:last-child td { border-bottom: none; }
+  .q-table tr:hover td { background: var(--surface); }
+  .q-table code { font-family: var(--mono); font-size: 12px; color: var(--accent3); }
+  .q-table .desc { color: var(--muted); font-size: 12px; }
+
+  /* ── DIVIDER ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 56px 0 0; }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 12px;
+    font-family: var(--mono);
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 600px) {
+    .hero { padding: 48px 20px 40px; }
+    .wrapper { padding: 0 16px 80px; }
+    .pipeline { flex-direction: column; align-items: flex-start; }
+    .pipe-arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════  HERO  ═══════════════════ -->
+<header class="hero">
+  <div class="hero-badge">Production Reference · 2024</div>
+  <h1>Node.js + TypeScript<br/><span>+ MongoDB</span></h1>
+  <p>A complete production-level guide to schema design, validation, CRUD operations, and deployment architecture.</p>
+  <div class="pill-row">
+    <span class="pill">Node.js</span>
+    <span class="pill">TypeScript</span>
+    <span class="pill">Mongoose</span>
+    <span class="pill">Zod</span>
+    <span class="pill">REST API</span>
+    <span class="pill">MongoDB Atlas</span>
+    <span class="pill">Docker</span>
+    <span class="pill">CI/CD</span>
+  </div>
+</header>
+
+<div class="wrapper">
+
+  <!-- ═══════════════════  TOC  ═══════════════════ -->
+  <nav class="toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      <li><a href="#s1">Application Structure</a></li>
+      <li><a href="#s2">Folder Layout</a></li>
+      <li><a href="#s3">Mongoose Data Types</a></li>
+      <li><a href="#s4">User Schema</a></li>
+      <li><a href="#s5">Post Schema</a></li>
+      <li><a href="#s6">Zod Validation</a></li>
+      <li><a href="#s7">Validation Middleware</a></li>
+      <li><a href="#s8">CRUD Operations</a></li>
+      <li><a href="#s9">Population</a></li>
+      <li><a href="#s10">Schema Options</a></li>
+      <li><a href="#s11">Query Methods</a></li>
+      <li><a href="#s12">Production Roadmap</a></li>
+    </ol>
+  </nav>
+
+  <!-- ─── 01. Application Structure ─── -->
+  <section class="section" id="s1">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>Application Structure</h2>
+    </div>
+    <div class="tree-box">
+      <span class="dir">User</span><br/>
+      &nbsp;├── <span class="file">Profile</span> &nbsp;<span class="comment">// display name, bio, avatar</span><br/>
+      &nbsp;├── <span class="file">Address</span> &nbsp;<span class="comment">// city, state, country, zipCode</span><br/>
+      &nbsp;├── <span class="file">Skills</span> &nbsp;&nbsp;<span class="comment">// array of strings</span><br/>
+      &nbsp;├── <span class="file">Social Links</span> <span class="comment">// github, linkedin, website</span><br/>
+      &nbsp;└── <span class="file">Posts</span> &nbsp;&nbsp;<span class="comment">// ObjectId[] → ref "Post"</span><br/>
+      <br/>
+      <span class="dir">Post</span><br/>
+      &nbsp;├── <span class="file">Author (User)</span> <span class="comment">// ObjectId → ref "User"</span><br/>
+      &nbsp;├── <span class="file">Tags</span> &nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// string[]</span><br/>
+      &nbsp;├── <span class="file">Comments</span> &nbsp;<span class="comment">// embedded sub-documents</span><br/>
+      &nbsp;└── <span class="file">Likes</span> &nbsp;&nbsp;&nbsp;<span class="comment">// number, default 0</span>
+    </div>
+  </section>
+
+  <!-- ─── 02. Folder Layout ─── -->
+  <section class="section" id="s2">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>Folder Layout</h2>
+    </div>
+    <div class="tree-box">
+      <span class="dir">src/</span><br/>
+      &nbsp;├── <span class="dir">config/</span><br/>
+      &nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="file">db.ts</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Mongoose connection setup</span><br/>
+      &nbsp;├── <span class="dir">models/</span><br/>
+      &nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="file">user.model.ts</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// User schema & export</span><br/>
+      &nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="file">post.model.ts</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Post schema & export</span><br/>
+      &nbsp;├── <span class="dir">validators/</span><br/>
+      &nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="file">user.validator.ts</span> &nbsp;&nbsp;<span class="comment">// Zod schemas for User</span><br/>
+      &nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="file">post.validator.ts</span> &nbsp;&nbsp;<span class="comment">// Zod schemas for Post</span><br/>
+      &nbsp;├── <span class="dir">services/</span><br/>
+      &nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="file">user.service.ts</span> &nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Business logic for User</span><br/>
+      &nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="file">post.service.ts</span> &nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Business logic for Post</span><br/>
+      &nbsp;├── <span class="dir">controllers/</span><br/>
+      &nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="file">user.controller.ts</span> &nbsp;<span class="comment">// Request handlers for User</span><br/>
+      &nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="file">post.controller.ts</span> &nbsp;<span class="comment">// Request handlers for Post</span><br/>
+      &nbsp;├── <span class="dir">routes/</span><br/>
+      &nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="file">user.routes.ts</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Express router for /users</span><br/>
+      &nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="file">post.routes.ts</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Express router for /posts</span><br/>
+      &nbsp;├── <span class="dir">middleware/</span><br/>
+      &nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="file">validate.ts</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Generic Zod validation middleware</span><br/>
+      &nbsp;├── <span class="file">app.ts</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Express app setup, global middleware</span><br/>
+      &nbsp;└── <span class="file">server.ts</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// HTTP server entry point</span>
+    </div>
+  </section>
+
+  <!-- ─── 03. Mongoose Data Types ─── -->
+  <section class="section" id="s3">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>Mongoose Data Types</h2>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="label">Text</div>String</div>
+      <div class="card"><div class="label">Numeric</div>Number</div>
+      <div class="card"><div class="label">Numeric</div>Decimal128</div>
+      <div class="card"><div class="label">Flag</div>Boolean</div>
+      <div class="card"><div class="label">Temporal</div>Date</div>
+      <div class="card"><div class="label">Collection</div>Array</div>
+      <div class="card"><div class="label">Nested</div>Object</div>
+      <div class="card"><div class="label">Dynamic</div>Mixed</div>
+      <div class="card"><div class="label">Reference</div>ObjectId</div>
+      <div class="card"><div class="label">Binary</div>Buffer</div>
+      <div class="card"><div class="label">K-V Store</div>Map</div>
+      <div class="card"><div class="label">Identifier</div>UUID</div>
+    </div>
+  </section>
+
+  <!-- ─── 04. User Schema ─── -->
+  <section class="section" id="s4">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>User Schema</h2>
+    </div>
+    <div class="callout">
+      <span class="callout-icon">💡</span>
+      <p><strong>Design note:</strong> The User schema uses embedded sub-documents for <code>address</code> and <code>socialLinks</code> (rarely queried independently), while <code>posts</code> uses references (ObjectId) to allow pagination and independent post queries without loading the entire user document.</p>
+    </div>
+    <div class="code-wrap">
+      <span class="code-lang">TypeScript</span>
+<pre><span class="k">import</span> mongoose <span class="k">from</span> <span class="s">"mongoose"</span>;
+
+<span class="k">const</span> <span class="n">userSchema</span> = <span class="k">new</span> mongoose.<span class="m">Schema</span>({
+
+  <span class="c">// ── Identity ──────────────────────────────────</span>
+  firstName: {
+    type: <span class="v">String</span>,
+    required: <span class="v">true</span>,
+    trim: <span class="v">true</span>,
+    minlength: <span class="v">2</span>,
+    maxlength: <span class="v">50</span>
+  },
+  lastName: { type: <span class="v">String</span>, required: <span class="v">true</span> },
+
+  email: {
+    type: <span class="v">String</span>,
+    required: <span class="v">true</span>,
+    unique: <span class="v">true</span>,
+    lowercase: <span class="v">true</span>           <span class="c">// stored as lowercase always</span>
+  },
+
+  <span class="c">// ── Auth & Access ──────────────────────────────</span>
+  role: {
+    type: <span class="v">String</span>,
+    enum: [<span class="e">"ADMIN"</span>, <span class="e">"USER"</span>, <span class="e">"MANAGER"</span>],
+    default: <span class="e">"USER"</span>
+  },
+  isActive: { type: <span class="v">Boolean</span>, default: <span class="v">true</span> },
+
+  <span class="c">// ── Profile ───────────────────────────────────</span>
+  age:        { type: <span class="v">Number</span>,  min: <span class="v">18</span>, max: <span class="v">100</span> },
+  birthDate:  { type: <span class="v">Date</span> },
+  salary:     { type: mongoose.Schema.Types.<span class="v">Decimal128</span> },
+  profileImage: { type: <span class="v">Buffer</span> },    <span class="c">// raw binary (or use URL string)</span>
+
+  <span class="c">// ── Collections ───────────────────────────────</span>
+  skills:       [{ type: <span class="v">String</span> }],
+  phoneNumbers: [{ type: <span class="v">Number</span> }],
+
+  <span class="c">// ── Embedded Sub-Documents ────────────────────</span>
+  address: {
+    city:    <span class="v">String</span>,
+    state:   <span class="v">String</span>,
+    country: <span class="v">String</span>,
+    zipCode: <span class="v">Number</span>
+  },
+
+  socialLinks: {
+    github:   <span class="v">String</span>,
+    linkedin: <span class="v">String</span>,
+    website:  <span class="v">String</span>
+  },
+
+  <span class="c">// ── Dynamic K-V Map ───────────────────────────</span>
+  settings: { type: <span class="v">Map</span>, of: <span class="v">String</span> },
+  <span class="c">// usage: user.settings.get("theme") → "dark"</span>
+
+  <span class="c">// ── References (Normalized) ───────────────────</span>
+  posts: [{
+    type: mongoose.Schema.Types.<span class="v">ObjectId</span>,
+    ref: <span class="s">"Post"</span>
+  }]
+
+}, {
+  timestamps: <span class="v">true</span>   <span class="c">// auto-adds createdAt, updatedAt</span>
+});
+
+<span class="k">export const</span> User = mongoose.<span class="m">model</span>(<span class="s">"User"</span>, userSchema);</pre>
+    </div>
+  </section>
+
+  <!-- ─── 05. Post Schema ─── -->
+  <section class="section" id="s5">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>Post Schema</h2>
+    </div>
+    <div class="callout">
+      <span class="callout-icon">💡</span>
+      <p><strong>Design note:</strong> <code>comments</code> are embedded as sub-documents (commentSchema) because they're always fetched with the post. <code>author</code> and <code>commentedBy</code> use ObjectId references to avoid data duplication and enable population.</p>
+    </div>
+    <div class="code-wrap">
+      <span class="code-lang">TypeScript</span>
+<pre><span class="k">import</span> mongoose <span class="k">from</span> <span class="s">"mongoose"</span>;
+
+<span class="c">// ── Embedded Comment Sub-Document ──────────────</span>
+<span class="k">const</span> <span class="n">commentSchema</span> = <span class="k">new</span> mongoose.<span class="m">Schema</span>({
+  message: <span class="v">String</span>,
+  commentedBy: {
+    type: mongoose.Schema.Types.<span class="v">ObjectId</span>,
+    ref: <span class="s">"User"</span>
+  }
+}, { _id: <span class="v">true</span>, timestamps: <span class="v">true</span> });
+
+<span class="c">// ── Main Post Schema ───────────────────────────</span>
+<span class="k">const</span> <span class="n">postSchema</span> = <span class="k">new</span> mongoose.<span class="m">Schema</span>({
+
+  title: {
+    type: <span class="v">String</span>,
+    required: <span class="v">true</span>,
+    trim: <span class="v">true</span>,
+    maxlength: <span class="v">200</span>
+  },
+
+  description: {
+    type: <span class="v">String</span>,
+    required: <span class="v">true</span>
+  },
+
+  author: {
+    type: mongoose.Schema.Types.<span class="v">ObjectId</span>,
+    ref: <span class="s">"User"</span>,
+    required: <span class="v">true</span>
+  },
+
+  tags:  [{ type: <span class="v">String</span>, lowercase: <span class="v">true</span>, trim: <span class="v">true</span> }],
+  likes: { type: <span class="v">Number</span>, default: <span class="v">0</span>, min: <span class="v">0</span> },
+
+  comments: [commentSchema]   <span class="c">// embedded array</span>
+
+}, { timestamps: <span class="v">true</span> });
+
+<span class="c">// ── Indexes for performance ─────────────────────</span>
+postSchema.<span class="m">index</span>({ author: <span class="v">1</span>, createdAt: <span class="v">-1</span> });
+postSchema.<span class="m">index</span>({ tags: <span class="v">1</span> });
+
+<span class="k">export const</span> Post = mongoose.<span class="m">model</span>(<span class="s">"Post"</span>, postSchema);</pre>
+    </div>
+  </section>
+
+<section class="section">
+Typescript class
+<div class="code-wrap">
+
+
+export enum UserRole {
+  ADMIN = "ADMIN",
+  USER = "USER",
+  MANAGER = "MANAGER",
+}
+
+export interface IAddress {
+  city: string;
+  state: string;
+  country: string;
+  zipCode: number;
+}
+
+export interface ISocialLinks {
+  github?: string;
+  linkedin?: string;
+  website?: string;
+}
+
+export interface IUser {
+  firstName: string;
+  lastName: string;
+  email: string;
+
+  age?: number;
+  isActive: boolean;
+  birthDate?: Date;
+
+  salary?: mongoose.Types.Decimal128;
+
+  profileImage?: Buffer;
+
+  role: UserRole;
+
+  skills: string[];
+
+  phoneNumbers: number[];
+
+  address?: IAddress;
+
+  socialLinks?: ISocialLinks;
+
+  settings?: Map<string, string>;
+
+  posts: Types.ObjectId[];
+}
+</div>
+</section>
+
+  <!-- ─── 06. Zod Validation ─── -->
+  <section class="section" id="s6">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2>Zod Validation</h2>
+    </div>
+    <div class="code-wrap">
+      <span class="code-lang">bash</span>
+<pre>npm install zod</pre>
+    </div>
+    <div class="code-wrap" style="margin-top:16px">
+      <span class="code-lang">TypeScript</span>
+<pre><span class="c">// src/validators/user.validator.ts</span>
+<span class="k">import</span> { z } <span class="k">from</span> <span class="s">"zod"</span>;
+
+<span class="k">export const</span> <span class="n">createUserSchema</span> = z.<span class="m">object</span>({
+
+  firstName:  z.<span class="m">string</span>().<span class="m">min</span>(<span class="v">2</span>).<span class="m">max</span>(<span class="v">50</span>),
+  lastName:   z.<span class="m">string</span>().<span class="m">min</span>(<span class="v">1</span>),
+  email:      z.<span class="m">string</span>().<span class="m">email</span>(),
+  age:        z.<span class="m">number</span>().<span class="m">int</span>().<span class="m">min</span>(<span class="v">18</span>).<span class="m">max</span>(<span class="v">100</span>),
+  role:       z.<span class="m">enum</span>([<span class="e">"ADMIN"</span>, <span class="e">"USER"</span>, <span class="e">"MANAGER"</span>]).<span class="m">default</span>(<span class="e">"USER"</span>),
+  skills:     z.<span class="m">array</span>(z.<span class="m">string</span>()).<span class="m">optional</span>(),
+
+  address: z.<span class="m">object</span>({
+    city:    z.<span class="m">string</span>(),
+    state:   z.<span class="m">string</span>(),
+    country: z.<span class="m">string</span>(),
+    zipCode: z.<span class="m">number</span>()
+  }).<span class="m">optional</span>(),
+
+  socialLinks: z.<span class="m">object</span>({
+    github:   z.<span class="m">string</span>().<span class="m">url</span>().<span class="m">optional</span>(),
+    linkedin: z.<span class="m">string</span>().<span class="m">url</span>().<span class="m">optional</span>(),
+    website:  z.<span class="m">string</span>().<span class="m">url</span>().<span class="m">optional</span>()
+  }).<span class="m">optional</span>()
+
+});
+
+<span class="c">// Infer TypeScript type automatically from schema</span>
+<span class="k">export type</span> <span class="t">CreateUserInput</span> = z.<span class="m">infer</span>&lt;<span class="k">typeof</span> createUserSchema&gt;;</pre>
+    </div>
+  </section>
+
+  <!-- ─── 07. Validation Middleware ─── -->
+  <section class="section" id="s7">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2>Validation Middleware</h2>
+    </div>
+    <div class="code-wrap">
+      <span class="code-lang">TypeScript</span>
+<pre><span class="c">// src/middleware/validate.ts</span>
+<span class="k">import</span> { Request, Response, NextFunction } <span class="k">from</span> <span class="s">"express"</span>;
+<span class="k">import</span> { ZodSchema } <span class="k">from</span> <span class="s">"zod"</span>;
+
+<span class="k">export const</span> <span class="n">validate</span> =
+  (schema: <span class="t">ZodSchema</span>) =>
+  (req: <span class="t">Request</span>, res: <span class="t">Response</span>, next: <span class="t">NextFunction</span>) => {
+
+    <span class="k">const</span> result = schema.<span class="m">safeParse</span>(req.body);
+
+    <span class="k">if</span> (!result.success) {
+      <span class="k">return</span> res.<span class="m">status</span>(<span class="v">400</span>).<span class="m">json</span>({
+        success: <span class="v">false</span>,
+        errors:  result.error.<span class="m">flatten</span>().fieldErrors
+      });
+    }
+
+    req.body = result.data;   <span class="c">// replace with sanitised + typed data</span>
+    <span class="m">next</span>();
+  };
+
+<span class="c">// Usage in routes:</span>
+<span class="c">// router.post("/", validate(createUserSchema), userController.create);</span></pre>
+    </div>
+  </section>
+
+  <!-- ─── 08. CRUD Operations ─── -->
+  <section class="section" id="s8">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <h2>CRUD Operations</h2>
+    </div>
+
+    <div class="callout" style="margin-bottom:20px">
+      <span class="callout-icon">🔁</span>
+      <p><strong>Request flow:</strong> Every request follows the same pipeline — Route → Validation Middleware → Controller → Service → Model → MongoDB.</p>
+    </div>
+
+    <div class="pipeline">
+      <span class="pipe-step">Route</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-step">Validation</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-step">Controller</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-step">Service</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-step">Model</span>
+      <span class="pipe-arrow">→</span>
+      <span class="pipe-step">MongoDB</span>
+    </div>
+
+    <div class="methods" style="margin-top:28px">
+
+      <!-- POST -->
+      <div class="method-row">
+        <span class="method-badge post">POST</span>
+        <div class="method-info">
+          <h4>Create Resource &nbsp;<code>POST /users</code></h4>
+          <p>Creates a new document. Accepts full body. Returns <code>201 Created</code> with the saved document.</p>
+          <div class="code-wrap" style="margin-top:10px">
+<pre><span class="k">const</span> user = <span class="k">await</span> User.<span class="m">create</span>(req.body);
+res.<span class="m">status</span>(<span class="v">201</span>).<span class="m">json</span>({ success: <span class="v">true</span>, data: user });</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- GET -->
+      <div class="method-row">
+        <span class="method-badge get">GET</span>
+        <div class="method-info">
+          <h4>Read Resources &nbsp;<code>GET /users</code> &nbsp;|&nbsp; <code>GET /users/:id</code></h4>
+          <p>Fetch all documents or a single one by ID. Supports filtering, sorting, and pagination via query params.</p>
+          <div class="code-wrap" style="margin-top:10px">
+<pre><span class="c">// All users</span>
+<span class="k">const</span> users = <span class="k">await</span> User.<span class="m">find</span>({ isActive: <span class="v">true</span> })
+  .<span class="m">sort</span>({ createdAt: <span class="v">-1</span> })
+  .<span class="m">limit</span>(<span class="v">20</span>)
+  .<span class="m">skip</span>(page * <span class="v">20</span>);
+
+<span class="c">// Single user</span>
+<span class="k">const</span> user = <span class="k">await</span> User.<span class="m">findById</span>(req.params.id)
+  .<span class="m">populate</span>(<span class="s">"posts"</span>, <span class="s">"title createdAt"</span>);</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- PUT -->
+      <div class="method-row">
+        <span class="method-badge put">PUT</span>
+        <div class="method-info">
+          <h4>Replace Resource &nbsp;<code>PUT /users/:id</code></h4>
+          <p>Replaces the entire document. Fields not included in the body are removed (full overwrite).</p>
+          <div class="code-wrap" style="margin-top:10px">
+<pre><span class="k">const</span> user = <span class="k">await</span> User.<span class="m">findByIdAndUpdate</span>(
+  req.params.id,
+  req.body,
+  { new: <span class="v">true</span>, overwrite: <span class="v">true</span>, runValidators: <span class="v">true</span> }
+);</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- PATCH -->
+      <div class="method-row">
+        <span class="method-badge patch">PATCH</span>
+        <div class="method-info">
+          <h4>Partial Update &nbsp;<code>PATCH /users/:id</code></h4>
+          <p>Updates only the provided fields. Other fields remain unchanged. Most commonly used update method.</p>
+          <div class="code-wrap" style="margin-top:10px">
+<pre><span class="k">const</span> user = <span class="k">await</span> User.<span class="m">findByIdAndUpdate</span>(
+  req.params.id,
+  { $<span class="m">set</span>: req.body },          <span class="c">// $set ensures partial update</span>
+  { new: <span class="v">true</span>, runValidators: <span class="v">true</span> }
+);</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- DELETE -->
+      <div class="method-row">
+        <span class="method-badge del">DELETE</span>
+        <div class="method-info">
+          <h4>Remove Resource &nbsp;<code>DELETE /users/:id</code></h4>
+          <p>Permanently removes a document by ID. Returns <code>204 No Content</code> on success.</p>
+          <div class="code-wrap" style="margin-top:10px">
+<pre><span class="k">await</span> User.<span class="m">findByIdAndDelete</span>(req.params.id);
+res.<span class="m">status</span>(<span class="v">204</span>).<span class="m">send</span>();</pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─── 09. Population ─── -->
+  <section class="section" id="s9">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <h2>Population</h2>
+    </div>
+    <div class="callout">
+      <span class="callout-icon">🔗</span>
+      <p><strong>What is populate?</strong> Mongoose <code>populate()</code> replaces an ObjectId reference with the actual referenced document at query time — similar to a SQL JOIN. Use field projection as the second argument to limit what is fetched.</p>
+    </div>
+    <div class="code-wrap" style="margin-top:16px">
+      <span class="code-lang">TypeScript</span>
+<pre><span class="c">// ── Basic population ───────────────────────────</span>
+<span class="k">const</span> post = <span class="k">await</span> Post.<span class="m">find</span>()
+  .<span class="m">populate</span>(<span class="s">"author"</span>);
+
+<span class="c">// ── Select specific fields only ────────────────</span>
+<span class="k">const</span> post = <span class="k">await</span> Post.<span class="m">findById</span>(id)
+  .<span class="m">populate</span>(<span class="s">"author"</span>, <span class="s">"firstName lastName email"</span>);
+
+<span class="c">// ── Nested population ──────────────────────────</span>
+<span class="k">const</span> post = <span class="k">await</span> Post.<span class="m">findById</span>(id)
+  .<span class="m">populate</span>({
+    path: <span class="s">"comments.commentedBy"</span>,
+    select: <span class="s">"firstName lastName"</span>
+  });
+
+<span class="c">// ── Result shape after populate("author") ──────</span>
+<span class="c">// Before: { author: "6851abc123" }</span>
+<span class="c">// After:  { author: { firstName: "Shivam", email: "..." } }</span></pre>
+    </div>
+  </section>
+
+  <!-- ─── 10. Schema Options ─── -->
+  <section class="section" id="s10">
+    <div class="section-header">
+      <span class="section-num">10</span>
+      <h2>Common Schema Options</h2>
+    </div>
+    <div class="opts-grid">
+      <div class="opt-item"><code>required: true</code><p>Field must be present; throws ValidationError if missing.</p></div>
+      <div class="opt-item"><code>unique: true</code><p>Creates a unique index in MongoDB. Not a validator — use with care on optional fields.</p></div>
+      <div class="opt-item"><code>default: value</code><p>Fallback value when field is not provided. Accepts literals or functions.</p></div>
+      <div class="opt-item"><code>trim: true</code><p>Strips leading/trailing whitespace from strings before saving.</p></div>
+      <div class="opt-item"><code>lowercase / uppercase</code><p>Normalises string casing before save. Useful for emails, tags.</p></div>
+      <div class="opt-item"><code>min / max</code><p>Numeric range validation. Throws if value is out of bounds.</p></div>
+      <div class="opt-item"><code>minlength / maxlength</code><p>String length validation.</p></div>
+      <div class="opt-item"><code>enum: []</code><p>Restricts value to a defined list. Perfect for roles, statuses.</p></div>
+      <div class="opt-item"><code>validate: fn</code><p>Custom validator function. Return true to pass, false to fail.</p></div>
+      <div class="opt-item"><code>immutable: true</code><p>Prevents field from being changed after the document is created.</p></div>
+      <div class="opt-item"><code>select: false</code><p>Excludes field from query results by default (useful for passwords).</p></div>
+      <div class="opt-item"><code>index: true</code><p>Creates a single-field index to speed up queries on that field.</p></div>
+    </div>
+  </section>
+
+  <!-- ─── 11. Query Methods ─── -->
+  <section class="section" id="s11">
+    <div class="section-header">
+      <span class="section-num">11</span>
+      <h2>Common Query Methods</h2>
+    </div>
+    <table class="q-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Description</th>
+          <th>Returns</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>find(filter)</code></td><td class="desc">Fetch all matching documents. Returns empty array if none found.</td><td class="desc">Document[]</td></tr>
+        <tr><td><code>findOne(filter)</code></td><td class="desc">Fetch the first document matching the filter.</td><td class="desc">Document | null</td></tr>
+        <tr><td><code>findById(id)</code></td><td class="desc">Shorthand for findOne({ _id: id }).</td><td class="desc">Document | null</td></tr>
+        <tr><td><code>create(data)</code></td><td class="desc">Creates and saves one document. Runs validators.</td><td class="desc">Document</td></tr>
+        <tr><td><code>insertMany(array)</code></td><td class="desc">Bulk insert multiple documents. Faster than looping create().</td><td class="desc">Document[]</td></tr>
+        <tr><td><code>updateOne(filter, update)</code></td><td class="desc">Updates the first matching document. Does not return the doc.</td><td class="desc">UpdateResult</td></tr>
+        <tr><td><code>updateMany(filter, update)</code></td><td class="desc">Updates all matching documents.</td><td class="desc">UpdateResult</td></tr>
+        <tr><td><code>deleteOne(filter)</code></td><td class="desc">Deletes first matching document.</td><td class="desc">DeleteResult</td></tr>
+        <tr><td><code>deleteMany(filter)</code></td><td class="desc">Deletes all matching documents.</td><td class="desc">DeleteResult</td></tr>
+        <tr><td><code>findByIdAndUpdate(id, update, opts)</code></td><td class="desc">Find by ID, apply update. Pass <code>{ new: true }</code> to return updated doc.</td><td class="desc">Document | null</td></tr>
+        <tr><td><code>findByIdAndDelete(id)</code></td><td class="desc">Find by ID and remove. Returns the deleted document.</td><td class="desc">Document | null</td></tr>
+        <tr><td><code>countDocuments(filter)</code></td><td class="desc">Count matching documents without fetching data.</td><td class="desc">number</td></tr>
+        <tr><td><code>aggregate(pipeline)</code></td><td class="desc">Run an aggregation pipeline for complex queries/analytics.</td><td class="desc">any[]</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ─── 12. Production Roadmap ─── -->
+  <section class="section" id="s12">
+    <div class="section-header">
+      <span class="section-num">12</span>
+      <h2>Production Roadmap</h2>
+    </div>
+    <div class="callout" style="margin-bottom:24px">
+      <span class="callout-icon">🚀</span>
+      <p>After the basic schema and CRUD are working, here are the layers to add in order to reach a fully production-ready system.</p>
+    </div>
+    <div class="roadmap">
+      <div class="road-item">Schema Design</div>
+      <div class="road-item">Zod Validation</div>
+      <div class="road-item">Error Handling</div>
+      <div class="road-item">JWT Auth</div>
+      <div class="road-item">RBAC Authorization</div>
+      <div class="road-item">Refresh Tokens</div>
+      <div class="road-item">File Upload</div>
+      <div class="road-item">Redis Caching</div>
+      <div class="road-item">Aggregation Pipeline</div>
+      <div class="road-item">Transactions</div>
+      <div class="road-item">Indexes</div>
+      <div class="road-item">Rate Limiting</div>
+      <div class="road-item">Docker</div>
+      <div class="road-item">Docker Compose</div>
+      <div class="road-item">Nginx Reverse Proxy</div>
+      <div class="road-item">AWS EC2</div>
+      <div class="road-item">MongoDB Atlas</div>
+      <div class="road-item">GitHub Actions CI/CD</div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  Node.js · TypeScript · MongoDB — Production Schema Design Reference
+</footer>
+
+</body>
+</html>

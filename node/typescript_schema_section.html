@@ -1,0 +1,283 @@
+
+<style>
+:root{--bg:#0b0e14;--surface:#111520;--surface2:#161c2e;--border:#1e2840;--accent:#00e5ff;--accent2:#7c3aed;--accent3:#f59e0b;--green:#10b981;--muted:#64748b;--text:#e2e8f0;--heading:#f8fafc;--mono:'JetBrains Mono',monospace;--sans:'Syne',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:transparent;color:var(--text);font-family:var(--sans);font-size:14px}
+.wrap{padding:8px 0 32px}
+.sec-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.sec-num{font-family:var(--mono);font-size:11px;color:var(--accent);background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);padding:3px 10px;border-radius:6px}
+.sec-header h2{font-size:1.3rem;font-weight:700;color:var(--heading)}
+.callout{display:flex;gap:12px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.15);border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:12.5px;color:var(--muted)}
+.callout strong{color:var(--text)}
+.tabs{display:flex;gap:4px;margin-bottom:0;border-bottom:1px solid var(--border)}
+.tab{font-family:var(--mono);font-size:11px;padding:7px 16px;cursor:pointer;border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;color:var(--muted);background:transparent;transition:all .15s}
+.tab.active{color:var(--accent);background:var(--surface);border-color:var(--border)}
+.panel{display:none}
+.panel.active{display:block}
+pre{background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;padding:22px 24px;overflow-x:auto;font-family:var(--mono);font-size:12px;line-height:1.9;tab-size:2;margin-bottom:0}
+.k{color:#c792ea}.s{color:#c3e88d}.n{color:var(--accent)}.c{color:var(--muted);font-style:italic}.v{color:#f78c6c}.p{color:#89ddff}.m{color:var(--accent3)}.t{color:var(--accent3)}.e{color:var(--green)}.i{color:#80cbc4}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@700&display=swap" rel="stylesheet"/>
+
+<div class="wrap">
+  <div class="sec-header">
+    <span class="sec-num">04 — 05</span>
+    <h2>TypeScript Schemas</h2>
+  </div>
+
+  <div class="callout">
+    <span>💡</span>
+    <div><strong>TypeScript integration:</strong> Using <code>InferSchemaType</code> and generic <code>Model&lt;T&gt;</code> gives you full type safety from schema definition all the way to query results — no separate interface files needed.</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="show('user',this)">user.model.ts</div>
+    <div class="tab" onclick="show('post',this)">post.model.ts</div>
+    <div class="tab" onclick="show('types',this)">types.ts</div>
+    <div class="tab" onclick="show('db',this)">db.ts</div>
+  </div>
+
+  <div id="user" class="panel active">
+<pre><span class="k">import</span> mongoose, { Schema, <span class="t">InferSchemaType</span>, <span class="t">Model</span> } <span class="k">from</span> <span class="s">"mongoose"</span>;
+
+<span class="c">// ── User Schema ────────────────────────────────────────────</span>
+<span class="k">const</span> <span class="n">userSchema</span> = <span class="k">new</span> Schema({
+
+  <span class="c">// Identity</span>
+  firstName: { type: <span class="v">String</span>,  required: <span class="v">true</span>,  trim: <span class="v">true</span>, minlength: <span class="v">2</span>, maxlength: <span class="v">50</span> },
+  lastName:  { type: <span class="v">String</span>,  required: <span class="v">true</span>,  trim: <span class="v">true</span> },
+  email:     { type: <span class="v">String</span>,  required: <span class="v">true</span>,  unique: <span class="v">true</span>, lowercase: <span class="v">true</span>, trim: <span class="v">true</span> },
+
+  <span class="c">// Auth & Access</span>
+  role: {
+    type:    <span class="v">String</span>,
+    enum:    [<span class="e">"ADMIN"</span>, <span class="e">"USER"</span>, <span class="e">"MANAGER"</span>] <span class="k">as</span> <span class="k">const</span>,
+    default: <span class="e">"USER"</span>
+  },
+  isActive: { type: <span class="v">Boolean</span>, default: <span class="v">true</span> },
+  password: { type: <span class="v">String</span>, required: <span class="v">true</span>, select: <span class="v">false</span> },  <span class="c">// hidden by default</span>
+
+  <span class="c">// Profile</span>
+  age:          { type: <span class="v">Number</span>,                  min: <span class="v">18</span>, max: <span class="v">100</span> },
+  birthDate:    { type: <span class="v">Date</span>  },
+  salary:       { type: Schema.Types.<span class="v">Decimal128</span> },
+  profileImage: { type: <span class="v">String</span> },                               <span class="c">// URL or base64</span>
+
+  <span class="c">// Collections</span>
+  skills:       [{ type: <span class="v">String</span>, trim: <span class="v">true</span> }],
+  phoneNumbers: [{ type: <span class="v">String</span> }],                             <span class="c">// String keeps leading 0s</span>
+
+  <span class="c">// Embedded sub-documents (always fetched with user)</span>
+  address: {
+    city:    { type: <span class="v">String</span> },
+    state:   { type: <span class="v">String</span> },
+    country: { type: <span class="v">String</span> },
+    zipCode: { type: <span class="v">String</span> }
+  },
+
+  socialLinks: {
+    github:   { type: <span class="v">String</span> },
+    linkedin: { type: <span class="v">String</span> },
+    website:  { type: <span class="v">String</span> }
+  },
+
+  <span class="c">// Dynamic key-value settings map</span>
+  settings: { type: <span class="v">Map</span>, of: <span class="v">String</span> },
+
+  <span class="c">// References (normalised — loaded via populate)</span>
+  posts: [{ type: Schema.Types.<span class="v">ObjectId</span>, ref: <span class="s">"Post"</span> }]
+
+}, {
+  timestamps: <span class="v">true</span>                                              <span class="c">// adds createdAt, updatedAt</span>
+});
+
+<span class="c">// ── Indexes ────────────────────────────────────────────────</span>
+userSchema.<span class="m">index</span>({ email: <span class="v">1</span> });
+userSchema.<span class="m">index</span>({ role: <span class="v">1</span>, isActive: <span class="v">1</span> });
+
+<span class="c">// ── Infer TypeScript type directly from schema ─────────────</span>
+<span class="k">export type</span> <span class="t">IUser</span> = <span class="t">InferSchemaType</span>&lt;<span class="k">typeof</span> userSchema&gt;;
+<span class="c">// IUser is now fully typed — no separate interface needed</span>
+
+<span class="c">// ── Typed Model ────────────────────────────────────────────</span>
+<span class="k">export const</span> User: <span class="t">Model</span>&lt;<span class="t">IUser</span>&gt; = mongoose.<span class="m">model</span>&lt;<span class="t">IUser</span>&gt;(<span class="s">"User"</span>, userSchema);</pre>
+  </div>
+
+  <div id="post" class="panel">
+<pre><span class="k">import</span> mongoose, { Schema, <span class="t">InferSchemaType</span>, <span class="t">Model</span> } <span class="k">from</span> <span class="s">"mongoose"</span>;
+
+<span class="c">// ── Comment Sub-Document Schema ────────────────────────────</span>
+<span class="k">const</span> <span class="n">commentSchema</span> = <span class="k">new</span> Schema({
+  message:     { type: <span class="v">String</span>, required: <span class="v">true</span>, trim: <span class="v">true</span> },
+  commentedBy: { type: Schema.Types.<span class="v">ObjectId</span>, ref: <span class="s">"User"</span>, required: <span class="v">true</span> }
+}, {
+  _id:        <span class="v">true</span>,
+  timestamps: <span class="v">true</span>
+});
+
+<span class="k">export type</span> <span class="t">IComment</span> = <span class="t">InferSchemaType</span>&lt;<span class="k">typeof</span> commentSchema&gt;;
+
+<span class="c">// ── Post Schema ────────────────────────────────────────────</span>
+<span class="k">const</span> <span class="n">postSchema</span> = <span class="k">new</span> Schema({
+
+  title:       { type: <span class="v">String</span>, required: <span class="v">true</span>, trim: <span class="v">true</span>, maxlength: <span class="v">200</span> },
+  description: { type: <span class="v">String</span>, required: <span class="v">true</span> },
+  slug:        { type: <span class="v">String</span>, unique: <span class="v">true</span>, lowercase: <span class="v">true</span> },  <span class="c">// URL-friendly ID</span>
+
+  author: {
+    type:     Schema.Types.<span class="v">ObjectId</span>,
+    ref:      <span class="s">"User"</span>,
+    required: <span class="v">true</span>
+  },
+
+  tags:   [{ type: <span class="v">String</span>, lowercase: <span class="v">true</span>, trim: <span class="v">true</span> }],
+  likes:  { type: <span class="v">Number</span>, default: <span class="v">0</span>, min: <span class="v">0</span> },
+  views:  { type: <span class="v">Number</span>, default: <span class="v">0</span>, min: <span class="v">0</span> },
+
+  isPublished: { type: <span class="v">Boolean</span>, default: <span class="v">false</span> },
+
+  comments: [commentSchema]    <span class="c">// embedded — always loaded with post</span>
+
+}, {
+  timestamps: <span class="v">true</span>
+});
+
+<span class="c">// ── Indexes ────────────────────────────────────────────────</span>
+postSchema.<span class="m">index</span>({ author: <span class="v">1</span>, createdAt: <span class="v">-1</span> });
+postSchema.<span class="m">index</span>({ tags: <span class="v">1</span> });
+postSchema.<span class="m">index</span>({ slug: <span class="v">1</span> }, { unique: <span class="v">true</span>, sparse: <span class="v">true</span> });
+
+<span class="c">// ── Pre-save hook: auto-generate slug ─────────────────────</span>
+postSchema.<span class="m">pre</span>(<span class="s">"save"</span>, <span class="k">function</span> (<span class="k">next</span>) {
+  <span class="k">if</span> (<span class="k">this</span>.isModified(<span class="s">"title"</span>)) {
+    <span class="k">this</span>.slug = <span class="k">this</span>.title
+      .<span class="m">toLowerCase</span>()
+      .<span class="m">replace</span>(<span class="i">/[^a-z0-9]+/g</span>, <span class="s">"-"</span>)
+      .<span class="m">replace</span>(<span class="i">/^-|-$/g</span>, <span class="s">""</span>);
+  }
+  <span class="m">next</span>();
+});
+
+<span class="c">// ── Types & Model ──────────────────────────────────────────</span>
+<span class="k">export type</span> <span class="t">IPost</span>  = <span class="t">InferSchemaType</span>&lt;<span class="k">typeof</span> postSchema&gt;;
+<span class="k">export const</span> Post: <span class="t">Model</span>&lt;<span class="t">IPost</span>&gt; = mongoose.<span class="m">model</span>&lt;<span class="t">IPost</span>&gt;(<span class="s">"Post"</span>, postSchema);</pre>
+  </div>
+
+  <div id="types" class="panel">
+<pre><span class="c">// src/types/index.ts — shared TypeScript types for the entire app</span>
+<span class="k">import</span> { <span class="t">Types</span> } <span class="k">from</span> <span class="s">"mongoose"</span>;
+
+<span class="c">// ── Role union type (mirrors schema enum) ──────────────────</span>
+<span class="k">export type</span> <span class="t">UserRole</span> = <span class="e">"ADMIN"</span> | <span class="e">"USER"</span> | <span class="e">"MANAGER"</span>;
+
+<span class="c">// ── Populated variants (when populate() is used) ───────────</span>
+<span class="c">// Mongoose replaces ObjectId with the full document at runtime.</span>
+<span class="c">// These types make that explicit so the compiler stays happy.</span>
+
+<span class="k">export interface</span> <span class="t">PopulatedPost</span> {
+  _id:         <span class="t">Types.ObjectId</span>;
+  title:       <span class="v">string</span>;
+  description: <span class="v">string</span>;
+  author: {                          <span class="c">// full user, not just ObjectId</span>
+    _id:       <span class="t">Types.ObjectId</span>;
+    firstName: <span class="v">string</span>;
+    lastName:  <span class="v">string</span>;
+    email:     <span class="v">string</span>;
+  };
+  tags:        <span class="v">string</span>[];
+  likes:       <span class="v">number</span>;
+  comments:    <span class="t">PopulatedComment</span>[];
+  createdAt:   <span class="t">Date</span>;
+  updatedAt:   <span class="t">Date</span>;
+}
+
+<span class="k">export interface</span> <span class="t">PopulatedComment</span> {
+  _id:         <span class="t">Types.ObjectId</span>;
+  message:     <span class="v">string</span>;
+  commentedBy: {
+    _id:       <span class="t">Types.ObjectId</span>;
+    firstName: <span class="v">string</span>;
+    lastName:  <span class="v">string</span>;
+  };
+  createdAt:   <span class="t">Date</span>;
+}
+
+<span class="c">// ── Service layer DTOs ─────────────────────────────────────</span>
+<span class="c">// Separate from Zod schemas — used inside service/controller.</span>
+
+<span class="k">export interface</span> <span class="t">CreateUserDTO</span> {
+  firstName:   <span class="v">string</span>;
+  lastName:    <span class="v">string</span>;
+  email:       <span class="v">string</span>;
+  password:    <span class="v">string</span>;
+  age?:        <span class="v">number</span>;
+  role?:       <span class="t">UserRole</span>;
+  skills?:     <span class="v">string</span>[];
+}
+
+<span class="k">export interface</span> <span class="t">CreatePostDTO</span> {
+  title:       <span class="v">string</span>;
+  description: <span class="v">string</span>;
+  authorId:    <span class="v">string</span>;
+  tags?:       <span class="v">string</span>[];
+}
+
+<span class="c">// ── Pagination helper ──────────────────────────────────────</span>
+<span class="k">export interface</span> <span class="t">PaginatedResult</span>&lt;<span class="t">T</span>&gt; {
+  data:        <span class="t">T</span>[];
+  total:       <span class="v">number</span>;
+  page:        <span class="v">number</span>;
+  limit:       <span class="v">number</span>;
+  totalPages:  <span class="v">number</span>;
+}</pre>
+  </div>
+
+  <div id="db" class="panel">
+<pre><span class="c">// src/config/db.ts — typed MongoDB connection with retry logic</span>
+<span class="k">import</span> mongoose <span class="k">from</span> <span class="s">"mongoose"</span>;
+
+<span class="k">const</span> MAX_RETRIES = <span class="v">5</span>;
+<span class="k">const</span> RETRY_MS   = <span class="v">3000</span>;
+
+<span class="k">export const</span> <span class="m">connectDB</span> = <span class="k">async</span> (attempt = <span class="v">1</span>): <span class="t">Promise</span>&lt;<span class="v">void</span>&gt; => {
+  <span class="k">try</span> {
+    <span class="k">const</span> uri = process.env.<span class="n">MONGODB_URI</span>;
+
+    <span class="k">if</span> (!uri) <span class="k">throw new</span> <span class="t">Error</span>(<span class="s">"MONGODB_URI not set in environment"</span>);
+
+    <span class="k">await</span> mongoose.<span class="m">connect</span>(uri, {
+      dbName:          process.env.<span class="n">DB_NAME</span> ?? <span class="s">"myapp"</span>,
+      maxPoolSize:     <span class="v">10</span>,          <span class="c">// connection pool</span>
+      serverSelectionTimeoutMS: <span class="v">5000</span>,
+      socketTimeoutMS: <span class="v">45000</span>
+    });
+
+    console.<span class="m">log</span>(<span class="s">`✓ MongoDB connected (attempt <span class="i">${attempt}</span>)`</span>);
+
+  } <span class="k">catch</span> (err) {
+    console.<span class="m">error</span>(<span class="s">`✗ MongoDB connection failed (attempt <span class="i">${attempt}</span>)`</span>, err);
+
+    <span class="k">if</span> (attempt &lt; MAX_RETRIES) {
+      console.<span class="m">log</span>(<span class="s">`  Retrying in <span class="i">${RETRY_MS / 1000}</span>s…`</span>);
+      <span class="k">await new</span> <span class="t">Promise</span>(r => <span class="m">setTimeout</span>(r, RETRY_MS));
+      <span class="k">return</span> <span class="m">connectDB</span>(attempt + <span class="v">1</span>);
+    }
+
+    process.<span class="m">exit</span>(<span class="v">1</span>);
+  }
+};
+
+<span class="c">// Graceful shutdown — close pool before process exits</span>
+process.<span class="m">on</span>(<span class="s">"SIGINT"</span>,  () => mongoose.<span class="m">connection</span>.<span class="m">close</span>());
+process.<span class="m">on</span>(<span class="s">"SIGTERM"</span>, () => mongoose.<span class="m">connection</span>.<span class="m">close</span>());</pre>
+  </div>
+</div>
+
+<script>
+function show(id, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+</script>

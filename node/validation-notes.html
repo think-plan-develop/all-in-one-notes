@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Validation — Node + TypeScript + MongoDB</title>
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Segoe UI,sans-serif;
+}
+
+body{
+    background:#f4f7fc;
+    color:#222;
+}
+
+.container{
+    width:90%;
+    max-width:1400px;
+    margin:40px auto;
+}
+
+/* HEADER */
+.header{
+    background:linear-gradient(135deg,#2563eb,#7c3aed);
+    color:white;
+    padding:30px;
+    border-radius:16px;
+    box-shadow:0 10px 30px rgba(0,0,0,.15);
+}
+.header h1{
+    font-size:36px;
+}
+.header p{
+    margin-top:10px;
+    opacity:.9;
+}
+
+/* TOC inside header */
+.toc{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:22px;
+}
+.toc a{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:7px 16px;
+    border-radius:999px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    text-decoration:none;
+    transition:opacity .2s, transform .15s;
+}
+.toc a:hover{ opacity:.85; transform:translateY(-1px); }
+.toc a.red{
+    background:rgba(255,255,255,0.15);
+    border:1px solid rgba(239,68,68,0.6);
+    color:#fecaca;
+}
+.toc a.yellow{
+    background:rgba(255,255,255,0.15);
+    border:1px solid rgba(253,224,71,0.6);
+    color:#fef08a;
+}
+
+/* PRIORITY LABEL */
+.priority-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin:40px 0 20px;
+}
+.priority-pill{
+    white-space:nowrap;
+    padding:7px 18px;
+    border-radius:999px;
+    font-size:13px;
+    font-weight:700;
+}
+.priority-pill.critical{ background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; }
+.priority-pill.high    { background:#fef3c7; color:#b45309; border:1px solid #fcd34d; }
+.priority-line{ flex:1; height:1px; background:#d1d5db; }
+
+/* QUESTION CARD — exact from sample */
+.question-card{
+    background:white;
+    margin-top:24px;
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 8px 25px rgba(0,0,0,.08);
+}
+
+.question-title{
+    background:#1e293b;
+    color:white;
+    padding:20px;
+    font-size:24px;
+    font-weight:bold;
+}
+
+.content{
+    padding:30px;
+}
+
+/* BADGE — exact from sample */
+.badge{
+    display:inline-block;
+    background:#2563eb;
+    color:white;
+    padding:6px 12px;
+    border-radius:999px;
+    font-size:12px;
+    margin-bottom:15px;
+    margin-right:6px;
+}
+.badge.green{ background:#16a34a; }
+.badge.orange{ background:#ea580c; }
+.badge.purple{ background:#7c3aed; }
+
+/* SHORT ANSWER — exact from sample */
+.short-answer{
+    background:#dcfce7;
+    border-left:6px solid #16a34a;
+    padding:20px;
+    border-radius:10px;
+    margin-bottom:25px;
+}
+
+/* SECTION TITLE — exact from sample */
+.section-title{
+    color:#2563eb;
+    margin:25px 0 15px;
+    font-size:18px;
+}
+
+/* DIAGRAM — exact from sample */
+.diagram{
+    background:#eff6ff;
+    border:2px dashed #3b82f6;
+    padding:20px;
+    border-radius:12px;
+    margin:20px 0;
+    white-space:pre-line;
+    font-family:monospace;
+    font-size:14px;
+    line-height:1.9;
+    color:#1e3a8a;
+}
+
+/* INTERVIEW — exact from sample */
+.interview{
+    background:#fff7ed;
+    border-left:6px solid #f97316;
+    padding:20px;
+    border-radius:10px;
+    margin-top:25px;
+}
+.interview p{ margin-top:8px; line-height:1.75; }
+
+/* REMEMBER — exact from sample */
+.remember{
+    background:#fef9c3;
+    border-left:6px solid #ca8a04;
+    padding:20px;
+    border-radius:10px;
+    margin-top:25px;
+}
+
+/* TABLE — exact from sample */
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+th{
+    background:#2563eb;
+    color:white;
+    padding:12px;
+    text-align:left;
+}
+td{
+    padding:12px;
+    border:1px solid #ddd;
+    vertical-align:top;
+}
+tr:nth-child(even) td{ background:#f8fafc; }
+
+.yes{ color:#dc2626; font-weight:bold; }
+.no { color:#16a34a; font-weight:bold; }
+
+/* ── CODE BLOCK (dark, my own style only for code) ── */
+.code{
+    background:#0f172a;
+    border-radius:10px;
+    overflow:hidden;
+    margin:15px 0;
+    font-family:'Courier New',Courier,monospace;
+    font-size:13.5px;
+    line-height:1.75;
+}
+.code-bar{
+    background:#1e293b;
+    padding:8px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom:1px solid #334155;
+}
+.code-bar .filename{
+    color:#94a3b8;
+    font-size:12px;
+    font-family:'Courier New',monospace;
+}
+.dots{ display:flex; gap:6px; }
+.dot{ width:11px; height:11px; border-radius:50%; }
+.dot.r{ background:#ef4444; }
+.dot.y{ background:#f59e0b; }
+.dot.g{ background:#22c55e; }
+.code pre{
+    padding:18px 20px;
+    overflow-x:auto;
+    white-space:pre;
+}
+
+/* syntax colours */
+.kw { color:#c084fc; }
+.st { color:#86efac; }
+.ty { color:#67e8f9; }
+.cm { color:#475569; font-style:italic; }
+.fn { color:#fbbf24; }
+.nm { color:#fb923c; }
+.pl { color:#e2e8f0; }
+
+/* key points list */
+.points{
+    list-style:none;
+    margin:15px 0;
+}
+.points li{
+    padding:10px 0;
+    border-bottom:1px solid #e5e7eb;
+    display:flex;
+    gap:12px;
+    font-size:15px;
+    line-height:1.65;
+    color:#374151;
+}
+.points li:last-child{ border-bottom:none; }
+.points li .arrow{ color:#2563eb; font-weight:700; flex-shrink:0; }
+
+/* inline code inside text */
+code{
+    background:#eff6ff;
+    color:#1d4ed8;
+    padding:2px 7px;
+    border-radius:5px;
+    font-family:'Courier New',monospace;
+    font-size:13px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>Node.js TypeScript + MongoDB — Validation</h1>
+    <p>5 critical topics explained with code, flow diagrams &amp; interview tips</p>
+    <div class="toc">
+      <a class="red"    href="#t1">🔴 Input Validation</a>
+      <a class="red"    href="#t2">🔴 Schema-Level Validation</a>
+      <a class="yellow" href="#t3">🟡 DTO Pattern</a>
+      <a class="yellow" href="#t4">🟡 Async Validation</a>
+      <a class="yellow" href="#t5">🟡 Sanitization</a>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.toc a').forEach(function(link){
+      link.addEventListener('click', function(e){
+        e.preventDefault();
+        var target = document.querySelector(this.getAttribute('href'));
+        if(target){ target.scrollIntoView({ behavior:'smooth', block:'start' }); }
+      });
+    });
+  </script>
+
+
+  <!-- ══════════════════════════════════════
+       PRIORITY: CRITICAL
+  ══════════════════════════════════════ -->
+  <div class="priority-row">
+    <div class="priority-pill critical">🔴 Critical — Do These First</div>
+    <div class="priority-line"></div>
+  </div>
+
+
+  <!-- ─── T1: INPUT VALIDATION ─── -->
+  <div class="question-card" id="t1">
+    <div class="question-title">Q1. Input Validation</div>
+    <div class="content">
+
+      <span class="badge">Zod</span>
+      <span class="badge green">Middleware</span>
+
+      <div class="short-answer">
+        <strong>What it means:</strong><br><br>
+        Every request — body, params, query — must be validated at the
+        <strong>route/middleware level</strong> before your controller or DB ever sees it.
+        Use <strong>Zod</strong> (recommended with TypeScript) to define a schema and
+        reject bad data immediately with a structured error response.
+      </div>
+
+      <h2 class="section-title">How the Flow Works</h2>
+
+      <div class="diagram">Request
+  ↓
+Zod Middleware
+  ↓
+✅ Valid  →  Controller  →  Service  →  DB
+❌ Invalid →  400 Bad Request (structured error returned)</div>
+
+      <h2 class="section-title">Install</h2>
+
+      <div class="code">
+        <div class="code-bar"><div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span class="filename">terminal</span></div>
+        <pre><span class="pl">npm install zod</span></pre>
+      </div>
+
+      <h2 class="section-title">Define Schema + Infer Type</h2>
+
+      <div class="code">
+        <div class="code-bar"><div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span class="filename">schemas/user.schema.ts</span></div>
+        <pre><span class="kw">import</span> <span class="pl">{ z }</span> <span class="kw">from</span> <span class="st">'zod'</span><span class="pl">;</span>
+
+<span class="kw">export const</span> <span class="fn">createUserSchema</span> <span class="pl">= z.</span><span class="fn">object</span><span class="pl">({</span>
+  <span class="pl">name:     z.</span><span class="fn">string</span><span class="pl">().</span><span class="fn">min</span><span class="pl">(</span><span class="nm">2</span><span class="pl">).</span><span class="fn">max</span><span class="pl">(</span><span class="nm">50</span><span class="pl">),</span>
+  <span class="pl">email:    z.</span><span class="fn">string</span><span class="pl">().</span><span class="fn">email</span><span class="pl">(),</span>
+  <span class="pl">age:      z.</span><span class="fn">number</span><span class="pl">().</span><span class="fn">min</span><span class="pl">(</span><span class="nm">18</span><span class="pl">).</span><span class="fn">optional</span><span class="pl">(),</span>
+  <span class="pl">role:     z.</span><span class="fn">enum</span><span class="pl">([</span><span class="st">'admin'</span><span class="pl">,</span> <span class="st">'user'</span><span class="pl">]),</span>
+<span class="pl">});</span>
+
+<span class="cm">// Infer TypeScript type from schema — no duplication!</span>
+<span class="kw">export type</span> <span class="ty">CreateUserInput</span> <span class="pl">= z.</span><span class="ty">infer</span><span class="pl">&lt;</span><span class="kw">typeof</span> <span class="fn">createUserSchema</span><span class="pl">&gt;;</span></pre>
+      </div>
+
+      <h2 class="section-title">Reusable Validate Middleware</h2>
+
+      <div class="code">
+        <div class="code-bar"><div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span class="filename">middleware/validate.ts</span></div>
+        <pre><span class="kw">import</span> <span class="pl">{ Request, Response, NextFunction }</span> <span class="kw">from</span> <span class="st">'express'</span><span class="pl">;</span>
+<span class="kw">import</span> <span class="pl">{ ZodSchema }</span> <span class="kw">from</span> <span class="st">'zod'</span><span class="pl">;</span>
+
+<span class="kw">export const</span> <span class="fn">validate</span> <span class="pl">=</span>
+  <span class="pl">(</span><span class="ty">schema</span><span class="pl">:</span> <span class="ty">ZodSchema</span><span class="pl">) =&gt;</span>
+  <span class="pl">(</span><span class="ty">req</span><span class="pl">:</span> <span class="ty">Request</span><span class="pl">,</span> <span class="ty">res</span><span class="pl">:</span> <span class="ty">Response</span><span class="pl">,</span> <span class="ty">next</span><span class="pl">:</span> <span class="ty">NextFunction</span><span class="pl">) =&gt; {</span>
+    <span class="kw">const</span> <span class="pl">result = schema.</span><span class="fn">safeParse</span><span class="pl">(req.body);</span>
+
+    <span class="kw">if</span> <span class="pl">(!result.success) {</span>
+      <span class="kw">const</span> <span class="pl">errors = result.error.errors.</span><span class="fn">map</span><span class="pl">(</span><span class="ty">e</span> <span class="pl">=&gt; ({</span>
+        <span class="pl">field:   e.path.</span><span class="fn">join</span><span class="pl">(</span><span class="st">'.'</span><span class="pl">),</span>
+        <span class="pl">message: e.message,</span>
+      <span class="pl">}));</span>
+      <span class="kw">return</span> <span class="pl">res.</span><span class="fn">status</span><span class="pl">(</span><span class="nm">400</span><span class="pl">).</span><span class="fn">json</span><span class="pl">({ success:</span> <span class="kw">false</span><span class="pl">, errors });</span>
+    <span class="pl">}</span>
+
+    <span class="pl">req.body = result.data;</span>  <span class="cm">// replace with parsed+typed data</span>
+    <span class="fn">next</span><span class="pl">();</span>
+  <span class="pl">};</span></pre>
+      </div>
+
+      <h2 class="section-title">Use in Route</h2>
+
+      <div class="code">
+        <div class="code-bar"><div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span class="filename">routes/user.route.ts</span></div>
+        <pre><span class="pl">router.</span><span class="fn">post</span><span class="pl">(</span><span class="st">'/users'</span><span class="pl">,</span> <span class="fn">validate</span><span class="pl">(createUserSchema),</span> <span class="fn">createUser</span><span class="pl">);</span>
+<span class="cm">// If body is invalid → 400 auto. Never reaches createUser.</span></pre>
+      </div>
+
+      <h2 class="section-title">Key Points</h2>
+      <ul class="points">
+        <li><span class="arrow">→</span><span><strong>safeParse</strong> never throws — returns <code>{ success, data, error }</code> safely</span></li>
+        <li><span class="arrow">→</span><span>Zod <strong>infers TypeScript types</strong> from the schema — write once, types are free</span></li>
+        <li><span class="arrow">→</span><span>Assigning <code>req.body = result.data</code> automatically <strong>strips unknown fields</strong></span></li>
+      </ul>
+
+      <div class="interview">
+        <strong>💬 Interview Question</strong>
+        <p><strong>Q: Where should validation happen — middleware or controller?</strong><br>
+        A: Middleware. Controllers should only handle business logic. Validation is a cross-cutting concern — one reusable middleware handles it for all routes without any code repetition.</p>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ─── T2: SCHEMA-LEVEL VALIDATION ─── -->
+  <div class="question-card" id="t2">
+    <div class="question-title">Q2. Schema-Level Validation (Mongoose)</div>
+    <div class="content">
+
+      <span class="badge">Mongoose</span>
+      <span class="badge green">Last Safety Net</span>
+
+      <div class="short-answer">
+        <strong>What it means:</strong><br><br>
+        Even after input validation, define constraints directly in your
+        <strong>Mongoose schema</strong>. This is a backup layer — it catches invalid data
+        that bypasses the API entirely, such as seeding scripts, admin tools, or
+        internal service calls that write directly to the DB.
+      </div>
+
+      <h2 class="section-title">Two Layers of Protection</h2>
+
+      <div class="diagram">Layer 1 — Zod (API layer)
+  Catches bad HTTP request input before it reaches your controller.
+
+Layer 2 — Mongoose Schema
+  Catches bad data from ANY source — API, scripts, cron jobs, seeds.</div>
+
+      <h2 class="section-title">Mongoose Schema with Validators</h2>
+
+      <div class="code">
+        <div class="code-bar"><div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span class="filename">models/User.ts</span></div>
+        <pre><span class="kw">import</span> <span class="pl">{ Schema, model }</span> <span class="kw">from</span> <span class="st">'mongoose'</span><span class="pl">;</span>
+
+<span class="kw">const</span> <span class="pl">userSchema =</span> <span class="kw">new</span> <span class="fn">Schema</span><span class="pl">({</span>
+
+  <span class="pl">name: {</span>
+    <span class="pl">type:      String,</span>
+    <span class="pl">required:  [</span><span class="kw">true</span><span class="pl">,</span> <span class="st">'Name is required'</span><span class="pl">],</span>
+    <span class="pl">trim:      </span><span class="kw">true</span><span class="pl">,</span>
+    <span class="pl">minlength: [</span><span class="nm">2</span><span class="pl">,</span>  <span class="st">'Min 2 characters'</span><span class="pl">],</span>
+    <span class="pl">maxlength: [</span><span class="nm">50</span><span class="pl">,</span> <span class="st">'Max 50 characters'</span><span class="pl">],</span>
+  <span class="pl">},</span>
+
+  <span class="pl">email: {</span>
+    <span class="pl">type:      String,</span>
+    <span class="pl">required:  [</span><span class="kw">true</span><span class="pl">,</span> <span class="st">'Email is required'</span><span class="pl">],</span>
+    <span class="pl">unique:    </span><span class="kw">true</span><span class="pl">,</span>   <span class="cm">// DB index — NOT a validator</span>
+    <span class="pl">lowercase: </span><span class="kw">true</span><span class="pl">,</span>
+    <span class="pl">validate: {</span>
+      <span class="pl">validator: (</span><span class="ty">v</span><span class="pl">:</span> <span class="ty">string</span><span class="pl">) =&gt; /\S+@\S+\.\S+/.</span><span class="fn">test</span><span class="pl">(v),</span>
+      <span class="pl">message:  </span><span class="st">'Invalid email format'</span><span class="pl">,</span>
+    <span class="pl">},</span>
+  <span class="pl">},</span>
+
+  <span class="pl">role: {</span>
+    <span class="pl">type:    String,</span>
+    <span class="pl">enum:    { values: [</span><span class="st">'admin'</span><span class="pl">,</span> <span class="st">'user'</span><span class="pl">,</span> <span class="st">'guest'</span><span class="pl">],</span>
+               <span class="pl">message:</span> <span class="st">'{VALUE} is not a valid role'</span> <span class="pl">},</span>
+    <span class="pl">default: </span><span class="st">'user'</span><span class="pl">,</span>
+  <span class="pl">},</span>
+
+  <span class="pl">age: {</span>
+    <span class="pl">type: Number,</span>
+    <span class="pl">min:  [</span><span class="nm">18</span><span class="pl">,</span>  <span class="st">'Must be 18 or above'</span><span class="pl">],</span>
+    <span class="pl">max:  [</span><span class="nm">100</span><span class="pl">,</span> <span class="st">'Must be 100 or below'</span><span class="pl">],</span>
+  <span class="pl">},</span>
+
+<span class="pl">},</span> <span class="pl">{ timestamps:</span> <span class="kw">true</span> <span class="pl">});</span>
+
+<span class="kw">export const</span> <span class="ty">User</span> <span class="pl">=</span> <span class="fn">model</span><span class="pl">(</span><span class="st">'User'</span><span class="pl">, userSchema);</span></pre>
+      </div>
+
+      <h2 class="section-title">Catch Mongoose Validation Errors</h2>
+
+      <div class="code">
+        <div class="code-bar"><div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span class="filename">middleware/errorHandler.ts</span></div>
+        <pre><span class="kw">import</span> <span class="pl">{ Error</span> <span class="kw">as</span> <span class="pl">MongooseError }</span> <span class="kw">from</span> <span class="st">'mongoose'</span><span class="pl">;</span>
+
+<span class="kw">if</span> <span class="pl">(err</span> <span class="kw">instanceof</span> <span class="pl">MongooseError.</span><span class="ty">ValidationError</span><span class="pl">) {</span>
+  <span class="kw">const</span> <span class="pl">errors =</span> <span class="ty">Object</span><span class="pl">.</span><span class="fn">values</span><span class="pl">(err.errors).</span><span class="fn">map</span><span class="pl">(</span><span class="ty">e</span> <span class="pl">=&gt; ({</span>
+    <span class="pl">field:   e.path,</span>
+    <span class="pl">message: e.message,</span>
+  <span class="pl">}));</span>
+  <span class="kw">return</span> <span class="pl">res.</span><span class="fn">status</span><span class="pl">(</span><span class="nm">400</span><span class="pl">).</span><span class="fn">json</span><span class="pl">({ success:</span> <span class="kw">false</span><span class="pl">, errors });</span>
+<span class="pl">}</span></pre>
+      </div>
+
+      <h2 class="section-title">Quick Comparison</h2>
+
+      <table>
+        <tr><th>Mongoose Feature</th><th>Purpose</th><th>Note</th></tr>
+        <tr><td><code>required</code></td><td>Field must exist</td><td>Use array form for custom message</td></tr>
+        <tr><td><code>enum</code></td><td>Allow only specific values</td><td>Object form gives custom message</td></tr>
+        <tr><td><code>min / max</code></td><td>Number or date range</td><td>Also array form for message</td></tr>
+        <tr><td><code>validate</code></td><td>Custom validator function</td><td>Can be async</td></tr>
+        <tr><td><code>unique</code></td><td>DB index</td><td class="yes">NOT a validator — handle E11000 separately</td></tr>
+      </table>
+
+      <div class="remember">
+        <strong>⚠️ Remember</strong><br><br>
+        <code>unique: true</code> in Mongoose creates a <strong>database index</strong>, not a Mongoose
+        validator. It throws a duplicate key error (E11000), not a ValidationError.
+        Always handle it separately in your global error middleware.
+      </div>
+
+      <div class="interview">
+        <strong>💬 Interview Question</strong>
+        <p><strong>Q: If you already validate with Zod, why add Mongoose validators?</strong><br>
+        A: Zod only protects the HTTP API layer. Data can enter the DB from seeding
+        scripts, cron jobs, or internal services. Mongoose validators run on every
+        <code>.save()</code> regardless of the source — they are the true last line of defense.</p>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════
+       PRIORITY: HIGH IMPACT
+  ══════════════════════════════════════ -->
+  <div class="priority-row">
+    <div class="priority-pill high">🟡 High Impact — Do These Next</div>
+    <div class="priority-line"></div>
+  </div>
+
+
+  <!-- ─── T3: DTO PATTERN ─── -->
+  <div class="question-card" id="t3">
+    <div class="question-title">Q3. DTO Pattern</div>
+    <div class="content">
+
+      <span class="badge purple">TypeScript</span>
+      <span class="badge">Zod</span>
+
+      <div class="short-answer">
+        <strong>What it means:</strong><br><br>
+        A <strong>DTO (Data Transfer Object)</strong> is a plain typed object that defines
+        the exact shape of data flowing between layers — request → controller → service → DB.
+        In TypeScript, Zod's <code>z.infer</code> gives you DTOs for free with zero extra boilerplate.
+      </div>
+
+      <h2 class="section-title">Without DTO vs With DTO</h2>
+
+      <table>
+        <tr><th>Without DTO</th><th>With DTO</th></tr>
+        <tr>
+          <td>Every function accepts <code>any</code> or raw <code>req.body</code>. No type safety, no autocomplete. A typo silently passes through.</td>
+          <td>Every layer knows the exact shape. TypeScript catches mismatches at compile time. Editor autocompletes every field.</td>
+        </tr>
+      </table>
+
+      <h2 class="section-title">Define DTOs from Zod Schemas</h2>
+
+      <div class="code">
+        <div class="code-bar"><div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span class="filename">dtos/user.dto.ts</span></div>
+        <pre><span class="kw">import</span> <span class="pl">{ z }</span> <span class="kw">from</span> <span class="st">'zod'</span><span class="pl">;</span>
+
+<span class="cm">// Schema = validation rules</span>
+<span class="kw">export const</span> <span class="fn">createUserSchema</span> <span class="pl">= z.</span><span class="fn">object</span><span class="pl">({</span>
+  <span class="pl">name:     z.</span><span class="fn">string</span><span class="pl">().</span><span class="fn">min</span><span class="pl">(</span><span class="nm">2</span><span class="pl">),</span>
+  <span class="pl">email:    z.</span><span class="fn">string</span><span class="pl">().</span><span class="fn">email</span><span class="pl">(),</span>
+  <span class="pl">password: z.</span><span class="fn">string</span><span class="pl">().</span><span class="fn">min</span><span class="pl">(</span><span class="nm">8</span><span class="pl">),</span>
+<span class="pl">});</span>
+
+<span class="cm">// DTO = inferred TypeScript type — zero duplication</span>
+<span class="kw">export type</span> <span class="ty">CreateUserDTO</span> <span class="pl">= z.</span><span class="ty">infer</span><span class="pl">&lt;</span><span class="kw">typeof</span> <span class="fn">createUserSchema</span><span class="pl">&gt;;</span>
+<span class="cm">// Result: { name: string; email: string; password: string }</span>
+
+<span class="cm">// .partial() makes all fields optional — perfect for PATCH</span>
+<span class="kw">export const</span> <span class="fn">updateUserSchema</span> <span class="pl">= createUserSchema.</span><span class="fn">partial</span><span class="pl">();</span>
+<span class="kw">export type</span> <span class="ty">UpdateUserDTO</span>   <span class="pl">= z.</span><span class="ty">infer</span><span class="pl">&lt;</span><span class="kw">typeof</span> <span class="fn">updateUserSchema</span><span class="pl">&gt;;</span>
+<span class="cm">// Result: { name?: string; email?: string; password?: string }</span></pre>
+      </div>
+
+      <h2 class="section-title">Use DTO in Service Layer</h2>
+
+      <div class="code">
+        <div class="code-bar"><div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span class="filename">services/user.service.ts</span></div>
+        <pre><span class="kw">import</span> <span class="pl">{ CreateUserDTO }</span> <span class="kw">from</span> <span class="st">'../dtos/user.dto'</span><span class="pl">;</span>
+<span class="kw">import</span> <span class="pl">{ User }</span>          <span class="kw">from</span> <span class="st">'../models/User'</span><span class="pl">;</span>
+
+<span class="kw">export const</span> <span class="fn">createUser</span> <span class="pl">= (</span><span class="ty">dto</span><span class="pl">:</span> <span class="ty">CreateUserDTO</span><span class="pl">) =&gt; {</span>
+  <span class="cm">// dto.name, dto.email — fully typed and autocompleted</span>
+  <span class="kw">return</span> <span class="pl">User.</span><span class="fn">create</span><span class="pl">(dto);</span>
+<span class="pl">};</span></pre>
+      </div>
+
+      <h2 class="section-title">Data Flow Across Layers</h2>
+
+      <div class="diagram">HTTP req.body  (unknown / any)
+  ↓  validate middleware  →  Zod parses and strips unknown fields
+CreateUserDTO  (fully typed)
+  ↓  Controller passes DTO to service
+createUser(dto: CreateUserDTO)
+  ↓  Service passes to Mongoose
+User.create(dto)  →  MongoDB</div>
+
+      <div class="interview">
+        <strong>💬 Interview Question</strong>
+        <p><strong>Q: What is a DTO and why use it over passing req.body directly?</strong><br>
+        A: A DTO is a typed contract for data moving between layers. Passing <code>req.body</code>
+        directly spreads the <code>any</code> type everywhere — TypeScript cannot help you. DTOs
+        give compile-time safety, autocomplete, and make refactoring safe across all layers.</p>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ─── T4: ASYNC VALIDATION ─── -->
+  <div class="question-card" id="t4">
+    <div class="question-title">Q4. Async Validation</div>
+    <div class="content">
+
+      <span class="badge green">Service Layer</span>
+      <span class="badge orange">DB Checks</span>
+
+      <div class="short-answer">
+        <strong>What it means:</strong><br><br>
+        Some validation requires hitting the database — "is this email already registered?",
+        "does this product ID exist?". These checks cannot live in Zod (Zod handles shape/format).
+        Async validation belongs in the <strong>service layer</strong>, expressed as reusable helper functions.
+      </div>
+
+      <h2 class="section-title">Pattern — Service-Level Async Check</h2>
+
+      <div class="code">
+        <div class="code-bar"><div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span class="filename">services/user.service.ts</span></div>
+        <pre><span class="kw">import</span> <span class="pl">{ User }</span>        <span class="kw">from</span> <span class="st">'../models/User'</span><span class="pl">;</span>
+<span class="kw">import</span> <span class="pl">{ CreateUserDTO }</span> <span class="kw">from</span> <span class="st">'../dtos/user.dto'</span><span class="pl">;</span>
+<span class="kw">import</span> <span class="pl">{ AppError }</span>     <span class="kw">from</span> <span class="st">'../utils/AppError'</span><span class="pl">;</span>
+
+<span class="kw">export const</span> <span class="fn">createUser</span> <span class="pl">=</span> <span class="kw">async</span> <span class="pl">(</span><span class="ty">dto</span><span class="pl">:</span> <span class="ty">CreateUserDTO</span><span class="pl">) =&gt; {</span>
+
+  <span class="cm">// ✅ Async DB check — is email already taken?</span>
+  <span class="kw">const</span> <span class="pl">existing = </span><span class="kw">await</span> <span class="pl">User.</span><span class="fn">findOne</span><span class="pl">({ email: dto.email });</span>
+  <span class="kw">if</span> <span class="pl">(existing)</span>
+    <span class="kw">throw new</span> <span class="fn">AppError</span><span class="pl">(</span><span class="st">'Email already registered'</span><span class="pl">,</span> <span class="nm">409</span><span class="pl">);</span>
+
+  <span class="kw">return</span> <span class="pl">User.</span><span class="fn">create</span><span class="pl">(dto);</span>
+<span class="pl">};</span></pre>
+      </div>
+
+      <h2 class="section-title">Reusable Async Validators — Avoid Repetition</h2>
+
+      <div class="code">
+        <div class="code-bar"><div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span class="filename">utils/dbValidators.ts</span></div>
+        <pre><span class="kw">import</span> <span class="pl">{ AppError }</span> <span class="kw">from</span> <span class="st">'./AppError'</span><span class="pl">;</span>
+
+<span class="cm">// Generic "must exist" helper</span>
+<span class="kw">export const</span> <span class="fn">mustExist</span> <span class="pl">=</span> <span class="kw">async</span> <span class="pl">(</span><span class="ty">Model</span><span class="pl">:</span> <span class="kw">any</span><span class="pl">,</span> <span class="ty">id</span><span class="pl">:</span> <span class="ty">string</span><span class="pl">,</span> <span class="ty">label</span><span class="pl">:</span> <span class="ty">string</span><span class="pl">) =&gt; {</span>
+  <span class="kw">const</span> <span class="pl">doc = </span><span class="kw">await</span> <span class="pl">Model.</span><span class="fn">findById</span><span class="pl">(id);</span>
+  <span class="kw">if</span> <span class="pl">(!doc)</span> <span class="kw">throw new</span> <span class="fn">AppError</span><span class="pl">(`${label} not found`,</span> <span class="nm">404</span><span class="pl">);</span>
+  <span class="kw">return</span> <span class="pl">doc;</span>
+<span class="pl">};</span>
+
+<span class="cm">// Generic "must be unique" helper</span>
+<span class="kw">export const</span> <span class="fn">mustBeUnique</span> <span class="pl">=</span> <span class="kw">async</span> <span class="pl">(</span><span class="ty">Model</span><span class="pl">:</span> <span class="kw">any</span><span class="pl">,</span> <span class="ty">filter</span><span class="pl">:</span> <span class="ty">object</span><span class="pl">,</span> <span class="ty">msg</span><span class="pl">:</span> <span class="ty">string</span><span class="pl">) =&gt; {</span>
+  <span class="kw">const</span> <span class="pl">doc = </span><span class="kw">await</span> <span class="pl">Model.</span><span class="fn">findOne</span><span class="pl">(filter);</span>
+  <span class="kw">if</span> <span class="pl">(doc)</span> <span class="kw">throw new</span> <span class="fn">AppError</span><span class="pl">(msg,</span> <span class="nm">409</span><span class="pl">);</span>
+<span class="pl">};</span>
+
+<span class="cm">// Usage anywhere in services:</span>
+<span class="kw">await</span> <span class="fn">mustBeUnique</span><span class="pl">(User,    { email },</span> <span class="st">'Email already taken'</span><span class="pl">);</span>
+<span class="kw">await</span> <span class="fn">mustExist</span><span class="pl">   (Product, productId, </span><span class="st">'Product'</span><span class="pl">);</span></pre>
+      </div>
+
+      <h2 class="section-title">Custom AppError Class</h2>
+
+      <div class="code">
+        <div class="code-bar"><div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span class="filename">utils/AppError.ts</span></div>
+        <pre><span class="kw">export class</span> <span class="ty">AppError</span> <span class="kw">extends</span> <span class="ty">Error</span> <span class="pl">{</span>
+  <span class="kw">constructor</span><span class="pl">(</span>
+    <span class="kw">public</span> <span class="pl">message:    </span><span class="ty">string</span><span class="pl">,</span>
+    <span class="kw">public</span> <span class="pl">statusCode: </span><span class="ty">number</span> <span class="pl">=</span> <span class="nm">400</span>
+  <span class="pl">) {</span>
+    <span class="kw">super</span><span class="pl">(message);</span>
+  <span class="pl">}</span>
+<span class="pl">}</span></pre>
+      </div>
+
+      <h2 class="section-title">Key Points</h2>
+      <ul class="points">
+        <li><span class="arrow">→</span><span><strong>Zod</strong> validates shape and format. <strong>Service layer</strong> validates business rules that need a DB query</span></li>
+        <li><span class="arrow">→</span><span>Extract common checks into <strong>reusable helpers</strong> — never repeat <code>findOne</code> in every service</span></li>
+        <li><span class="arrow">→</span><span>Always <strong>throw AppError</strong> with the correct HTTP status code and let the global error handler send the response</span></li>
+      </ul>
+
+      <div class="interview">
+        <strong>💬 Interview Question</strong>
+        <p><strong>Q: Can I do async validation inside Zod using .refine()?</strong><br>
+        A: Technically yes, but it is not recommended. Zod is for structure and format.
+        Putting DB calls inside Zod middleware creates tight coupling and makes the logic
+        hard to reuse. Async business-rule checks belong in the service layer.</p>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ─── T5: SANITIZATION ─── -->
+  <div class="question-card" id="t5">
+    <div class="question-title">Q5. Sanitization</div>
+    <div class="content">
+
+      <span class="badge orange">NoSQL Injection</span>
+      <span class="badge green">Clean Data</span>
+
+      <div class="short-answer">
+        <strong>What it means:</strong><br><br>
+        Sanitization is <em>transforming</em> incoming data — trimming whitespace,
+        lowercasing emails, stripping unknown fields, removing <code>$</code> operators
+        that could be used in NoSQL injection attacks. Zod handles most of this automatically
+        when you parse; pair it with <code>express-mongo-sanitize</code> for full protection.
+      </div>
+
+      <h2 class="section-title">Zod Transforms — Sanitize While You Validate</h2>
+
+      <div class="code">
+        <div class="code-bar"><div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span class="filename">schemas/user.schema.ts</span></div>
+        <pre><span class="kw">export const</span> <span class="fn">createUserSchema</span> <span class="pl">= z.</span><span class="fn">object</span><span class="pl">({</span>
+
+  <span class="pl">name: z.</span><span class="fn">string</span><span class="pl">()</span>
+    <span class="pl">.</span><span class="fn">trim</span><span class="pl">()</span>             <span class="cm">// "  John  "  →  "John"</span>
+    <span class="pl">.</span><span class="fn">min</span><span class="pl">(</span><span class="nm">2</span><span class="pl">),</span>
+
+  <span class="pl">email: z.</span><span class="fn">string</span><span class="pl">()</span>
+    <span class="pl">.</span><span class="fn">email</span><span class="pl">()</span>
+    <span class="pl">.</span><span class="fn">toLowerCase</span><span class="pl">(),</span>     <span class="cm">// "JOHN@GMAIL.COM"  →  "john@gmail.com"</span>
+
+  <span class="pl">age: z.</span><span class="fn">string</span><span class="pl">()</span>
+    <span class="pl">.</span><span class="fn">transform</span><span class="pl">(</span><span class="ty">Number</span><span class="pl">)</span> <span class="cm">// query param "25"  →  number 25</span>
+    <span class="pl">.</span><span class="fn">pipe</span><span class="pl">(z.</span><span class="fn">number</span><span class="pl">().</span><span class="fn">min</span><span class="pl">(</span><span class="nm">18</span><span class="pl">)),</span>
+
+<span class="pl">});</span>
+
+<span class="cm">// Zod strips unknown fields by default on .parse()
+// Extra fields in req.body are silently dropped — safe!</span></pre>
+      </div>
+
+      <h2 class="section-title">NoSQL Injection Prevention</h2>
+
+      <div class="code">
+        <div class="code-bar"><div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span class="filename">app.ts</span></div>
+        <pre><span class="kw">import</span> <span class="pl">mongoSanitize</span> <span class="kw">from</span> <span class="st">'express-mongo-sanitize'</span><span class="pl">;</span>
+
+<span class="cm">// Removes keys starting with $ or containing a dot
+// Prevents: { "email": { "$gt": "" } } attacks</span>
+<span class="pl">app.</span><span class="fn">use</span><span class="pl">(</span><span class="fn">mongoSanitize</span><span class="pl">());</span>
+
+<span class="cm">// npm install express-mongo-sanitize
+// npm install -D @types/express-mongo-sanitize</span></pre>
+      </div>
+
+      <h2 class="section-title">What Each Tool Handles</h2>
+
+      <table>
+        <tr><th>Problem</th><th>Solution</th><th>Tool</th></tr>
+        <tr><td>NoSQL injection <code>{ $gt: "" }</code></td><td>Strip <code>$</code> operator keys</td><td>express-mongo-sanitize</td></tr>
+        <tr><td>Unknown/extra fields in body</td><td>Zod strips them automatically on parse</td><td>Zod</td></tr>
+        <tr><td>Whitespace in names or emails</td><td><code>.trim()</code> / <code>.toLowerCase()</code></td><td>Zod transform</td></tr>
+        <tr><td>String query param → number</td><td><code>.transform(Number)</code></td><td>Zod transform</td></tr>
+        <tr><td>XSS via stored HTML strings</td><td>Sanitize HTML before saving</td><td>xss / DOMPurify</td></tr>
+      </table>
+
+      <div class="remember">
+        <strong>💡 Key Insight</strong><br><br>
+        When you assign <code>req.body = result.data</code> after Zod parses,
+        you have already sanitized. Zod only returns the fields you defined —
+        all unknown fields are gone. Pair this with <code>express-mongo-sanitize</code>
+        and you cover 95% of sanitization with almost no extra effort.
+      </div>
+
+      <div class="interview">
+        <strong>💬 Interview Question</strong>
+        <p><strong>Q: What is NoSQL injection and how do you prevent it in MongoDB?</strong><br>
+        A: An attacker sends <code>{ "email": { "$gt": "" } }</code> in the request body.
+        MongoDB treats <code>$gt</code> as a query operator and returns all users, bypassing
+        authentication. Prevention: use <code>express-mongo-sanitize</code> to strip
+        <code>$</code>-keyed fields, and use Zod to accept only the exact expected shape.</p>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /container -->
+</body>
+</html>
