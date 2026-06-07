@@ -167,7 +167,6 @@ code{background:#e2e8f0;padding:1px 7px;border-radius:5px;font-family:monospace;
 <!-- ══════════════════════════════════
      HEADER
 ══════════════════════════════════ -->
-
 <div class="header">
   <h1>⚡ Node.js + TypeScript Setup Guide</h1>
   <p>Old Way (ts-node + nodemon) vs New Way (tsx) — 2026 Edition</p>
@@ -660,8 +659,59 @@ ts-node: app.ts → compile in memory → execute (no file)</div>
     </div>
 
     <div class="qa">
-      <div class="qa-q"><span class="qa-num">Q04</span> Why is @types/node required?</div>
-      <div class="qa-a">TypeScript doesn't know about Node.js built-ins like <code>process</code>, <code>fs</code>, <code>path</code>, <code>Buffer</code>, or <code>http</code>. Without <code>@types/node</code>, TypeScript will throw errors saying these don't exist. This package provides the type definitions + IntelliSense for all Node.js APIs.</div>
+      <div class="qa-q"><span class="qa-num">Q04</span> Why is @types/node required? How does TypeScript find types for any package?</div>
+      <div class="qa-a">
+
+        <strong>The core rule:</strong> When you import a package, TypeScript looks for a <code>.d.ts</code> (declaration file) that describes the shape of that package — what functions exist, what they accept, what they return. There are two cases:
+
+        <br><br>
+        <strong>✅ Case 1 — Package ships its own <code>.d.ts</code> (no @types needed)</strong><br>
+        Some packages are written in TypeScript or bundle their own type declarations. TypeScript finds the <code>.d.ts</code> automatically — no extra install needed.
+
+        <div class="diagram">node_modules/
+  axios/
+    index.js       ← actual runtime code
+    index.d.ts     ← types built-in ✅
+
+→ Just install axios. TypeScript is happy. No @types/axios needed.</div>
+
+        Packages like <code>axios</code>, <code>zod</code>, <code>prisma</code> work this way.
+
+        <br><br>
+        <strong>❌ Case 2 — Package has no <code>.d.ts</code> (must install @types/)</strong><br>
+        Some packages are written in plain JavaScript with no type info bundled. TypeScript has no idea what the API looks like and throws errors.
+
+        <div class="diagram">node_modules/
+  express/
+    index.js       ← runtime code only, no .d.ts ❌
+
+→ TypeScript: "I don't know what req, res, Router look like!" ❌
+
+Solution: npm install -D @types/express
+  @types/express  →  just a folder of .d.ts files, zero runtime code ✅</div>
+
+        <strong>Node.js itself is Case 2.</strong> Built-ins like <code>fs</code>, <code>path</code>, <code>process</code>, <code>Buffer</code>, <code>http</code> are C++ internals — there's no JS file for TypeScript to inspect. So <code>@types/node</code> is a package that's purely <code>.d.ts</code> descriptions of every Node.js API.
+
+        <br><br>
+        <strong>🔍 How to check before installing @types:</strong>
+        <div class="diagram">ls node_modules/axios/      → see index.d.ts?  ✅ No @types needed
+ls node_modules/express/    → no .d.ts?        ❌ Install @types/express</div>
+
+        Or check the npm page — packages show a <strong>TS badge</strong> if types are bundled, or say <em>"install @types/..."</em> if not.
+
+        <div class="remember">
+          💡 <strong>One line rule:</strong> If the package has a <code>.d.ts</code> → TypeScript is happy. If not → install the matching <code>@types/</code> package, which is just a <code>.d.ts</code> file written for it by the community.
+        </div>
+
+        <table style="margin-top:12px;font-size:13px;">
+          <tr><th>Package</th><th>Has built-in .d.ts?</th><th>What to do</th></tr>
+          <tr><td><code>axios</code></td><td><span class="badge badge-green">Yes</span></td><td>Just install axios — done</td></tr>
+          <tr><td><code>zod</code></td><td><span class="badge badge-green">Yes</span></td><td>Just install zod — done</td></tr>
+          <tr><td><code>express</code></td><td><span class="badge badge-red">No</span></td><td>Install express + @types/express</td></tr>
+          <tr><td><code>Node.js built-ins</code></td><td><span class="badge badge-red">No</span></td><td>Install @types/node</td></tr>
+        </table>
+
+      </div>
     </div>
 
     <div class="qa">
@@ -682,14 +732,116 @@ ts-node: app.ts → compile in memory → execute (no file)</div>
     </div>
 
     <div class="qa">
-      <div class="qa-q"><span class="qa-num">Q07</span> What is the purpose of tsconfig.json?</div>
+      <div class="qa-q"><span class="qa-num">Q07</span> Explain tsconfig.json in detail — all key fields and their alternate options</div>
       <div class="qa-a">
-        Configuration file for the TypeScript compiler. Key settings:<br><br>
-        <code>target</code> — which JS version to compile to (ES2020, ESNext)<br>
-        <code>module</code> — module system (CommonJS, ESM)<br>
-        <code>rootDir</code> — where your source <code>.ts</code> files are<br>
-        <code>outDir</code> — where to put compiled <code>.js</code> files<br>
-        <code>strict</code> — enable strict type checking rules
+
+        <code>tsconfig.json</code> is the configuration file for the TypeScript compiler (<code>tsc</code>). It tells TypeScript <em>how</em> to compile your code, <em>where</em> to find files, and <em>how strict</em> to be. All settings live inside <code>"compilerOptions"</code>.
+
+        <br><br>
+        <strong>📄 A typical Node.js tsconfig.json:</strong>
+
+        <div class="diagram">{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "strict": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "skipLibCheck": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}</div>
+
+        <br>
+        <strong>── 1. target</strong> — Which JavaScript version to compile to<br>
+        <table style="font-size:13px;margin:10px 0;">
+          <tr><th>Value</th><th>Outputs</th><th>When to use</th></tr>
+          <tr><td><code>ES5</code></td><td>Old-style var, function()</td><td>Legacy browser support (rarely needed)</td></tr>
+          <tr><td><code>ES6</code> / <code>ES2015</code></td><td>let, const, arrow fn, classes</td><td>Older Node / browser compat</td></tr>
+          <tr><td><code>ES2018</code></td><td>async/await, spread</td><td>Node 10+</td></tr>
+          <tr><td><code>ES2020</code></td><td>Optional chaining ?., nullish ??</td><td><span class="badge badge-green">Recommended for Node</span></td></tr>
+          <tr><td><code>ES2022</code></td><td>Top-level await, class fields</td><td>Node 16+</td></tr>
+          <tr><td><code>ESNext</code></td><td>Latest JS features</td><td>Cutting edge — use carefully</td></tr>
+        </table>
+        <div class="remember">💡 <strong>Rule:</strong> Match target to the Node.js version you run in production. <code>ES2020</code> is safe for most projects.</div>
+
+        <br>
+        <strong>── 2. module</strong> — Which module system to use in compiled output<br>
+        <table style="font-size:13px;margin:10px 0;">
+          <tr><th>Value</th><th>Output style</th><th>When to use</th></tr>
+          <tr><td><code>commonjs</code></td><td><code>require()</code> / <code>module.exports</code></td><td><span class="badge badge-green">Default for Node.js</span> — most compatible</td></tr>
+          <tr><td><code>ES2020</code> / <code>ESNext</code></td><td><code>import</code> / <code>export</code></td><td>Node ESM projects (add "type":"module" in package.json)</td></tr>
+          <tr><td><code>nodenext</code></td><td>Smart CJS or ESM per file</td><td>Modern Node 16+ ESM hybrid projects</td></tr>
+        </table>
+
+        <br>
+        <strong>── 3. rootDir &amp; outDir</strong> — Source and output folders<br>
+        <div class="diagram">rootDir: "./src"   ← where your .ts files live
+outDir:  "./dist"  ← where compiled .js files go
+
+src/app.ts      →   dist/app.js
+src/utils/db.ts →   dist/utils/db.js   (structure is mirrored)</div>
+
+        <br>
+        <strong>── 4. moduleResolution</strong> — How TypeScript finds imported packages<br>
+        <table style="font-size:13px;margin:10px 0;">
+          <tr><th>Value</th><th>Behavior</th><th>When to use</th></tr>
+          <tr><td><code>node</code></td><td>Classic Node.js — looks in node_modules</td><td>CommonJS projects (old default)</td></tr>
+          <tr><td><code>node16</code></td><td>ESM-aware, requires file extensions in imports</td><td>Node 16+ ESM projects</td></tr>
+          <tr><td><code>bundler</code></td><td>Like node16 but relaxed (no extension needed)</td><td><span class="badge badge-green">Modern default</span> — works with tsx, vite, esbuild</td></tr>
+          <tr><td><code>nodenext</code></td><td>Strictest ESM enforcement</td><td>Strict Node ESM libraries</td></tr>
+        </table>
+
+        <br>
+        <strong>── 5. strict</strong> — Enables a bundle of safety rules at once<br>
+        <table style="font-size:13px;margin:10px 0;">
+          <tr><th>What strict enables</th><th>What it catches</th></tr>
+          <tr><td><code>noImplicitAny</code></td><td>Variables can't silently become <code>any</code> type</td></tr>
+          <tr><td><code>strictNullChecks</code></td><td>null / undefined must be handled explicitly</td></tr>
+          <tr><td><code>strictFunctionTypes</code></td><td>Function parameters checked more strictly</td></tr>
+          <tr><td><code>strictPropertyInitialization</code></td><td>Class properties must be initialized in constructor</td></tr>
+          <tr><td><code>noImplicitThis</code></td><td><code>this</code> must have a known type</td></tr>
+        </table>
+        <div class="short-answer">✅ Always set <code>"strict": true</code> in new projects. It catches bugs at compile time before they reach production.</div>
+
+        <br>
+        <strong>── 6. esModuleInterop</strong> — Clean imports for CommonJS packages<br>
+        <div class="diagram">Without (esModuleInterop: false):
+  import * as express from 'express'   ← ugly ❌
+
+With (esModuleInterop: true):
+  import express from 'express'        ← clean ✅</div>
+
+        <br>
+        <strong>── 7. skipLibCheck</strong> — Skip type checking of .d.ts files in node_modules<br>
+        <div class="remember">💡 Set <code>"skipLibCheck": true</code> always. Some @types packages have minor internal type conflicts — you don't want your build to fail because of someone else's type package bug.</div>
+
+        <br>
+        <strong>── 8. include / exclude</strong> — Which files TypeScript should process<br>
+        <div class="diagram">"include": ["src"]                        ← only compile files in src/
+"exclude": ["node_modules", "dist"]       ← never touch these folders
+
+If you omit include: TypeScript scans ALL .ts files in the project ← dangerous</div>
+
+        <br>
+        <strong>── 9. Other useful options:</strong>
+        <table style="font-size:13px;margin:10px 0;">
+          <tr><th>Option</th><th>What it does</th><th>Default</th></tr>
+          <tr><td><code>sourceMap</code></td><td>Generates .map files for debugging original TS in stack traces</td><td>false</td></tr>
+          <tr><td><code>declaration</code></td><td>Generates .d.ts files — useful if publishing a library</td><td>false</td></tr>
+          <tr><td><code>noUnusedLocals</code></td><td>Error on declared but unused variables</td><td>false</td></tr>
+          <tr><td><code>noUnusedParameters</code></td><td>Error on declared but unused function params</td><td>false</td></tr>
+          <tr><td><code>paths</code></td><td>Path aliases — e.g. <code>@/utils</code> instead of <code>../../utils</code></td><td>—</td></tr>
+          <tr><td><code>baseUrl</code></td><td>Base path for resolving non-relative imports</td><td>—</td></tr>
+        </table>
+
+        <div class="interview">
+          🎯 <strong>Interview tip:</strong> If asked "what does tsconfig do?" — say: <em>"It controls three things: where TypeScript finds source files, where it puts compiled output, and how strictly it checks your types."</em> Then mention target, module, rootDir, outDir, and strict as the five most important fields.
+        </div>
+
       </div>
     </div>
 
@@ -774,6 +926,60 @@ npm run dev → tsx watch → esbuild strips types → runs
 <span style="color:#16a34a">── PRODUCTION (Both same) ─────────────</span>
 npm run build → tsc → dist/app.js created
 npm start     → node dist/app.js</span></div>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q"><span class="qa-num">Q16</span> Why don't we use tsx in production? How does production actually run?</div>
+      <div class="qa-a">
+        <strong>tsx is a dev-only tool</strong> — it is never used in production. Here's exactly why and what happens instead:
+        <br><br>
+
+        <strong>❌ Why NOT tsx in production?</strong><br><br>
+        <strong>1. No type checking</strong> — tsx uses esbuild which only strips types. It never verifies your types are correct. In production you want full compile-time validation via <code>tsc</code>.<br><br>
+        <strong>2. Performance overhead</strong> — tsx transpiles TypeScript on-the-fly every time the file is loaded. In production, plain <code>node</code> running pre-compiled JS is faster with zero transpilation cost.<br><br>
+        <strong>3. Extra dependency risk</strong> — shipping tsx to a production server means an extra package that could have bugs, security issues, or break. Less is safer.<br><br>
+        <strong>4. Not designed for it</strong> — tsx was built for developer experience (fast feedback loop). Production needs reliability and speed, not DX convenience.
+
+        <div class="diagram">── WHY tsx is DEV only ─────────────────────────
+
+tsx in dev:   fast feedback → okay if a type slips through
+tsx in prod:  type errors can reach live users ← dangerous ❌
+              overhead on every request ← slow ❌
+              extra package on server ← risky ❌</div>
+
+        <strong>✅ How production actually runs:</strong>
+
+        <div class="diagram">Step 1 — Build (on your machine or CI/CD pipeline)
+          npm run build
+               ↓
+          tsc  ← full TypeScript compiler
+               ↓
+          ✅ Type checks ALL your code
+               ↓
+          Generates dist/app.js  ← plain JavaScript
+
+Step 2 — Deploy (ship dist/ folder to server)
+          Copy dist/ + package.json → production server
+          npm install --omit=dev   ← installs only express, no tsx/typescript
+
+Step 3 — Start (on production server)
+          npm start
+               ↓
+          node dist/app.js   ← plain Node.js, zero TypeScript overhead
+               ↓
+          🚀 Running pure JavaScript, maximum performance</div>
+
+        <div class="remember">
+          💡 <strong>Key rule:</strong> TypeScript is a <em>development tool</em>. By the time code reaches production, all TypeScript has been compiled away. The server runs 100% plain JavaScript — it never knows TypeScript existed.
+        </div>
+
+        <table style="margin-top:14px;font-size:13px;">
+          <tr><th>Stage</th><th>Tool Used</th><th>What it does</th><th>Has TypeScript?</th></tr>
+          <tr><td><strong>Development</strong></td><td><code>tsx watch</code></td><td>Runs .ts files instantly with esbuild</td><td>Yes ✅</td></tr>
+          <tr><td><strong>Build / CI</strong></td><td><code>tsc</code></td><td>Type checks + compiles to dist/</td><td>Yes → converts to JS</td></tr>
+          <tr><td><strong>Production</strong></td><td><code>node</code></td><td>Runs pre-compiled dist/app.js</td><td><span class="badge badge-green">No — pure JS</span></td></tr>
+        </table>
       </div>
     </div>
 
