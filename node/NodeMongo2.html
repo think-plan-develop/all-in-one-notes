@@ -313,31 +313,96 @@ code{background:#e2e8f0;padding:1px 7px;border-radius:5px;font-family:'Fira Code
       </div>
     </div>
 
-    <div class="remember">💡 <strong>Always add <code>.env</code> to <code>.gitignore</code></strong> — never commit secrets to GitHub. Share a <code>.env.example</code> file with dummy values instead.</div>
+    <div class="remember">💡 <strong>Always add <code>.env</code> and <code>.env.production</code> to <code>.gitignore</code></strong> — never commit secrets to GitHub. Share a <code>.env.example</code> file with dummy values instead.</div>
 
     <div class="code-wrap">
       <div class="code-bar"><div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div><span class="filename">.gitignore</span></div>
       <pre class="code"><span class="cm"># never commit these</span>
 <span class="str">.env</span>
-<span class="str">.env.production</span>
+<span class="str">.env.*</span>
 <span class="str">node_modules/</span>
 <span class="str">dist/</span></pre>
     </div>
 
-    <div class="code-wrap">
-      <div class="code-bar"><div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div><span class="filename">src/config/env.ts — typed env access</span></div>
-      <pre class="code"><span class="kw">import</span> dotenv <span class="kw">from</span> <span class="str">'dotenv'</span>
-dotenv.<span class="fn">config</span>()
+    <br>
+    <span class="step-badge badge-purple">src/config/env.ts — Dynamic Loader</span>
+    <div class="tip-pink">🩷 <strong>No fallback, no hardcoded ENV object.</strong> <code>NODE_ENV</code> must be explicitly set. If missing — crash immediately with a clear error. Works for any stage (dev, prod, test, staging...) without any code change.</div>
 
-<span class="kw">export const</span> <span class="ty">ENV</span> = {
-  PORT:         <span class="ty">Number</span>(process.env.<span class="prop">PORT</span>) || <span class="num">3000</span>,
-  NODE_ENV:     process.env.<span class="prop">NODE_ENV</span> || <span class="str">'development'</span>,
-  MONGO_URI:    process.env.<span class="prop">MONGO_URI</span> <span class="kw">as</span> <span class="ty">string</span>,
-  JWT_SECRET:   process.env.<span class="prop">JWT_SECRET</span> <span class="kw">as</span> <span class="ty">string</span>,
-  ALLOWED_ORIGIN: process.env.<span class="prop">ALLOWED_ORIGIN</span> || <span class="str">'*'</span>
+    <div class="code-wrap">
+      <div class="code-bar"><div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div><span class="filename">src/config/env.ts</span></div>
+      <pre class="code"><span class="kw">import</span> dotenv <span class="kw">from</span> <span class="str">'dotenv'</span>
+<span class="kw">import</span> path <span class="kw">from</span> <span class="str">'path'</span>
+
+<span class="kw">const</span> NODE_ENV = process.env.<span class="prop">NODE_ENV</span>
+
+<span class="kw">if</span> (!NODE_ENV) {
+  <span class="kw">throw new</span> <span class="ty">Error</span>(<span class="str">'NODE_ENV is not set. Please set it before starting the server.'</span>)
+}
+
+<span class="cm">// development → .env</span>
+<span class="cm">// production  → .env.production</span>
+<span class="cm">// test        → .env.test</span>
+<span class="cm">// staging     → .env.staging   (any new stage auto-resolves, no code change needed)</span>
+<span class="kw">const</span> envFile = NODE_ENV === <span class="str">'development'</span>
+  ? <span class="str">'.env'</span>
+  : <span class="str">`.env.</span><span class="kw">${NODE_ENV}</span><span class="str">`</span>
+
+dotenv.<span class="fn">config</span>({ path: path.<span class="fn">resolve</span>(process.<span class="fn">cwd</span>(), envFile) })
+
+console.<span class="fn">log</span>(<span class="str">`📦 Loaded: </span><span class="kw">${envFile}</span><span class="str">  (NODE_ENV=</span><span class="kw">${NODE_ENV}</span><span class="str">)`</span>)</pre>
+    </div>
+
+    <div class="diagram">NODE_ENV = 'development'  →  loads  .env
+NODE_ENV = 'production'   →  loads  .env.production
+NODE_ENV = 'test'         →  loads  .env.test
+NODE_ENV = 'staging'      →  loads  .env.staging
+NODE_ENV = undefined      →  ❌ throws Error immediately — no silent fallback</div>
+
+    <br>
+    <span class="step-badge badge-teal">package.json Scripts + Terminal Commands</span>
+
+    <div class="tip-purple">🟣 <strong>Why cross-env?</strong> <code>NODE_ENV=development</code> syntax works on Mac/Linux but <strong>breaks on Windows</strong>. <code>cross-env</code> sets environment variables in a cross-platform way — same script works everywhere.</div>
+
+    <div class="code-wrap">
+      <div class="code-bar"><div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div><span class="filename">terminal — install cross-env</span></div>
+      <pre class="code"><span class="cg">npm install -D cross-env</span></pre>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-bar"><div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div><span class="filename">package.json</span></div>
+      <pre class="code">{
+  <span class="str">"scripts"</span>: {
+    <span class="str">"dev"</span>:   <span class="str">"cross-env NODE_ENV=development tsx watch src/server.ts"</span>,
+    <span class="str">"build"</span>: <span class="str">"tsc"</span>,
+    <span class="str">"start"</span>: <span class="str">"cross-env NODE_ENV=production node dist/server.js"</span>
+  }
 }</pre>
     </div>
-    <div class="tip-teal">🟢 <strong>Pro tip:</strong> Create a typed <code>env.ts</code> file and import from it everywhere — instead of writing <code>process.env.MONGO_URI</code> across every file. Centralised, typed, clean.</div>
+
+    <div class="code-wrap">
+      <div class="code-bar"><div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div><span class="filename">terminal — run commands</span></div>
+      <pre class="code"><span class="cm"># Development — loads .env</span>
+<span class="cg">npm run dev</span>
+
+<span class="cm"># Production — build first, then start — loads .env.production</span>
+<span class="cg">npm run build</span>
+<span class="cg">npm run start</span>
+
+<span class="cm"># OR run production directly without npm script</span>
+<span class="cg">cross-env NODE_ENV=production node dist/server.js</span></pre>
+    </div>
+
+    <div class="diagram">Without cross-env → Mac/Linux ✅  Windows ❌
+With cross-env    → Mac/Linux ✅  Windows ✅</div>
+
+    <div class="short-answer">
+      ✅ <strong>What you see in terminal when server starts:</strong><br>
+      <code>📦 Loaded: .env  (NODE_ENV=development)</code> — dev<br>
+      <code>📦 Loaded: .env.production  (NODE_ENV=production)</code> — prod
+    </div>
+
+    <div class="remember">💡 Adding a new stage later? Install <code>cross-env</code> once, then just create <code>.env.staging</code> and add <code>"staging": "cross-env NODE_ENV=staging node dist/server.js"</code> to scripts. <strong>Zero changes to env.ts.</strong></div>
+
   </div>
 </div>
 
@@ -908,6 +973,64 @@ app.get(<span class="str">'/health'</span>, (req, res) => {
     db: mongoose.connection.readyState === <span class="num">1</span> ? <span class="str">'connected'</span> : <span class="str">'disconnected'</span>
   })
 })</div>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q"><span class="qa-num">Q19</span> Why do we throw an error if <code>NODE_ENV</code> is not set instead of using a fallback?</div>
+      <div class="qa-a">
+        A fallback like <code>|| 'development'</code> silently loads the wrong config if someone forgets to set <code>NODE_ENV</code>. Worst case — a developer runs <code>node dist/server.js</code> on a production server without setting it, and it loads <code>.env</code> (dev config) silently. No error, no warning, wrong DB, wrong secrets.<br><br>
+        Throwing forces whoever runs the app to be explicit. The crash is immediate, loud, and clear — far safer than a silent wrong config.
+        <div class="diagram">NODE_ENV = undefined
+
+With fallback  → silently loads .env (dev config on prod server) ❌
+With throw     → ❌ Error: NODE_ENV is not set → fix it before proceeding ✅</div>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q"><span class="qa-num">Q20</span> How does the dynamic env loader work — how does it know which file to load?</div>
+      <div class="qa-a">
+        It uses a single ternary — <code>development</code> gets the plain <code>.env</code> file (no suffix), every other value uses template literal <code>.env.${NODE_ENV}</code> which appends the stage name automatically.<br><br>
+        This means adding a new environment never requires a code change — just create the file and set <code>NODE_ENV</code>.
+        <div class="diagram">const envFile = NODE_ENV === 'development'
+  ? '.env'
+  : `.env.${NODE_ENV}`
+
+NODE_ENV = 'development'  →  '.env'
+NODE_ENV = 'production'   →  '.env.production'
+NODE_ENV = 'test'         →  '.env.test'
+NODE_ENV = 'staging'      →  '.env.staging'    ← no code change needed ✅</div>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q"><span class="qa-num">Q21</span> Why is <code>cross-env</code> a <code>devDependency</code> and not a <code>dependency</code>?</div>
+      <div class="qa-a">
+        <code>cross-env</code> is only used inside <code>package.json</code> scripts — it's a CLI tool that sets environment variables before running a command. It is never imported or required inside your application code.<br><br>
+        In real production deployments (Docker, Railway, AWS), <code>NODE_ENV</code> is set directly by the platform as a system environment variable — <code>cross-env</code> is not involved at all. So it has zero role at runtime, making it a devDependency.
+        <table style="font-size:13px;margin-top:10px;">
+          <tr><th>Where</th><th>How NODE_ENV is set</th><th>cross-env needed?</th></tr>
+          <tr><td>Local dev (any OS)</td><td><code>cross-env NODE_ENV=development</code> in script</td><td><span class="badge badge-g">Yes</span></td></tr>
+          <tr><td>Docker / Railway / AWS</td><td>Platform injects it as system env var</td><td><span class="badge badge-r">No</span></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q"><span class="qa-num">Q22</span> What problem does <code>cross-env</code> solve? Why not just write <code>NODE_ENV=production</code>?</div>
+      <div class="qa-a">
+        <code>NODE_ENV=value command</code> is a Unix/bash syntax. It works on Mac and Linux but <strong>throws an error on Windows</strong> because Windows CMD and PowerShell use a completely different syntax to set environment variables (<code>set NODE_ENV=production &amp;&amp; node ...</code> for CMD, <code>$env:NODE_ENV="production"; node ...</code> for PowerShell).<br><br>
+        <code>cross-env</code> is a Node.js package that handles this difference — you write the script once in Unix syntax and it translates it for Windows automatically.
+        <div class="diagram">Mac/Linux:
+  NODE_ENV=production node dist/server.js   ✅ works natively
+
+Windows CMD:
+  NODE_ENV=production node dist/server.js   ❌ 'NODE_ENV' is not recognized
+
+With cross-env (all platforms):
+  cross-env NODE_ENV=production node dist/server.js   ✅ works everywhere</div>
+        <div class="remember">💡 <code>cross-env</code> is a <strong>devDependency</strong> — only used in npm scripts, never imported in app code. Install with <code>npm install -D cross-env</code>.</div>
       </div>
     </div>
 
