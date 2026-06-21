@@ -342,40 +342,6 @@ window.notePageData = {
       ]
     },
     {
-      "id": "workflow",
-      "type": "workflow",
-      "label": "Workflow / Request Flow",
-      "heading": "MongoDB Request Lifecycle",
-      "blocks": [
-        {
-          "type": "list",
-          "ordered": true,
-          "items": [
-            "Client sends request.",
-            "Node.js Controller receives request.",
-            "Validation Layer validates data.",
-            "Service Layer processes business logic.",
-            "Repository/Model Layer communicates with MongoDB.",
-            "MongoDB executes query.",
-            "Response returns to client."
-          ]
-        }
-      ]
-    },
-    {
-      "id": "code",
-      "type": "code-snippet",
-      "label": "Code Snippet",
-      "heading": "Mongoose Schema Example",
-      "blocks": [
-        {
-          "type": "code",
-          "filename": "user.model.ts",
-          "text": "import mongoose,{Schema} from 'mongoose';\n\nconst userSchema=new Schema({\n firstName:{type:String,required:true},\n lastName:{type:String,required:true},\n email:{type:String,required:true,unique:true},\n age:{type:Number},\n isActive:{type:Boolean,default:true}\n},{timestamps:true});\n\nexport default mongoose.model('User',userSchema);"
-        }
-      ]
-    },
-    {
       "id": "explanation",
       "type": "explanation",
       "label": "Explanation",
@@ -648,25 +614,6 @@ window.notePageData = {
     }
   ]
 },
-{
-  "id": "transactions",
-  "type": "transactions",
-  "label": "Transactions",
-  "heading": "ACID Transactions",
-  "blocks": [
-    {
-      "type": "paragraph",
-      "parts": [
-        "Transactions ensure multiple operations succeed or fail together."
-      ]
-    },
-    {
-      "type": "code",
-      "filename": "transaction.ts",
-      "text": "const session=await mongoose.startSession();\n\nsession.startTransaction();\n\ntry{\n await User.create([data],{session});\n await Profile.create([profile],{session});\n await session.commitTransaction();\n}catch(err){\n await session.abortTransaction();\n}"
-    }
-  ]
-},
 
     {
       "id": "boxes",
@@ -725,81 +672,8 @@ window.notePageData = {
         }
       ]
     },
-    {
-      "id": "timeline",
-      "type": "timeline",
-      "label": "Timeline",
-      "heading": "MongoDB Query Lifecycle",
-      "blocks": [
-        {
-          "type": "timeline",
-          "items": [
-            {
-              "label": "01",
-              "title": "Connection",
-              "text": "Application connects to database."
-            },
-            {
-              "label": "02",
-              "title": "Query",
-              "text": "Database receives query."
-            },
-            {
-              "label": "03",
-              "title": "Execution",
-              "text": "MongoDB executes operation."
-            },
-            {
-              "label": "04",
-              "title": "Response",
-              "text": "Data returned to application."
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "checklist",
-      "type": "checklist",
-      "label": "Checklist",
-      "heading": "MongoDB Setup Checklist",
-      "blocks": [
-        {
-          "type": "checklist",
-          "items": [
-            "Install MongoDB",
-            "Create Database",
-            "Create Collections",
-            "Create Indexes",
-            "Connect with Mongoose",
-            "Validate Data",
-            "Implement Logging",
-            "Add Backup Strategy"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "table-section",
-      "type": "table-section",
-      "label": "Table Section",
-      "heading": "MongoDB Data Types",
-      "blocks": [
-        {
-          "type": "table",
-          "headers": ["Type", "Example", "Usage"],
-          "rows": [
-            ["String", "John", "Text Data"],
-            ["Number", "25", "Numeric Data"],
-            ["Boolean", "true", "Status Flags"],
-            ["Date", "2026-01-01", "Date Values"],
-            ["Array", "[1,2,3]", "Lists"],
-            ["Object", "{city:'Delhi'}", "Nested Data"],
-            ["ObjectId", "66abc123", "Document Identifier"]
-          ]
-        }
-      ]
-    },
+
+
     {
       "id": "accordion",
       "type": "accordion",
@@ -838,35 +712,7 @@ window.notePageData = {
         }
       ]
     },
-    {
-      "id": "steps",
-      "type": "step-by-step",
-      "label": "Step-by-Step",
-      "heading": "Creating a MongoDB Collection",
-      "blocks": [
-        {
-          "type": "steps",
-          "items": [
-            {
-              "title": "Install MongoDB",
-              "text": "Install local MongoDB or use Atlas."
-            },
-            {
-              "title": "Create Database",
-              "text": "Select database using use command."
-            },
-            {
-              "title": "Insert Document",
-              "text": "Create first document."
-            },
-            {
-              "title": "Query Data",
-              "text": "Retrieve records using find()."
-            }
-          ]
-        }
-      ]
-    },
+
     {
       "id": "use-cases",
       "type": "use-cases",
