@@ -345,8 +345,16 @@
     }
 
     function loadPageData() {
+        if (window.notePageData && !jsonPath) {
+            return Promise.resolve(window.notePageData);
+        }
+
         if (window.notePageData && window.location.protocol === "file:") {
             return Promise.resolve(window.notePageData);
+        }
+
+        if (!jsonPath) {
+            return Promise.reject(new Error("No content source found."));
         }
 
         return fetch(jsonPath)
