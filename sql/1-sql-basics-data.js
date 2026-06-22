@@ -6,7 +6,7 @@ window.notePageData =
     "type": "introduction",
     "label": "Introduction",
     "heading": "SQL & Database Fundamentals",
-    "text": "A complete guide to Database Fundamentals, Relational Concepts, Keys, Constraints, Data Types, Relationships, Normalization, and SQL Language Categories — everything you need to master SQL from the ground up."
+    "text": "A complete guide to Database Fundamentals, Relational Concepts, Keys, Constraints, Data Types, Relationships, Joins, Normalization, and SQL Language Categories — everything you need to master SQL from the ground up."
   },
   "nav": [
     {
@@ -71,13 +71,17 @@ window.notePageData =
       ]
     },
     {
-      "label": "6. Relationships",
+      "label": "6. Relationships & Joins",
       "href": "#relationships",
       "children": [
         { "label": "One-to-One",     "href": "#relationships" },
         { "label": "One-to-Many",    "href": "#relationships" },
         { "label": "Many-to-Many",   "href": "#relationships" },
-        { "label": "Junction Tables","href": "#relationships" }
+        { "label": "Junction Tables","href": "#relationships" },
+        { "label": "INNER JOIN",     "href": "#relationships" },
+        { "label": "LEFT JOIN",      "href": "#relationships" },
+        { "label": "RIGHT JOIN",     "href": "#relationships" },
+        { "label": "FULL OUTER JOIN","href": "#relationships" }
       ]
     },
     {
@@ -126,6 +130,7 @@ window.notePageData =
             "A Foreign Key links one table to the Primary Key of another table.",
             "Constraints enforce rules on data — NOT NULL, UNIQUE, CHECK, DEFAULT, FOREIGN KEY.",
             "Relationships: One-to-One, One-to-Many, Many-to-Many (via junction table).",
+            "Joins reassemble related data at query time — INNER, LEFT, RIGHT, FULL OUTER.",
             "Normalization eliminates redundancy — 1NF, 2NF, 3NF, BCNF.",
             "SQL categories: DDL (structure), DML (data), DQL (query), DCL (permissions), TCL (transactions).",
             "Data Integrity = accuracy + consistency of data throughout its lifecycle."
@@ -411,8 +416,8 @@ window.notePageData =
     {
       "id": "relationships",
       "type": "terminology",
-      "label": "Relationships",
-      "heading": "6. Relationships",
+      "label": "Relationships & Joins",
+      "heading": "6. Relationships & Joins",
       "blocks": [
         {
           "type": "definitions",
@@ -448,6 +453,56 @@ window.notePageData =
             ["One-to-Many",  "FK in 'many' side table",     "orders.user_id",          "user → orders"],
             ["Many-to-Many", "Junction table with 2 FKs",   "enrollments(student_id, course_id)", "students ↔ courses"]
           ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Once data is split across related tables, JOINs are the mechanism that reassembles it at query time. A JOIN combines rows from two or more tables based on a related column — usually a foreign key matching a primary key."
+        },
+        {
+          "type": "definitions",
+          "items": [
+            {
+              "term": "INNER JOIN",
+              "definition": "Returns only rows that have a match in BOTH tables. If a user has no orders, that user disappears from the result entirely. The most restrictive join — and the default meaning of plain JOIN in most databases."
+            },
+            {
+              "term": "LEFT JOIN (LEFT OUTER JOIN)",
+              "definition": "Returns ALL rows from the left table, plus matching rows from the right table. If there's no match, the right table's columns are filled with NULL. Example: every user appears, even users with zero orders, with order columns as NULL for them."
+            },
+            {
+              "term": "RIGHT JOIN (RIGHT OUTER JOIN)",
+              "definition": "The mirror of LEFT JOIN — returns ALL rows from the right table, plus matching rows from the left table, with NULLs where there's no match. Less commonly used than LEFT JOIN since you can usually flip the table order instead."
+            },
+            {
+              "term": "FULL OUTER JOIN",
+              "definition": "Returns every row from BOTH tables — matched rows are combined, and unmatched rows from either side appear with NULL in the columns from the other table. Useful for finding mismatches between two datasets, like users with no orders AND orders with no valid user."
+            }
+          ]
+        },
+        {
+          "type": "diagram",
+          "text": "INNER JOIN              LEFT JOIN              FULL OUTER JOIN\n  ┌───┐ ┌───┐             ┌───┐ ┌───┐              ┌───┐ ┌───┐\n  │ A │ │ B │             │ A │ │ B │              │ A │ │ B │\n  │  ┌─┼─┐   │             │███┼─┐   │              │███┼███│\n  │  │█│ │   │             │███│ │   │              │███│███│\n  │  └─┼─┘   │             │███┼─┘   │              │███┼███│\n  └───┘ └───┘             └───┘ └───┘              └───┘ └───┘\n  only matching        all of A, matched B       everything, both sides\n\nRIGHT JOIN\n  ┌───┐ ┌───┐\n  │ A │ │ B │\n  │   ┌─┼███│\n  │   │ │███│\n  │   └─┼███│\n  └───┘ └───┘\n  matched A, all of B"
+        },
+        {
+          "type": "code",
+          "filename": "joins.sql",
+          "text": "-- INNER JOIN: only users who have placed an order\nSELECT u.name, o.total\nFROM users u\nINNER JOIN orders o ON o.user_id = u.id;\n\n-- LEFT JOIN: every user, NULL total if no order exists\nSELECT u.name, o.total\nFROM users u\nLEFT JOIN orders o ON o.user_id = u.id;\n\n-- RIGHT JOIN: every order, even if (hypothetically) user_id is orphaned\nSELECT u.name, o.total\nFROM users u\nRIGHT JOIN orders o ON o.user_id = u.id;\n\n-- FULL OUTER JOIN: every user AND every order, matched or not\nSELECT u.name, o.total\nFROM users u\nFULL OUTER JOIN orders o ON o.user_id = u.id;\n\n-- Find users with NO orders (anti-join pattern using LEFT JOIN)\nSELECT u.name\nFROM users u\nLEFT JOIN orders o ON o.user_id = u.id\nWHERE o.id IS NULL;"
+        },
+        {
+          "type": "table",
+          "headers": ["Join Type", "Returns", "Unmatched Side Result", "Common Use"],
+          "rows": [
+            ["INNER JOIN",      "Only matching rows in both tables",       "Excluded entirely",        "Orders that definitely have a valid user"],
+            ["LEFT JOIN",       "All of left table + matches from right",  "NULL on right side",       "Every user, with or without orders"],
+            ["RIGHT JOIN",      "All of right table + matches from left",  "NULL on left side",        "Rarely used — usually flip to LEFT JOIN"],
+            ["FULL OUTER JOIN", "All rows from both tables",               "NULL on whichever side lacks a match", "Finding orphaned or mismatched data"]
+          ]
+        },
+        {
+          "type": "text-box",
+          "variant": "tip",
+          "title": "Why Joins Matter After Normalization",
+          "text": "Normalization splits data into separate tables to remove redundancy — but that means a complete order can no longer be read from a single table. JOINs are the mechanism that reassembles related rows back together at query time, trading a small amount of CPU cost for the data integrity normalization bought you."
         }
       ]
     },
@@ -465,7 +520,7 @@ window.notePageData =
             { "code": "data redundancy" },
             " and improve ",
             { "code": "data integrity" },
-            ". It follows a series of rules called Normal Forms. Each Normal Form builds on the previous one."
+            ". It follows a series of rules called Normal Forms. Each Normal Form builds on the previous one, and each one removes exactly one specific kind of redundancy."
           ]
         },
         {
@@ -492,6 +547,10 @@ window.notePageData =
               "definition": "Denormalization is the DELIBERATE introduction of redundancy into a database for performance reasons. Normalization optimizes write performance and data integrity. Denormalization optimizes READ performance by reducing the need for expensive JOINs. Example: Store total_order_amount on the orders table instead of computing it from order_items every time. Use denormalization carefully — in read-heavy systems, analytics, or caching layers. Always normalize first, then denormalize where performance requires it."
             }
           ]
+        },
+        {
+          "type": "diagram",
+          "text": "Stage 0 — Unnormalized\n┌──────────────────────────────────────────────────┐\n│ order_id │ customer  │ products                   │\n│ 1        │ Aman      │ Keyboard, Mouse            │  ← violates 1NF\n└──────────────────────────────────────────────────┘\n              │  split repeating group\n              ▼\nStage 1 — 1NF (atomic values, one product per row)\n┌──────────┬───────────┬──────────┐\n│ order_id │ customer  │ product  │\n│ 1        │ Aman      │ Keyboard │   customer still repeats per row\n│ 1        │ Aman      │ Mouse    │\n└──────────┴───────────┴──────────┘\n              │  remove partial dependency on composite key\n              ▼\nStage 2 — 2NF (customer split into its own concept)\n  order_items                customers\n┌──────────┬──────────┐      ┌────┬───────┐\n│ order_id │ product  │      │ id │ name  │\n│ 1        │ Keyboard │      │ 1  │ Aman  │\n└──────────┴──────────┘      └────┴───────┘\n              │  remove transitive dependency (product details)\n              ▼\nStage 3 — 3NF (product details live in one place only)\n  order_items              products              customers\n┌──────────┬──────────┐  ┌────┬──────────┐      ┌────┬───────┐\n│ order_id │ product_id│  │ id │ name     │      │ id │ name  │\n│ 1        │ 101       │  │101 │ Keyboard │      │ 1  │ Aman  │\n└──────────┴──────────┘  └────┴──────────┘      └────┴───────┘\n\nDenormalization (deliberate, later) — re-merge for read speed:\n  orders\n┌────┬─────────────┬────────────┐\n│ id │ customer_id │ item_count │  ← item_count is redundant\n│ 1  │ 1           │ 2          │     but skips a COUNT() join\n└────┴─────────────┴────────────┘"
         },
         {
           "type": "code",
@@ -630,7 +689,7 @@ window.notePageData =
           "type": "text-box",
           "variant": "short-answer",
           "title": "Short Answer",
-          "text": "DDL=structure, DML=data changes, DQL=SELECT, DCL=permissions, TCL=transactions. Normalization: 1NF=atomic, 2NF=no partial deps, 3NF=no transitive deps, BCNF=every determinant is superkey."
+          "text": "DDL=structure, DML=data changes, DQL=SELECT, DCL=permissions, TCL=transactions. Normalization: 1NF=atomic, 2NF=no partial deps, 3NF=no transitive deps, BCNF=every determinant is superkey. Joins: INNER=only matches, LEFT=all left + matches, FULL OUTER=everything."
         },
         {
           "type": "text-box",
@@ -742,6 +801,10 @@ window.notePageData =
             {
               "title": "What is referential integrity and how is it enforced?",
               "text": "Referential integrity ensures that a Foreign Key value always points to an existing Primary Key in the referenced table. You cannot insert a child row with a FK that has no matching parent row. When the parent row is deleted or updated, the database must handle it: ON DELETE CASCADE (delete child rows too), ON DELETE SET NULL (set FK to null), ON DELETE RESTRICT (block parent deletion if children exist), ON DELETE NO ACTION (similar to RESTRICT, checked at end of transaction). Always choose the ON DELETE behavior explicitly based on business requirements."
+            },
+            {
+              "title": "Why use LEFT JOIN instead of INNER JOIN to find unmatched rows?",
+              "text": "LEFT JOIN keeps every row from the left table even when there's no match on the right, filling unmatched columns with NULL. By adding WHERE right_table.id IS NULL after a LEFT JOIN, you isolate exactly the left-table rows that had no match at all — this is the standard 'anti-join' pattern for finding users with no orders, products never sold, or any orphaned-on-one-side scenario. INNER JOIN can never produce this result because it discards unmatched rows entirely before you'd have a chance to filter them."
             }
           ]
         }
@@ -782,7 +845,8 @@ window.notePageData =
             "Use snake_case for all column and table names (first_name, not firstName or FirstName).",
             "Add indexes on Foreign Key columns and any column used in WHERE, JOIN, or ORDER BY clauses.",
             "Always wrap multi-step operations in a BEGIN/COMMIT transaction to ensure atomicity.",
-            "Use CHECK constraints for domain validation — price > 0, age BETWEEN 0 AND 150."
+            "Use CHECK constraints for domain validation — price > 0, age BETWEEN 0 AND 150.",
+            "Prefer LEFT JOIN over RIGHT JOIN for readability — flip the table order instead of using RIGHT JOIN."
           ]
         }
       ]
@@ -807,7 +871,8 @@ window.notePageData =
             "Using CHAR for variable-length strings — wastes storage for short values padded with spaces.",
             "Not using transactions for multi-step operations — partial failures leave data in inconsistent state.",
             "Storing passwords in plain text instead of hashed format — critical security violation.",
-            "Using TIMESTAMP without timezone — causes bugs when servers are in different timezones."
+            "Using TIMESTAMP without timezone — causes bugs when servers are in different timezones.",
+            "Using INNER JOIN when LEFT JOIN was needed — silently drops rows with no match, hiding missing data."
           ]
         }
       ]
@@ -851,6 +916,10 @@ window.notePageData =
               "answer": "CHAR(n) is fixed-length — always occupies exactly n bytes, padded with spaces for shorter values. Fast for fixed-size data but wastes space for variable-length values. VARCHAR(n) is variable-length — uses only as much space as the actual data plus a small overhead. More space-efficient for variable strings. Use CHAR for fixed codes like country codes ('US', 'IN'), use VARCHAR for everything else like names and emails."
             },
             {
+              "question": "What is the difference between INNER JOIN and LEFT JOIN?",
+              "answer": "INNER JOIN returns only rows that have a match in both tables — unmatched rows on either side are excluded entirely. LEFT JOIN returns all rows from the left table regardless of a match, filling unmatched right-side columns with NULL. Use INNER JOIN when you only care about complete pairs (e.g. valid orders with a valid user); use LEFT JOIN when you need every row from one side even if related data is missing (e.g. every user, with or without orders)."
+            },
+            {
               "question": "[Medium] What are update anomalies and how does normalization fix them?",
               "answer": "Update anomalies are inconsistencies that arise when data is duplicated across rows. There are three types: Update Anomaly (changing dept_name in one row but not others leaves inconsistent data), Insert Anomaly (cannot add a department until there is an employee in it), Delete Anomaly (deleting the last employee in a department loses department data). Normalization fixes this by storing each piece of data in exactly one place — dept_name lives in the departments table and nowhere else."
             },
@@ -869,6 +938,10 @@ window.notePageData =
             {
               "question": "[Advanced] What is the difference between SAVEPOINT and ROLLBACK?",
               "answer": "ROLLBACK undoes ALL changes made since the last BEGIN/START TRANSACTION — the entire transaction is cancelled. SAVEPOINT creates a named intermediate point within a transaction. ROLLBACK TO SAVEPOINT name undoes changes only back to that savepoint — earlier changes in the same transaction are preserved. This allows partial rollbacks. Use case: a complex operation with multiple steps where early steps succeeded but a later step fails — you can rollback to a savepoint without losing the earlier successful work."
+            },
+            {
+              "question": "[Advanced] How do you find rows in Table A that have no matching row in Table B using SQL?",
+              "answer": "Use a LEFT JOIN from A to B, then filter WHERE b.id IS NULL — this is the standard anti-join pattern. SELECT a.* FROM a LEFT JOIN b ON b.a_id = a.id WHERE b.id IS NULL. This returns every row from A that had no match in B at all. An alternative is a NOT EXISTS subquery, which performs similarly or better in most modern query planners: SELECT a.* FROM a WHERE NOT EXISTS (SELECT 1 FROM b WHERE b.a_id = a.id). Avoid NOT IN with a subquery if the subquery can return NULL — it silently returns zero rows due to NULL comparison semantics."
             }
           ]
         }
@@ -923,6 +996,10 @@ window.notePageData =
             {
               "question": "[Advanced] What is the difference between a schema and a database?",
               "answer": "A database is the top-level container — it is the actual file(s) on disk holding all data. A schema is a namespace WITHIN a database that groups related tables, views, functions, and indexes. In PostgreSQL, one database can have multiple schemas (default schema is 'public'). In MySQL, 'schema' and 'database' are used interchangeably. In enterprise systems, schemas are used to separate concerns — e.g., schema 'sales' contains sales tables, schema 'inventory' contains inventory tables, all within the same database server."
+            },
+            {
+              "question": "[Advanced] Why does a JOIN need an index to perform well, and what happens without one?",
+              "answer": "Without an index on the join column, the database must scan every row of one table for each row of the other (a nested loop with full scans) — this is O(n × m) and becomes extremely slow as tables grow. With an index on the foreign key column, the database can look up matching rows in roughly O(log n) time per row, turning the join into a fast index lookup or merge join. This is why best practice is to always index foreign key columns, even though PostgreSQL does not do this automatically when you create a FOREIGN KEY constraint."
             }
           ]
         }
@@ -946,8 +1023,10 @@ window.notePageData =
             "Composite Key = PK made of 2+ columns. Unique Key = unique but allows NULL.",
             "Constraints: NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY, CHECK, DEFAULT.",
             "Data Types: use NUMERIC for money, TIMESTAMPTZ for timestamps, UUID for distributed PKs, JSONB for flexible JSON data.",
-            "1NF = atomic values. 2NF = no partial deps. 3NF = no transitive deps. BCNF = every determinant is superkey.",
             "Relationships: 1:1 (UNIQUE FK), 1:N (FK), M:N (junction table with composite PK).",
+            "Joins reassemble split data: INNER = only matches, LEFT = all left + matches, FULL OUTER = everything from both sides.",
+            "1NF = atomic values. 2NF = no partial deps. 3NF = no transitive deps. BCNF = every determinant is superkey.",
+            "Denormalization deliberately re-merges data later to skip JOINs and speed up reads — normalize first, denormalize only when proven necessary.",
             "DDL = structure (CREATE ALTER DROP). DML = data (INSERT UPDATE DELETE). DQL = SELECT.",
             "DCL = permissions (GRANT REVOKE). TCL = transactions (BEGIN COMMIT ROLLBACK SAVEPOINT).",
             "TRUNCATE = DDL, cannot rollback. DELETE = DML, can rollback. Never confuse them.",

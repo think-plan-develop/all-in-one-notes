@@ -67,16 +67,30 @@
         return list;
     }
 
-    function renderDefinitions(block) {
-        const list = createElement("dl", "definition-list");
+   function renderDefinitions(block) {
+    const list = createElement("dl", "definition-list");
 
-        block.items.forEach((item) => {
-            list.append(createElement("dt", "", item.term));
-            list.append(createElement("dd", "", item.definition));
-        });
+  block.items.forEach((item) => {
+    const dt = createElement("dt", "", item.term);
+    const dd = createElement("dd");
 
-        return list;
+    if (item.definition) {
+        const text = createElement("div", "definition-text", item.definition);
+        dd.append(text);
     }
+
+    if (item.code) {
+        const pre = createElement("pre", "code-block");
+        pre.innerHTML = highlightCode(item.code);
+        dd.append(pre);
+    }
+
+    list.append(dt);
+    list.append(dd);
+});
+
+return list;
+   }
 
     function renderTable(block) {
         const table = document.createElement("table");
