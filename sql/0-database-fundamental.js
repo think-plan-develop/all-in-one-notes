@@ -1,43 +1,26 @@
-window.notePageData = {
-    "title": "Database Design",
-    "navLabel": "Database design sections",
-    "hero": {
-        "type": "introduction",
-        "label": "Introduction",
-        "heading": "Database Design",
-        "text": "Design databases effectively by choosing the right entities, relationships, keys, and constraints before writing queries."
-    },
-    "nav": [
-        { "label": "Notes", "href": "#notes" },
-        { "label": "Definitions", "href": "#terms" },
-        { "label": "Diagram", "href": "#diagram" },
-        { "label": "Workflow", "href": "#workflow" },
-        { "label": "Code", "href": "#code" },
-        { "label": "Comparison", "href": "#comparison" },
-        { "label": "Boxes", "href": "#boxes" },
-        { "label": "Timeline", "href": "#timeline" },
-        { "label": "Checklist", "href": "#checklist" },
-        { "label": "Accordion", "href": "#accordion" },
-        { "label": "Q&A", "href": "#qa" }
-    ],
-    "sections": [
-        {
-            "id": "notes",
-            "type": "notes",
-            "label": "Notes",
-            "heading": "Important Concepts",
-            "blocks": [
-                {
-                    "type": "list",
-                    "items": [
-                        "A database design starts from business rules, not from tables.",
-                        "Entities become tables, attributes become columns, and relationships become keys or junction tables.",
-                        "Good design reduces duplicate data while keeping reads and writes practical."
-                    ]
-                }
-            ]
-        },
-        {
+window.notePageData = 
+{
+  "title": "System Catalog (Data Dictionary)",
+  "navLabel": "Topic sections",
+  "hero": {
+    "type": "introduction",
+    "label": "Introduction",
+    "heading": "System Catalog (Data Dictionary)",
+    "text": "PostgreSQL's internal metadata store — a set of tables in pg_catalog that describe every database object: tables, columns, indexes, constraints, schemas, users, and functions."
+  },
+  "nav": [
+    { "label": "Definitions", "href": "#terms" },
+    { "label": "Diagram", "href": "#diagram" },
+    { "label": "Code", "href": "#code" },
+    { "label": "Comparison", "href": "#comparison" },
+    { "label": "Boxes", "href": "#boxes" },
+    { "label": "Table", "href": "#table-section" },
+    { "label": "Accordion", "href": "#accordion" },
+    { "label": "Interview", "href": "#interview" },
+    { "label": "Q&A", "href": "#qa" }
+  ],
+  "sections": [
+     {
             "id": "terms",
             "type": "terminology",
             "label": "Terminology / Key Definitions",
@@ -66,392 +49,283 @@ window.notePageData = {
                 }
             ]
         },
+    {
+      "id": "terms",
+      "type": "terminology",
+      "label": "Terminology / Key Definitions",
+      "heading": "Key Definitions",
+      "blocks": [
         {
-            "id": "diagram",
-            "type": "diagram",
-            "label": "Diagram",
-            "heading": "Simple Order System",
-            "blocks": [
-                {
-                    "type": "diagram",
-                    "text": "User 1 ----- * Order\nOrder 1 ---- * OrderItem\nProduct 1 -- * OrderItem"
-                }
-            ]
-        },
-        {
-            "id": "workflow",
-            "type": "workflow",
-            "label": "Workflow / Request Flow",
-            "heading": "Design Workflow",
-            "blocks": [
-                {
-                    "type": "list",
-                    "ordered": true,
-                    "items": [
-                        "Collect requirements and business rules.",
-                        "Identify entities and their attributes.",
-                        "Define relationships and cardinality.",
-                        "Choose primary keys and foreign keys.",
-                        "Normalize tables, then denormalize only when performance needs it."
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "code",
-            "type": "code-snippet",
-            "label": "Code Snippet",
-            "heading": "Example Schema",
-            "blocks": [
-                {
-                    "type": "code",
-                    "filename": "schema.sql",
-                    "text": "CREATE TABLE users (\n    id INT PRIMARY KEY,\n    name VARCHAR(100) NOT NULL,\n    email VARCHAR(150) UNIQUE NOT NULL\n);\n\nCREATE TABLE orders (\n    id INT PRIMARY KEY,\n    user_id INT NOT NULL,\n    order_date DATE NOT NULL,\n    FOREIGN KEY (user_id) REFERENCES users(id)\n);"
-                }
-            ]
-        },
-        {
-            "type": "explanation",
-            "label": "Explanation",
-            "heading": "Why This Design Works",
-            "blocks": [
-                {
-                    "type": "paragraph",
-                    "parts": [
-                        "The ",
-                        { "code": "users" },
-                        " table stores customer details once. The ",
-                        { "code": "orders" },
-                        " table stores order-specific data and keeps a foreign key to the user who placed the order."
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "comparison",
-            "type": "comparison",
-            "label": "Differentiate / Comparison",
-            "heading": "Normalization vs Denormalization",
-            "blocks": [
-                {
-                    "type": "table",
-                    "headers": ["Point", "Normalization", "Denormalization"],
-                    "rows": [
-                        ["Goal", "Reduce duplicate data", "Improve read performance"],
-                        ["Used When", "Data consistency is most important", "Reports or read-heavy pages are slow"],
-                        ["Risk", "More joins", "Duplicate data can become inconsistent"]
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "boxes",
-            "type": "highlight-box",
-            "label": "Highlight Box",
-            "heading": "High-Value Design Notes",
-            "blocks": [
-                {
-                    "type": "text-box",
-                    "variant": "remember",
-                    "title": "Remember",
-                    "text": "Design tables around real business rules first. Performance tuning comes after the relationships are correct."
-                },
-                {
-                    "type": "text-box",
-                    "variant": "short-answer",
-                    "title": "Short Answer",
-                    "text": "A good schema stores each fact once, connects related facts clearly, and makes common queries predictable."
-                }
-            ]
-        },
-        {
-            "type": "warning-box",
-            "label": "Warning Box",
-            "heading": "Design Warnings",
-            "blocks": [
-                {
-                    "type": "text-box",
-                    "variant": "warning",
-                    "title": "Warning",
-                    "text": "Do not skip foreign keys in relational databases unless you have a very clear reason and another way to protect data integrity."
-                }
-            ]
-        },
-        {
-            "type": "tip-box",
-            "label": "Tip Box",
-            "heading": "Practical Tip",
-            "blocks": [
-                {
-                    "type": "text-box",
-                    "variant": "tip",
-                    "title": "Tip",
-                    "text": "Write the top five read queries before finalizing the schema. This makes indexes and relationship choices much easier."
-                }
-            ]
-        },
-        {
-            "type": "info-card",
-            "label": "Info Card",
-            "heading": "Useful Context",
-            "blocks": [
-                {
-                    "type": "info-card",
-                    "title": "Normalization is not anti-performance",
-                    "text": "Normalization protects correctness. If reads become slow, use indexes, query tuning, caching, or selective denormalization."
-                }
-            ]
-        },
-        {
-            "id": "timeline",
-            "type": "timeline",
-            "label": "Timeline",
-            "heading": "Database Design Timeline",
-            "blocks": [
-                {
-                    "type": "timeline",
-                    "items": [
-                        {
-                            "label": "01",
-                            "title": "Requirement Analysis",
-                            "text": "Understand users, actions, reports, and business rules."
-                        },
-                        {
-                            "label": "02",
-                            "title": "Conceptual Model",
-                            "text": "Identify entities, attributes, and relationships."
-                        },
-                        {
-                            "label": "03",
-                            "title": "Logical Design",
-                            "text": "Create tables, keys, constraints, and normalized relationships."
-                        },
-                        {
-                            "label": "04",
-                            "title": "Physical Design",
-                            "text": "Add indexes, data types, storage decisions, and performance tuning."
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "checklist",
-            "type": "checklist",
-            "label": "Checklist",
-            "heading": "Schema Review Checklist",
-            "blocks": [
-                {
-                    "type": "checklist",
-                    "items": [
-                        "Primary keys",
-                        "Foreign keys",
-                        "Unique constraints",
-                        "Required indexes",
-                        "Audit columns",
-                        "Clear data types",
-                        "No duplicate facts"
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "table-section",
-            "label": "Table Section",
-            "heading": "Priority Table",
-            "blocks": [
-                {
-                    "type": "table",
-                    "headers": ["Priority", "Design Item", "Why It Matters"],
-                    "rows": [
-                        ["Critical", "Primary and foreign keys", "Protect identity and relationships"],
-                        ["High Impact", "Indexes for common queries", "Improve read performance"],
-                        ["High Impact", "Correct data types", "Avoid storage and validation problems"]
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "accordion",
-            "type": "accordion",
-            "label": "Accordion",
-            "heading": "Expandable Design Details",
-            "blocks": [
-                {
-                    "type": "accordion",
-                    "items": [
-                        {
-                            "title": "When should I create a junction table?",
-                            "text": "Use a junction table when two entities have a many-to-many relationship, such as students and courses."
-                        },
-                        {
-                            "title": "When should I add an index?",
-                            "text": "Add indexes for columns used often in WHERE filters, JOIN conditions, ORDER BY clauses, and uniqueness checks."
-                        },
-                        {
-                            "title": "When is denormalization acceptable?",
-                            "text": "Denormalization is acceptable when it solves a proven read-performance issue and the duplicate data can be updated safely."
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "quote",
-            "label": "Quote",
-            "heading": "Design Principle",
-            "blocks": [
-                {
-                    "type": "quote",
-                    "text": "Store facts once, relate them clearly, and optimize only after the access pattern is known.",
-                    "source": "Database design rule of thumb"
-                }
-            ]
-        },
-        {
-            "type": "step-by-step",
-            "label": "Step-by-Step",
-            "heading": "Build A Schema Step By Step",
-            "blocks": [
-                {
-                    "type": "steps",
-                    "items": [
-                        {
-                            "title": "Find nouns",
-                            "text": "Turn important business nouns into candidate entities."
-                        },
-                        {
-                            "title": "Find relationships",
-                            "text": "Decide whether each relationship is one-to-one, one-to-many, or many-to-many."
-                        },
-                        {
-                            "title": "Add constraints",
-                            "text": "Use keys, uniqueness, required fields, and foreign keys to protect correctness."
-                        },
-                        {
-                            "title": "Test queries",
-                            "text": "Run common reads and writes, then add indexes where the query plan needs help."
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "use-cases",
-            "label": "Use Cases",
-            "heading": "Where Database Design Matters",
-            "blocks": [
-                {
-                    "type": "list",
-                    "items": [
-                        "E-commerce orders, carts, payments, and inventory.",
-                        "Banking systems where transaction consistency is critical.",
-                        "Analytics tables where fast reporting matters."
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "best-practices",
-            "label": "Best Practices",
-            "heading": "Production Recommendations",
-            "blocks": [
-                {
-                    "type": "list",
-                    "items": [
-                        "Use meaningful constraints: NOT NULL, UNIQUE, and foreign keys.",
-                        "Index columns used often in joins, filters, and sorting.",
-                        "Keep audit columns like created_at and updated_at."
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "common-mistakes",
-            "label": "Common Mistakes",
-            "heading": "Frequent Errors",
-            "blocks": [
-                {
-                    "type": "list",
-                    "items": [
-                        "Using one large table for unrelated data.",
-                        "Missing foreign keys between related tables.",
-                        "Adding indexes everywhere without checking query patterns."
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "debugging-tips",
-            "label": "Debugging Tips",
-            "heading": "Troubleshooting Guidance",
-            "blocks": [
-                {
-                    "type": "list",
-                    "items": [
-                        "Use EXPLAIN to understand query execution plans.",
-                        "Check whether foreign key values actually exist in parent tables.",
-                        "Look for duplicate rows when unique constraints are missing."
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "interview-questions",
-            "label": "Interview Questions",
-            "heading": "Technical Interview Prep",
-            "blocks": [
-                {
-                    "type": "qa",
-                    "items": [
-                        {
-                            "question": "What is normalization?",
-                            "answer": "Normalization is organizing tables to reduce duplicate data and avoid insert, update, and delete anomalies."
-                        },
-                        {
-                            "question": "When should you denormalize?",
-                            "answer": "Denormalize when repeated joins make important read queries too slow and the duplication can be managed safely."
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "qa",
-            "type": "qa-section",
-            "label": "Q&A Section",
-            "heading": "Frequently Asked Questions",
-            "blocks": [
-                {
-                    "type": "qa",
-                    "items": [
-                        {
-                            "question": "Why do we need foreign keys?",
-                            "answer": "Foreign keys protect relationships so child records cannot point to missing parent records."
-                        },
-                        {
-                            "question": "Is every foreign key automatically indexed?",
-                            "answer": "No. Some databases create indexes automatically in specific cases, but you should verify and add indexes based on query needs."
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "summary",
-            "label": "Summary / Key Takeaways",
-            "heading": "Quick Revision",
-            "blocks": [
-                {
-                    "type": "list",
-                    "items": [
-                        "Start with entities, relationships, and business rules.",
-                        "Use keys and constraints to protect data correctness.",
-                        "Normalize first, then optimize with indexes and selective denormalization."
-                    ]
-                }
-            ]
+          "type": "definitions",
+          "items": [
+            {
+              "term": "pg_class",
+              "definition": "Stores metadata for every relation: tables, views, indexes, sequences. One row per relation.",
+              "code": "SELECT relname, relkind FROM pg_class WHERE relkind = 'r';"
+            },
+            {
+              "term": "pg_attribute",
+              "definition": "One row per column for every table. Always filter attnum > 0 AND NOT attisdropped to get real user-defined columns only.",
+              "code": "SELECT attname FROM pg_attribute WHERE attrelid = 'users'::regclass AND attnum > 0 AND NOT attisdropped;"
+            },
+            {
+              "term": "pg_index",
+              "definition": "Describes indexes: which table, which columns, uniqueness, whether it is a primary key.",
+              "code": "SELECT indexrelid::regclass AS index_name FROM pg_index WHERE indrelid = 'orders'::regclass;"
+            },
+            {
+              "term": "pg_constraint",
+              "definition": "Records all constraints. contype: 'p' = PK, 'f' = FK, 'u' = unique, 'c' = check.",
+              "code": "SELECT conname, contype FROM pg_constraint WHERE conrelid = 'orders'::regclass;"
+            },
+            {
+              "term": "pg_namespace",
+              "definition": "Holds schemas. Every object belongs to a namespace identified by its OID.",
+              "code": "SELECT nspname FROM pg_namespace WHERE nspname NOT LIKE 'pg_%';"
+            },
+            {
+              "term": "pg_roles",
+              "definition": "Public view over pg_authid (hides password hashes). Lists all roles and their attributes.",
+              "code": "SELECT rolname, rolsuper, rolcanlogin FROM pg_roles;"
+            },
+            {
+              "term": "pg_proc",
+              "definition": "Stores all functions and procedures: name, argument types, return type, language, source code.",
+              "code": "SELECT proname, prosrc FROM pg_proc WHERE proname = 'my_function';"
+            },
+            {
+              "term": "OID (Object Identifier)",
+              "definition": "Internal unsigned integer assigned to every catalog object. Stable across renames. Used as FK across catalog tables. Use ::regclass to resolve name to OID cleanly.",
+              "code": "SELECT oid, relname FROM pg_class WHERE relname = 'orders';"
+            }
+          ]
         }
-    ]
+      ]
+    },
+    {
+      "id": "diagram",
+      "type": "diagram",
+      "label": "Diagram",
+      "heading": "Catalog Relationship Map",
+      "blocks": [
+        {
+          "type": "diagram",
+          "text": "pg_namespace (schemas)\n       │ oid → pg_class.relnamespace\n       ▼\npg_class (tables / views / indexes / sequences)\n       │                        │\n       │ oid → pg_attribute     │ oid → pg_index.indrelid\n       │       .attrelid        │\n       ▼                        ▼\npg_attribute              pg_index\n(columns)                 (index metadata)\n       │\n       │ atttypid → pg_type.oid\n       ▼\npg_type (data types)\n\npg_class.oid ──────────► pg_constraint.conrelid\n                          (PK / FK / CHECK / UNIQUE)\n\npg_proc ◄── pg_namespace.oid\npg_roles ───────────────► pg_class.relowner"
+        }
+      ]
+    },
+    {
+      "id": "code",
+      "type": "code-snippet",
+      "label": "Code Snippet",
+      "heading": "Catalog Query Cookbook",
+      "blocks": [
+        {
+          "type": "code",
+          "filename": "system_catalog.sql",
+          "text": "-- ── Get all user tables ───────────────────────────────────────────────\nSELECT schemaname, tablename\nFROM   pg_tables\nWHERE  schemaname NOT IN ('pg_catalog', 'information_schema');\n\n\n-- ── Get all columns of a table ────────────────────────────────────────\nSELECT attname AS column_name\nFROM   pg_attribute\nWHERE  attrelid = 'orders'::regclass\n  AND  attnum > 0\n  AND  NOT attisdropped\nORDER  BY attnum;\n\n\n-- ── Get all columns of a table with datatype ──────────────────────────\nSELECT\n  attname                                    AS column_name,\n  format_type(atttypid, atttypmod)           AS data_type,\n  attnotnull                                 AS not_null\nFROM   pg_attribute\nWHERE  attrelid = 'orders'::regclass\n  AND  attnum > 0\n  AND  NOT attisdropped\nORDER  BY attnum;\n\n\n-- ── Get all indexes of a table ────────────────────────────────────────\nSELECT\n  i.relname        AS index_name,\n  ix.indisunique   AS is_unique,\n  ix.indisprimary  AS is_primary\nFROM   pg_index ix\nJOIN   pg_class i ON i.oid = ix.indexrelid\nWHERE  ix.indrelid = 'orders'::regclass;\n\n\n-- ── Get all foreign keys of a table ──────────────────────────────────\nSELECT\n  conname               AS fk_name,\n  confrelid::regclass   AS references_table\nFROM   pg_constraint\nWHERE  conrelid = 'orders'::regclass\n  AND  contype = 'f';\n\n\n-- ── Get all constraints of a table ───────────────────────────────────\nSELECT\n  conname  AS constraint_name,\n  contype  AS type,       -- p=PK  f=FK  u=UNIQUE  c=CHECK\n  pg_get_constraintdef(oid) AS definition\nFROM   pg_constraint\nWHERE  conrelid = 'orders'::regclass;\n\n\n-- ── Get all tables that reference a given table (reverse FK lookup) ───\nSELECT\n  conname               AS fk_name,\n  conrelid::regclass    AS from_table\nFROM   pg_constraint\nWHERE  confrelid = 'users'::regclass\n  AND  contype = 'f';\n\n\n-- ── Get all functions in public schema ───────────────────────────────\nSELECT\n  proname                                  AS function_name,\n  pg_get_function_arguments(oid)           AS arguments,\n  pg_get_function_result(oid)              AS return_type\nFROM   pg_proc\nWHERE  pronamespace = 'public'::regnamespace;\n\n\n-- ── Get all schemas ───────────────────────────────────────────────────\nSELECT nspname AS schema_name\nFROM   pg_namespace\nWHERE  nspname NOT LIKE 'pg_%'\n  AND  nspname != 'information_schema';\n\n\n-- ── Get all roles/users ───────────────────────────────────────────────\nSELECT rolname, rolsuper, rolcanlogin, rolcreatedb\nFROM   pg_roles\nORDER  BY rolname;"
+        }
+      ]
+    },
+    {
+      "id": "comparison",
+      "type": "comparison",
+      "label": "Differentiate / Comparison",
+      "heading": "pg_catalog vs information_schema",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": ["Point", "pg_catalog", "information_schema"],
+          "rows": [
+            ["Standard", "PostgreSQL-specific", "SQL standard (ISO/IEC)"],
+            ["Detail", "Full internals exposed", "Limited SQL-standard subset"],
+            ["Portability", "PostgreSQL only", "Works across MySQL, SQL Server etc."],
+            ["Performance", "Faster — direct table access", "Slower — views with joins"],
+            ["Best for", "DBA tooling, ORMs, introspection", "Portable schema inspection code"]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "boxes",
+      "type": "highlight-box",
+      "label": "Highlight Box",
+      "heading": "Key Points",
+      "blocks": [
+        {
+          "type": "text-box",
+          "variant": "short-answer",
+          "title": "One-Line Interview Definition",
+          "text": "System Catalog is a collection of PostgreSQL-maintained metadata tables that store information about database objects such as tables, columns, indexes, constraints, schemas, users, and functions."
+        },
+        {
+          "type": "text-box",
+          "variant": "warning",
+          "title": "Warning",
+          "text": "Never run UPDATE, INSERT, or DELETE on catalog tables directly — this will corrupt the database. Always use DDL statements (CREATE, ALTER, DROP)."
+        },
+        {
+          "type": "text-box",
+          "variant": "tip",
+          "title": "Tip",
+          "text": "Use ::regclass cast to resolve table names to OIDs cleanly: 'orders'::regclass instead of manually looking up OIDs from pg_class."
+        },
+        {
+          "type": "text-box",
+          "variant": "note",
+          "title": "Note",
+          "text": "Always filter pg_attribute with attnum > 0 AND NOT attisdropped — otherwise you get system columns (ctid, xmin) and ghost entries from dropped columns."
+        },
+        {
+          "type": "text-box",
+          "variant": "interview",
+          "title": "Interview",
+          "text": "How would you find all indexes on a table programmatically? — Query pg_index joined with pg_class on indrelid = pg_class.oid."
+        }
+      ]
+    },
+    {
+      "id": "table-section",
+      "type": "table-section",
+      "label": "Table Section",
+      "heading": "Core Catalog Tables at a Glance",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": ["Catalog Table", "What It Stores", "Key Columns"],
+          "rows": [
+            ["pg_class", "Tables, views, indexes, sequences", "relname, relkind, oid"],
+            ["pg_attribute", "Columns of every relation", "attname, atttypid, attnum, attisdropped"],
+            ["pg_index", "Index metadata", "indrelid, indisunique, indisprimary"],
+            ["pg_constraint", "PK, FK, CHECK, UNIQUE constraints", "conname, contype, confrelid"],
+            ["pg_namespace", "Schemas", "nspname, nspowner"],
+            ["pg_proc", "Functions and procedures", "proname, prosrc, prolang"],
+            ["pg_type", "Data types (built-in + custom)", "typname, typtype"],
+            ["pg_roles", "Database roles", "rolname, rolsuper, rolcanlogin"]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accordion",
+      "type": "accordion",
+      "label": "Accordion",
+      "heading": "Common Catalog Questions",
+      "blocks": [
+        {
+          "type": "accordion",
+          "items": [
+            {
+              "title": "Why do I see extra rows in pg_attribute?",
+              "text": "PostgreSQL keeps rows for dropped columns (attisdropped = true) and system columns (attnum < 0 or = 0). Always filter: attnum > 0 AND NOT attisdropped."
+            },
+            {
+              "title": "What is the difference between pg_tables and pg_class?",
+              "text": "pg_class is the raw catalog covering all relation types (tables, views, indexes, sequences). pg_tables is a convenience view that filters to ordinary tables only (relkind = 'r') and joins in schema and owner names for readability."
+            },
+            {
+              "title": "What does ::regclass do?",
+              "text": "It casts a table name string to its OID and back, making catalog queries readable without manual OID lookups. 'orders'::regclass resolves to the OID of the orders table in the current search path."
+            },
+            {
+              "title": "Can I use information_schema instead of pg_catalog?",
+              "text": "Yes for simple queries, but information_schema is slower (it uses views with filters) and exposes less detail. Use pg_catalog for PostgreSQL-specific tooling; use information_schema for portable cross-database code."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "interview",
+      "type": "interview-questions",
+      "label": "Interview Questions",
+      "heading": "Interview Questions",
+      "blocks": [
+        {
+          "type": "qa",
+          "items": [
+            {
+              "question": "What is the PostgreSQL system catalog?",
+              "answer": "A set of tables and views in pg_catalog schema that store metadata about every database object. PostgreSQL maintains them automatically whenever DDL is executed."
+            },
+            {
+              "question": "What is an OID and why does PostgreSQL use it?",
+              "answer": "An Object Identifier — an internal unsigned integer assigned to every catalog object. OIDs are stable across renames and used as foreign keys to cross-reference rows across catalog tables."
+            },
+            {
+              "question": "What happens to the system catalog when you run CREATE TABLE?",
+              "answer": "PostgreSQL inserts a row into pg_class, one row per column into pg_attribute, rows into pg_constraint for constraints, and rows into pg_index for the PK index — all in the same transaction."
+            },
+            {
+              "question": "What is the difference between pg_catalog and information_schema?",
+              "answer": "pg_catalog is PostgreSQL-specific, exposes full internals, and is faster. information_schema is SQL-standard, portable across engines, but slower and less detailed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+  "id": "qa",
+  "type": "terminology",
+  "label": "Catalog Query Q&A",
+  "heading": "Catalog Query Q&A",
+  "blocks": [
+    {
+      "type": "definitions",
+      "items": [
+        {
+          "term": "Get all tables in the database",
+          "definition": "Query pg_tables and exclude system schemas.",
+          "code": "SELECT schemaname, tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema');"
+        },
+        {
+          "term": "Get all columns of a table",
+          "definition": "Query pg_attribute filtered to user-defined columns only.",
+          "code": "SELECT attname AS column_name FROM pg_attribute WHERE attrelid = 'orders'::regclass AND attnum > 0 AND NOT attisdropped ORDER BY attnum;"
+        },
+        {
+          "term": "Get all columns of a table with datatype",
+          "definition": "Same as above but use format_type() to resolve the type OID to a human-readable name.",
+          "code": "SELECT attname AS column_name, format_type(atttypid, atttypmod) AS data_type FROM pg_attribute WHERE attrelid = 'orders'::regclass AND attnum > 0 AND NOT attisdropped ORDER BY attnum;"
+        },
+        {
+          "term": "Get all indexes on a table",
+          "definition": "Join pg_index with pg_class on indexrelid to get index names and properties.",
+          "code": "SELECT i.relname AS index_name, ix.indisunique, ix.indisprimary FROM pg_index ix JOIN pg_class i ON i.oid = ix.indexrelid WHERE ix.indrelid = 'orders'::regclass;"
+        },
+        {
+          "term": "Get all foreign keys of a table",
+          "definition": "Query pg_constraint with contype = 'f' to get FK constraints and the table they reference.",
+          "code": "SELECT conname AS fk_name, confrelid::regclass AS references_table FROM pg_constraint WHERE conrelid = 'orders'::regclass AND contype = 'f';"
+        },
+        {
+          "term": "Get all tables that reference a given table",
+          "definition": "Reverse FK lookup — query pg_constraint on confrelid (the referenced table's OID).",
+          "code": "SELECT conname, conrelid::regclass AS from_table FROM pg_constraint WHERE confrelid = 'users'::regclass AND contype = 'f';"
+        },
+        {
+          "term": "Get all constraints of a table",
+          "definition": "Query pg_constraint and use pg_get_constraintdef() to get a readable definition for each constraint.",
+          "code": "SELECT conname, contype, pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE conrelid = 'orders'::regclass;"
+        },
+        {
+          "term": "Get all functions in a schema",
+          "definition": "Query pg_proc filtered by pronamespace using ::regnamespace cast.",
+          "code": "SELECT proname, pg_get_function_arguments(oid) AS args FROM pg_proc WHERE pronamespace = 'public'::regnamespace;"
+        },
+        {
+          "term": "Get all schemas in the database",
+          "definition": "Query pg_namespace and exclude built-in PostgreSQL schemas.",
+          "code": "SELECT nspname FROM pg_namespace WHERE nspname NOT LIKE 'pg_%' AND nspname != 'information_schema';"
+        },
+        {
+          "term": "Get all roles and users",
+          "definition": "Query pg_roles (a safe view over pg_authid that hides password hashes).",
+          "code": "SELECT rolname, rolsuper, rolcanlogin, rolcreatedb FROM pg_roles ORDER BY rolname;"
+        }
+      ]
+    }
+  ]
 }
-;
+  ]
+}

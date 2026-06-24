@@ -507,70 +507,70 @@ window.notePageData =
       ]
     },
 
+
     {
-      "id": "normalization",
-      "type": "terminology",
-      "label": "Normalization",
-      "heading": "7. Normalization",
-      "blocks": [
+  "id": "normalization",
+  "type": "terminology",
+  "label": "Normalization",
+  "heading": "7. Normalization",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "parts": [
+        "Normalization organizes a database to reduce ",
+        { "code": "data redundancy" },
+        " and improve ",
+        { "code": "data integrity" },
+        " through a series of rules called Normal Forms."
+      ]
+    },
+    {
+      "type": "definitions",
+      "items": [
         {
-          "type": "paragraph",
-          "parts": [
-            "Normalization is the process of organizing a database to reduce ",
-            { "code": "data redundancy" },
-            " and improve ",
-            { "code": "data integrity" },
-            ". It follows a series of rules called Normal Forms. Each Normal Form builds on the previous one, and each one removes exactly one specific kind of redundancy."
-          ]
+          "term": "1NF — First Normal Form",
+          "definition": "Each cell must hold one atomic value. No lists in a single column. Each row must be unique (Primary Key). VIOLATION: skills = 'Node.js, React'. FIX: one row per skill in a separate skills table."
         },
         {
-          "type": "definitions",
-          "items": [
-            {
-              "term": "1NF — First Normal Form",
-              "definition": "Rules: (1) Each column must hold atomic (indivisible) values — no multiple values in one cell. (2) Each column must have a single type. (3) Each row must be unique (Primary Key). VIOLATION: storing 'Node.js, React, MongoDB' in one skills column. FIX: create a separate skills table or row per skill. Eliminates: repeating groups and multi-valued attributes."
-            },
-            {
-              "term": "2NF — Second Normal Form",
-              "definition": "Rules: Must be in 1NF AND every non-key column must depend on the WHOLE primary key — no partial dependencies. Only relevant when the Primary Key is COMPOSITE. VIOLATION: In enrollments(student_id, course_id, student_name) — student_name depends only on student_id, not the full composite key. FIX: move student_name to the students table. Eliminates: partial dependencies."
-            },
-            {
-              "term": "3NF — Third Normal Form",
-              "definition": "Rules: Must be in 2NF AND no non-key column should depend on another non-key column — no transitive dependencies. VIOLATION: employees(id, dept_id, dept_name) — dept_name depends on dept_id, not on id directly. FIX: move dept_name to a departments table, keep only dept_id in employees. Eliminates: transitive dependencies."
-            },
-            {
-              "term": "BCNF — Boyce-Codd Normal Form",
-              "definition": "Rules: Must be in 3NF AND for every functional dependency X → Y, X must be a superkey. BCNF is a stricter version of 3NF that handles edge cases where 3NF still allows anomalies. It ensures every determinant in the table is a candidate key. Rare in practice — most well-designed 3NF tables already satisfy BCNF."
-            },
-            {
-              "term": "Denormalization",
-              "definition": "Denormalization is the DELIBERATE introduction of redundancy into a database for performance reasons. Normalization optimizes write performance and data integrity. Denormalization optimizes READ performance by reducing the need for expensive JOINs. Example: Store total_order_amount on the orders table instead of computing it from order_items every time. Use denormalization carefully — in read-heavy systems, analytics, or caching layers. Always normalize first, then denormalize where performance requires it."
-            }
-          ]
+          "term": "2NF — Second Normal Form",
+          "definition": "Must be in 1NF. Every non-key column must depend on the WHOLE composite key — no partial dependencies. VIOLATION: enrollments(student_id, course_id, student_name) — student_name depends only on student_id. FIX: move student_name to students table."
         },
         {
-          "type": "diagram",
-          "text": "Stage 0 — Unnormalized\n┌──────────────────────────────────────────────────┐\n│ order_id │ customer  │ products                   │\n│ 1        │ Aman      │ Keyboard, Mouse            │  ← violates 1NF\n└──────────────────────────────────────────────────┘\n              │  split repeating group\n              ▼\nStage 1 — 1NF (atomic values, one product per row)\n┌──────────┬───────────┬──────────┐\n│ order_id │ customer  │ product  │\n│ 1        │ Aman      │ Keyboard │   customer still repeats per row\n│ 1        │ Aman      │ Mouse    │\n└──────────┴───────────┴──────────┘\n              │  remove partial dependency on composite key\n              ▼\nStage 2 — 2NF (customer split into its own concept)\n  order_items                customers\n┌──────────┬──────────┐      ┌────┬───────┐\n│ order_id │ product  │      │ id │ name  │\n│ 1        │ Keyboard │      │ 1  │ Aman  │\n└──────────┴──────────┘      └────┴───────┘\n              │  remove transitive dependency (product details)\n              ▼\nStage 3 — 3NF (product details live in one place only)\n  order_items              products              customers\n┌──────────┬──────────┐  ┌────┬──────────┐      ┌────┬───────┐\n│ order_id │ product_id│  │ id │ name     │      │ id │ name  │\n│ 1        │ 101       │  │101 │ Keyboard │      │ 1  │ Aman  │\n└──────────┴──────────┘  └────┴──────────┘      └────┴───────┘\n\nDenormalization (deliberate, later) — re-merge for read speed:\n  orders\n┌────┬─────────────┬────────────┐\n│ id │ customer_id │ item_count │  ← item_count is redundant\n│ 1  │ 1           │ 2          │     but skips a COUNT() join\n└────┴─────────────┴────────────┘"
+          "term": "3NF — Third Normal Form",
+          "definition": "Must be in 2NF. No non-key column should depend on another non-key column — no transitive dependencies. VIOLATION: employees(id, dept_id, dept_name) — dept_name depends on dept_id, not id. FIX: move dept_name to departments table."
         },
         {
-          "type": "code",
-          "filename": "normalization.sql",
-          "text": "-- ── BEFORE NORMALIZATION (violates 1NF, 2NF, 3NF) ────\n-- BAD: one table with everything mixed\nCREATE TABLE bad_orders (\n  order_id    INT,\n  customer    VARCHAR(100),\n  email       VARCHAR(100),   -- customer data mixed in\n  product     VARCHAR(100),   -- product data mixed in\n  price       DECIMAL(10,2),  -- product price mixed in\n  dept_name   VARCHAR(100),   -- transitive: via dept_id\n  skills      TEXT            -- '\"Node.js, React\"' — not atomic (1NF violation)\n);\n\n\n-- ── AFTER NORMALIZATION ─────────────────────────────────\n\n-- 1NF: atomic values, single type, unique rows via PK\nCREATE TABLE customers (\n  id    SERIAL PRIMARY KEY,\n  name  VARCHAR(100) NOT NULL,\n  email VARCHAR(100) UNIQUE NOT NULL\n);\n\n-- 2NF: skills separated — no partial dependency\nCREATE TABLE customer_skills (\n  customer_id INT NOT NULL,\n  skill       VARCHAR(50) NOT NULL,\n  PRIMARY KEY (customer_id, skill),\n  FOREIGN KEY (customer_id) REFERENCES customers(id)\n);\n\n-- 3NF: dept_name moved to departments — no transitive dependency\nCREATE TABLE departments (\n  id   SERIAL PRIMARY KEY,\n  name VARCHAR(100) NOT NULL\n);\n\nCREATE TABLE employees (\n  id      SERIAL PRIMARY KEY,\n  name    VARCHAR(100) NOT NULL,\n  dept_id INT REFERENCES departments(id)  -- only store FK, not dept name\n);\n\n-- DENORMALIZATION example: store computed total for read speed\nCREATE TABLE orders (\n  id           SERIAL PRIMARY KEY,\n  customer_id  INT REFERENCES customers(id),\n  total_amount NUMERIC(10,2), -- denormalized: computed from order_items\n  item_count   INT            -- denormalized: count of items\n);"
+          "term": "BCNF — Boyce-Codd Normal Form",
+          "definition": "Must be in 3NF. For every dependency X → Y, X must be a superkey. Stricter than 3NF but rare in practice — most 3NF tables already satisfy it."
         },
         {
-          "type": "table",
-          "headers": ["Normal Form", "Requirement", "Eliminates", "Example Fix"],
-          "rows": [
-            ["1NF",  "Atomic values, single type, PK",          "Multi-valued cells, repeating groups", "Split 'skills' column into skills table"],
-            ["2NF",  "1NF + no partial dependencies",           "Partial dependency on composite PK",   "Move student_name out of enrollments"],
-            ["3NF",  "2NF + no transitive dependencies",        "Non-key depends on non-key",           "Move dept_name to departments table"],
-            ["BCNF", "3NF + every determinant is a superkey",   "Remaining 3NF anomalies",              "Rare — usually already satisfied in 3NF"],
-            ["Denorm","Intentional redundancy for performance", "Expensive JOINs at read time",         "Store total_amount on orders table"]
-          ]
+          "term": "Denormalization",
+          "definition": "Deliberate introduction of redundancy for READ performance — reduces expensive JOINs. EXAMPLE: store total_order_amount on orders instead of computing from order_items. Always normalize first, then denormalize only where needed."
         }
       ]
     },
-
+    {
+      "type": "diagram",
+      "text": "Stage 0 — Unnormalized\n┌──────────┬──────────┬────────────────┐\n│ order_id │ customer │ products       │\n│ 1        │ Aman     │ Keyboard,Mouse │ ← violates 1NF\n└──────────┴──────────┴────────────────┘\n         ↓ split into one row per product\nStage 1 — 1NF\n┌──────────┬──────────┬──────────┐\n│ order_id │ customer │ product  │\n│ 1        │ Aman     │ Keyboard │ ← customer repeats (partial dep)\n│ 1        │ Aman     │ Mouse    │\n└──────────┴──────────┴──────────┘\n         ↓ move customer to own table\nStage 2 — 2NF\n  order_items            customers\n┌──────────┬──────────┐  ┌────┬──────┐\n│ order_id │ product  │  │ id │ name │\n│ 1        │ Keyboard │  │ 1  │ Aman │\n│ 1        │ Mouse    │  └────┴──────┘\n└──────────┴──────────┘\n         ↓ move product details to own table\nStage 3 — 3NF\n  order_items           products         customers\n┌──────────┬────────┐  ┌─────┬──────────┐  ┌────┬──────┐\n│ order_id │ prd_id │  │ id  │ name     │  │ id │ name │\n│ 1        │ 101    │  │ 101 │ Keyboard │  │ 1  │ Aman │\n│ 1        │ 102    │  │ 102 │ Mouse    │  └────┴──────┘\n└──────────┴────────┘  └─────┴──────────┘"
+    },
+    {
+      "type": "code",
+      "filename": "normalization.sql",
+      "text": "-- BEFORE: everything in one bad table\nCREATE TABLE bad_orders (\n  order_id  INT,\n  customer  VARCHAR(100),\n  skills    TEXT,            -- '\"Node.js, React\"' not atomic (1NF)\n  dept_name VARCHAR(100)     -- transitive via dept_id (3NF)\n);\n\n-- 1NF: atomic values + primary key\nCREATE TABLE customers (\n  id    SERIAL PRIMARY KEY,\n  name  VARCHAR(100) NOT NULL,\n  email VARCHAR(100) UNIQUE NOT NULL\n);\n\n-- 2NF: no partial dependency\nCREATE TABLE customer_skills (\n  customer_id INT NOT NULL,\n  skill       VARCHAR(50) NOT NULL,\n  PRIMARY KEY (customer_id, skill),\n  FOREIGN KEY (customer_id) REFERENCES customers(id)\n);\n\n-- 3NF: no transitive dependency\nCREATE TABLE departments (\n  id   SERIAL PRIMARY KEY,\n  name VARCHAR(100) NOT NULL\n);\nCREATE TABLE employees (\n  id      SERIAL PRIMARY KEY,\n  name    VARCHAR(100) NOT NULL,\n  dept_id INT REFERENCES departments(id)\n);\n\n-- Denormalization: store computed value for read speed\nCREATE TABLE orders (\n  id           SERIAL PRIMARY KEY,\n  customer_id  INT REFERENCES customers(id),\n  item_count   INT  -- redundant but skips a COUNT() join\n);"
+    },
+    {
+      "type": "table",
+      "headers": ["Normal Form", "Requirement", "Eliminates", "Example Fix"],
+      "rows": [
+        ["1NF",   "Atomic values + PK",                      "Multi-valued cells",           "skills column → skills table"],
+        ["2NF",   "1NF + no partial dependencies",           "Partial composite key deps",   "student_name → students table"],
+        ["3NF",   "2NF + no transitive dependencies",        "Non-key depends on non-key",   "dept_name → departments table"],
+        ["BCNF",  "3NF + every determinant is a superkey",   "Remaining 3NF anomalies",      "Rare — 3NF usually covers it"],
+        ["Denorm","Intentional redundancy for performance",  "Expensive JOINs at read time", "item_count stored on orders"]
+      ]
+    }
+  ]
+},
     {
       "id": "sql-categories",
       "type": "terminology",
