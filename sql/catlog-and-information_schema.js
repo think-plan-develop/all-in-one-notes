@@ -264,7 +264,7 @@ window.notePageData =
         }
       ]
     },
-    {
+  {
   "id": "qa",
   "type": "terminology",
   "label": "Catalog Query Q&A",
@@ -274,54 +274,59 @@ window.notePageData =
       "type": "definitions",
       "items": [
         {
+          "term": "information_schema",
+          "definition": "An SQL-standard set of read-only views portable across database engines. Slower than pg_catalog but works across MySQL, SQL Server, and others. Key views: tables, columns, table_constraints, referential_constraints, routines, schemata.",
+          "code": "SELECT table_name, column_name, data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'orders';"
+        },
+        {
           "term": "Get all tables in the database",
-          "definition": "Query pg_tables and exclude system schemas.",
-          "code": "SELECT schemaname, tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema');"
+          "definition": "pg_catalog: query pg_tables and exclude system schemas. information_schema: query information_schema.tables filtering by table_type.",
+          "code": "-- pg_catalog\nSELECT schemaname, tablename\nFROM   pg_tables\nWHERE  schemaname NOT IN ('pg_catalog', 'information_schema');\n\n-- information_schema\nSELECT table_schema, table_name\nFROM   information_schema.tables\nWHERE  table_type = 'BASE TABLE'\n  AND  table_schema NOT IN ('pg_catalog', 'information_schema');"
         },
         {
           "term": "Get all columns of a table",
-          "definition": "Query pg_attribute filtered to user-defined columns only.",
-          "code": "SELECT attname AS column_name FROM pg_attribute WHERE attrelid = 'orders'::regclass AND attnum > 0 AND NOT attisdropped ORDER BY attnum;"
+          "definition": "pg_catalog: query pg_attribute filtered to user-defined columns. information_schema: query information_schema.columns filtered by table name.",
+          "code": "-- pg_catalog\nSELECT attname AS column_name\nFROM   pg_attribute\nWHERE  attrelid = 'orders'::regclass\n  AND  attnum > 0\n  AND  NOT attisdropped\nORDER  BY attnum;\n\n-- information_schema\nSELECT column_name\nFROM   information_schema.columns\nWHERE  table_schema = 'public'\n  AND  table_name   = 'orders'\nORDER  BY ordinal_position;"
         },
         {
-          "term": "Get all columns of a table with datatype",
-          "definition": "Same as above but use format_type() to resolve the type OID to a human-readable name.",
-          "code": "SELECT attname AS column_name, format_type(atttypid, atttypmod) AS data_type FROM pg_attribute WHERE attrelid = 'orders'::regclass AND attnum > 0 AND NOT attisdropped ORDER BY attnum;"
+          "term": "Get all columns with datatype",
+          "definition": "pg_catalog: use format_type() to resolve type OID. information_schema: data_type column is already human-readable.",
+          "code": "-- pg_catalog\nSELECT attname AS column_name,\n       format_type(atttypid, atttypmod) AS data_type\nFROM   pg_attribute\nWHERE  attrelid = 'orders'::regclass\n  AND  attnum > 0\n  AND  NOT attisdropped\nORDER  BY attnum;\n\n-- information_schema\nSELECT column_name, data_type, is_nullable\nFROM   information_schema.columns\nWHERE  table_schema = 'public'\n  AND  table_name   = 'orders'\nORDER  BY ordinal_position;"
         },
         {
           "term": "Get all indexes on a table",
-          "definition": "Join pg_index with pg_class on indexrelid to get index names and properties.",
-          "code": "SELECT i.relname AS index_name, ix.indisunique, ix.indisprimary FROM pg_index ix JOIN pg_class i ON i.oid = ix.indexrelid WHERE ix.indrelid = 'orders'::regclass;"
+          "definition": "pg_catalog: join pg_index with pg_class. information_schema: no direct index view — use pg_catalog for this.",
+          "code": "-- pg_catalog\nSELECT i.relname AS index_name,\n       ix.indisunique  AS is_unique,\n       ix.indisprimary AS is_primary\nFROM   pg_index ix\nJOIN   pg_class i ON i.oid = ix.indexrelid\nWHERE  ix.indrelid = 'orders'::regclass;\n\n-- information_schema (only shows constraint-based unique/PK indexes)\nSELECT constraint_name, constraint_type\nFROM   information_schema.table_constraints\nWHERE  table_schema = 'public'\n  AND  table_name   = 'orders';"
         },
         {
           "term": "Get all foreign keys of a table",
-          "definition": "Query pg_constraint with contype = 'f' to get FK constraints and the table they reference.",
-          "code": "SELECT conname AS fk_name, confrelid::regclass AS references_table FROM pg_constraint WHERE conrelid = 'orders'::regclass AND contype = 'f';"
+          "definition": "pg_catalog: query pg_constraint with contype = 'f'. information_schema: use referential_constraints joined with table_constraints.",
+          "code": "-- pg_catalog\nSELECT conname AS fk_name,\n       confrelid::regclass AS references_table\nFROM   pg_constraint\nWHERE  conrelid = 'orders'::regclass\n  AND  contype  = 'f';\n\n-- information_schema\nSELECT tc.constraint_name,\n       rc.unique_constraint_name AS references_constraint\nFROM   information_schema.table_constraints tc\nJOIN   information_schema.referential_constraints rc\n       ON tc.constraint_name = rc.constraint_name\nWHERE  tc.table_schema = 'public'\n  AND  tc.table_name   = 'orders';"
         },
         {
           "term": "Get all tables that reference a given table",
-          "definition": "Reverse FK lookup — query pg_constraint on confrelid (the referenced table's OID).",
-          "code": "SELECT conname, conrelid::regclass AS from_table FROM pg_constraint WHERE confrelid = 'users'::regclass AND contype = 'f';"
+          "definition": "pg_catalog: reverse FK lookup via confrelid. information_schema: join referential_constraints with table_constraints on the unique constraint side.",
+          "code": "-- pg_catalog\nSELECT conname, conrelid::regclass AS from_table\nFROM   pg_constraint\nWHERE  confrelid = 'users'::regclass\n  AND  contype   = 'f';\n\n-- information_schema\nSELECT tc.table_name AS from_table,\n       tc.constraint_name\nFROM   information_schema.referential_constraints rc\nJOIN   information_schema.table_constraints tc\n       ON rc.constraint_name = tc.constraint_name\nWHERE  rc.unique_constraint_name IN (\n  SELECT constraint_name\n  FROM   information_schema.table_constraints\n  WHERE  table_name = 'users'\n);"
         },
         {
           "term": "Get all constraints of a table",
-          "definition": "Query pg_constraint and use pg_get_constraintdef() to get a readable definition for each constraint.",
-          "code": "SELECT conname, contype, pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE conrelid = 'orders'::regclass;"
+          "definition": "pg_catalog: query pg_constraint and use pg_get_constraintdef() for readable definitions. information_schema: use table_constraints view.",
+          "code": "-- pg_catalog\nSELECT conname,\n       contype,\n       pg_get_constraintdef(oid) AS definition\nFROM   pg_constraint\nWHERE  conrelid = 'orders'::regclass;\n\n-- information_schema\nSELECT constraint_name, constraint_type\nFROM   information_schema.table_constraints\nWHERE  table_schema = 'public'\n  AND  table_name   = 'orders';"
         },
         {
           "term": "Get all functions in a schema",
-          "definition": "Query pg_proc filtered by pronamespace using ::regnamespace cast.",
-          "code": "SELECT proname, pg_get_function_arguments(oid) AS args FROM pg_proc WHERE pronamespace = 'public'::regnamespace;"
+          "definition": "pg_catalog: query pg_proc filtered by pronamespace. information_schema: use routines view.",
+          "code": "-- pg_catalog\nSELECT proname,\n       pg_get_function_arguments(oid) AS args\nFROM   pg_proc\nWHERE  pronamespace = 'public'::regnamespace;\n\n-- information_schema\nSELECT routine_name, routine_type, data_type AS return_type\nFROM   information_schema.routines\nWHERE  routine_schema = 'public';"
         },
         {
           "term": "Get all schemas in the database",
-          "definition": "Query pg_namespace and exclude built-in PostgreSQL schemas.",
-          "code": "SELECT nspname FROM pg_namespace WHERE nspname NOT LIKE 'pg_%' AND nspname != 'information_schema';"
+          "definition": "pg_catalog: query pg_namespace. information_schema: use schemata view.",
+          "code": "-- pg_catalog\nSELECT nspname AS schema_name\nFROM   pg_namespace\nWHERE  nspname NOT LIKE 'pg_%'\n  AND  nspname != 'information_schema';\n\n-- information_schema\nSELECT schema_name\nFROM   information_schema.schemata\nWHERE  schema_name NOT LIKE 'pg_%'\n  AND  schema_name != 'information_schema';"
         },
         {
           "term": "Get all roles and users",
-          "definition": "Query pg_roles (a safe view over pg_authid that hides password hashes).",
-          "code": "SELECT rolname, rolsuper, rolcanlogin, rolcreatedb FROM pg_roles ORDER BY rolname;"
+          "definition": "pg_catalog only — information_schema has no view for roles. Use pg_roles (safe view over pg_authid that hides password hashes).",
+          "code": "-- pg_catalog only (no information_schema equivalent)\nSELECT rolname, rolsuper, rolcanlogin, rolcreatedb\nFROM   pg_roles\nORDER  BY rolname;"
         }
       ]
     }

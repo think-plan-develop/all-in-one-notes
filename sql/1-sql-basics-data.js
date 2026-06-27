@@ -227,110 +227,131 @@ window.notePageData =
     },
 
     {
-      "id": "keys",
-      "type": "terminology",
-      "label": "Keys",
-      "heading": "3. Keys in RDBMS",
-      "blocks": [
-        {
-          "type": "definitions",
-          "items": [
-            {
-              "term": "Primary Key (PK)",
-              "definition": "A Primary Key uniquely identifies each row in a table. Rules: must be UNIQUE, must NOT be NULL, each table can have only ONE Primary Key. It can be a single column or a combination of columns (composite). Example: id column in users table. Best practice: use SERIAL / AUTO_INCREMENT or UUID as primary keys."
-            },
-            {
-              "term": "Foreign Key (FK)",
-              "definition": "A Foreign Key is a column in one table that references the Primary Key of another table. It creates a relationship between tables and enforces Referential Integrity — you cannot insert a Foreign Key value that does not exist in the referenced table. Example: orders.user_id references users.id. If user_id=99 does not exist in users, the insert fails."
-            },
-            {
-              "term": "Candidate Key",
-              "definition": "A Candidate Key is any column (or set of columns) that could qualify as a Primary Key — it is unique and NOT NULL. A table can have multiple candidate keys. The DBA chooses one as the Primary Key; the rest become Alternate Keys. Example: In users table, both 'id' and 'email' are candidate keys since both are unique and NOT NULL."
-            },
-            {
-              "term": "Alternate Key",
-              "definition": "An Alternate Key is a Candidate Key that was NOT chosen as the Primary Key. It is still unique and NOT NULL — often enforced with a UNIQUE constraint. Example: If 'id' is the Primary Key, then 'email' is an Alternate Key."
-            },
-            {
-              "term": "Composite Key",
-              "definition": "A Composite Key is a Primary Key (or any key) made up of TWO or more columns together. No single column is unique on its own — only the combination is unique. Example: In an enrollment table, (student_id, course_id) together form the Composite Primary Key — one student can enroll in many courses, one course can have many students, but each (student, course) pair is unique."
-            },
-            {
-              "term": "Unique Key",
-              "definition": "A Unique Key enforces uniqueness on a column like a Primary Key, but it ALLOWS NULL values (one or more, depending on the database). A table can have MULTIPLE unique keys unlike Primary Key. Example: phone_number and email in users table can both have UNIQUE constraints. Implemented with: UNIQUE(column_name)."
-            }
-          ]
-        },
-        {
-          "type": "code",
-          "filename": "keys.sql",
-          "text": "-- PRIMARY KEY — single column\nCREATE TABLE users (\n  id    SERIAL PRIMARY KEY,     -- PK: unique + not null + auto\n  email VARCHAR(100) UNIQUE,   -- Alternate Key / Unique Key\n  phone VARCHAR(15)  UNIQUE    -- another Unique Key\n);\n\n-- FOREIGN KEY — links orders to users\nCREATE TABLE orders (\n  id         SERIAL PRIMARY KEY,\n  user_id    INT NOT NULL,\n  total      DECIMAL(10,2),\n  FOREIGN KEY (user_id) REFERENCES users(id)\n    ON DELETE CASCADE    -- delete orders when user is deleted\n    ON UPDATE CASCADE    -- update FK when PK changes\n);\n\n-- COMPOSITE PRIMARY KEY — (student_id + course_id) together\nCREATE TABLE enrollments (\n  student_id INT NOT NULL,\n  course_id  INT NOT NULL,\n  enrolled_at DATE,\n  PRIMARY KEY (student_id, course_id),  -- composite PK\n  FOREIGN KEY (student_id) REFERENCES students(id),\n  FOREIGN KEY (course_id)  REFERENCES courses(id)\n);\n\n-- CANDIDATE KEYS: id, email, phone — all could be PK\n-- PRIMARY KEY: id (chosen)\n-- ALTERNATE KEYS: email, phone (not chosen but unique)"
-        },
-        {
-          "type": "table",
-          "headers": ["Key Type", "Unique?", "NULL Allowed?", "Count per Table", "Example"],
-          "rows": [
-            ["Primary Key",   "Yes", "No",  "Only 1",    "id"],
-            ["Foreign Key",   "No",  "Yes", "Many",      "user_id → users.id"],
-            ["Candidate Key", "Yes", "No",  "Many",      "id, email, phone"],
-            ["Alternate Key", "Yes", "No",  "Many",      "email (if id is PK)"],
-            ["Composite Key", "Yes", "No",  "1 (as PK)", "(student_id, course_id)"],
-            ["Unique Key",    "Yes", "Yes", "Many",      "email with UNIQUE"]
-          ]
-        }
-      ]
-    },
-
+  "id": "keys",
+  "type": "terminology",
+  "label": "Keys",
+  "heading": "3. Keys in RDBMS",
+  "blocks": [
     {
-      "id": "constraints",
-      "type": "terminology",
-      "label": "Constraints",
-      "heading": "4. Constraints",
-      "blocks": [
+      "type": "definitions",
+      "items": [
         {
-          "type": "paragraph",
-          "parts": [
-            "Constraints are rules enforced on table columns to maintain ",
-            { "code": "data integrity" },
-            ". They are defined at CREATE TABLE time or added later with ALTER TABLE. If a constraint is violated, the database rejects the operation with an error."
-          ]
+          "term": "Primary Key (PK)",
+          "definition": "Uniquely identifies each row in a table. Rules: must be UNIQUE, must NOT be NULL, only ONE per table. Can be a single column or multiple columns (composite). Best practice: use SERIAL / UUID — never use meaningful data like email as PK.",
+          "code": "CREATE TABLE users (\n  id    SERIAL PRIMARY KEY,  -- unique + not null + auto-increment\n  name  VARCHAR(100) NOT NULL\n);\n\n-- id = 1, 2, 3 ... each row is uniquely identified\n-- INSERT INTO users(name) VALUES ('Aman');  → id = 1\n-- INSERT INTO users(name) VALUES ('Priya'); → id = 2"
         },
         {
-          "type": "definitions",
-          "items": [
-            {
-              "term": "NOT NULL",
-              "definition": "Ensures a column cannot store a NULL value — it must always have a value. Use for required fields. Example: name VARCHAR(50) NOT NULL — every user must have a name. Without NOT NULL, a column accepts NULL by default."
-            },
-            {
-              "term": "UNIQUE",
-              "definition": "Ensures all values in a column (or combination of columns) are distinct — no duplicates allowed. Allows NULL unless combined with NOT NULL. A table can have multiple UNIQUE constraints. Example: email VARCHAR(100) UNIQUE ensures no two users share the same email."
-            },
-            {
-              "term": "PRIMARY KEY",
-              "definition": "Combines NOT NULL + UNIQUE into one constraint. Uniquely identifies each row. Only one PRIMARY KEY per table. Automatically creates an index on the column for faster lookups. Example: id SERIAL PRIMARY KEY."
-            },
-            {
-              "term": "FOREIGN KEY",
-              "definition": "Ensures a value in one table's column exists as a Primary Key in another table — enforcing Referential Integrity. Prevents orphan records. Options: ON DELETE CASCADE (auto-delete child rows), ON DELETE SET NULL (set FK to null), ON DELETE RESTRICT (block deletion if child rows exist)."
-            },
-            {
-              "term": "CHECK",
-              "definition": "Defines a boolean condition that every row's value must satisfy. If the condition is false, the insert/update is rejected. Example: age INT CHECK(age >= 0 AND age <= 150) prevents invalid ages. CHECK constraints can reference multiple columns: CHECK(end_date > start_date)."
-            },
-            {
-              "term": "DEFAULT",
-              "definition": "Specifies a default value for a column when no value is provided during INSERT. Does not prevent NULL unless combined with NOT NULL. Example: is_active BOOLEAN DEFAULT true means new users are active by default. created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP auto-sets insert time."
-            }
-          ]
+          "term": "Foreign Key (FK)",
+          "definition": "A column in one table that references the Primary Key of another table. Enforces Referential Integrity — you cannot insert a FK value that does not exist in the referenced table. ON DELETE / ON UPDATE actions control what happens when the parent row changes.",
+          "code": "CREATE TABLE orders (\n  id      SERIAL PRIMARY KEY,\n  user_id INT NOT NULL,\n  total   DECIMAL(10,2),\n  FOREIGN KEY (user_id) REFERENCES users(id)\n    ON DELETE CASCADE   -- delete orders when user deleted\n    ON UPDATE CASCADE   -- update FK when PK changes\n);\n\n-- ✅ Works:   INSERT INTO orders(user_id, total) VALUES (1, 500);\n-- ❌ Fails:   INSERT INTO orders(user_id, total) VALUES (99, 500);\n--             ERROR: user_id=99 does not exist in users"
         },
         {
-          "type": "code",
-          "filename": "constraints.sql",
-          "text": "CREATE TABLE employees (\n\n  -- PRIMARY KEY = UNIQUE + NOT NULL, auto-increment\n  id          SERIAL          PRIMARY KEY,\n\n  -- NOT NULL: name is required\n  first_name  VARCHAR(50)     NOT NULL,\n  last_name   VARCHAR(50)     NOT NULL,\n\n  -- UNIQUE: no two employees share same email\n  email       VARCHAR(100)    NOT NULL UNIQUE,\n\n  -- CHECK: salary must be a positive number\n  salary      DECIMAL(10,2)   CHECK(salary > 0),\n\n  -- CHECK: age between 18 and 65\n  age         INT             CHECK(age BETWEEN 18 AND 65),\n\n  -- DEFAULT: new employees are active by default\n  is_active   BOOLEAN         DEFAULT true,\n\n  -- DEFAULT: auto-set timestamp on insert\n  created_at  TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,\n\n  -- FOREIGN KEY: must reference a valid department\n  dept_id     INT,\n  FOREIGN KEY (dept_id) REFERENCES departments(id)\n    ON DELETE SET NULL   -- if dept deleted, set dept_id to null\n    ON UPDATE CASCADE    -- if dept id changes, update here too\n\n);\n\n-- ADD CONSTRAINT after table creation\nALTER TABLE employees\n  ADD CONSTRAINT chk_salary CHECK(salary BETWEEN 10000 AND 500000);\n\n-- DROP CONSTRAINT\nALTER TABLE employees\n  DROP CONSTRAINT chk_salary;"
+          "term": "Candidate Key",
+          "definition": "Any column (or set of columns) that COULD qualify as a Primary Key — must be unique and NOT NULL. A table can have multiple candidate keys. The DBA picks one as PK; the rest become Alternate Keys.",
+          "code": "CREATE TABLE users (\n  id    SERIAL,           -- candidate key 1 → chosen as PK\n  email VARCHAR(100),    -- candidate key 2\n  phone VARCHAR(15),     -- candidate key 3\n  name  VARCHAR(100)\n);\n\n-- All three (id, email, phone) are candidate keys\n-- because each is unique and NOT NULL.\n-- id is chosen as Primary Key → email and phone become Alternate Keys."
+        },
+        {
+          "term": "Alternate Key",
+          "definition": "A Candidate Key that was NOT chosen as the Primary Key. Still unique and NOT NULL — enforced with a UNIQUE constraint. Acts as a natural unique identifier alongside the PK.",
+          "code": "CREATE TABLE users (\n  id    SERIAL PRIMARY KEY,   -- chosen PK\n  email VARCHAR(100) UNIQUE,  -- alternate key (not chosen as PK)\n  phone VARCHAR(15)  UNIQUE   -- alternate key\n);\n\n-- ✅ id   = 1, email = 'a@x.com' → OK\n-- ❌ id   = 2, email = 'a@x.com' → ERROR: duplicate email (UNIQUE violated)"
+        },
+        {
+          "term": "Composite Key",
+          "definition": "A key made of TWO or more columns together. No single column is unique alone — only the COMBINATION is unique. Most commonly used as a Composite Primary Key in junction/mapping tables that represent many-to-many relationships.",
+          "code": "-- SCENARIO: A student can enroll in many courses.\n--            A course can have many students.\n--            But each (student, course) pair must be unique.\n\nCREATE TABLE enrollments (\n  student_id INT  NOT NULL,\n  course_id  INT  NOT NULL,\n  enrolled_at DATE,\n  PRIMARY KEY (student_id, course_id),  -- composite PK\n  FOREIGN KEY (student_id) REFERENCES students(id),\n  FOREIGN KEY (course_id)  REFERENCES courses(id)\n);\n\n-- ✅ student_id=1, course_id=101 → OK (Aman in Databases)\n-- ✅ student_id=1, course_id=102 → OK (Aman in Networks)\n-- ✅ student_id=2, course_id=101 → OK (Priya in Databases)\n-- ❌ student_id=1, course_id=101 → ERROR: duplicate (already enrolled)\n\n-- student_id alone is NOT unique (Aman appears in 2 rows)\n-- course_id alone is NOT unique (101 appears in 2 rows)\n-- (student_id + course_id) together IS unique ✅"
+        },
+        {
+          "term": "Unique Key",
+          "definition": "Enforces uniqueness on a column like a PK, but ALLOWS NULL values and a table can have MULTIPLE unique keys. NULL is treated as unknown — most databases allow multiple NULLs in a UNIQUE column.",
+          "code": "CREATE TABLE users (\n  id    SERIAL PRIMARY KEY,\n  email VARCHAR(100) UNIQUE,  -- unique key: no two rows same email\n  phone VARCHAR(15)  UNIQUE   -- unique key: no two rows same phone\n);\n\n-- ✅ email = 'a@x.com', phone = '9999'  → OK\n-- ✅ email = NULL,      phone = NULL    → OK (NULL allowed)\n-- ✅ email = NULL,      phone = NULL    → OK (multiple NULLs allowed)\n-- ❌ email = 'a@x.com', phone = '0000' → ERROR: duplicate email"
         }
       ]
     },
+    {
+      "type": "table",
+      "headers": ["Key Type", "Unique?", "NULL Allowed?", "Count per Table", "Example"],
+      "rows": [
+        ["Primary Key",   "Yes", "No",  "Only 1",    "id"],
+        ["Foreign Key",   "No",  "Yes", "Many",      "user_id → users.id"],
+        ["Candidate Key", "Yes", "No",  "Many",      "id, email, phone"],
+        ["Alternate Key", "Yes", "No",  "Many",      "email (when id is PK)"],
+        ["Composite Key", "Yes", "No",  "1 (as PK)", "(student_id, course_id)"],
+        ["Unique Key",    "Yes", "Yes", "Many",      "email with UNIQUE constraint"]
+      ]
+    }
+  ]
+},
+
+  {
+  "id": "constraints",
+  "type": "terminology",
+  "label": "Constraints",
+  "heading": "4. Constraints",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "parts": [
+        "Constraints are rules enforced on table columns to maintain ",
+        { "code": "data integrity" },
+        ". Defined inline (column-level) or as a named block (table-level) using the ",
+        { "code": "CONSTRAINT name" },
+        " keyword. If violated, the database rejects the operation with an error."
+      ]
+    },
+    {
+      "type": "definitions",
+      "items": [
+        {
+          "term": "NOT NULL",
+          "definition": "Ensures a column cannot store a NULL value — it must always have a value. Use for every required field. Without NOT NULL, a column accepts NULL by default.",
+          "code": "-- inline (column-level)\nCREATE TABLE users (\n  name VARCHAR(50) NOT NULL  -- every user MUST have a name\n);\n\n-- ✅ INSERT INTO users(name) VALUES ('Aman');  → OK\n-- ❌ INSERT INTO users(name) VALUES (NULL);    → ERROR: NOT NULL violated\n\n-- add later with ALTER\nALTER TABLE users ALTER COLUMN name SET NOT NULL;"
+        },
+        {
+          "term": "UNIQUE",
+          "definition": "Ensures all values in a column are distinct — no duplicates allowed. Allows NULL (most DBs allow multiple NULLs in a UNIQUE column). A table can have multiple UNIQUE constraints. Can also span multiple columns (composite unique).",
+          "code": "-- single column unique\nCREATE TABLE users (\n  email VARCHAR(100) UNIQUE   -- no two users share same email\n);\n\n-- composite unique: (first_name + last_name) pair must be unique\nCREATE TABLE users (\n  first_name VARCHAR(50),\n  last_name  VARCHAR(50),\n  UNIQUE (first_name, last_name)\n);\n\n-- ✅ email = 'a@x.com' → OK\n-- ❌ email = 'a@x.com' → ERROR: duplicate value\n-- ✅ email = NULL      → OK (NULL allowed in UNIQUE)\n\n-- add later\nALTER TABLE users ADD CONSTRAINT uq_email UNIQUE (email);"
+        },
+        {
+          "term": "PRIMARY KEY",
+          "definition": "Combines NOT NULL + UNIQUE into one constraint. Uniquely identifies each row. Only ONE per table. Automatically creates an index on the column. Can be single or composite (multiple columns).",
+          "code": "-- single column PK\nCREATE TABLE users (\n  id SERIAL PRIMARY KEY   -- NOT NULL + UNIQUE + auto-index\n);\n\n-- composite PK (two columns together are unique)\nCREATE TABLE enrollments (\n  student_id INT,\n  course_id  INT,\n  PRIMARY KEY (student_id, course_id)\n);\n\n-- ✅ id = 1 → OK\n-- ❌ id = 1 → ERROR: duplicate PK\n-- ❌ id = NULL → ERROR: NOT NULL violated\n\n-- add later\nALTER TABLE users ADD PRIMARY KEY (id);"
+        },
+        {
+          "term": "FOREIGN KEY",
+          "definition": "Ensures a column's value exists as a PK in another table — enforces Referential Integrity. Prevents orphan records. ON DELETE / ON UPDATE actions control what happens when the parent row is deleted or updated.",
+          "code": "CREATE TABLE orders (\n  id      SERIAL PRIMARY KEY,\n  user_id INT,\n  FOREIGN KEY (user_id) REFERENCES users(id)\n    ON DELETE CASCADE    -- delete orders when user deleted\n    ON UPDATE CASCADE    -- update FK when users.id changes\n);\n\n-- ON DELETE options:\n-- CASCADE    → delete child rows automatically\n-- SET NULL   → set FK column to NULL\n-- RESTRICT   → block deletion if child rows exist (default)\n-- SET DEFAULT → set FK to its default value\n\n-- ✅ user_id = 1  (exists in users) → OK\n-- ❌ user_id = 99 (missing in users) → ERROR: FK violation\n\n-- add later\nALTER TABLE orders\n  ADD CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id);"
+        },
+        {
+          "term": "CHECK",
+          "definition": "Defines a boolean condition every row must satisfy. If the condition evaluates to FALSE, the insert or update is rejected. Can reference a single column or multiple columns in the same row.",
+          "code": "-- single column check\nCREATE TABLE employees (\n  age    INT          CHECK (age BETWEEN 18 AND 65),\n  salary DECIMAL(10,2) CHECK (salary > 0)\n);\n\n-- multi-column check: end_date must be after start_date\nCREATE TABLE projects (\n  start_date DATE,\n  end_date   DATE,\n  CHECK (end_date > start_date)\n);\n\n-- ✅ age = 25, salary = 50000  → OK\n-- ❌ age = 10                  → ERROR: CHECK violated\n-- ❌ salary = -100             → ERROR: CHECK violated\n\n-- add later with a name\nALTER TABLE employees\n  ADD CONSTRAINT chk_salary CHECK (salary BETWEEN 10000 AND 500000);\n\n-- drop it\nALTER TABLE employees DROP CONSTRAINT chk_salary;"
+        },
+        {
+          "term": "DEFAULT",
+          "definition": "Specifies a fallback value for a column when no value is provided during INSERT. Does not prevent NULL unless combined with NOT NULL. Common uses: boolean flags, timestamps, status fields.",
+          "code": "CREATE TABLE users (\n  is_active  BOOLEAN   DEFAULT true,            -- new users are active\n  role       VARCHAR   DEFAULT 'viewer',         -- default role\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- auto-set insert time\n);\n\n-- INSERT without specifying those columns:\nINSERT INTO users (name) VALUES ('Aman');\n-- Result: is_active=true, role='viewer', created_at=<now>\n\n-- NULL still allowed unless you add NOT NULL:\nINSERT INTO users (name, is_active) VALUES ('Priya', NULL);\n-- Result: is_active=NULL (DEFAULT only applies when column is omitted)\n\n-- add later\nALTER TABLE users ALTER COLUMN is_active SET DEFAULT true;\n-- remove default\nALTER TABLE users ALTER COLUMN is_active DROP DEFAULT;"
+        },
+        {
+          "term": "CONSTRAINT keyword",
+          "definition": "The CONSTRAINT keyword gives a constraint an explicit name. Without it, PostgreSQL auto-generates an ugly name. Named constraints are easier to identify in error messages and easier to DROP later. Use CONSTRAINT whenever you need to reference, modify, or drop a constraint by name.",
+          "code": "-- WITHOUT CONSTRAINT keyword (auto-named, hard to manage)\nCREATE TABLE employees (\n  salary DECIMAL CHECK (salary > 0),\n  email  VARCHAR UNIQUE\n);\n-- PostgreSQL names these: employees_salary_check, employees_email_key\n-- Hard to remember; error messages use these ugly names.\n\n-- WITH CONSTRAINT keyword (named, easy to manage)\nCREATE TABLE employees (\n  id      SERIAL,\n  salary  DECIMAL(10,2),\n  email   VARCHAR(100),\n  dept_id INT,\n\n  CONSTRAINT pk_employees     PRIMARY KEY (id),\n  CONSTRAINT chk_salary       CHECK (salary > 0),\n  CONSTRAINT uq_email         UNIQUE (email),\n  CONSTRAINT fk_dept          FOREIGN KEY (dept_id)\n                              REFERENCES departments(id)\n                              ON DELETE SET NULL\n);\n\n-- Now you can drop by exact name:\nALTER TABLE employees DROP CONSTRAINT chk_salary;\nALTER TABLE employees DROP CONSTRAINT uq_email;\n\n-- And add back with same name:\nALTER TABLE employees\n  ADD CONSTRAINT chk_salary CHECK (salary BETWEEN 10000 AND 500000);\n\n-- WHEN TO USE CONSTRAINT keyword:\n-- ✅ Any FK (always name them — you will need to drop/modify)\n-- ✅ CHECK constraints (name describes the rule: chk_age, chk_salary)\n-- ✅ UNIQUE constraints on non-obvious combos\n-- ✅ Composite PKs in junction tables\n-- ⚠️  Skip naming for simple single-column NOT NULL or DEFAULT"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "headers": ["Constraint", "Prevents", "NULL Allowed?", "Count per Table", "Named with CONSTRAINT?"],
+      "rows": [
+        ["NOT NULL",     "Missing / NULL values",          "No",  "Many", "Rarely needed"],
+        ["UNIQUE",       "Duplicate values",               "Yes", "Many", "Recommended"],
+        ["PRIMARY KEY",  "Duplicate + NULL rows",          "No",  "Only 1", "Optional (auto-named)"],
+        ["FOREIGN KEY",  "Orphan / invalid references",    "Yes", "Many", "Always recommended"],
+        ["CHECK",        "Invalid values (custom rule)",   "Yes", "Many", "Always recommended"],
+        ["DEFAULT",      "Missing values on INSERT",       "Yes", "Many", "Not applicable"]
+      ]
+    }
+  ]
+},
 
     {
       "id": "data-types",
