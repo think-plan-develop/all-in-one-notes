@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part A — Common Table Expressions (CTE)</title>
+<style>
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; color: #1e293b; font-family: "Segoe UI", Arial, sans-serif; line-height: 1.75; background: #f4f7fc; }
+
+.page-shell { width: 90%; max-width: 1400px; margin: 40px auto; }
+
+/* ── HERO ── */
+.hero {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1d4ed8 100%),
+    radial-gradient(circle at 88% 18%, rgba(147,197,253,.22), transparent 30%);
+  border-radius: 16px;
+  box-shadow: 0 16px 36px rgba(15,23,42,.22);
+  color: #fff;
+  margin-bottom: 24px;
+  padding: 40px;
+}
+.hero h1 { color: #93c5fd; font-size: 2.4rem; font-weight: 800; margin: 8px 0 6px; letter-spacing: -0.5px; }
+.hero p { font-size: 17px; line-height: 1.7; margin: 0 0 22px; max-width: 900px; color: #e0eeff; font-weight: 600; }
+
+/* ── CONTENT NAV ── */
+.content-nav {
+  display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 30px;
+  background: rgba(255,255,255,0.85); backdrop-filter: blur(12px);
+  padding: 12px 16px; border-radius: 14px;
+  border: 1px solid rgba(191,219,254,0.6);
+  box-shadow: 0 4px 20px rgba(15,23,42,.08);
+}
+.content-nav a {
+  border-radius: 100px; font-size: 13px; font-weight: 700;
+  padding: 6px 14px; text-decoration: none; transition: opacity .2s, transform .2s;
+}
+.content-nav a:nth-child(1n) { background: #dbeafe; border: 1px solid #bfdbfe; color: #1e3a8a; }
+.content-nav a:nth-child(2n) { background: #eff6ff; border: 1px solid #93c5fd; color: #1d4ed8; }
+.content-nav a:nth-child(3n) { background: #e0e7ff; border: 1px solid #a5b4fc; color: #3730a3; }
+.content-nav a:nth-child(4n) { background: #f0f9ff; border: 1px solid #7dd3fc; color: #075985; }
+.content-nav a:nth-child(5n) { background: #1d4ed8; border: 1px solid #1e40af; color: #eff6ff; }
+.content-nav a:hover { opacity: .75; transform: translateY(-2px); }
+
+/* ── NOTE BLOCK ── */
+.note-block {
+  border: 1px solid #e2e8f0; border-radius: 16px;
+  box-shadow: 0 8px 25px rgba(15,23,42,.08);
+  margin-bottom: 28px; overflow: hidden; padding: 0;
+}
+.content-label {
+  background: #1d4ed8; border-radius: 100px; color: #fff;
+  display: inline-block; font-size: 12px; font-weight: 800;
+  letter-spacing: 0.3px; margin: 30px 30px 0;
+  padding: 4px 14px; text-transform: uppercase;
+}
+h2 {
+  background: #eff6ff; border-bottom: 1px solid #bfdbfe;
+  color: #1e3a8a; font-size: 24px; font-weight: 700;
+  margin: 16px 0 0; padding: 18px 30px; letter-spacing: -0.2px;
+}
+h3 { color: #1d4ed8; font-size: 19px; font-weight: 700; margin: 20px 0 10px; line-height: 1.4; }
+h4 { color: #2563eb; font-size: 17px; font-weight: 600; margin: 16px 0 8px; }
+p { color: #1e293b; font-size: 17px; line-height: 1.85; margin-bottom: 10px; }
+li { color: #1e293b; font-size: 16px; line-height: 1.9; margin: 0; }
+
+.note-block > p, .note-block > ul, .note-block > ol,
+.note-block > dl, .note-block > table, .note-block > pre,
+.note-block > div, .note-block > blockquote { margin-left: 30px; margin-right: 30px; }
+.note-block > *:last-child { margin-bottom: 30px; }
+
+ul, ol { display: grid; gap: 10px; list-style: none; margin-top: 14px; padding-left: 0; }
+
+.note-block > ul li {
+  background: #f0f9ff; border: 1px solid #bae6fd;
+  border-left: 4px solid #0284c7; border-radius: 10px;
+  color: #0c4a6e; font-size: 16px; font-weight: 600;
+  line-height: 1.75; padding: 11px 14px 11px 42px; position: relative;
+}
+.note-block > ul li::before {
+  align-items: center; background: #0284c7; border-radius: 50%;
+  color: #fff; content: ""; display: inline-flex;
+  height: 9px; justify-content: center; left: 18px;
+  position: absolute; top: 20px; width: 9px;
+}
+.note-block > ol { counter-reset: note-step; }
+.note-block > ol li { counter-increment: note-step; }
+.note-block > ol li::before {
+  align-items: center; background: #1d4ed8; border-radius: 999px;
+  color: #fff; content: counter(note-step); display: inline-flex;
+  font-size: 12px; font-weight: 800; height: 24px;
+  justify-content: center; left: 12px; position: absolute; top: 11px; width: 24px;
+}
+.note-block > ul li:hover, .note-block > ol li:hover {
+  background: #dbeafe; border-color: #93c5fd;
+  transform: translateX(2px); transition: background .18s, border-color .18s, transform .18s;
+}
+
+/* ── CODE ── */
+code {
+  background: #dbeafe; border-radius: 5px; color: #1e3a8a;
+  font-size: 15px; font-weight: 600; padding: 2px 8px;
+}
+.code-wrap { border-radius: 12px; box-shadow: 0 12px 28px rgba(0,0,0,.22); margin-top: 14px; overflow: hidden; }
+.code-bar {
+  align-items: center; background: #0f172a; border-bottom: 1px solid #1e293b;
+  display: flex; justify-content: space-between; padding: 10px 16px;
+}
+.dots { display: flex; gap: 6px; }
+.dot-r, .dot-y, .dot-g { border-radius: 50%; height: 12px; width: 12px; }
+.dot-r { background: #ef4444; } .dot-y { background: #f59e0b; } .dot-g { background: #22c55e; }
+.filename { color: #93c5fd; font-family: Consolas,"Courier New",monospace; font-size: 12.5px; }
+.code-block {
+  background: #0f172a; color: #e2e8f0; font-size: 15px;
+  line-height: 1.75; margin: 0; overflow-x: auto; padding: 20px 22px;
+  font-family: Consolas,"Courier New",monospace; white-space: pre;
+}
+.code-block code { background: transparent; color: inherit; font-weight: normal; padding: 0; }
+.kw { color: #c084fc; font-weight: 700; }
+.str { color: #86efac; }
+.fn { color: #67e8f9; }
+.num { color: #fdba74; }
+.cm { color: #90df1e; font-style: italic; }
+.op { color: #f472b6; }
+
+/* ── DIAGRAM ── */
+.diagram {
+  background: #f0f9ff; border: 2px dashed #7dd3fc; border-radius: 14px;
+  color: #075985; font-family: "Cascadia Code","Fira Code",Consolas,"Courier New",monospace;
+  font-size: 14.5px; font-weight: 500; letter-spacing: 0.3px;
+  line-height: 2; margin-top: 16px; overflow-x: auto; padding: 22px 28px; white-space: pre;
+}
+
+/* ── CALLOUTS ── */
+.short-answer, .interview, .remember, .tip, .warning, .note, .analogy {
+  border-radius: 10px; font-size: 16px; line-height: 1.85; margin-top: 14px; padding: 16px 20px;
+}
+.short-answer { background: #eff6ff; border-left: 5px solid #2563eb; color: #1e3a8a; }
+.interview    { background: #fff7ed; border-left: 5px solid #f97316; color: #c2410c; }
+.remember     { background: #fef9c3; border-left: 5px solid #ca8a04; color: #92400e; }
+.tip          { background: #eff6ff; border-left: 5px solid #3b82f6; color: #1e40af; }
+.warning      { background: #fff1f2; border-left: 5px solid #f43f5e; color: #be123c; }
+.note         { background: #e0f2fe; border-left: 5px solid #0284c7; color: #075985; }
+.analogy      { background: #fef9c3; border-left: 5px solid #ca8a04; color: #92400e; }
+.short-answer p, .interview p, .remember p,
+.tip p, .warning p, .note p, .analogy p { color: inherit; font-size: 16px; margin: 6px 0 0; }
+
+/* ── BADGES ── */
+.badge        { background: #dbeafe; border-radius: 100px; color: #1e3a8a; display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 12px; margin: 2px 3px; }
+.badge-blue   { background: #dbeafe; color: #1e3a8a; }
+.badge-green  { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.badge-purple { background: #ede9fe; color: #4c35b5; border: 1px solid #c9c4f5; }
+.badge-teal   { background: #ccfbf1; color: #0f766e; }
+.badge-orange { background: #ffedd5; color: #c2410c; }
+
+/* ── PRIORITY PILLS ── */
+.prio-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; padding: 5px 0 12px; }
+.pill-red    { background: #fee2e2; color: #be123c; border: 1px solid #fecdd3; padding: 3px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+.pill-orange { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; padding: 3px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+.pill-star   { background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; padding: 3px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+hr.div { border: none; border-top: 1px solid #e2e8f0; margin: 10px 0 16px; }
+
+/* ── COMPARE GRID ── */
+.cmp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+.cmp-card { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 18px; }
+.cmp-card h4 { font-size: 16px; margin-bottom: 8px; font-weight: 800; }
+.cmp-card ul { margin-left: 0; gap: 6px; }
+.cmp-card li { font-size: 15px; color: #475569; line-height: 1.9; background: none; border: none; padding: 0 0 0 16px; position: relative; }
+.cmp-card li::before { content: "▸"; position: absolute; left: 0; color: #2563eb; }
+
+/* ── STEPS ── */
+.steps { display: grid; gap: 12px; margin-top: 16px; }
+.step-item { align-items: start; display: grid; gap: 14px; grid-template-columns: 42px 1fr; }
+.step-circle { align-items: center; background: #1d4ed8; border-radius: 50%; color: #fff; display: inline-flex; font-weight: 800; height: 34px; justify-content: center; width: 34px; font-size: 14px; flex-shrink: 0; }
+.step-body { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; }
+.step-body strong { color: #1e293b; font-size: 17px; font-weight: 700; display: block; margin-bottom: 4px; }
+.step-body p { color: #334155; font-size: 15px; margin: 0; }
+
+/* ── TABLE ── */
+table { border-collapse: collapse; font-size: 14px; margin-top: 14px; width: calc(100% - 60px); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(15,23,42,.08); }
+th { background: #1d4ed8; color: #fff; font-size: 15px; font-weight: 700; padding: 13px 18px; text-align: left; border-right: 1px solid rgba(255,255,255,.15); }
+th:last-child { border-right: none; }
+td { background: #fff; border-bottom: 1px solid #dbeafe; border-right: 1px solid #dbeafe; color: #1e293b; font-size: 14px; padding: 13px 18px; vertical-align: top; }
+td:last-child { border-right: none; }
+tr:nth-child(even) td { background: #eff6ff; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #dbeafe; }
+
+/* ── FLOW ── */
+.flow { display: flex; align-items: center; flex-wrap: wrap; gap: 0; margin: 14px 0; }
+.flow-box { background: #eff6ff; border: 2px solid #bfdbfe; border-radius: 10px; padding: 10px 18px; font-size: 14px; font-weight: 700; color: #1e40af; text-align: center; }
+.flow-arrow { font-size: 22px; color: #93c5fd; padding: 0 8px; font-weight: 700; }
+
+/* ── SECTION SEPARATOR ── */
+.section-sep { border: none; border-top: 3px dashed #c7d2fe; margin: 48px 0; }
+
+/* ── CONTENT-LABEL TYPE VARIANTS ── */
+.type-critical .content-label  { background: #dc2626; color: #fff; }
+.type-syntax .content-label    { background: #0f172a; color: #93c5fd; }
+.type-advanced .content-label  { background: #7c3aed; color: #fff; }
+.type-interview .content-label { background: #475569; color: #fff; }
+.type-recursive .content-label { background: #0369a1; color: #fff; }
+
+@media (max-width: 700px) {
+  .page-shell { width: min(100% - 20px, 1400px); margin: 18px auto; }
+  .hero { padding: 24px; }
+  .hero h1 { font-size: 1.8rem; }
+  .content-nav { border-radius: 10px; padding: 10px 12px; }
+  .note-block > p, .note-block > ul, .note-block > ol,
+  .note-block > dl, .note-block > table, .note-block > pre,
+  .note-block > div, .note-block > blockquote { margin-left: 18px; margin-right: 18px; }
+  h2 { font-size: 20px; padding: 14px 18px; }
+  table { display: block; overflow-x: auto; white-space: nowrap; width: calc(100% - 36px); }
+  .step-item { grid-template-columns: 1fr; }
+  .cmp-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="page-shell">
+
+<!-- HERO -->
+<div class="hero">
+  <h1>📋 Part A — Common Table Expressions (CTE)</h1>
+  <p>WITH · Recursive CTE · When to use · Real examples · vs Subquery · PostgreSQL</p>
+</div>
+
+<!-- CONTENT NAV -->
+<nav class="content-nav">
+  <a href="#cte1">🔴 What is a CTE?</a>
+  <a href="#cte2">🔴 WITH Syntax</a>
+  <a href="#cte3">🟡 Multiple CTEs</a>
+  <a href="#cte4">🟡 CTE vs Subquery</a>
+  <a href="#cte5">🔴 Recursive CTE</a>
+  <a href="#cte6">🟡 Recursive Examples</a>
+  <a href="#cte7">⭐ Interview Scenarios</a>
+</nav>
+
+<!-- ══════════════════════════════════ -->
+<!-- CTE 1 — WHAT IS A CTE             -->
+<!-- ══════════════════════════════════ -->
+<div id="cte1" class="note-block type-critical">
+  <span class="content-label">🔴 Critical — Foundation</span>
+  <h2>CTE 1 — What is a CTE and Why Do We Need It?</h2>
+
+  <div class="prio-row">
+    <span class="pill-red">🔴 Critical</span>
+    <span class="badge badge-blue">Foundation</span>
+    <span class="badge badge-green">Beginner</span>
+  </div>
+  <hr class="div">
+
+  <div class="interview">
+    <p><strong>Q:</strong> What is a CTE in PostgreSQL?</p>
+    <p><strong>A:</strong> CTE stands for Common Table Expression. It is a temporary, named result set that you define at the start of a query using the <code>WITH</code> keyword. It lives only for the duration of that one query. Think of it as giving a name to a subquery so you can refer to it clearly and reuse it.</p>
+  </div>
+
+  <div class="analogy">
+    🧠 <strong>Analogy:</strong> Writing a long essay — instead of cramming everything into one giant sentence, you break it into clear paragraphs with headings. Each CTE is a named paragraph. The final SELECT is the conclusion that uses all the paragraphs.
+  </div>
+
+  <div class="diagram">WITHOUT CTE (nested, hard to read):
+─────────────────────────────────────────
+SELECT d.name, ds.avg_sal
+FROM departments d
+JOIN (SELECT dept_id, AVG(salary) AS avg_sal
+      FROM employees GROUP BY dept_id
+      HAVING AVG(salary) > 60000) AS ds
+  ON d.id = ds.dept_id;
+
+WITH CTE (named steps, easy to read):
+─────────────────────────────────────────
+WITH high_paying AS (
+  SELECT dept_id, AVG(salary) AS avg_sal
+  FROM   employees
+  GROUP  BY dept_id
+  HAVING AVG(salary) > 60000
+)
+SELECT d.name, h.avg_sal
+FROM   departments d
+JOIN   high_paying h ON d.id = h.dept_id;</div>
+
+  <div class="short-answer">✅ CTE = a named temporary result set. Defined with WITH before the main query. Makes complex SQL readable, debuggable, and reusable within the same query.</div>
+</div>
+
+<!-- ══════════════════════════════════ -->
+<!-- CTE 2 — WITH SYNTAX               -->
+<!-- ══════════════════════════════════ -->
+<div id="cte2" class="note-block type-syntax">
+  <span class="content-label">🔴 Critical — Syntax</span>
+  <h2>CTE 2 — WITH Clause — Full Syntax Explained</h2>
+
+  <div class="prio-row">
+    <span class="pill-red">🔴 Critical</span>
+    <span class="badge badge-teal">Syntax</span>
+  </div>
+  <hr class="div">
+
+  <div class="diagram">Syntax skeleton:
+──────────────────────────────────────────────────
+WITH cte_name AS (
+  -- your inner query here
+  SELECT ...
+  FROM   ...
+  WHERE  ...
+)
+SELECT ...           ← main query uses cte_name like a table
+FROM   cte_name
+WHERE  ...;</div>
+
+  <div class="steps">
+    <div class="step-item">
+      <div class="step-circle">1</div>
+      <div class="step-body">
+        <strong>Start with WITH</strong>
+        <p>Write <code>WITH</code> before your main SELECT. This opens the CTE block.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-circle">2</div>
+      <div class="step-body">
+        <strong>Give it a name</strong>
+        <p>Choose a meaningful name like <code>high_salary_employees</code> or <code>dept_summary</code>.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-circle">3</div>
+      <div class="step-body">
+        <strong>Write the inner query inside AS ( )</strong>
+        <p>Any valid SELECT goes here. This becomes a virtual table.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-circle">4</div>
+      <div class="step-body">
+        <strong>Use the name in the main query</strong>
+        <p>After the closing <code>)</code>, write your main SELECT using the CTE name like any table.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+      <span class="filename">with_syntax.sql</span>
+    </div>
+    <div class="code-block"><span class="cm">── Example 1: Basic CTE ───────────────────────────────────────────────</span>
+<span class="cm">-- Find employees earning above average salary</span>
+<span class="kw">WITH</span> avg_salary <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> <span class="fn">AVG</span>(salary) <span class="kw">AS</span> avg_sal
+  <span class="kw">FROM</span>   employees
+)
+<span class="kw">SELECT</span> name, salary
+<span class="kw">FROM</span>   employees, avg_salary
+<span class="kw">WHERE</span>  salary <span class="op">></span> avg_sal;
+
+<span class="cm">── Example 2: CTE with filtering ─────────────────────────────────────</span>
+<span class="kw">WITH</span> senior_employees <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> id, name, salary, dept_id
+  <span class="kw">FROM</span>   employees
+  <span class="kw">WHERE</span>  years_of_experience <span class="op">>=</span> <span class="num">5</span>
+)
+<span class="kw">SELECT</span> se.name, se.salary, d.name <span class="kw">AS</span> department
+<span class="kw">FROM</span>   senior_employees se
+<span class="kw">JOIN</span>   departments d <span class="kw">ON</span> d.id = se.dept_id
+<span class="kw">ORDER BY</span> se.salary <span class="kw">DESC</span>;
+
+<span class="cm">── Example 3: CTE used in UPDATE ─────────────────────────────────────</span>
+<span class="kw">WITH</span> top_performers <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> id <span class="kw">FROM</span> employees
+  <span class="kw">WHERE</span>  performance_score <span class="op">>=</span> <span class="num">9</span>
+)
+<span class="kw">UPDATE</span> employees
+<span class="kw">SET</span>    salary = salary * <span class="num">1.15</span>
+<span class="kw">WHERE</span>  id <span class="kw">IN</span> (<span class="kw">SELECT</span> id <span class="kw">FROM</span> top_performers);
+<span class="cm">-- CTE works with UPDATE, DELETE, INSERT too — not just SELECT</span></div>
+  </div>
+
+  <div class="remember">✅ CTE is available for the entire duration of that single query — SELECT, INSERT, UPDATE, or DELETE. It vanishes once the query finishes.</div>
+  <div class="tip">💡 <strong>Column aliasing tip:</strong> You can optionally name the CTE's columns upfront: <code>WITH cte(col1, col2) AS (SELECT ...)</code> — useful when the inner query uses expressions without aliases.</div>
+</div>
+
+<!-- ══════════════════════════════════ -->
+<!-- CTE 3 — MULTIPLE CTEs             -->
+<!-- ══════════════════════════════════ -->
+<div id="cte3" class="note-block type-advanced">
+  <span class="content-label">🟡 High Impact — Advanced</span>
+  <h2>CTE 3 — Chaining Multiple CTEs — Write Once, Build on Each Other</h2>
+
+  <div class="prio-row">
+    <span class="pill-orange">🟡 High Impact</span>
+    <span class="badge badge-purple">Advanced</span>
+  </div>
+  <hr class="div">
+
+  <div class="interview">
+    <p><strong>Q:</strong> Can you define more than one CTE in a single query?</p>
+    <p><strong>A:</strong> Yes. Separate each CTE with a comma. Later CTEs can reference earlier ones — building logic step by step like a pipeline. This is the key power of CTEs over subqueries.</p>
+  </div>
+
+  <div class="diagram">WITH
+  step1 AS ( SELECT ... ),           ← first CTE
+  step2 AS ( SELECT ... FROM step1 ),← references step1!
+  step3 AS ( SELECT ... FROM step2 ) ← references step2!
+SELECT ... FROM step3;               ← final query</div>
+
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+      <span class="filename">multiple_cte.sql</span>
+    </div>
+    <div class="code-block"><span class="cm">── Real Example: Sales Pipeline Analysis ─────────────────────────────</span>
+<span class="cm">-- Step 1: Get total revenue per customer</span>
+<span class="cm">-- Step 2: Classify customers into tiers</span>
+<span class="cm">-- Step 3: Count customers per tier</span>
+
+<span class="kw">WITH</span>
+
+<span class="cm">-- CTE 1: revenue per customer</span>
+customer_revenue <span class="kw">AS</span> (
+  <span class="kw">SELECT</span>
+    customer_id,
+    <span class="fn">SUM</span>(amount) <span class="kw">AS</span> total_revenue
+  <span class="kw">FROM</span>   orders
+  <span class="kw">WHERE</span>  status = <span class="str">'completed'</span>
+  <span class="kw">GROUP BY</span> customer_id
+),
+
+<span class="cm">-- CTE 2: classify into tiers (references CTE 1)</span>
+customer_tiers <span class="kw">AS</span> (
+  <span class="kw">SELECT</span>
+    customer_id,
+    total_revenue,
+    <span class="kw">CASE</span>
+      <span class="kw">WHEN</span> total_revenue <span class="op">>=</span> <span class="num">10000</span> <span class="kw">THEN</span> <span class="str">'Gold'</span>
+      <span class="kw">WHEN</span> total_revenue <span class="op">>=</span> <span class="num">5000</span>  <span class="kw">THEN</span> <span class="str">'Silver'</span>
+      <span class="kw">ELSE</span>                              <span class="str">'Bronze'</span>
+    <span class="kw">END</span> <span class="kw">AS</span> tier
+  <span class="kw">FROM</span>   customer_revenue  <span class="cm">-- ← uses CTE 1</span>
+),
+
+<span class="cm">-- CTE 3: summary per tier (references CTE 2)</span>
+tier_summary <span class="kw">AS</span> (
+  <span class="kw">SELECT</span>
+    tier,
+    <span class="fn">COUNT</span>(*) <span class="kw">AS</span> customer_count,
+    <span class="fn">SUM</span>(total_revenue) <span class="kw">AS</span> tier_revenue
+  <span class="kw">FROM</span>   customer_tiers   <span class="cm">-- ← uses CTE 2</span>
+  <span class="kw">GROUP BY</span> tier
+)
+
+<span class="cm">-- Final query: uses CTE 3</span>
+<span class="kw">SELECT</span> tier, customer_count, tier_revenue
+<span class="kw">FROM</span>   tier_summary
+<span class="kw">ORDER BY</span> tier_revenue <span class="kw">DESC</span>;</div>
+  </div>
+
+  <div class="remember">✅ Each CTE in the chain is separated by a comma. Only the <strong>last</strong> CTE has no comma after it. Then the main SELECT follows.</div>
+  <div class="note">📌 <strong>Debugging tip:</strong> You can test each CTE independently — just run the inner SELECT on its own to verify it returns what you expect before combining them.</div>
+</div>
+
+<!-- ══════════════════════════════════ -->
+<!-- CTE 4 — CTE VS SUBQUERY           -->
+<!-- ══════════════════════════════════ -->
+<div id="cte4" class="note-block type-interview">
+  <span class="content-label">🔴 Interview Favourite — Comparison</span>
+  <h2>CTE 4 — CTE vs Subquery — Side-by-Side Comparison</h2>
+
+  <div class="prio-row">
+    <span class="pill-red">🔴 Interview Favourite</span>
+    <span class="badge badge-blue">Comparison</span>
+  </div>
+  <hr class="div">
+
+  <div class="cmp-grid">
+    <div class="cmp-card" style="border-color:#bfdbfe">
+      <h4 style="color:#1e40af">Subquery</h4>
+      <ul>
+        <li>Inline — no name</li>
+        <li>Cannot be reused in same query</li>
+        <li>Messy when nested 2+ levels</li>
+        <li>Can't be tested in isolation</li>
+        <li>Good for simple one-liner cases</li>
+        <li>No recursion support</li>
+      </ul>
+    </div>
+    <div class="cmp-card" style="border-color:#86efac">
+      <h4 style="color:#166534">CTE (WITH)</h4>
+      <ul>
+        <li>Named — readable and clear</li>
+        <li>✅ Can be referenced multiple times</li>
+        <li>✅ Clean for multi-step logic</li>
+        <li>✅ Each CTE testable independently</li>
+        <li>✅ Works with UPDATE/DELETE too</li>
+        <li>✅ Recursive queries supported</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+      <span class="filename">cte_vs_subquery.sql</span>
+    </div>
+    <div class="code-block"><span class="cm">── Same logic — Subquery version (messy) ─────────────────────────────</span>
+<span class="kw">SELECT</span> d.name, ds.avg_salary, ds.headcount
+<span class="kw">FROM</span>   departments d
+<span class="kw">JOIN</span>  (<span class="kw">SELECT</span> dept_id,
+               <span class="fn">AVG</span>(salary) <span class="kw">AS</span> avg_salary,
+               <span class="fn">COUNT</span>(*)    <span class="kw">AS</span> headcount
+        <span class="kw">FROM</span>   employees
+        <span class="kw">GROUP BY</span> dept_id) <span class="kw">AS</span> ds
+  <span class="kw">ON</span> d.id = ds.dept_id
+<span class="kw">WHERE</span> ds.avg_salary <span class="op">></span> <span class="num">60000</span>;
+
+<span class="cm">── Same logic — CTE version (clean) ──────────────────────────────────</span>
+<span class="kw">WITH</span> dept_stats <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> dept_id,
+         <span class="fn">AVG</span>(salary) <span class="kw">AS</span> avg_salary,
+         <span class="fn">COUNT</span>(*) <span class="kw">AS</span> headcount
+  <span class="kw">FROM</span>   employees
+  <span class="kw">GROUP BY</span> dept_id
+)
+<span class="kw">SELECT</span> d.name, ds.avg_salary, ds.headcount
+<span class="kw">FROM</span>   departments d
+<span class="kw">JOIN</span>   dept_stats ds <span class="kw">ON</span> d.id = ds.dept_id
+<span class="kw">WHERE</span>  ds.avg_salary <span class="op">></span> <span class="num">60000</span>;
+
+<span class="cm">── CTE referenced TWICE — impossible with subquery ───────────────────</span>
+<span class="kw">WITH</span> dept_stats <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> dept_id, <span class="fn">AVG</span>(salary) <span class="kw">AS</span> avg_sal, <span class="fn">MAX</span>(salary) <span class="kw">AS</span> max_sal
+  <span class="kw">FROM</span>   employees <span class="kw">GROUP BY</span> dept_id
+)
+<span class="kw">SELECT</span>
+  d.name,
+  ds.avg_sal,
+  ds.max_sal,
+  ds.max_sal - ds.avg_sal <span class="kw">AS</span> spread
+<span class="kw">FROM</span>   departments d
+<span class="kw">JOIN</span>   dept_stats ds <span class="kw">ON</span> d.id = ds.dept_id;</div>
+  </div>
+
+  <div class="remember">✅ <strong>Rule of thumb:</strong> Subquery for simple one-off filters. CTE when logic has multiple steps, the result is used more than once, or the query is complex enough to need named clarity.</div>
+</div>
+
+<!-- ══════════════════════════════════ -->
+<!-- CTE 5 — RECURSIVE CTE             -->
+<!-- ══════════════════════════════════ -->
+<div id="cte5" class="note-block type-recursive">
+  <span class="content-label">🔴 Critical — Recursive</span>
+  <h2>CTE 5 — Recursive CTE — Querying Hierarchical Data</h2>
+
+  <div class="prio-row">
+    <span class="pill-red">🔴 Critical</span>
+    <span class="badge badge-purple">Recursive</span>
+  </div>
+  <hr class="div">
+
+  <div class="interview">
+    <p><strong>Q:</strong> What is a Recursive CTE and when do you need one?</p>
+    <p><strong>A:</strong> A Recursive CTE is a CTE that references itself. It works in two parts: an <strong>Anchor query</strong> (the starting point) and a <strong>Recursive query</strong> (which builds on the previous result). PostgreSQL keeps running the recursive part, adding new rows, until no more rows are returned. Use it for hierarchical or graph-like data — org charts, folder trees, category hierarchies.</p>
+  </div>
+
+  <div class="analogy">
+    🧠 <strong>Analogy:</strong> Climbing a tree — you start at the root (anchor). Then you keep finding the children of what you found (recursive step). You stop when a level has no children left.
+  </div>
+
+  <div class="diagram">WITH RECURSIVE cte_name AS (
+
+  -- PART 1: Anchor — starting rows (runs ONCE)
+  SELECT ... FROM table WHERE condition
+
+  UNION ALL
+
+  -- PART 2: Recursive step — joins CTE to itself (runs REPEATEDLY)
+  SELECT ... FROM table
+  JOIN cte_name ON ...   ← references itself!
+
+)
+SELECT * FROM cte_name;
+
+Execution flow:
+  Anchor runs → produces Set 1
+  Recursive step on Set 1 → produces Set 2
+  Recursive step on Set 2 → produces Set 3
+  ... until empty set → STOP</div>
+
+  <div class="code-wrap">
+    <div class="code-bar">
+      <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+      <span class="filename">recursive_cte.sql</span>
+    </div>
+    <div class="code-block"><span class="cm">── Classic example: Employee → Manager org hierarchy ─────────────────</span>
+<span class="cm">-- employees(id, name, manager_id)</span>
+
+<span class="kw">WITH RECURSIVE</span> org_chart <span class="kw">AS</span> (
+
+  <span class="cm">-- Anchor: start at the CEO (no manager)</span>
+  <span class="kw">SELECT</span> id, name, manager_id, <span class="num">0</span> <span class="kw">AS</span> level
+  <span class="kw">FROM</span>   employees
+  <span class="kw">WHERE</span>  manager_id <span class="kw">IS NULL</span>
+
+  <span class="kw">UNION ALL</span>
+
+  <span class="cm">-- Recursive: find each employee's direct reports</span>
+  <span class="kw">SELECT</span> e.id, e.name, e.manager_id, oc.level + <span class="num">1</span>
+  <span class="kw">FROM</span>   employees e
+  <span class="kw">JOIN</span>   org_chart oc <span class="kw">ON</span> e.manager_id = oc.id  <span class="cm">-- self-join!</span>
+
+)
+<span class="kw">SELECT</span>
+  <span class="fn">REPEAT</span>(<span class="str">'  '</span>, level) <span class="op">||</span> name <span class="kw">AS</span> name_indented,
+  level
+<span class="kw">FROM</span>   org_chart
+<span class="kw">ORDER BY</span> level, name;</div>
+  </div>
+
+  <div class="warning">⚠️ <strong>Infinite loop risk:</strong> Always ensure the recursive step makes progress toward termination. Add a <code>WHERE level &lt; 10</code> guard clause during development to prevent runaway queries on cyclic data.</div>
+
+  <div class="note">📌 PostgreSQL also supports <code>WITH RECURSIVE</code> for number series generation: <code>SELECT n FROM generate_series(1,100) AS n</code> is preferred, but recursive CTEs work cross-database for portability.</div>
+</div>
+
+</div><!-- /page-shell -->
+</body>
+</html>
