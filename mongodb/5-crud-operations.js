@@ -90,29 +90,7 @@ window.notePageData = {
                 }
             ],
     "sections":  [
-                     {
-                         "id":  "notes",
-                         "type":  "notes",
-                         "label":  "Notes",
-                         "heading":  "CRUD Key Concepts",
-                         "blocks":  [
-                                        {
-                                            "type":  "list",
-                                            "items":  [
-                                                          "CRUD = Create, Read, Update, Delete.",
-                                                          "MongoDB uses insertOne() and insertMany() for Create.",
-                                                          "find() and findOne() are used for Read operations.",
-                                                          "updateOne(), updateMany(), and findByIdAndUpdate() handle Updates.",
-                                                          "deleteOne() and deleteMany() perform Delete operations.",
-                                                          "All operations work on Documents inside Collections.",
-                                                          "Mongoose wraps MongoDB CRUD with a schema-based API.",
-                                                          "Operators like $set, $push, $pull, $inc are used in updates.",
-                                                          "Filters use JSON-style query objects.",
-                                                          "Mongoose methods like save(), create(), find(), findById() simplify CRUD."
-                                                      ]
-                                        }
-                                    ]
-                     },
+                    
                      {
                          "id":  "terms",
                          "type":  "terminology",
@@ -174,18 +152,7 @@ window.notePageData = {
                                         }
                                     ]
                      },
-                     {
-                         "id":  "diagram",
-                         "type":  "diagram",
-                         "label":  "Diagram",
-                         "heading":  "CRUD Operation Flow",
-                         "blocks":  [
-                                        {
-                                            "type":  "diagram",
-                                            "text":  "Client HTTP Request (POST / GET / PUT / DELETE)\n             |\n             v\n    [ Express Router ]\n             |\n             v\n    [ Middleware: auth + validate ]\n             |\n             v\n    [ Controller: reads req.body / req.params ]\n             |\n             v\n    [ Service: business logic + CRUD calls ]\n             |\n             v\n    [ Mongoose Model ]\n      create()  find()  update()  delete()\n             |\n             v\n       [ MongoDB Atlas ]\n        Document Storage\n             |\n             v\n    Result flows back to client as JSON"
-                                        }
-                                    ]
-                     },
+                    
                      {
                          "id":  "create",
                          "type":  "code-snippet",
@@ -586,210 +553,7 @@ window.notePageData = {
                                         }
                                     ]
                      },
-                     {
-                         "id":  "accordion",
-                         "type":  "accordion",
-                         "label":  "Accordion",
-                         "heading":  "CRUD Deep Dive",
-                         "blocks":  [
-                                        {
-                                            "type":  "accordion",
-                                            "items":  [
-                                                          {
-                                                              "title":  "What is the difference between $set and direct assignment in updates?",
-                                                              "text":  "$set updates only the specified fields and leaves all other fields intact. Without $set, MongoDB replaces the entire document with only the fields you provided — which deletes all other fields. Always use $set for partial updates."
-                                                          },
-                                                          {
-                                                              "title":  "What is upsert and when would you use it?",
-                                                              "text":  "Upsert = Update + Insert. When { upsert: true } is passed and no document matches the filter, MongoDB creates a new document instead of doing nothing. Useful for create-or-update patterns like user preferences or settings."
-                                                          },
-                                                          {
-                                                              "title":  "What is the soft delete pattern?",
-                                                              "text":  "Instead of permanently removing a document, set isDeleted: true and a deletedAt timestamp. This preserves audit history and allows data recovery. All read queries must filter with { isDeleted: { $ne: true } } to exclude soft-deleted records."
-                                                          },
-                                                          {
-                                                              "title":  "How does pagination work in MongoDB?",
-                                                              "text":  "Use .skip((page - 1) * limit).limit(limit) chained on find(). For example, page 2 with limit 10 skips 10 documents and returns the next 10. Always pair with .sort() to ensure consistent ordering across pages."
-                                                          },
-                                                          {
-                                                              "title":  "What does populate() do?",
-                                                              "text":  "populate() replaces an ObjectId reference with the actual document from another collection — similar to a SQL JOIN. Define the ref in your schema and call .populate(\u0027fieldName\u0027) in your query to fetch the related document."
-                                                          },
-                                                          {
-                                                              "title":  "How do you handle duplicate key errors?",
-                                                              "text":  "MongoDB throws an error with code 11000 when a unique constraint is violated (e.g., duplicate email). Catch it with: if (err.code === 11000) return 409 Conflict. You can also check for duplicates before inserting for a cleaner error message."
-                                                          }
-                                                      ]
-                                        }
-                                    ]
-                     },
-                     {
-                         "id":  "use-cases",
-                         "type":  "use-cases",
-                         "label":  "Use Cases",
-                         "heading":  "Real-World CRUD Use Cases",
-                         "blocks":  [
-                                        {
-                                            "type":  "list",
-                                            "items":  [
-                                                          "User registration and profile management — Create + Read + Update.",
-                                                          "Product catalog management — full CRUD on product listings.",
-                                                          "Order management system — Create orders, Read history, Update status.",
-                                                          "Content Management System — full CRUD on posts, pages, media.",
-                                                          "Chat applications — Create messages, Read history, Delete messages.",
-                                                          "Admin dashboards — Read analytics, Update settings, Delete records.",
-                                                          "E-commerce cart — Create cart, Update quantities, Delete items.",
-                                                          "Todo / Task apps — classic full CRUD on task documents."
-                                                      ]
-                                        }
-                                    ]
-                     },
-                     {
-                         "id":  "best-practices",
-                         "type":  "best-practices",
-                         "label":  "Best Practices",
-                         "heading":  "CRUD Best Practices",
-                         "blocks":  [
-                                        {
-                                            "type":  "list",
-                                            "items":  [
-                                                          "Always use { new: true } in findByIdAndUpdate() to receive the updated document back.",
-                                                          "Always use { runValidators: true } to enforce schema validation on updates.",
-                                                          "Use .select(\u0027-password\u0027) to exclude sensitive fields from all read results.",
-                                                          "Implement soft delete (isDeleted flag) instead of hard delete in production.",
-                                                          "Add indexes on fields used frequently in filters such as email and userId.",
-                                                          "Always use countDocuments() with the same filter as find() for accurate pagination totals.",
-                                                          "Use projections to return only the fields the client actually needs.",
-                                                          "Validate all incoming data with Joi or Zod before it reaches the service or model.",
-                                                          "Wrap all async Mongoose operations in try/catch and propagate errors with status codes.",
-                                                          "Check if findById() returned null before using the result — it returns null if not found."
-                                                      ]
-                                        }
-                                    ]
-                     },
-                     {
-                         "id":  "common-mistakes",
-                         "type":  "common-mistakes",
-                         "label":  "Common Mistakes",
-                         "heading":  "Common CRUD Mistakes",
-                         "blocks":  [
-                                        {
-                                            "type":  "list",
-                                            "items":  [
-                                                          "Forgetting { new: true } in findByIdAndUpdate — receiving the old document back thinking it is updated.",
-                                                          "Using update() without $set — accidentally replacing the entire document and losing all other fields.",
-                                                          "Running deleteMany({}) without a filter — deletes every document in the collection.",
-                                                          "Not checking if findById() returned null before accessing properties on the result.",
-                                                          "Forgetting { runValidators: true } — schema rules not enforced on updates.",
-                                                          "Returning passwords or sensitive fields in API responses.",
-                                                          "Not implementing pagination — returning huge datasets in a single find() call.",
-                                                          "Using findOne() inside a loop — causes N+1 query problem. Use $in instead.",
-                                                          "Not handling duplicate key errors with code 11000 from unique fields.",
-                                                          "Writing DB queries directly in the controller instead of the service layer."
-                                                      ]
-                                        }
-                                    ]
-                     },
-                     {
-                         "id":  "debugging",
-                         "type":  "debugging-tips",
-                         "label":  "Debugging Tips",
-                         "heading":  "CRUD Debugging Tips",
-                         "blocks":  [
-                                        {
-                                            "type":  "list",
-                                            "items":  [
-                                                          "Enable Mongoose debug mode: mongoose.set(\u0027debug\u0027, true) to log every query to the console.",
-                                                          "Check if the returned value is null — means the filter did not match any document.",
-                                                          "Use .explain(\u0027executionStats\u0027) on queries to verify indexes are being used.",
-                                                          "Catch duplicate key errors: if (err.code === 11000) return 409 status.",
-                                                          "Validate ObjectId before querying: mongoose.isValidObjectId(id) to avoid CastError crashes.",
-                                                          "Log the filter object before find() — undefined values inside filters cause unexpected results.",
-                                                          "Check that runValidators is set in update options when schema validation seems not to run.",
-                                                          "Use Postman to test each CRUD endpoint independently and check exact request shapes.",
-                                                          "Ensure express.json() middleware is registered before all routes so req.body is parsed."
-                                                      ]
-                                        }
-                                    ]
-                     },
-                     {
-                         "id":  "interview",
-                         "type":  "interview-questions",
-                         "label":  "Interview Questions",
-                         "heading":  "CRUD Interview Questions",
-                         "blocks":  [
-                                        {
-                                            "type":  "qa",
-                                            "items":  [
-                                                          {
-                                                              "question":  "What is the difference between insertOne() and Model.create() in Mongoose?",
-                                                              "answer":  "insertOne() is a native MongoDB driver method that bypasses Mongoose schema validation and hooks entirely. Model.create() goes through Mongoose — it runs schema validation, applies default values, and triggers pre and post save hooks. Always use Model.create() in Mongoose applications."
-                                                          },
-                                                          {
-                                                              "question":  "What is the difference between updateOne() and findByIdAndUpdate()?",
-                                                              "answer":  "updateOne() returns a result object with matchedCount and modifiedCount — it does NOT return the actual document. findByIdAndUpdate() returns the document itself — old by default, or the updated version when { new: true } is passed. Use findByIdAndUpdate() when you need to return the document to the client."
-                                                          },
-                                                          {
-                                                              "question":  "Why should you always use $set in update operations?",
-                                                              "answer":  "Without $set, MongoDB replaces the entire document with only the fields you provided — all other fields are deleted permanently. $set only modifies the specified fields and leaves everything else unchanged. Always use $set for safe partial updates."
-                                                          },
-                                                          {
-                                                              "question":  "What is upsert and when would you use it?",
-                                                              "answer":  "Upsert is a combination of update and insert. When { upsert: true } is passed and no document matches the filter, MongoDB creates a new document instead of doing nothing. Useful for create-or-update patterns such as user settings or preferences."
-                                                          },
-                                                          {
-                                                              "question":  "How do you implement pagination in MongoDB?",
-                                                              "answer":  "Chain .skip((page - 1) * limit).limit(limit) on a find() query. Always sort first to ensure consistent ordering across pages. Also call countDocuments() with the same filter to return the total number of records for the UI to display page count."
-                                                          },
-                                                          {
-                                                              "question":  "What is the soft delete pattern and why is it preferred?",
-                                                              "answer":  "Soft delete means setting isDeleted: true on a document instead of permanently removing it. This preserves audit history, allows data recovery, and prevents accidental permanent data loss. All read queries then filter with { isDeleted: { $ne: true } } to exclude soft-deleted records."
-                                                          },
-                                                          {
-                                                              "question":  "How do you handle duplicate key errors in MongoDB?",
-                                                              "answer":  "MongoDB throws an error with code 11000 when a unique index constraint is violated such as a duplicate email. Catch this in the service: if (err.code === 11000) throw a 409 Conflict error. You can also proactively check with findOne() before inserting for a more descriptive error message."
-                                                          },
-                                                          {
-                                                              "question":  "What does { runValidators: true } do in update operations?",
-                                                              "answer":  "By default, Mongoose schema validators only run during create and save. Passing runValidators: true forces Mongoose to also run those validators during update operations. Without it, you could update a field with an invalid value and Mongoose would silently allow it."
-                                                          }
-                                                      ]
-                                        }
-                                    ]
-                     },
-                     {
-                         "id":  "qa",
-                         "type":  "qa-section",
-                         "label":  "Q\u0026A Section",
-                         "heading":  "Frequently Asked Questions",
-                         "blocks":  [
-                                        {
-                                            "type":  "qa",
-                                            "items":  [
-                                                          {
-                                                              "question":  "Can I use async/await with all Mongoose CRUD methods?",
-                                                              "answer":  "Yes. All Mongoose query methods return thenables compatible with async/await. Use await Model.find(), await Model.create() etc. Always wrap async operations in try/catch to handle errors properly."
-                                                          },
-                                                          {
-                                                              "question":  "What happens if findById() receives an invalid ObjectId?",
-                                                              "answer":  "Mongoose throws a CastError because the string cannot be cast to ObjectId. Always validate the id first using mongoose.isValidObjectId(id) before passing it to findById() to return a clean 400 Bad Request instead of a 500 Internal Server Error."
-                                                          },
-                                                          {
-                                                              "question":  "Is it safe to use deleteMany({}) in production?",
-                                                              "answer":  "No. deleteMany({}) with an empty filter deletes ALL documents in the collection permanently with no undo. Always provide a specific filter. In production, prefer soft delete using an isDeleted flag to prevent accidental permanent data loss."
-                                                          },
-                                                          {
-                                                              "question":  "How do I return only specific fields in a read query?",
-                                                              "answer":  "Use .select(\u0027field1 field2\u0027) to include only those fields, or .select(\u0027-field1\u0027) to exclude a field. Example: User.find().select(\u0027name email -_id\u0027) returns name and email without the _id field."
-                                                          },
-                                                          {
-                                                              "question":  "What is the N+1 query problem in MongoDB?",
-                                                              "answer":  "It occurs when you call findById() or findOne() inside a loop — one database query per loop iteration. For 100 items, that becomes 101 queries total. Fix it by fetching all needed documents in a single query using the $in operator: User.find({ _id: { $in: idsArray } })."
-                                                          }
-                                                      ]
-                                        }
-                                    ]
-                     },
+                
                      {
                          "id":  "summary",
                          "type":  "summary",
@@ -815,3 +579,5 @@ window.notePageData = {
                      }
                  ]
 };
+
+

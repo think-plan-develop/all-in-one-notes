@@ -329,36 +329,7 @@ window.notePageData = {
     }
   ]
 },
-    {
-      "id": "diagram",
-      "type": "diagram",
-      "label": "Diagram",
-      "heading": "MongoDB Architecture",
-      "blocks": [
-        {
-          "type": "diagram",
-          "text": "Client --> Node.js API --> MongoDB Driver --> Database --> Collection --> Document"
-        }
-      ]
-    },
-    {
-      "id": "explanation",
-      "type": "explanation",
-      "label": "Explanation",
-      "heading": "Detailed Explanation",
-      "blocks": [
-        {
-          "type": "paragraph",
-          "parts": [
-            "MongoDB stores data inside ",
-            {
-              "code": "documents"
-            },
-            " rather than rows. Each document can have flexible structure which allows developers to evolve applications without complex migrations."
-          ]
-        }
-      ]
-    },
+
     {
       "id": "comparison",
       "type": "comparison",
@@ -543,40 +514,6 @@ window.notePageData = {
   ]
 },
 {
-  "id": "indexing",
-  "type": "indexing",
-  "label": "Indexing",
-  "heading": "MongoDB Indexes",
-  "blocks": [
-    {
-      "type": "definitions",
-      "items": [
-        {
-          "term": "Single Field Index",
-          "definition": "Index on one field."
-        },
-        {
-          "term": "Compound Index",
-          "definition": "Index on multiple fields."
-        },
-        {
-          "term": "Text Index",
-          "definition": "Used for text searching."
-        },
-        {
-          "term": "Unique Index",
-          "definition": "Prevents duplicate values."
-        }
-      ]
-    },
-    {
-      "type": "code",
-      "filename": "index.mongodb",
-      "text": "db.users.createIndex({email:1})\n\ndb.users.createIndex({firstName:1,lastName:1})\n\ndb.users.createIndex({email:1},{unique:true})\n\ndb.users.getIndexes()"
-    }
-  ]
-},
-{
   "id": "relationships",
   "type": "relationships",
   "label": "Relationships",
@@ -659,19 +596,7 @@ window.notePageData = {
         }
       ]
     },
-    {
-      "id": "info",
-      "type": "info-card",
-      "label": "Info Card",
-      "heading": "MongoDB Overview",
-      "blocks": [
-        {
-          "type": "info-card",
-          "title": "Why MongoDB?",
-          "text": "Fast development, flexible schema, easy scaling, and strong Node.js ecosystem support."
-        }
-      ]
-    },
+  
 
 
     {
@@ -699,19 +624,8 @@ window.notePageData = {
         }
       ]
     },
-    {
-      "id": "quote",
-      "type": "quote",
-      "label": "Quote",
-      "heading": "MongoDB Philosophy",
-      "blocks": [
-        {
-          "type": "quote",
-          "text": "Model data according to application requirements, not database limitations.",
-          "source": "MongoDB Best Practice"
-        }
-      ]
-    },
+ 
+
 
     {
       "id": "use-cases",
@@ -844,25 +758,5 @@ window.notePageData = {
         }
       ]
     },
-    {
-      "id": "summary",
-      "type": "summary",
-      "label": "Summary / Key Takeaways",
-      "heading": "Quick Revision",
-      "blocks": [
-        {
-          "type": "list",
-          "items": [
-            "MongoDB is a document-oriented NoSQL database.",
-            "Collection = Table.",
-            "Document = Row.",
-            "BSON is internal storage format.",
-            "Indexes improve performance.",
-            "Aggregation handles analytics.",
-            "Mongoose simplifies MongoDB usage in Node.js."
-          ]
-        }
-      ]
-    }
   ]
 };
