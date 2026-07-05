@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JavaScript Advanced Functions</title>
+<link rel="stylesheet" href="index.css">
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>JavaScript Advanced Functions</h1>
+    <p>Currying, partial application, composition, memoization, debouncing, and throttling — the functional patterns that show up in real codebases and technical interviews alike.</p>
+    <div class="toc">
+      <a href="#currying">Currying</a>
+      <a href="#partial-application">Partial Application</a>
+      <a href="#composition">Function Composition</a>
+      <a href="#memoization">Memoization</a>
+      <a href="#debouncing">Debouncing</a>
+      <a href="#throttling">Throttling</a>
+      <a href="#interview-questions">Interview Questions</a>
+    </div>
+  </div>
+
+  <div class="info-box box-note">These patterns all lean on closures — a function "remembering" arguments, cached results, or timers from a previous call. Understanding closures makes every one of these click into place.</div>
+
+  <!-- ===== CURRYING ===== -->
+  <div class="section-divider" id="currying"><span>1. Currying</span></div>
+  <div class="card theme-blue">
+    <div class="card-title">Turning Multi-Argument Functions Into a Chain <span class="badge">Functional</span></div>
+    <div class="card-content">
+      <p><strong>Currying</strong> transforms a function that takes multiple arguments into a sequence of functions that each take a single argument, one at a time.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">currying-basics.js</span></div>
+        <pre><code><span class="cmt">// Normal function</span>
+<span class="kw">function</span> <span class="fn">add</span>(a, b, c) {
+  <span class="kw">return</span> a + b + c;
+}
+<span class="fn">add</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>); <span class="cmt">// 6</span>
+
+<span class="cmt">// Curried version — one argument at a time</span>
+<span class="kw">function</span> <span class="fn">curriedAdd</span>(a) {
+  <span class="kw">return function</span> (b) {
+    <span class="kw">return function</span> (c) {
+      <span class="kw">return</span> a + b + c;
+    };
+  };
+}
+<span class="fn">curriedAdd</span>(<span class="num">1</span>)(<span class="num">2</span>)(<span class="num">3</span>); <span class="cmt">// 6</span>
+
+<span class="cmt">// Same thing with arrow functions</span>
+<span class="kw">const</span> curriedAddArrow = a => b => c => a + b + c;
+<span class="fn">curriedAddArrow</span>(<span class="num">1</span>)(<span class="num">2</span>)(<span class="num">3</span>); <span class="cmt">// 6</span></code></pre>
+      </div>
+
+      <h4>A Generic Curry Helper</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">curry-helper.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">curry</span>(fn) {
+  <span class="kw">return function</span> curried(...args) {
+    <span class="kw">if</span> (args.length >= fn.length) {
+      <span class="kw">return</span> <span class="fn">fn</span>(...args);
+    }
+    <span class="kw">return</span> (...moreArgs) => <span class="fn">curried</span>(...args, ...moreArgs);
+  };
+}
+
+<span class="kw">const</span> add = (a, b, c) => a + b + c;
+<span class="kw">const</span> curriedAdd = <span class="fn">curry</span>(add);
+
+curriedAdd(<span class="num">1</span>)(<span class="num">2</span>)(<span class="num">3</span>);    <span class="cmt">// 6</span>
+curriedAdd(<span class="num">1</span>, <span class="num">2</span>)(<span class="num">3</span>);   <span class="cmt">// 6 — can also take multiple args per call</span>
+curriedAdd(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>);  <span class="cmt">// 6 — or all at once</span></code></pre>
+      </div>
+
+      <h4>Why Use It?</h4>
+      <table>
+        <tr><th>Benefit</th><th>Example</th></tr>
+        <tr><td>Reusable, pre-configured functions</td><td><code>const addTax = curriedMultiply(1.18)</code></td></tr>
+        <tr><td>Cleaner function composition</td><td>Single-argument functions pipe together naturally</td></tr>
+        <tr><td>Delayed execution</td><td>Build up arguments over time before finally calling</td></tr>
+      </table>
+
+      <div class="info-box box-tip">Currying relies entirely on closures — each returned function closes over the arguments collected so far.</div>
+    </div>
+  </div>
+
+  <!-- ===== PARTIAL APPLICATION ===== -->
+  <div class="section-divider" id="partial-application"><span>2. Partial Application</span></div>
+  <div class="card theme-green">
+    <div class="card-title">Pre-Filling Some Arguments Now, Rest Later <span class="badge">Functional</span></div>
+    <div class="card-content">
+      <p><strong>Partial application</strong> fixes a few arguments of a function upfront, producing a new function that only needs the remaining arguments — unlike currying, it isn't restricted to one argument per call.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">partial-application.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">partial</span>(fn, ...presetArgs) {
+  <span class="kw">return function</span> (...remainingArgs) {
+    <span class="kw">return</span> <span class="fn">fn</span>(...presetArgs, ...remainingArgs);
+  };
+}
+
+<span class="kw">function</span> <span class="fn">greet</span>(greeting, name, punctuation) {
+  <span class="kw">return</span> `${greeting}, ${name}${punctuation}`;
+}
+
+<span class="kw">const</span> sayHello = <span class="fn">partial</span>(greet, <span class="str">"Hello"</span>);
+sayHello(<span class="str">"Sam"</span>, <span class="str">"!"</span>);       <span class="cmt">// "Hello, Sam!"</span>
+
+<span class="kw">const</span> sayHelloToSam = <span class="fn">partial</span>(greet, <span class="str">"Hello"</span>, <span class="str">"Sam"</span>);
+sayHelloToSam(<span class="str">"."</span>);         <span class="cmt">// "Hello, Sam."</span></code></pre>
+      </div>
+
+      <h4>Currying vs. Partial Application</h4>
+      <table>
+        <tr><th>Currying</th><th>Partial Application</th></tr>
+        <tr><td>Always takes exactly one argument per call</td><td>Can take any number of arguments per call</td></tr>
+        <tr><td>Returns a function until all args are collected</td><td>Returns a function that runs once remaining args arrive</td></tr>
+        <tr><td>Built for composing single-argument pipelines</td><td>Built for "pre-configuring" a function's behavior</td></tr>
+      </table>
+
+      <div class="info-box box-note"><code>bind()</code> is actually a built-in form of partial application — <code>fn.bind(null, arg1, arg2)</code> pre-fills the first arguments and returns a new function.</div>
+    </div>
+  </div>
+
+  <!-- ===== FUNCTION COMPOSITION ===== -->
+  <div class="section-divider" id="composition"><span>3. Function Composition</span></div>
+  <div class="card theme-orange">
+    <div class="card-title">Combining Small Functions Into a Pipeline <span class="badge">Functional</span></div>
+    <div class="card-content">
+      <p><strong>Function composition</strong> combines multiple simple functions into one, where the output of one becomes the input of the next.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">compose.js</span></div>
+        <pre><code><span class="kw">const</span> compose = (...fns) => x => fns.<span class="fn">reduceRight</span>((acc, fn) => <span class="fn">fn</span>(acc), x);
+<span class="kw">const</span> pipe = (...fns) => x => fns.<span class="fn">reduce</span>((acc, fn) => <span class="fn">fn</span>(acc), x);
+
+<span class="kw">const</span> double = n => n * <span class="num">2</span>;
+<span class="kw">const</span> addOne = n => n + <span class="num">1</span>;
+<span class="kw">const</span> square = n => n * n;
+
+<span class="cmt">// compose runs right-to-left</span>
+<span class="kw">const</span> composed = <span class="fn">compose</span>(square, addOne, double);
+composed(<span class="num">3</span>); <span class="cmt">// double(3)=6 → addOne(6)=7 → square(7)=49</span>
+
+<span class="cmt">// pipe runs left-to-right — often easier to read</span>
+<span class="kw">const</span> piped = <span class="fn">pipe</span>(double, addOne, square);
+piped(<span class="num">3</span>);    <span class="cmt">// same result: 49</span></code></pre>
+      </div>
+
+      <table>
+        <tr><th>compose()</th><th>pipe()</th></tr>
+        <tr><td>Applies functions right-to-left</td><td>Applies functions left-to-right</td></tr>
+        <tr><td>Mirrors mathematical notation: f(g(x))</td><td>Mirrors reading order: step 1, then step 2...</td></tr>
+      </table>
+
+      <div class="info-box box-tip">Composition works best with small, single-purpose, pure functions — each one doing exactly one transformation, chained together instead of nested in one large function.</div>
+    </div>
+  </div>
+
+  <!-- ===== MEMOIZATION ===== -->
+  <div class="section-divider" id="memoization"><span>4. Memoization</span></div>
+  <div class="card theme-pink">
+    <div class="card-title">Caching Results to Skip Repeated Work (React) <span class="badge">Performance</span></div>
+    <div class="card-content">
+      <p>In React, memoization means avoiding expensive recalculations or unnecessary re-renders. React ships three built-in tools for it: <code>useMemo</code>, <code>useCallback</code>, and <code>React.memo</code>.</p>
+
+      <h4>useMemo — Cache an Expensive Calculated Value</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">UseMemoExample.jsx</span></div>
+        <pre><code><span class="kw">import</span> { useMemo, useState } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">function</span> <span class="fn">ProductList</span>({ products, query }) {
+  <span class="kw">const</span> [sortOrder, setSortOrder] = <span class="fn">useState</span>(<span class="str">"asc"</span>);
+
+  <span class="cmt">// Only recompute filteredProducts when products or query change —
+  // NOT when sortOrder changes, even though this component re-renders then.</span>
+  <span class="kw">const</span> filteredProducts = <span class="fn">useMemo</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"filtering..."</span>);
+    <span class="kw">return</span> products.<span class="fn">filter</span>(p =>
+      p.name.<span class="fn">toLowerCase</span>().<span class="fn">includes</span>(query.<span class="fn">toLowerCase</span>())
+    );
+  }, [products, query]);
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">button</span> onClick={() => <span class="fn">setSortOrder</span>(s => (s === <span class="str">"asc"</span> ? <span class="str">"desc"</span> : <span class="str">"asc"</span>))}&gt;
+        Toggle Sort
+      &lt;/<span class="type">button</span>&gt;
+      &lt;<span class="type">ul</span>&gt;
+        {filteredProducts.<span class="fn">map</span>(p => &lt;<span class="type">li</span> key={p.id}&gt;{p.name}&lt;/<span class="type">li</span>&gt;)}
+      &lt;/<span class="type">ul</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+      </div>
+
+      <h4>useCallback — Cache a Function Reference</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">UseCallbackExample.jsx</span></div>
+        <pre><code><span class="kw">import</span> { useCallback, useState } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">function</span> <span class="fn">ParentComponent</span>() {
+  <span class="kw">const</span> [count, setCount] = <span class="fn">useState</span>(<span class="num">0</span>);
+
+  <span class="cmt">// Without useCallback, a brand-new function is created every render,
+  // causing ChildButton to re-render even when wrapped in React.memo.</span>
+  <span class="kw">const</span> handleClick = <span class="fn">useCallback</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"clicked!"</span>);
+  }, []); <span class="cmt">// empty deps — same function reference forever</span>
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">p</span>&gt;Count: {count}&lt;/<span class="type">p</span>&gt;
+      &lt;<span class="type">button</span> onClick={() => <span class="fn">setCount</span>(c => c + <span class="num">1</span>)}&gt;Increment&lt;/<span class="type">button</span>&gt;
+      &lt;<span class="type">ChildButton</span> onClick={handleClick} /&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+      </div>
+
+      <h4>React.memo — Skip Re-Rendering a Component</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">MemoizedChild.jsx</span></div>
+        <pre><code><span class="kw">import</span> { memo } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="cmt">// Only re-renders if its props actually change (shallow comparison)</span>
+<span class="kw">const</span> ChildButton = <span class="fn">memo</span>(<span class="kw">function</span> <span class="fn">ChildButton</span>({ onClick }) {
+  <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"ChildButton rendered"</span>);
+  <span class="kw">return</span> &lt;<span class="type">button</span> onClick={onClick}&gt;Click me&lt;/<span class="type">button</span>&gt;;
+});
+
+<span class="kw">export default</span> ChildButton;</code></pre>
+      </div>
+
+      <table>
+        <tr><th>Tool</th><th>Memoizes</th><th>Use When</th></tr>
+        <tr><td><code>useMemo</code></td><td>A computed value</td><td>An expensive calculation shouldn't rerun every render</td></tr>
+        <tr><td><code>useCallback</code></td><td>A function reference</td><td>Passing a stable callback to a memoized child, or as a dependency</td></tr>
+        <tr><td><code>React.memo</code></td><td>An entire component's output</td><td>A component re-renders often but its props rarely actually change</td></tr>
+      </table>
+
+      <div class="info-box box-warning"><code>useMemo</code>/<code>useCallback</code> aren't free — they carry their own overhead. Reach for them when profiling shows an actual bottleneck, not as a default habit on every value and function.</div>
+    </div>
+  </div>
+
+  <!-- ===== DEBOUNCING ===== -->
+  <div class="section-divider" id="debouncing"><span>5. Debouncing</span></div>
+  <div class="card theme-purple">
+    <div class="card-title">Wait for a Pause Before Reacting (React) <span class="badge">Performance</span></div>
+    <div class="card-content">
+      <p>In React, debouncing is usually built as a reusable custom hook — <code>useDebounce</code> — that delays updating a value until the user stops changing it for a set period.</p>
+
+      <h4>A Reusable useDebounce Hook</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">useDebounce.js</span></div>
+        <pre><code><span class="kw">import</span> { useState, useEffect } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">function</span> <span class="fn">useDebounce</span>(value, delay) {
+  <span class="kw">const</span> [debouncedValue, setDebouncedValue] = <span class="fn">useState</span>(value);
+
+  <span class="fn">useEffect</span>(() => {
+    <span class="kw">const</span> timer = <span class="fn">setTimeout</span>(() => {
+      <span class="fn">setDebouncedValue</span>(value);
+    }, delay);
+
+    <span class="cmt">// cleanup — cancels the pending update if value changes again before delay ends</span>
+    <span class="kw">return</span> () => <span class="fn">clearTimeout</span>(timer);
+  }, [value, delay]);
+
+  <span class="kw">return</span> debouncedValue;
+}
+
+<span class="kw">export default</span> useDebounce;</code></pre>
+      </div>
+
+      <h4>Using It in a Search Input</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">SearchBox.jsx</span></div>
+        <pre><code><span class="kw">import</span> { useState, useEffect } <span class="kw">from</span> <span class="str">"react"</span>;
+<span class="kw">import</span> useDebounce <span class="kw">from</span> <span class="str">"./useDebounce"</span>;
+
+<span class="kw">function</span> <span class="fn">SearchBox</span>() {
+  <span class="kw">const</span> [query, setQuery] = <span class="fn">useState</span>(<span class="str">""</span>);
+  <span class="kw">const</span> debouncedQuery = <span class="fn">useDebounce</span>(query, <span class="num">500</span>);
+
+  <span class="fn">useEffect</span>(() => {
+    <span class="kw">if</span> (!debouncedQuery) <span class="kw">return</span>;
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Calling API with:"</span>, debouncedQuery);
+    <span class="cmt">// fetch(`/api/search?q=${debouncedQuery}`)</span>
+  }, [debouncedQuery]); <span class="cmt">// only fires when the DEBOUNCED value settles</span>
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">input</span>
+      value={query}
+      onChange={(e) => <span class="fn">setQuery</span>(e.target.value)}
+      placeholder=<span class="str">"Search..."</span>
+    /&gt;
+  );
+}
+
+<span class="kw">export default</span> SearchBox;</code></pre>
+      </div>
+
+      <div class="info-box box-tip">The input stays instantly responsive because <code>query</code> updates on every keystroke — only the expensive API call waits for <code>debouncedQuery</code> to settle 500ms after typing stops.</div>
+
+      <h4>Without a Custom Hook — Debounce Inline in One Component</h4>
+      <p>You don't always need a separate hook file. For a one-off case, <code>setTimeout</code> + <code>useRef</code> inside the component itself does the same job.</p>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">InlineDebounceSearch.jsx</span></div>
+        <pre><code><span class="kw">import</span> { useState, useRef } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">function</span> <span class="fn">InlineDebounceSearch</span>() {
+  <span class="kw">const</span> [query, setQuery] = <span class="fn">useState</span>(<span class="str">""</span>);
+  <span class="kw">const</span> timerRef = <span class="fn">useRef</span>(<span class="kw">null</span>); <span class="cmt">// holds the timeout id across renders</span>
+
+  <span class="kw">function</span> <span class="fn">handleChange</span>(e) {
+    <span class="kw">const</span> value = e.target.value;
+    setQuery(value); <span class="cmt">// input stays instantly responsive</span>
+
+    <span class="fn">clearTimeout</span>(timerRef.current); <span class="cmt">// cancel the previous pending call</span>
+
+    timerRef.current = <span class="fn">setTimeout</span>(() => {
+      <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Calling API with:"</span>, value);
+      <span class="cmt">// fetch(`/api/search?q=${value}`)</span>
+    }, <span class="num">500</span>);
+  }
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">input</span>
+      value={query}
+      onChange={handleChange}
+      placeholder=<span class="str">"Search..."</span>
+    /&gt;
+  );
+}
+
+<span class="kw">export default</span> InlineDebounceSearch;</code></pre>
+      </div>
+
+      <div class="info-box box-note">This works because <code>useRef</code> gives a value that persists across renders without causing a re-render itself — exactly what's needed to hold onto the "current pending timer" between keystrokes. It's a fine choice for a single component; reach for a <code>useDebounce</code> hook once you need the same behavior in more than one place.</div>
+
+      <h4>Where React Debouncing Shows Up</h4>
+      <table>
+        <tr><th>Use Case</th><th>Why</th></tr>
+        <tr><td>Search-as-you-type inputs</td><td>Avoid firing an API call on every keystroke</td></tr>
+        <tr><td>Form field validation</td><td>Validate once the user pauses, not on every character</td></tr>
+        <tr><td>Auto-save drafts</td><td>Persist only after edits settle down</td></tr>
+        <tr><td>Window resize-driven layout state</td><td>Recalculate once resizing stops, inside a <code>useEffect</code></td></tr>
+      </table>
+
+      <div class="info-box box-warning">Always clean up the timer in the <code>useEffect</code> return function. Without it, a component that unmounts mid-delay can trigger a "state update on an unmounted component" warning.</div>
+    </div>
+  </div>
+
+  <!-- ===== THROTTLING ===== -->
+  <div class="section-divider" id="throttling"><span>6. Throttling</span></div>
+  <div class="card theme-teal">
+    <div class="card-title">Run at Most Once Every Interval (React) <span class="badge">Performance</span></div>
+    <div class="card-content">
+      <p>In React, throttling is typically implemented as a custom hook that wraps a handler in a stable, rate-limited version using <code>useRef</code> to persist timing state across renders without triggering re-renders itself.</p>
+
+      <h4>A Reusable useThrottle Hook</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">useThrottle.js</span></div>
+        <pre><code><span class="kw">import</span> { useRef, useCallback } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">function</span> <span class="fn">useThrottle</span>(callback, interval) {
+  <span class="kw">const</span> isWaiting = <span class="fn">useRef</span>(<span class="kw">false</span>); <span class="cmt">// ref persists across renders, no re-render on change</span>
+
+  <span class="kw">return</span> <span class="fn">useCallback</span>(
+    (...args) => {
+      <span class="kw">if</span> (isWaiting.current) <span class="kw">return</span>;
+
+      callback(...args);
+      isWaiting.current = <span class="kw">true</span>;
+
+      <span class="fn">setTimeout</span>(() => {
+        isWaiting.current = <span class="kw">false</span>;
+      }, interval);
+    },
+    [callback, interval]
+  );
+}
+
+<span class="kw">export default</span> useThrottle;</code></pre>
+      </div>
+
+      <h4>Using It on a Scroll Listener</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ScrollTracker.jsx</span></div>
+        <pre><code><span class="kw">import</span> { useState, useEffect, useCallback } <span class="kw">from</span> <span class="str">"react"</span>;
+<span class="kw">import</span> useThrottle <span class="kw">from</span> <span class="str">"./useThrottle"</span>;
+
+<span class="kw">function</span> <span class="fn">ScrollTracker</span>() {
+  <span class="kw">const</span> [scrollY, setScrollY] = <span class="fn">useState</span>(<span class="num">0</span>);
+
+  <span class="kw">const</span> handleScroll = <span class="fn">useCallback</span>(() => {
+    <span class="fn">setScrollY</span>(<span class="fn">window</span>.scrollY);
+  }, []);
+
+  <span class="kw">const</span> throttledScroll = <span class="fn">useThrottle</span>(handleScroll, <span class="num">200</span>);
+
+  <span class="fn">useEffect</span>(() => {
+    <span class="fn">window</span>.<span class="fn">addEventListener</span>(<span class="str">"scroll"</span>, throttledScroll);
+    <span class="kw">return</span> () => <span class="fn">window</span>.<span class="fn">removeEventListener</span>(<span class="str">"scroll"</span>, throttledScroll);
+  }, [throttledScroll]);
+
+  <span class="kw">return</span> &lt;<span class="type">p</span>&gt;Scroll position: {scrollY}px&lt;/<span class="type">p</span>&gt;;
+}
+
+<span class="kw">export default</span> ScrollTracker;</code></pre>
+      </div>
+
+      <div class="info-box box-tip"><code>useRef</code> is the key ingredient here — updating <code>isWaiting.current</code> doesn't trigger a re-render, so the throttle's internal timing state stays cheap to update on every scroll event.</div>
+
+      <h4>Real Example: Infinite Scroll</h4>
+      <p>A common production use case — load more items as the user nears the bottom of the page, without checking scroll position on every single scroll event.</p>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">InfiniteScrollList.jsx</span></div>
+        <pre><code><span class="kw">import</span> { useState, useEffect, useCallback } <span class="kw">from</span> <span class="str">"react"</span>;
+<span class="kw">import</span> useThrottle <span class="kw">from</span> <span class="str">"./useThrottle"</span>;
+
+<span class="kw">function</span> <span class="fn">InfiniteScrollList</span>() {
+  <span class="kw">const</span> [items, setItems] = <span class="fn">useState</span>(() => <span class="fn">Array</span>.<span class="fn">from</span>({ length: <span class="num">20</span> }, (_, i) => i + <span class="num">1</span>));
+  <span class="kw">const</span> [isLoading, setIsLoading] = <span class="fn">useState</span>(<span class="kw">false</span>);
+
+  <span class="kw">const</span> loadMoreItems = <span class="fn">useCallback</span>(() => {
+    <span class="kw">const</span> nearBottom =
+      <span class="fn">window</span>.innerHeight + <span class="fn">window</span>.scrollY >= <span class="fn">document</span>.body.offsetHeight - <span class="num">200</span>;
+
+    <span class="kw">if</span> (nearBottom) {
+      setIsLoading(<span class="kw">true</span>);
+      <span class="cmt">// simulate an API call fetching the next page</span>
+      <span class="fn">setTimeout</span>(() => {
+        <span class="fn">setItems</span>(prev => [
+          ...prev,
+          ...<span class="fn">Array</span>.<span class="fn">from</span>({ length: <span class="num">20</span> }, (_, i) => prev.length + i + <span class="num">1</span>)
+        ]);
+        setIsLoading(<span class="kw">false</span>);
+      }, <span class="num">500</span>);
+    }
+  }, []);
+
+  <span class="cmt">// Without throttling, this scroll handler could fire dozens of
+  // times per second, triggering repeated "nearBottom" checks and
+  // duplicate load requests before isLoading even gets set.</span>
+  <span class="kw">const</span> throttledLoadMore = <span class="fn">useThrottle</span>(loadMoreItems, <span class="num">300</span>);
+
+  <span class="fn">useEffect</span>(() => {
+    <span class="fn">window</span>.<span class="fn">addEventListener</span>(<span class="str">"scroll"</span>, throttledLoadMore);
+    <span class="kw">return</span> () => <span class="fn">window</span>.<span class="fn">removeEventListener</span>(<span class="str">"scroll"</span>, throttledLoadMore);
+  }, [throttledLoadMore]);
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">ul</span>&gt;
+        {items.<span class="fn">map</span>(item => &lt;<span class="type">li</span> key={item}&gt;Item #{item}&lt;/<span class="type">li</span>&gt;)}
+      &lt;/<span class="type">ul</span>&gt;
+      {isLoading && &lt;<span class="type">p</span>&gt;Loading more...&lt;/<span class="type">p</span>&gt;}
+    &lt;/<span class="type">div</span>&gt;
+  );
+}
+
+<span class="kw">export default</span> InfiniteScrollList;</code></pre>
+      </div>
+
+      <div class="info-box box-benefit">The throttle caps how often the "am I near the bottom?" check even runs — at most once every 300ms — instead of on every one of the many scroll events a browser fires per second. The <code>isLoading</code> flag then prevents duplicate fetches within that window too.</div>
+
+      <h4>Debounce vs. Throttle in React</h4>
+      <table>
+        <tr><th>useDebounce</th><th>useThrottle</th></tr>
+        <tr><td>Waits for a pause in activity</td><td>Runs at a steady, capped rate</td></tr>
+        <tr><td>Built around a delayed state update</td><td>Built around a rate-limited callback ref</td></tr>
+        <tr><td>Good for: search input, form validation</td><td>Good for: scroll, resize, drag, mouse-move handlers</td></tr>
+      </table>
+
+      <div class="info-box box-warning">Always clean up event listeners in the <code>useEffect</code> return function — an un-removed scroll or resize listener is a common source of memory leaks in React apps.</div>
+    </div>
+  </div>
+
+  <!-- ===== INTERVIEW QUESTIONS ===== -->
+  <div class="section-divider" id="interview-questions"><span>7. Interview Questions & Answers</span></div>
+
+  <div class="card theme-red">
+    <div class="card-title">Basic <span class="badge">Level 1</span></div>
+    <div class="card-content">
+
+      <h4>1. What is currying?</h4>
+      <div class="info-box box-note">Currying transforms a function that takes multiple arguments into a sequence of functions that each accept a single argument, returning a new function until all arguments are supplied.</div>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">what-is-currying.js</span></div>
+        <pre><code><span class="kw">const</span> add = a => b => a + b;
+add(<span class="num">2</span>)(<span class="num">3</span>); <span class="cmt">// 5</span></code></pre>
+      </div>
+
+      <h4>2. What is memoization?</h4>
+      <div class="info-box box-note">Memoization is an optimization technique that caches the results of expensive function calls, returning the cached result when the same inputs occur again.</div>
+
+      <h4>3. What is debouncing?</h4>
+      <div class="info-box box-note">Debouncing delays a function's execution until a specified time has passed without it being called again — resetting the timer on every new call.</div>
+
+      <h4>4. What is throttling?</h4>
+      <div class="info-box box-note">Throttling limits a function to run at most once within a fixed time interval, regardless of how many times it's triggered.</div>
+
+      <h4>5. Difference between debouncing and throttling.</h4>
+      <table>
+        <tr><th>Debouncing</th><th>Throttling</th></tr>
+        <tr><td>Runs once after activity stops</td><td>Runs at a steady, limited rate during activity</td></tr>
+        <tr><td>Delays execution repeatedly on each call</td><td>Ignores extra calls until the interval passes</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="card theme-amber">
+    <div class="card-title">Intermediate <span class="badge">Level 2</span></div>
+    <div class="card-content">
+
+      <h4>6. Difference between currying and partial application.</h4>
+      <table>
+        <tr><th>Currying</th><th>Partial Application</th></tr>
+        <tr><td>Always one argument per call</td><td>Any number of arguments per call</td></tr>
+        <tr><td>Returns nested single-argument functions</td><td>Pre-fills some arguments, returns a function for the rest</td></tr>
+      </table>
+
+      <h4>7. What is function composition?</h4>
+      <div class="info-box box-note">Function composition combines multiple simple functions into one, where each function's output feeds into the next function as input.</div>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">composition-example.js</span></div>
+        <pre><code><span class="kw">const</span> pipe = (...fns) => x => fns.<span class="fn">reduce</span>((acc, fn) => <span class="fn">fn</span>(acc), x);
+<span class="kw">const</span> shout = <span class="fn">pipe</span>(s => s.<span class="fn">trim</span>(), s => s.<span class="fn">toUpperCase</span>(), s => s + <span class="str">"!"</span>);
+shout(<span class="str">"  hello  "</span>); <span class="cmt">// "HELLO!"</span></code></pre>
+      </div>
+
+      <h4>8. Why does memoization only work reliably on pure functions?</h4>
+      <div class="info-box box-warning">A pure function always returns the same output for the same input, so caching by input is safe. A function with side effects or that reads changing external state could return a stale, incorrect cached value.</div>
+
+      <h4>9. How would you implement a simple debounce function?</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">simple-debounce.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">debounce</span>(fn, delay) {
+  <span class="kw">let</span> timer;
+  <span class="kw">return</span> (...args) => {
+    <span class="fn">clearTimeout</span>(timer);
+    timer = <span class="fn">setTimeout</span>(() => <span class="fn">fn</span>(...args), delay);
+  };
+}</code></pre>
+      </div>
+
+      <h4>10. How would you implement a simple throttle function?</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">simple-throttle.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">throttle</span>(fn, interval) {
+  <span class="kw">let</span> waiting = <span class="kw">false</span>;
+  <span class="kw">return</span> (...args) => {
+    <span class="kw">if</span> (waiting) <span class="kw">return</span>;
+    <span class="fn">fn</span>(...args);
+    waiting = <span class="kw">true</span>;
+    <span class="fn">setTimeout</span>(() => (waiting = <span class="kw">false</span>), interval);
+  };
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="card theme-indigo">
+    <div class="card-title">Advanced <span class="badge">Level 3</span></div>
+    <div class="card-content">
+
+      <h4>11. Why do currying, memoization, debouncing, and throttling all rely on closures?</h4>
+      <div class="info-box box-note">Each pattern needs to preserve state — collected arguments, a cache, a timer ID, or a waiting flag — across multiple separate function calls. A closure is exactly what lets a returned function keep a live reference to that state instead of losing it when the outer function finishes.</div>
+
+      <h4>12. What's a real trade-off of memoization?</h4>
+      <div class="info-box box-warning">Memory usage grows unboundedly as more unique argument combinations are cached, since the cache is never automatically cleared. For functions called with many distinct inputs, this can leak memory — consider capping cache size or using a <code>WeakMap</code> for object keys so entries can be garbage collected.</div>
+
+      <h4>13. Implement compose() and explain the order of execution.</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">compose-order.js</span></div>
+        <pre><code><span class="kw">const</span> compose = (...fns) => x => fns.<span class="fn">reduceRight</span>((acc, fn) => <span class="fn">fn</span>(acc), x);
+
+<span class="kw">const</span> result = <span class="fn">compose</span>(f, g, h)(<span class="num">5</span>);
+<span class="cmt">// Executes right-to-left: f(g(h(5)))
+// h runs first, then g, then f</span></code></pre>
+      </div>
+
+      <h4>14. Leading vs. trailing edge in debounce/throttle implementations.</h4>
+      <div class="info-box box-note">A "trailing edge" debounce (the common version) fires after the pause. A "leading edge" version fires immediately on the first call, then ignores subsequent calls until the wait period passes — useful when you want instant feedback but still want to prevent rapid re-firing.</div>
+
+      <h4>15. Guess the Output — Throttle Timing</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">throttle-timing.js</span></div>
+        <pre><code><span class="kw">const</span> log = <span class="fn">throttle</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"tick"</span>), <span class="num">1000</span>);
+
+log(); <span class="cmt">// "tick" — runs immediately</span>
+log(); <span class="cmt">// ignored — still within the 1000ms window</span>
+log(); <span class="cmt">// ignored — still within the 1000ms window</span>
+<span class="cmt">// after 1000ms passes, the next call to log() will run again</span></code></pre>
+      </div>
+      <div class="info-box box-benefit">Throttle guarantees at most one execution per interval — extra calls inside that window are simply dropped, not queued or delayed.</div>
+    </div>
+  </div>
+
+  <div class="info-box box-extra">
+    Currying: one argument at a time · Partial application: pre-fill some arguments, call with the rest · Composition: chain small functions into a pipeline (<code>pipe</code> left-to-right, <code>compose</code> right-to-left) · Memoization: cache results of pure functions to skip repeated work · Debounce: wait for a pause before running · Throttle: run at most once per interval, no matter the pause.
+  </div>
+
+</div>
+</body>
+</html>

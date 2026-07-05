@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Browser Storage — Cookies, Local Storage & Session Storage</title>
+<link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>Browser Storage <span class="badge">Web Fundamentals</span></h1>
+    <p>A complete guide to how browsers store data on the client side — Cookies, Local Storage, and Session Storage explained with examples, comparisons, and best practices.</p>
+    <div class="toc">
+      <a href="#cookies">🍪 Cookies</a>
+      <a href="#localstorage">📦 Local Storage</a>
+      <a href="#sessionstorage">🗂️ Session Storage</a>
+      <a href="#comparison">📊 Comparison Table</a>
+      <a href="#qa">❓ Q&amp;A</a>
+    </div>
+  </div>
+
+  <!-- ============ COOKIES ============ -->
+  <div class="card theme-orange" id="cookies">
+    <div class="card-title">🍪 Cookies</div>
+    <div class="card-content">
+      <p>Cookies are small pieces of data (usually up to 4KB) that a website stores in the browser. Unlike other storage types, cookies are automatically sent to the server with <strong>every HTTP request</strong> to the same domain, which makes them useful for session management, authentication, and tracking.</p>
+
+      <h4>How Cookies Work</h4>
+      <p>A cookie can be set either by the server (via the <code>Set-Cookie</code> HTTP response header) or by client-side JavaScript using <code>document.cookie</code>. Once set, the browser stores it and automatically attaches it to future requests until it expires.</p>
+
+      <div class="code-block">
+        <div class="code-bar">
+          <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+          <span class="filename">cookies.js</span>
+        </div>
+        <pre><code><span class="cmt">// Setting a cookie with an expiry date and path</span>
+document.cookie = <span class="str">"username=John; expires=Fri, 31 Dec 2026 23:59:59 GMT; path=/"</span>;
+
+<span class="cmt">// Setting a secure, HttpOnly-like cookie (HttpOnly only works from server)</span>
+document.cookie = <span class="str">"theme=dark; max-age=3600; SameSite=Strict; Secure"</span>;
+
+<span class="cmt">// Reading all cookies</span>
+<span class="kw">console</span>.<span class="fn">log</span>(document.cookie);
+<span class="cmt">// Output: "username=John; theme=dark"</span>
+
+<span class="cmt">// Deleting a cookie (set expiry in the past)</span>
+document.cookie = <span class="str">"username=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/"</span>;</code></pre>
+      </div>
+
+      <h4>Key Attributes</h4>
+      <table>
+        <tr><th>Attribute</th><th>Purpose</th></tr>
+        <tr><td>expires / max-age</td><td>Controls how long the cookie persists before it's deleted</td></tr>
+        <tr><td>path</td><td>Restricts the cookie to a specific URL path</td></tr>
+        <tr><td>domain</td><td>Specifies which domain(s) can access the cookie</td></tr>
+        <tr><td>Secure</td><td>Cookie is only sent over HTTPS connections</td></tr>
+        <tr><td>HttpOnly</td><td>Prevents JavaScript from accessing the cookie (server-set only)</td></tr>
+        <tr><td>SameSite</td><td>Controls whether the cookie is sent with cross-site requests</td></tr>
+      </table>
+
+      <div class="info-box box-benefit">✅ <strong>Best for:</strong> Authentication tokens, session IDs, and any data the server needs to read on every request.</div>
+      <div class="info-box box-warning">⚠️ <strong>Watch out:</strong> Cookies are sent with every request, which adds overhead to network traffic if overused or if large amounts of data are stored.</div>
+
+      <div class="pros-cons">
+        <div class="pros">
+          <h5>Pros</h5>
+          <ul>
+            <li>Automatically sent to the server</li>
+            <li>Can set expiration dates</li>
+            <li>Supports HttpOnly for XSS protection</li>
+            <li>Works across subdomains via domain attribute</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h5>Cons</h5>
+          <ul>
+            <li>Very limited size (~4KB)</li>
+            <li>Sent with every HTTP request (slower)</li>
+            <li>Manual parsing needed on client side</li>
+            <li>Vulnerable to CSRF if misconfigured</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ LOCAL STORAGE ============ -->
+  <div class="card theme-blue" id="localstorage">
+    <div class="card-title">📦 Local Storage</div>
+    <div class="card-content">
+      <p>Local Storage is part of the Web Storage API. It lets you store key-value pairs (as strings) in the browser with <strong>no expiration date</strong> — the data persists even after the browser is closed and reopened, until it's explicitly cleared.</p>
+
+      <h4>How Local Storage Works</h4>
+      <p>Data is stored per origin (protocol + domain + port) and is accessible only via JavaScript on the client side. It is never sent to the server automatically, making it lighter on network traffic than cookies.</p>
+
+      <div class="code-block">
+        <div class="code-bar">
+          <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+          <span class="filename">localStorage.js</span>
+        </div>
+        <pre><code><span class="cmt">// Storing data</span>
+localStorage.<span class="fn">setItem</span>(<span class="str">"username"</span>, <span class="str">"John"</span>);
+localStorage.<span class="fn">setItem</span>(<span class="str">"preferences"</span>, <span class="kw">JSON</span>.<span class="fn">stringify</span>({ theme: <span class="str">"dark"</span> }));
+
+<span class="cmt">// Reading data</span>
+<span class="kw">const</span> user = localStorage.<span class="fn">getItem</span>(<span class="str">"username"</span>);
+<span class="kw">const</span> prefs = <span class="kw">JSON</span>.<span class="fn">parse</span>(localStorage.<span class="fn">getItem</span>(<span class="str">"preferences"</span>));
+
+<span class="cmt">// Removing a single item</span>
+localStorage.<span class="fn">removeItem</span>(<span class="str">"username"</span>);
+
+<span class="cmt">// Clearing everything</span>
+localStorage.<span class="fn">clear</span>();</code></pre>
+      </div>
+
+      <div class="info-box box-benefit">✅ <strong>Best for:</strong> User preferences, theme settings, cached data, and anything that should persist across browser sessions.</div>
+      <div class="info-box box-tip">💡 <strong>Tip:</strong> Since Local Storage only stores strings, always use <code>JSON.stringify()</code> and <code>JSON.parse()</code> when storing objects or arrays.</div>
+
+      <div class="pros-cons">
+        <div class="pros">
+          <h5>Pros</h5>
+          <ul>
+            <li>Large capacity (~5-10MB per origin)</li>
+            <li>Persists indefinitely until cleared</li>
+            <li>Not sent with every request (fast)</li>
+            <li>Simple synchronous API</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h5>Cons</h5>
+          <ul>
+            <li>Accessible via JavaScript, vulnerable to XSS</li>
+            <li>Synchronous — can block the main thread with large data</li>
+            <li>Not shared across origins</li>
+            <li>No built-in expiration mechanism</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SESSION STORAGE ============ -->
+  <div class="card theme-teal" id="sessionstorage">
+    <div class="card-title">🗂️ Session Storage</div>
+    <div class="card-content">
+      <p>Session Storage works almost identically to Local Storage in terms of API, but the data only persists for the duration of the <strong>page session</strong> — it's cleared automatically when the browser tab is closed.</p>
+
+      <h4>How Session Storage Works</h4>
+      <p>Each browser tab gets its own isolated Session Storage instance, even if the tab is loading the same page as another tab. Reloading the page keeps the data, but closing the tab deletes it.</p>
+
+      <div class="code-block">
+        <div class="code-bar">
+          <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+          <span class="filename">sessionStorage.js</span>
+        </div>
+        <pre><code><span class="cmt">// Storing form progress temporarily</span>
+sessionStorage.<span class="fn">setItem</span>(<span class="str">"formStep"</span>, <span class="str">"2"</span>);
+sessionStorage.<span class="fn">setItem</span>(<span class="str">"draft"</span>, <span class="kw">JSON</span>.<span class="fn">stringify</span>({ name: <span class="str">"John"</span> }));
+
+<span class="cmt">// Reading data</span>
+<span class="kw">const</span> step = sessionStorage.<span class="fn">getItem</span>(<span class="str">"formStep"</span>);
+
+<span class="cmt">// Removing an item</span>
+sessionStorage.<span class="fn">removeItem</span>(<span class="str">"formStep"</span>);
+
+<span class="cmt">// Data disappears automatically when the tab is closed</span></code></pre>
+      </div>
+
+      <div class="info-box box-benefit">✅ <strong>Best for:</strong> Multi-step form data, temporary UI state, or data that shouldn't outlive a single tab session.</div>
+      <div class="info-box box-note">📝 <strong>Note:</strong> Opening the same URL in a new tab does <em>not</em> share Session Storage — each tab has its own separate store.</div>
+
+      <div class="pros-cons">
+        <div class="pros">
+          <h5>Pros</h5>
+          <ul>
+            <li>Automatically cleared on tab close</li>
+            <li>Isolated per tab (no cross-tab interference)</li>
+            <li>Same easy API as Local Storage</li>
+            <li>Good for sensitive, short-lived data</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h5>Cons</h5>
+          <ul>
+            <li>Data lost when tab is closed</li>
+            <li>Not shared between tabs/windows</li>
+            <li>Still vulnerable to XSS attacks</li>
+            <li>Limited capacity (~5MB)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ COMPARISON ============ -->
+  <div class="section-divider" id="comparison"><span>📊 Side-by-Side Comparison</span></div>
+
+  <table>
+    <tr>
+      <th>Feature</th>
+      <th>Cookies</th>
+      <th>Local Storage</th>
+      <th>Session Storage</th>
+    </tr>
+    <tr><td>Capacity</td><td>~4KB</td><td>~5-10MB</td><td>~5MB</td></tr>
+    <tr><td>Sent to server automatically</td><td>Yes, on every request</td><td>No</td><td>No</td></tr>
+    <tr><td>Expiration</td><td>Manually set (or session)</td><td>Never (until cleared)</td><td>On tab close</td></tr>
+    <tr><td>Accessible from</td><td>Client &amp; Server</td><td>Client only</td><td>Client only</td></tr>
+    <tr><td>Shared across tabs</td><td>Yes</td><td>Yes (same origin)</td><td>No</td></tr>
+    <tr><td>API type</td><td>String parsing (document.cookie)</td><td>Synchronous key-value</td><td>Synchronous key-value</td></tr>
+    <tr><td>Typical use case</td><td>Auth tokens, tracking</td><td>Preferences, cached data</td><td>Form drafts, wizard state</td></tr>
+  </table>
+
+  <!-- ============ Q&A ============ -->
+  <div class="section-divider" id="qa"><span>❓ Frequently Asked Questions</span></div>
+
+  <div class="card theme-purple">
+    <div class="card-title">Common Questions</div>
+    <div class="card-content card-content-QA">
+
+      <h4>Q: Can Local Storage or Session Storage be sent to a server automatically?</h4>
+      <p>A: No. Unlike cookies, both are purely client-side. If you need the server to see this data, you must explicitly send it via an AJAX/fetch request.</p>
+
+      <h4>Q: Are these storage types secure for sensitive data like passwords?</h4>
+      <p>A: No. None of them are fully secure against XSS attacks since they can be read via JavaScript unless the cookie uses the HttpOnly flag. Sensitive tokens are best kept in HttpOnly, Secure cookies.</p>
+
+      <h4>Q: What happens to Local Storage data when I close and reopen the browser?</h4>
+      <p>A: It remains intact. Local Storage persists indefinitely, unless the user clears their browser data or your code removes it explicitly.</p>
+
+      <h4>Q: If I open two tabs on the same site, do they share Session Storage?</h4>
+      <p>A: No. Each tab gets an independent Session Storage, even for the exact same URL and origin.</p>
+
+      <h4>Q: Why would I choose cookies over Local Storage for authentication?</h4>
+      <p>A: Because cookies can be marked HttpOnly (inaccessible to JavaScript) and are automatically included in requests, making server-side session validation simpler and more secure against XSS.</p>
+
+      <h4>1. What is Browser Storage?</h4>
+      <p>Browser Storage is used to store data on the client (browser) so it can be reused without making repeated server requests. The main types are Cookies, Local Storage, and Session Storage.</p>
+
+      <h4>2. What are Cookies?</h4>
+      <p>Cookies are small pieces of data stored by the browser and sent to the server with every HTTP request. They are mainly used for authentication, sessions, and user preferences.</p>
+
+      <h4>3. What is the maximum size of a cookie?</h4>
+      <p>Around 4 KB per cookie. Browsers also limit the total number of cookies per domain.</p>
+
+      <h4>4. Are cookies sent to the server automatically?</h4>
+      <p>Yes. Cookies are automatically included in every request to the same domain.</p>
+
+      <h4>5. Where are cookies commonly used?</h4>
+      <p>User authentication, session management, "Remember Me" functionality, tracking &amp; analytics, and storing user preferences.</p>
+
+      <h4>6. Can cookies have an expiration date?</h4>
+      <p>Yes. A Session Cookie is deleted when the browser closes, while a Persistent Cookie expires on a specified date.</p>
+
+      <h4>7. What is Local Storage?</h4>
+      <p>Local Storage stores data permanently in the browser until it is manually removed or cleared by the user.</p>
+
+      <h4>8. What is the storage limit of Local Storage?</h4>
+      <p>Usually 5MB–10MB depending on the browser.</p>
+
+      <h4>9. Does Local Storage expire?</h4>
+      <p>No. Data remains until explicitly deleted.</p>
+
+      <h4>10. Is Local Storage shared across browser tabs?</h4>
+      <p>Yes. All tabs of the same origin can access the same Local Storage.</p>
+
+      <h4>11. Is Local Storage sent with every HTTP request?</h4>
+      <p>No. It stays only in the browser and is never sent to the server automatically.</p>
+
+      <h4>12. Common use cases of Local Storage?</h4>
+      <p>Dark/Light theme preference, language preference, shopping cart data, user settings, and offline data caching.</p>
+
+      <h4>13. What is Session Storage?</h4>
+      <p>Session Storage stores data only for the current browser tab.</p>
+
+      <h4>14. When is Session Storage cleared?</h4>
+      <p>When the browser tab or window is closed.</p>
+
+      <h4>15. Is Session Storage shared across tabs?</h4>
+      <p>No. Each tab has its own independent Session Storage.</p>
+
+      <h4>16. Is Session Storage sent to the server?</h4>
+      <p>No, it stays entirely on the client side.</p>
+
+      <h4>17. Common use cases of Session Storage?</h4>
+      <p>Multi-step forms, temporary filters, wizard pages, OTP verification flow, and temporary UI state.</p>
+
+      <h4>19. When would you use Cookies instead of Local Storage?</h4>
+      <p>Use Cookies when the server needs the data on every request, such as authentication tokens or session IDs.</p>
+
+    </div>
+  </div>
+
+  <!-- ============ QUICK COMPARISON (Q18) ============ -->
+  <div class="section-divider"><span>18. Cookies vs Local Storage vs Session Storage — Quick Answer</span></div>
+
+  <table>
+    <tr>
+      <th>Feature</th>
+      <th>Cookies</th>
+      <th>Local Storage</th>
+      <th>Session Storage</th>
+    </tr>
+    <tr><td>Capacity</td><td>~4 KB</td><td>5–10 MB</td><td>5–10 MB</td></tr>
+    <tr><td>Sent to Server</td><td>✅ Yes</td><td>❌ No</td><td>❌ No</td></tr>
+    <tr><td>Expiry</td><td>Configurable</td><td>Never (until removed)</td><td>Tab Close</td></tr>
+    <tr><td>Shared Across Tabs</td><td>✅ Yes</td><td>✅ Yes</td><td>❌ No</td></tr>
+    <tr><td>Accessible by JS</td><td>✅ Yes (unless HttpOnly)</td><td>✅ Yes</td><td>✅ Yes</td></tr>
+  </table>
+
+</div>
+
+</body>
+</html>

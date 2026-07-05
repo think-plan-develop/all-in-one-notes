@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event Loop</title>
+<link rel="stylesheet" href="index.css">
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Event Loop ⭐⭐⭐⭐⭐</h1>
+    <p>JavaScript is single-threaded but never blocks — the Event Loop is the mechanism that makes async code, timers, and network calls possible.</p>
+    <div class="toc">
+      <a href="#event-loop">Event Loop</a>
+      <a href="#call-stack">Call Stack</a>
+      <a href="#web-apis">Web APIs</a>
+      <a href="#callback-queue">Callback Queue</a>
+      <a href="#microtask-queue">Microtask Queue</a>
+      <a href="#macrotask-queue">Macrotask Queue</a>
+      <a href="#event-loop-flow">Complete Flow</a>
+      <a href="#settimeout">setTimeout()</a>
+      <a href="#promise-order">Promise Execution Order</a>
+      <a href="#interview-questions">Interview Questions</a>
+      <a href="#more-interview-questions">More Questions</a>
+      <a href="#summary-table">Summary Table</a>
+    </div>
+  </div>
+
+  <div class="card theme-indigo">
+    <div class="card-title">Why This Matters <span class="badge">Core Concept</span></div>
+    <div class="card-content">
+      <p>JavaScript runs on a <strong>single thread</strong> — it can only do one thing at a time. Yet it handles timers, network requests, and user clicks without freezing the page. The Event Loop, working together with the Call Stack, Web APIs, and two task queues, is what makes that possible.</p>
+      <div class="info-box box-note"><strong>Interview Definition:</strong> The Event Loop is the mechanism that continuously checks whether the Call Stack is empty, and if so, moves pending callbacks from the Microtask Queue (first) and Macrotask Queue (second) onto the stack for execution.</div>
+    </div>
+  </div>
+
+  <!-- ===== EVENT LOOP ===== -->
+  <div class="section-divider" id="event-loop"><span>1. Event Loop</span></div>
+  <div class="card theme-blue">
+    <div class="card-title">The Mechanism Itself <span class="badge">⭐⭐⭐⭐⭐</span></div>
+    <div class="card-content">
+      <p>The Event Loop continuously checks whether the Call Stack is empty. If it is, it pulls the next pending task from the Microtask Queue or Macrotask Queue and pushes it onto the Call Stack for execution. Without it, JavaScript couldn't run asynchronous operations like API calls, timers, or DOM events.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">simple-flow.txt</span></div>
+        <pre><code>Code
+  ↓
+Call Stack
+  ↓
+If async task → Web APIs
+  ↓
+Queue (Microtask or Macrotask)
+  ↓
+Event Loop checks: is Call Stack empty?
+  ↓
+Call Stack (task runs)</code></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">event-loop-example.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Start"</span>);
+
+<span class="fn">setTimeout</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Timer"</span>);
+}, <span class="num">1000</span>);
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+      </div>
+
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>End</code> → <code>Timer</code></div>
+      <p>The timer callback is handled outside the Call Stack by a Web API. The Event Loop only pushes it back onto the stack once the stack is empty — which is why "End" logs before "Timer", even though the timer was scheduled first.</p>
+    </div>
+  </div>
+
+  <!-- ===== CALL STACK ===== -->
+  <div class="section-divider" id="call-stack"><span>2. Call Stack</span></div>
+  <div class="card theme-green">
+    <div class="card-title">Where Synchronous Code Runs</div>
+    <div class="card-content">
+      <p>The Call Stack is a <strong>LIFO</strong> (Last In, First Out) structure that tracks function execution. Every function call is pushed on; once it returns, it's popped off.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">call-stack.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">one</span>() {
+    <span class="fn">two</span>();
+}
+
+<span class="kw">function</span> <span class="fn">two</span>() {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Hello"</span>);
+}
+
+<span class="fn">one</span>();</code></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">execution-order.txt</span></div>
+        <pre><code>Call Stack:
+
+one()
+  ↓ (calls two)
+two()
+  ↓ (calls console.log)
+console.log("Hello")
+  ↓ (finishes, pops off)
+two() pops off
+  ↓
+one() pops off
+  ↓
+Stack is empty</code></pre>
+      </div>
+
+      <div class="info-box box-warning"><strong>Stack Overflow:</strong> Infinite recursion fills the Call Stack until it runs out of space.</div>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">stack-overflow.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">test</span>() {
+    <span class="fn">test</span>();
+}
+<span class="fn">test</span>();
+<span class="cmt">// RangeError: Maximum call stack size exceeded</span></code></pre>
+      </div>
+
+      <div class="info-box box-note"><strong>Why "single-threaded":</strong> JavaScript has exactly one Call Stack, so it can only execute one piece of code at a time — that's what people mean when they call JS single-threaded.</div>
+    </div>
+  </div>
+
+  <!-- ===== WEB APIS ===== -->
+  <div class="section-divider" id="web-apis"><span>3. Web APIs</span></div>
+  <div class="card theme-orange">
+    <div class="card-title">Provided by the Browser, Not JavaScript</div>
+    <div class="card-content">
+      <p>Web APIs are features the <strong>browser</strong> (or Node.js runtime) provides to do asynchronous work outside the Call Stack. JavaScript itself doesn't know how to set a timer or make a network request — the environment around it does.</p>
+
+      <table>
+        <tr><th>Web API</th><th>Purpose</th></tr>
+        <tr><td><code>setTimeout()</code> / <code>setInterval()</code></td><td>Schedule delayed or repeating callbacks</td></tr>
+        <tr><td><code>fetch()</code></td><td>Make network requests</td></tr>
+        <tr><td>DOM Events</td><td>Respond to clicks, input, scroll, etc.</td></tr>
+        <tr><td>Geolocation</td><td>Access device location</td></tr>
+        <tr><td><code>localStorage</code></td><td>Persist data in the browser</td></tr>
+        <tr><td><code>XMLHttpRequest</code></td><td>Legacy way to make network requests</td></tr>
+      </table>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">web-api-example.js</span></div>
+        <pre><code><span class="fn">setTimeout</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Done"</span>);
+}, <span class="num">2000</span>);</code></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">web-api-flow.txt</span></div>
+        <pre><code>Call Stack
+    ↓
+Web API Timer (browser handles the countdown)
+    ↓
+Callback Queue
+    ↓
+Event Loop
+    ↓
+Call Stack (callback finally runs)</code></pre>
+      </div>
+
+      <div class="info-box box-tip"><strong>Key point:</strong> Once a Web API finishes its work, it doesn't run the callback immediately — it places the callback into the appropriate queue, waiting for the Event Loop to allow it onto the Call Stack.</div>
+    </div>
+  </div>
+
+  <!-- ===== CALLBACK QUEUE ===== -->
+  <div class="section-divider" id="callback-queue"><span>4. Callback Queue (Task Queue)</span></div>
+  <div class="card theme-pink">
+    <div class="card-title">Where Timer & Event Callbacks Wait</div>
+    <div class="card-content">
+      <p>The Callback Queue (also called the Task Queue) stores callbacks from completed asynchronous operations, such as <code>setTimeout()</code>, <code>setInterval()</code>, and DOM Events. The Event Loop only moves these to the Call Stack once the stack is empty <strong>and</strong> the Microtask Queue has been fully drained.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">callback-queue.js</span></div>
+        <pre><code><span class="fn">setTimeout</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Hello"</span>);
+}, <span class="num">0</span>);</code></pre>
+      </div>
+
+      <div class="info-box box-warning"><strong>Even with a 0ms delay</strong>, the callback still waits in the queue until the Call Stack becomes completely empty — it never jumps the line.</div>
+
+      <div class="info-box box-note"><strong>Terminology note:</strong> "Callback Queue" and "Macrotask Queue" refer to essentially the same queue — most modern explanations use "Macrotask Queue" to contrast it directly with the Microtask Queue.</div>
+    </div>
+  </div>
+
+  <!-- ===== MICROTASK QUEUE ===== -->
+  <div class="section-divider" id="microtask-queue"><span>5. Microtask Queue</span></div>
+  <div class="card theme-purple">
+    <div class="card-title">Highest Priority Queue <span class="badge">⭐⭐⭐⭐⭐</span></div>
+    <div class="card-content">
+      <p>The Microtask Queue has the <strong>highest priority</strong> among all queued async tasks. The Event Loop always drains it completely before touching a single macrotask.</p>
+
+      <table>
+        <tr><th>What goes here</th></tr>
+        <tr><td><code>Promise.then()</code> / <code>.catch()</code> / <code>.finally()</code></td></tr>
+        <tr><td><code>queueMicrotask()</code></td></tr>
+        <tr><td><code>MutationObserver</code> callbacks</td></tr>
+      </table>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">microtask.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Start"</span>);
+
+<span class="fn">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Promise"</span>);
+});
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+      </div>
+
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>End</code> → <code>Promise</code></div>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">priority.txt</span></div>
+        <pre><code>Call Stack
+  ↓ (highest priority next)
+Microtask Queue
+  ↓ (only after microtasks are empty)
+Macrotask Queue</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MACROTASK QUEUE ===== -->
+  <div class="section-divider" id="macrotask-queue"><span>6. Macrotask Queue</span></div>
+  <div class="card theme-red">
+    <div class="card-title">Lower Priority Queue</div>
+    <div class="card-content">
+      <p>The Macrotask Queue stores lower-priority async tasks. The Event Loop processes exactly <strong>one</strong> macrotask per cycle, and only after both the Call Stack and the Microtask Queue are completely empty.</p>
+
+      <table>
+        <tr><th>What goes here</th></tr>
+        <tr><td><code>setTimeout()</code></td></tr>
+        <tr><td><code>setInterval()</code></td></tr>
+        <tr><td>DOM Events</td></tr>
+        <tr><td><code>MessageChannel</code></td></tr>
+        <tr><td><code>postMessage</code></td></tr>
+      </table>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">macrotask.js</span></div>
+        <pre><code><span class="fn">setTimeout</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Timer"</span>);
+}, <span class="num">0</span>);
+<span class="cmt">// This callback is placed in the Macrotask Queue</span></code></pre>
+      </div>
+
+      <div class="info-box box-note"><strong>One at a time:</strong> After each single macrotask runs, the Event Loop checks the Microtask Queue again before running the next macrotask — new microtasks always cut in line ahead of the next macrotask.</div>
+    </div>
+  </div>
+
+  <!-- ===== EVENT LOOP FLOW ===== -->
+  <div class="section-divider" id="event-loop-flow"><span>7. Event Loop Flow (Complete Picture)</span></div>
+  <div class="card theme-amber">
+    <div class="card-title">Putting It All Together <span class="badge">⭐⭐⭐⭐⭐</span></div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">complete-flow.txt</span></div>
+        <pre><code>          JavaScript Code
+                 │
+                 ▼
+            Call Stack
+                 │
+     ┌───────────┴───────────┐
+     │                       │
+Synchronous Code      Asynchronous Code
+                             │
+                             ▼
+                         Web APIs
+                             │
+                ┌────────────┴────────────┐
+                ▼                         ▼
+         Microtask Queue          Macrotask Queue
+                │                         │
+                └──────────┬──────────────┘
+                           ▼
+                      Event Loop
+                           │
+                           ▼
+                      Call Stack</code></pre>
+      </div>
+
+      <h4>Execution Steps</h4>
+      <table>
+        <tr><th>Step</th><th>What happens</th></tr>
+        <tr><td>1</td><td>Execute all synchronous code on the Call Stack</td></tr>
+        <tr><td>2</td><td>Async operations get handed off to Web APIs</td></tr>
+        <tr><td>3</td><td>Completed Promise callbacks enter the Microtask Queue</td></tr>
+        <tr><td>4</td><td>Timer and event callbacks enter the Macrotask Queue</td></tr>
+        <tr><td>5</td><td>Event Loop checks whether the Call Stack is empty</td></tr>
+        <tr><td>6</td><td>Execute <strong>all</strong> microtasks (including new ones added during this drain)</td></tr>
+        <tr><td>7</td><td>Execute exactly <strong>one</strong> macrotask</td></tr>
+        <tr><td>8</td><td>Repeat the cycle from step 5</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== SETTIMEOUT ===== -->
+  <div class="section-divider" id="settimeout"><span>8. setTimeout()</span></div>
+  <div class="card theme-sky">
+    <div class="card-title">Delay ≠ Guarantee</div>
+    <div class="card-content">
+      <p><code>setTimeout()</code> schedules a callback to run <strong>after at least</strong> the given delay — never exactly at it. Actual execution also depends on whether the Call Stack is free and the Microtask Queue is empty.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">settimeout-syntax.js</span></div>
+        <pre><code><span class="fn">setTimeout</span>(callback, delay);</code></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">settimeout-example.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"A"</span>);
+
+<span class="fn">setTimeout</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"B"</span>);
+}, <span class="num">1000</span>);
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"C"</span>);</code></pre>
+      </div>
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>A</code> → <code>C</code> → <code>B</code></div>
+
+      <h4>setTimeout(0) — still not immediate</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">settimeout-zero.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="num">1</span>);
+
+<span class="fn">setTimeout</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="num">2</span>), <span class="num">0</span>);
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="num">3</span>);</code></pre>
+      </div>
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>1</code> → <code>3</code> → <code>2</code></div>
+      <p>Even with a 0ms delay, the callback still waits until all synchronous code and every pending microtask has finished.</p>
+    </div>
+  </div>
+
+  <!-- ===== PROMISE EXECUTION ORDER ===== -->
+  <div class="section-divider" id="promise-order"><span>9. Promise Execution Order</span></div>
+  <div class="card theme-teal">
+    <div class="card-title">Why Promises Beat Timers <span class="badge">⭐⭐⭐⭐⭐</span></div>
+    <div class="card-content">
+      <p>Promise callbacks (<code>.then()</code>, <code>.catch()</code>, <code>.finally()</code>) go into the Microtask Queue, so they always run before anything in the Macrotask Queue — regardless of which was scheduled first.</p>
+
+      <h4>Example 1 — Basic ordering</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">promise-example1.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Start"</span>);
+
+<span class="fn">setTimeout</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Timer"</span>);
+}, <span class="num">0</span>);
+
+<span class="fn">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Promise"</span>);
+});
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+      </div>
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>End</code> → <code>Promise</code> → <code>Timer</code></div>
+
+      <h4>Example 2 — Multiple microtasks before the macrotask</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">promise-example2.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="num">1</span>);
+
+<span class="fn">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="num">2</span>);
+});
+
+<span class="fn">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="num">3</span>);
+});
+
+<span class="fn">setTimeout</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="num">4</span>);
+}, <span class="num">0</span>);
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="num">5</span>);</code></pre>
+      </div>
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>1</code> → <code>5</code> → <code>2</code> → <code>3</code> → <code>4</code></div>
+      <p>Both <code>.then()</code> callbacks are microtasks, so they both run before the single macrotask (the timer), no matter how many there are.</p>
+
+      <h4>Example 3 — Nested microtasks</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">promise-example3.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Start"</span>);
+
+<span class="fn">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"A"</span>);
+
+    <span class="fn">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() => {
+        <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"B"</span>);
+    });
+});
+
+<span class="fn">setTimeout</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Timer"</span>);
+}, <span class="num">0</span>);
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+      </div>
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>End</code> → <code>A</code> → <code>B</code> → <code>Timer</code></div>
+      <div class="info-box box-warning"><strong>Key insight:</strong> Even a microtask created <em>while draining</em> the Microtask Queue (like "B" here) still runs before the next macrotask. The Event Loop keeps draining microtasks until there truly are none left — a macrotask never cuts in early.</div>
+
+      <h4>Overall Execution Priority</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">priority-order.txt</span></div>
+        <pre><code>1. Synchronous Code (Call Stack)
+        ↓
+2. Microtask Queue
+   • Promise.then()
+   • Promise.catch()
+   • Promise.finally()
+   • queueMicrotask()
+        ↓
+3. Macrotask Queue
+   • setTimeout()
+   • setInterval()
+   • DOM Events
+   • MessageChannel</code></pre>
+      </div>
+
+      <div class="info-box box-benefit"><strong>Rule to remember:</strong> Synchronous code always runs first → then all Microtasks → then one Macrotask → repeat. This is the foundation of JavaScript's asynchronous behavior and one of the most frequently tested topics in interviews.</div>
+    </div>
+  </div>
+
+  <!-- ===== INTERVIEW QUESTIONS ===== -->
+  <div class="section-divider" id="interview-questions"><span>10. Interview Questions & Answers</span></div>
+
+  <div class="card theme-blue">
+    <div class="card-title">Event Loop <span class="badge">⭐⭐⭐⭐⭐</span></div>
+    <div class="card-content">
+      <p><strong>Q: What is the Event Loop?</strong><br>A: A mechanism that continuously checks whether the Call Stack is empty, and if so, moves the next pending callback from the Microtask Queue (first) or Macrotask Queue (second) onto the Call Stack to run.</p>
+      <p><strong>Q: Why is the Event Loop needed?</strong><br>A: JavaScript has only one Call Stack and can't block waiting for slow operations like timers or network calls. The Event Loop lets those operations run elsewhere and rejoin execution later, without freezing the page.</p>
+      <p><strong>Q: How does JavaScript handle asynchronous code?</strong><br>A: It hands the async work off to Web APIs (browser/runtime features), which do the waiting outside the Call Stack. When the work completes, the callback is placed in a queue, and the Event Loop pushes it onto the Call Stack once the stack is empty.</p>
+      <p><strong>Q: Does JavaScript have multiple threads?</strong><br>A: The JavaScript engine itself runs on a single thread with one Call Stack. However, the surrounding environment (browser or Node.js) uses separate background threads for things like timers and network I/O — JS just never runs your code on more than one thread at once.</p>
+      <p><strong>Q: When does the Event Loop move tasks to the Call Stack?</strong><br>A: Only when the Call Stack is completely empty. It always drains the entire Microtask Queue first, then takes exactly one task from the Macrotask Queue, then repeats.</p>
+    </div>
+  </div>
+
+  <div class="card theme-green">
+    <div class="card-title">Call Stack</div>
+    <div class="card-content">
+      <p><strong>Q: What is the Call Stack?</strong><br>A: A LIFO (Last In, First Out) data structure that tracks function execution — each function call is pushed on when invoked and popped off when it returns.</p>
+      <p><strong>Q: Why is JavaScript called single-threaded?</strong><br>A: Because it has exactly one Call Stack, meaning it can only execute one piece of code at a time — there's no parallel execution of JS code itself.</p>
+      <p><strong>Q: What causes Stack Overflow?</strong><br>A: Uncontrolled or infinite recursion — each recursive call pushes a new frame onto the stack, and once it exceeds the engine's stack size limit, it throws <code>RangeError: Maximum call stack size exceeded</code>.</p>
+      <p><strong>Q: Explain Call Stack execution.</strong><br>A: When a function is called, a new frame is pushed on top of the stack. When that function calls another, another frame is pushed. As each function finishes and returns, its frame is popped off, until the stack is empty again.</p>
+    </div>
+  </div>
+
+  <div class="card theme-orange">
+    <div class="card-title">Web APIs</div>
+    <div class="card-content">
+      <p><strong>Q: What are Web APIs?</strong><br>A: Features provided by the browser (or Node.js runtime) — like timers, <code>fetch()</code>, and DOM events — that perform work outside the JavaScript engine's Call Stack.</p>
+      <p><strong>Q: Are Web APIs part of JavaScript?</strong><br>A: No. They belong to the host environment (browser or Node.js), not the JavaScript language specification itself. That's why the same JS engine behaves differently in a browser vs. Node.</p>
+      <p><strong>Q: Name some browser Web APIs.</strong><br>A: <code>setTimeout()</code>, <code>setInterval()</code>, <code>fetch()</code>, DOM Events, Geolocation, <code>localStorage</code>, and <code>XMLHttpRequest</code>.</p>
+      <p><strong>Q: Where does setTimeout execute?</strong><br>A: The timer itself is handled by the browser's Web API (not the JS engine). Once the delay elapses, the browser places the callback into the Macrotask Queue — the JS engine only executes it once the Event Loop pushes it onto the Call Stack.</p>
+    </div>
+  </div>
+
+  <div class="card theme-pink">
+    <div class="card-title">Callback Queue</div>
+    <div class="card-content">
+      <p><strong>Q: What is the Callback Queue?</strong><br>A: A queue that holds callbacks from completed asynchronous operations — such as <code>setTimeout()</code>, <code>setInterval()</code>, and DOM events — waiting for their turn on the Call Stack.</p>
+      <p><strong>Q: Who places callbacks into the Callback Queue?</strong><br>A: The Web APIs. Once a timer finishes counting down or an event fires, the browser places the associated callback into this queue.</p>
+      <p><strong>Q: When are callbacks executed?</strong><br>A: Only when the Call Stack is empty and the entire Microtask Queue has already been drained — the Callback (Macrotask) Queue always waits its turn behind microtasks.</p>
+    </div>
+  </div>
+
+  <div class="card theme-purple">
+    <div class="card-title">Microtask Queue <span class="badge">⭐⭐⭐⭐⭐</span></div>
+    <div class="card-content">
+      <p><strong>Q: What is the Microtask Queue?</strong><br>A: The highest-priority queue in the Event Loop system — it holds Promise callbacks and similar tasks, and is fully emptied before any macrotask is allowed to run.</p>
+      <p><strong>Q: Why do Promises execute before setTimeout?</strong><br>A: Because Promise callbacks go into the Microtask Queue, while <code>setTimeout</code> callbacks go into the Macrotask Queue — and the Event Loop always finishes all microtasks before it even looks at the macrotask queue, regardless of scheduling order.</p>
+      <p><strong>Q: What goes into the Microtask Queue?</strong><br>A: <code>Promise.then()</code>, <code>.catch()</code>, <code>.finally()</code> callbacks, calls to <code>queueMicrotask()</code>, and <code>MutationObserver</code> callbacks.</p>
+    </div>
+  </div>
+
+  <div class="card theme-red">
+    <div class="card-title">Macrotask Queue</div>
+    <div class="card-content">
+      <p><strong>Q: What is the Macrotask Queue?</strong><br>A: A lower-priority queue that holds tasks like timers and DOM events — processed one at a time, only after the Call Stack and Microtask Queue are both empty.</p>
+      <p><strong>Q: Which APIs create macrotasks?</strong><br>A: <code>setTimeout()</code>, <code>setInterval()</code>, DOM Events, <code>MessageChannel</code>, and <code>postMessage</code>.</p>
+      <p><strong>Q: When is a macrotask executed?</strong><br>A: After the Call Stack is empty and every pending microtask (including any created while draining) has finished running. The Event Loop then executes exactly one macrotask before checking microtasks again.</p>
+    </div>
+  </div>
+
+  <div class="card theme-amber">
+    <div class="card-title">Event Loop Flow <span class="badge">⭐⭐⭐⭐⭐</span></div>
+    <div class="card-content">
+      <p><strong>Q: Explain the complete Event Loop flow.</strong><br>A: Synchronous code runs first on the Call Stack. Any async operations are handed to Web APIs. When they complete, Promise callbacks go into the Microtask Queue and timer/event callbacks go into the Macrotask Queue. The Event Loop waits for the Call Stack to empty, then drains the entire Microtask Queue, then runs one macrotask, then repeats the cycle.</p>
+      <p><strong>Q: What is the execution order of synchronous, microtask, and macrotask code?</strong><br>A: Synchronous code always runs first, then all microtasks (fully drained, including new ones added during the drain), then exactly one macrotask — then the cycle repeats.</p>
+      <p><strong>Q: How does JavaScript execute asynchronous operations internally?</strong><br>A: It doesn't — the JS engine itself is synchronous. The surrounding environment (Web APIs) does the actual waiting, and hands a callback back to JS through the queues and Event Loop once the work is done.</p>
+    </div>
+  </div>
+
+  <div class="card theme-sky">
+    <div class="card-title">setTimeout()</div>
+    <div class="card-content">
+      <p><strong>Q: Does setTimeout(0) execute immediately?</strong><br>A: No. It's still placed in the Macrotask Queue and must wait for all synchronous code and every pending microtask to finish first — "0ms" only means "as soon as possible after that," not "instantly."</p>
+      <p><strong>Q: Is the timeout delay guaranteed?</strong><br>A: No. The delay is a minimum, not a guarantee — actual execution can be pushed later depending on what else is on the Call Stack or in the Microtask Queue at the time.</p>
+      <p><strong>Q: Why can setTimeout() be delayed?</strong><br>A: Because JavaScript is single-threaded — if the Call Stack is busy running other synchronous code, or the Microtask Queue still has pending work, the timer callback simply has to wait its turn.</p>
+    </div>
+  </div>
+
+  <div class="card theme-teal">
+    <div class="card-title">Promise Execution Order <span class="badge">⭐⭐⭐⭐⭐</span></div>
+    <div class="card-content">
+      <p><strong>Q: Why do Promises execute before setTimeout()?</strong><br>A: Promise callbacks are microtasks, and the Microtask Queue is always fully drained before the Event Loop processes anything from the Macrotask Queue (where setTimeout callbacks live) — even if the timeout was scheduled first or with a 0ms delay.</p>
+      <p><strong>Q: What is the execution order of synchronous code, Promises, and timers?</strong><br>A: Synchronous code first, then all Promise (microtask) callbacks, then timer (macrotask) callbacks.</p>
+      <p><strong>Q: What queue do Promise callbacks use?</strong><br>A: The Microtask Queue.</p>
+      <p><strong>Q: Can a Promise callback interrupt synchronous code?</strong><br>A: No. A Promise callback can only run once the Call Stack is completely empty — it always waits for all currently running synchronous code to finish first.</p>
+      <p><strong>Q: How are nested Promise callbacks executed?</strong><br>A: Any new microtask created while the Microtask Queue is being drained (like a <code>.then()</code> scheduled inside another <code>.then()</code>) is still executed before the Event Loop moves on to the next macrotask — the queue is drained until it's truly empty, however many new microtasks appear along the way.</p>
+    </div>
+  </div>
+
+
+  <!-- ===== SUMMARY TABLE ===== -->
+  <div class="section-divider" id="summary-table"><span>11. Summary Table</span></div>
+  <div class="card theme-lime">
+    <div class="card-title">Event Loop — Quick Reference <span class="badge">Cheat Sheet</span></div>
+    <div class="card-content">
+      <table>
+        <tr><th>Concept</th><th>One-line Summary</th></tr>
+        <tr><td>Call Stack</td><td>LIFO structure tracking function execution — JS only has one</td></tr>
+        <tr><td>Web APIs</td><td>Browser-provided features (timers, fetch, DOM events) that run outside the Call Stack</td></tr>
+        <tr><td>Callback / Macrotask Queue</td><td>Holds timer and event callbacks, lowest priority</td></tr>
+        <tr><td>Microtask Queue</td><td>Holds Promise callbacks and queueMicrotask, highest priority</td></tr>
+        <tr><td>Event Loop</td><td>Moves tasks from queues to the Call Stack, only when the stack is empty</td></tr>
+        <tr><td>Execution order</td><td>All sync code → all microtasks (repeatedly, including new ones) → one macrotask → repeat</td></tr>
+        <tr><td>setTimeout(0)</td><td>Still waits for sync code and all microtasks to finish first</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== MORE INTERVIEW QUESTIONS ===== -->
+  <div class="section-divider" id="more-interview-questions"><span>12. More Interview Questions</span></div>
+
+  <div class="card theme-purple">
+    <div class="card-title">Conceptual Questions <span class="badge">⭐⭐⭐⭐⭐</span></div>
+    <div class="card-content">
+      <p><strong>Q: Why does Promise.then() execute before setTimeout(fn, 0)?</strong><br>A: <code>.then()</code> callbacks go into the Microtask Queue, which the Event Loop always drains completely before it looks at the Macrotask Queue (where <code>setTimeout</code> callbacks live) — even a 0ms delay doesn't change this priority.</p>
+
+      <p><strong>Q: What happens if both the Microtask Queue and Macrotask Queue contain pending tasks?</strong><br>A: The Event Loop always finishes every microtask first — including any new ones added while draining — before it takes exactly one task from the Macrotask Queue. It then re-checks the Microtask Queue again before touching the next macrotask.</p>
+
+      <p><strong>Q: What happens when the Call Stack never becomes empty?</strong><br>A: The Event Loop can never push anything from either queue onto the stack, so all pending timers, Promise callbacks, and event handlers stay stuck waiting indefinitely. This is what causes a frozen/unresponsive page — an infinite loop or long synchronous task blocks everything else.</p>
+
+      <p><strong>Q: Why is setTimeout(fn, 0) not executed immediately?</strong><br>A: It's still placed in the Macrotask Queue, so it must wait for the current synchronous code and the entire Microtask Queue to finish first. Browsers also enforce a small minimum delay in some cases, but the main reason is simply queue priority, not the 0ms value itself.</p>
+
+      <p><strong>Q: How does the Event Loop prevent the UI from freezing during asynchronous operations?</strong><br>A: Long-running work (network calls, timers) is offloaded to Web APIs running outside the main thread. The main thread only picks up short callback executions when it's free, letting rendering and user input get interleaved between tasks instead of being blocked for the entire duration of the async operation.</p>
+
+      <p><strong>Q: Explain the complete lifecycle of an asynchronous operation from function call to callback execution.</strong><br>A: The function call triggers a Web API (e.g. a timer or network request). The Web API performs the work outside the Call Stack. Once finished, it places the callback into the Microtask or Macrotask Queue depending on the API. The Event Loop waits until the Call Stack is empty, drains all microtasks, then executes the callback (if it's a macrotask, one per cycle) by pushing it onto the Call Stack.</p>
+
+      <p><strong>Q: How does await affect the Event Loop?</strong><br>A: <code>await</code> pauses the async function at that point and immediately hands control back to whatever called it, letting synchronous code continue running. The code after <code>await</code> is scheduled to resume as a microtask once the awaited Promise settles — so it runs after current synchronous code, but before any macrotasks.</p>
+    </div>
+  </div>
+
+  <div class="card theme-red">
+    <div class="card-title">Predict the Output — Sync + setTimeout()</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict1.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"A"</span>);
+<span class="fn">setTimeout</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"B"</span>), <span class="num">0</span>);
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"C"</span>);</code></pre>
+      </div>
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>A</code> → <code>C</code> → <code>B</code></div>
+      <p>All synchronous code runs first; the timer callback is a macrotask and waits until the stack is clear.</p>
+    </div>
+  </div>
+
+  <div class="card theme-teal">
+    <div class="card-title">Predict the Output — Sync + Promise</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict2.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"A"</span>);
+<span class="fn">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"B"</span>));
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"C"</span>);</code></pre>
+      </div>
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>A</code> → <code>C</code> → <code>B</code></div>
+      <p>Same shape as the setTimeout case: sync code runs first, then the microtask fires once the stack is empty.</p>
+    </div>
+  </div>
+
+  <div class="card theme-orange">
+    <div class="card-title">Predict the Output — Nested setTimeout()</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict3.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Start"</span>);
+
+<span class="fn">setTimeout</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Timer 1"</span>);
+    <span class="fn">setTimeout</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Timer 2"</span>), <span class="num">0</span>);
+}, <span class="num">0</span>);
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+      </div>
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>End</code> → <code>Timer 1</code> → <code>Timer 2</code></div>
+      <p>"Timer 2" is only scheduled once "Timer 1" actually runs, so it becomes a brand-new macrotask for the <em>next</em> cycle — it can't run in the same pass.</p>
+    </div>
+  </div>
+
+  <div class="card theme-pink">
+    <div class="card-title">Predict the Output — Nested Promise Callbacks</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict4.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Start"</span>);
+
+<span class="fn">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"A"</span>);
+    <span class="fn">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"B"</span>));
+});
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+      </div>
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>End</code> → <code>A</code> → <code>B</code></div>
+      <p>Unlike nested timers, a microtask created while draining the Microtask Queue still runs in the <em>same</em> drain — the queue isn't considered empty until nothing new is left in it.</p>
+    </div>
+  </div>
+
+  <div class="card theme-sky">
+    <div class="card-title">Predict the Output — async/await with Promise</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict5.js</span></div>
+        <pre><code><span class="kw">async</span> <span class="kw">function</span> <span class="fn">foo</span>() {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"1"</span>);
+    <span class="kw">await</span> <span class="fn">Promise</span>.<span class="fn">resolve</span>();
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"2"</span>);
+}
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Start"</span>);
+<span class="fn">foo</span>();
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+      </div>
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>1</code> → <code>End</code> → <code>2</code></div>
+      <p><code>foo()</code> runs synchronously up to the <code>await</code>, then pauses and returns control to the caller. "End" logs before "2" because the code after <code>await</code> is scheduled as a microtask, which only runs once the current synchronous block finishes.</p>
+    </div>
+  </div>
+
+  <div class="card theme-amber">
+    <div class="card-title">Predict the Output — Promise + setTimeout()</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict6.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Start"</span>);
+<span class="fn">setTimeout</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Timeout"</span>), <span class="num">0</span>);
+<span class="fn">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Promise"</span>));
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+      </div>
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>End</code> → <code>Promise</code> → <code>Timeout</code></div>
+      <p>Regardless of which was scheduled first in the code, the microtask (Promise) always wins over the macrotask (setTimeout).</p>
+    </div>
+  </div>
+
+  <div class="card theme-indigo">
+    <div class="card-title">Predict the Output — Promise Inside setTimeout()</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict7.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Start"</span>);
+
+<span class="fn">setTimeout</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Timeout start"</span>);
+    <span class="fn">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Promise inside timeout"</span>));
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Timeout end"</span>);
+}, <span class="num">0</span>);</code></pre>
+      </div>
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>Timeout start</code> → <code>Timeout end</code> → <code>Promise inside timeout</code></div>
+      <p>The whole timer callback runs as one synchronous block first (macrotask). The Promise it schedules only becomes eligible to run <em>after</em> that block finishes — as the very next microtask, before any further macrotasks.</p>
+    </div>
+  </div>
+
+  <div class="card theme-lime">
+    <div class="card-title">Predict the Output — setTimeout() Inside Promise</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict8.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Start"</span>);
+
+<span class="fn">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() => {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Promise"</span>);
+    <span class="fn">setTimeout</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Timeout inside promise"</span>), <span class="num">0</span>);
+});
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+      </div>
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>End</code> → <code>Promise</code> → <code>Timeout inside promise</code></div>
+      <p>The Promise callback runs as a microtask before the next macrotask. The <code>setTimeout</code> it schedules is a brand-new macrotask, so it has to wait for the current microtask drain to finish completely.</p>
+    </div>
+  </div>
+
+  <div class="card theme-blue">
+    <div class="card-title">Predict the Output — Multiple Timers with Different Delays</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict9.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Start"</span>);
+
+<span class="fn">setTimeout</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Timer 500ms"</span>), <span class="num">500</span>);
+<span class="fn">setTimeout</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Timer 100ms"</span>), <span class="num">100</span>);
+<span class="fn">setTimeout</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Timer 0ms"</span>), <span class="num">0</span>);
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+      </div>
+      <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>End</code> → <code>Timer 0ms</code> → <code>Timer 100ms</code> → <code>Timer 500ms</code></div>
+      <p>Timers don't run in the order they were written — they become eligible in order of their delay expiring. The shortest delay always becomes ready first, regardless of the order it appeared in the code.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

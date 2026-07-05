@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototypes — Complete Guide</title>
+<link rel="stylesheet" href="index.css">
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Prototypes ⭐⭐⭐⭐⭐</h1>
+    <p>How JavaScript really shares properties and methods between objects — prototype objects, the prototype chain, `__proto__`, `prototype`, and inheritance.</p>
+    <div class="toc">
+      <a href="#prototype-object">Prototype Object</a>
+      <a href="#prototype-chain">Prototype Chain</a>
+      <a href="#dunder-proto">__proto__</a>
+      <a href="#dot-prototype">prototype</a>
+      <a href="#inheritance">Inheritance</a>
+      <a href="#prototype-interview-questions">Interview Questions</a>
+    </div>
+  </div>
+
+  <div class="card theme-blue" id="prototype-object">
+    <div class="card-title">🧬 Prototype Object</div>
+    <div class="card-content">
+      <p>Every object in JavaScript has a hidden internal link to another object called its <strong>prototype</strong>. When you try to read a property that doesn't exist directly on the object, JavaScript automatically looks it up on the prototype instead — and if it's not there either, it keeps looking up the prototype's own prototype, and so on. This is how methods like <code>.toString()</code> or <code>.map()</code> are available on every object/array without being copied onto each one individually.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">prototype-object.js</span></div>
+        <pre><code><span class="kw">const</span> obj = {};
+<span class="fn">console</span>.<span class="fn">log</span>(obj.<span class="fn">toString</span>()); <span class="cmt">// "[object Object]"</span>
+<span class="cmt">// obj doesn't define toString() itself —</span>
+<span class="cmt">// it's found on obj's prototype: Object.prototype</span>
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">Object</span>.<span class="fn">getPrototypeOf</span>(obj) === Object.prototype); <span class="cmt">// true</span></code></pre>
+      </div>
+
+      <div class="info-box box-note">📌 Note: The prototype itself is just a normal object — it can have its own prototype too, forming a chain that eventually ends at <code>null</code>.</div>
+    </div>
+  </div>
+
+  <div class="card theme-purple" id="prototype-chain">
+    <div class="card-title">🔗 Prototype Chain</div>
+    <div class="card-content">
+      <p>The <strong>prototype chain</strong> is the sequence of linked objects JavaScript walks through when looking up a property: the object itself, then its prototype, then that prototype's prototype, and so on, until it finds the property or reaches <code>null</code> (the end of every chain).</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">prototype-chain.js</span></div>
+        <pre><code><span class="kw">const</span> animal = { eats: <span class="kw">true</span> };
+<span class="kw">const</span> dog = <span class="fn">Object</span>.<span class="fn">create</span>(animal);  <span class="cmt">// dog's prototype is 'animal'</span>
+dog.barks = <span class="kw">true</span>;
+
+<span class="fn">console</span>.<span class="fn">log</span>(dog.barks); <span class="cmt">// true -> found directly on dog</span>
+<span class="fn">console</span>.<span class="fn">log</span>(dog.eats);  <span class="cmt">// true -> not on dog, found on animal (its prototype)</span>
+
+<span class="cmt">// Chain: dog -> animal -> Object.prototype -> null</span>
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">Object</span>.<span class="fn">getPrototypeOf</span>(animal) === Object.prototype); <span class="cmt">// true</span>
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">Object</span>.<span class="fn">getPrototypeOf</span>(Object.prototype));         <span class="cmt">// null -> end of chain</span></code></pre>
+      </div>
+
+      <div class="info-box box-warning">⚠️ Warning: Long prototype chains make property lookups slower (JS has to walk further before giving up or finding the value) — keep chains shallow where performance matters.</div>
+    </div>
+  </div>
+
+  <div class="card theme-pink" id="dunder-proto">
+    <div class="card-title">🔍 __proto__</div>
+    <div class="card-content">
+      <p><code>__proto__</code> is an accessor property (getter/setter) available on almost every object that exposes its internal prototype link directly, letting you read or set it. It's the historical, informal way to interact with the prototype chain — the modern, standard alternatives are <code>Object.getPrototypeOf()</code> and <code>Object.setPrototypeOf()</code>.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">dunder-proto.js</span></div>
+        <pre><code><span class="kw">const</span> animal = { eats: <span class="kw">true</span> };
+<span class="kw">const</span> dog = {};
+
+dog.__proto__ = animal;          <span class="cmt">// old-school way to set the prototype</span>
+<span class="fn">console</span>.<span class="fn">log</span>(dog.eats);       <span class="cmt">// true (inherited via __proto__ link)</span>
+
+<span class="cmt">// Preferred modern equivalents:</span>
+<span class="fn">Object</span>.<span class="fn">setPrototypeOf</span>(dog, animal);
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">Object</span>.<span class="fn">getPrototypeOf</span>(dog) === animal); <span class="cmt">// true</span></code></pre>
+      </div>
+
+      <div class="info-box box-tip">💡 Tip: Avoid using <code>__proto__</code> in real code — it was only standardized for legacy browser compatibility. Use <code>Object.getPrototypeOf()</code> / <code>Object.setPrototypeOf()</code> instead, and prefer <code>Object.create()</code> when setting up the prototype at creation time (faster than setting it afterward).</div>
+    </div>
+  </div>
+
+  <div class="card theme-green" id="dot-prototype">
+    <div class="card-title">🏗️ prototype</div>
+    <div class="card-content">
+      <p><code>prototype</code> is different from <code>__proto__</code> — it's a regular property that exists <strong>only on functions</strong> (specifically ones meant to be used as constructors), not on plain objects. It's the object that will become the <code>__proto__</code> of every instance created with <code>new</code>. This is how shared methods get attached once and used by every instance, instead of being duplicated on each one.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">dot-prototype.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">Dog</span>(name) {
+  <span class="kw">this</span>.name = name;
+}
+
+<span class="fn">Dog</span>.prototype.bark = <span class="kw">function</span>() {   <span class="cmt">// shared by every instance</span>
+  <span class="fn">console</span>.<span class="fn">log</span>(<span class="kw">this</span>.name + <span class="str">" says woof!"</span>);
+};
+
+<span class="kw">const</span> rex = <span class="kw">new</span> <span class="fn">Dog</span>(<span class="str">"Rex"</span>);
+rex.<span class="fn">bark</span>();  <span class="cmt">// "Rex says woof!"</span>
+
+<span class="fn">console</span>.<span class="fn">log</span>(rex.__proto__ === Dog.prototype); <span class="cmt">// true</span>
+<span class="fn">console</span>.<span class="fn">log</span>(rex.hasOwnProperty(<span class="str">"bark"</span>));   <span class="cmt">// false -> bark lives on Dog.prototype, not on rex itself</span></code></pre>
+      </div>
+
+      <table>
+        <tr><th></th><th><code>__proto__</code></th><th><code>prototype</code></th></tr>
+        <tr><td>Exists on</td><td>Every object (instances)</td><td>Only functions/classes (constructors)</td></tr>
+        <tr><td>Points to</td><td>The object's own prototype</td><td>The object that will be new instances' prototype</td></tr>
+        <tr><td>Typical use</td><td>Reading/inspecting the chain</td><td>Defining shared methods for instances</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="card theme-orange" id="inheritance">
+    <div class="card-title">🧑‍🤝‍🧑 Inheritance</div>
+    <div class="card-content">
+      <p>JavaScript implements inheritance through the <strong>prototype chain</strong> rather than classical class-copying: an object "inherits" by having another object as its prototype, so it can use that object's properties/methods as if they were its own. ES6 <code>class</code> syntax with <code>extends</code> and <code>super</code> is just a cleaner way to write this same prototype-based mechanism.</p>
+
+      <h4>Constructor-function style (pre-ES6)</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">inheritance-constructor.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">Animal</span>(name) {
+  <span class="kw">this</span>.name = name;
+}
+<span class="fn">Animal</span>.prototype.eat = <span class="kw">function</span>() {
+  <span class="fn">console</span>.<span class="fn">log</span>(<span class="kw">this</span>.name + <span class="str">" is eating"</span>);
+};
+
+<span class="kw">function</span> <span class="fn">Dog</span>(name) {
+  <span class="fn">Animal</span>.<span class="fn">call</span>(<span class="kw">this</span>, name);   <span class="cmt">// borrow Animal's constructor logic</span>
+}
+<span class="fn">Dog</span>.prototype = <span class="fn">Object</span>.<span class="fn">create</span>(Animal.prototype); <span class="cmt">// link Dog's prototype to Animal's</span>
+<span class="fn">Dog</span>.prototype.constructor = Dog;
+
+<span class="kw">const</span> rex = <span class="kw">new</span> <span class="fn">Dog</span>(<span class="str">"Rex"</span>);
+rex.<span class="fn">eat</span>(); <span class="cmt">// "Rex is eating" -> inherited from Animal.prototype</span></code></pre>
+      </div>
+
+      <h4>Modern class style (same mechanism, cleaner syntax)</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">inheritance-class.js</span></div>
+        <pre><code><span class="kw">class</span> <span class="fn">Animal</span> {
+  <span class="fn">constructor</span>(name) {
+    <span class="kw">this</span>.name = name;
+  }
+  <span class="fn">eat</span>() {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="kw">this</span>.name + <span class="str">" is eating"</span>);
+  }
+}
+
+<span class="kw">class</span> <span class="fn">Dog</span> <span class="kw">extends</span> Animal {
+  <span class="fn">bark</span>() {
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="kw">this</span>.name + <span class="str">" says woof!"</span>);
+  }
+}
+
+<span class="kw">const</span> rex = <span class="kw">new</span> <span class="fn">Dog</span>(<span class="str">"Rex"</span>);
+rex.<span class="fn">eat</span>();  <span class="cmt">// "Rex is eating" -> inherited from Animal</span>
+rex.<span class="fn">bark</span>(); <span class="cmt">// "Rex says woof!" -> defined on Dog</span>
+
+<span class="fn">console</span>.<span class="fn">log</span>(rex <span class="kw">instanceof</span> Animal); <span class="cmt">// true -> Dog.prototype's prototype is Animal.prototype</span></code></pre>
+      </div>
+
+      <div class="info-box box-benefit">✅ Benefit: Under the hood, <code>class ... extends</code> just wires up the prototype chain automatically (<code>Dog.prototype.__proto__ === Animal.prototype</code>) — it's syntax sugar over the exact same prototype-based inheritance shown above, not a different inheritance model.</div>
+    </div>
+  </div>
+  <div class="section-divider"><span>Interview Questions</span></div>
+
+  <div class="card theme-violet" id="prototype-interview-questions">
+    <div class="card-title">🎤 Prototype Interview Questions</div>
+    <div class="card-content-QA">
+
+      <h4>1. What is a prototype in JavaScript? Explain the Prototype object and how JavaScript uses it for inheritance.</h4>
+      <p>A prototype is an object that other objects can inherit properties and methods from. Every object carries an internal link to its prototype, and when you access a property that isn't found directly on the object, JavaScript automatically looks it up on the prototype instead. This lookup mechanism <em>is</em> JavaScript's inheritance model: rather than copying members into every instance, instances share a single prototype object and read shared behavior from it on demand.</p>
+
+      <h4>2. What is the difference between <code>__proto__</code>, <code>prototype</code>, and <code>[[Prototype]]</code>? <span class="badge">Frequently Asked</span></h4>
+      <p>These three terms are often confused, but they describe three distinct things:</p>
+      <table>
+        <tr><th>Term</th><th>What it is</th></tr>
+        <tr><td><code>[[Prototype]]</code></td><td>The actual internal slot every object has, holding the real link to its prototype. It's not directly accessible by that name in code — it's a spec-level concept.</td></tr>
+        <tr><td><code>__proto__</code></td><td>A legacy accessor property (getter/setter) exposed on object instances that lets you read or set their <code>[[Prototype]]</code> from regular code.</td></tr>
+        <tr><td><code>prototype</code></td><td>A plain property that exists only on functions/classes used as constructors. It's the object that becomes the <code>[[Prototype]]</code> (and therefore the <code>__proto__</code>) of every instance created with <code>new</code>.</td></tr>
+      </table>
+      <div class="info-box box-tip">💡 Tip: A clean way to phrase it in an interview: "<code>prototype</code> is on the constructor and decides what instances will inherit; <code>__proto__</code> is on the instance and shows what it actually inherited; <code>[[Prototype]]</code> is the internal mechanism both of those are just interfaces to."</div>
+
+      <h4>3. How does the Prototype Chain work in JavaScript?</h4>
+      <p>When you access a property on an object, the engine first checks the object itself. If it isn't found there, it moves to the object's <code>[[Prototype]]</code>, then that object's own prototype, and so on — this sequence of linked objects is the prototype chain. The search stops as soon as a match is found (an "own" property closer to the object always shadows one further up the chain), or continues until the chain ends at <code>null</code>, at which point the property is <code>undefined</code>.</p>
+
+      <h4>4. How do you add methods to all instances of a constructor function? Why put them on <code>Constructor.prototype</code> instead of inside the constructor?</h4>
+      <p>Attach the method to <code>Constructor.prototype</code> so it's defined <strong>once</strong> and shared by every instance through the prototype chain, rather than defining it inside the constructor function body with <code>this.method = function(){...}</code>, which would recreate a brand-new function object on every single instantiation. For thousands of instances, that's thousands of duplicate function objects wasting memory — prototype methods avoid that entirely, and also make it possible to patch or extend behavior for all existing instances at once.</p>
+
+      <h4>5. What is the difference between prototype inheritance and classical inheritance? Compare with Java or C#.</h4>
+      <p>In classical languages like Java or C#, inheritance is based on <strong>classes</strong>: a class is a fixed, compile-time blueprint, and objects are instances built from it — the hierarchy is static and defined ahead of time. JavaScript's prototypal model has objects inherit directly from <strong>other objects</strong> at runtime; there's no separate "blueprint" concept, prototypes can be reassigned or modified dynamically even after objects exist, and the inheritance chain is just a live series of object references. ES6 <code>class</code> syntax makes JS <em>look</em> classical, but underneath it's still prototype links — there's no true class-based mechanism running the show.</p>
+
+      <h4>6. What is the relationship between <code>Object.create()</code> and prototypes? How does it create an object with a specified prototype?</h4>
+      <p><code>Object.create(proto)</code> creates a brand-new, empty object whose <code>[[Prototype]]</code> is set directly to whatever object you pass in — no constructor function or <code>new</code> keyword involved. It's the most direct way to express "make an object that inherits from this other object," which is useful for pure prototypal inheritance patterns without the ceremony of constructor functions or classes.</p>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">object-create.js</span></div>
+        <pre><code><span class="kw">const</span> animal = { eats: <span class="kw">true</span> };
+<span class="kw">const</span> dog = <span class="fn">Object</span>.<span class="fn">create</span>(animal); <span class="cmt">// dog's [[Prototype]] is set to 'animal' directly</span>
+<span class="fn">console</span>.<span class="fn">log</span>(dog.eats);       <span class="cmt">// true -> inherited</span>
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">Object</span>.<span class="fn">getPrototypeOf</span>(dog) === animal); <span class="cmt">// true</span></code></pre>
+      </div>
+
+      <h4>7. Can you modify the prototype of built-in objects like <code>Array</code> or <code>String</code>? Should you?</h4>
+      <p>Technically yes — you can add to <code>Array.prototype</code> or <code>String.prototype</code> and every array or string in your program instantly gets that new method, a practice called <strong>monkey-patching</strong> or prototype extension. It's generally discouraged, though: a future JavaScript version might add a native method with the same name and different behavior, silently breaking your code; different libraries patching the same built-in can collide and overwrite each other; and added properties can unexpectedly show up in <code>for...in</code> loops over arrays/objects if not made non-enumerable. Safer alternatives are writing standalone utility functions or extending your own custom classes instead of built-ins.</p>
+
+      <h4>8. How do ES6 classes use prototypes internally?</h4>
+      <p><code>class</code> syntax is syntactic sugar over the exact same prototype system that existed before ES6 — it doesn't introduce a new inheritance model. Methods written inside a class body are attached to <code>ClassName.prototype</code> automatically (and made non-enumerable, unlike manually-added prototype properties). When you write <code>class Dog extends Animal</code>, JavaScript wires up two links behind the scenes: <code>Dog.prototype</code>'s own prototype is set to <code>Animal.prototype</code> (so instances inherit instance methods), and <code>Dog</code> itself is linked to <code>Animal</code> (so static methods are inherited too). <code>super()</code> inside the constructor is just a controlled call to the parent constructor function, and <code>super.method()</code> looks up the method starting from the parent's prototype instead of the child's.</p>
+      <div class="info-box box-note">📌 Note: You can verify this yourself: <code>Object.getPrototypeOf(Dog.prototype) === Animal.prototype</code> is <code>true</code> for any <code>class Dog extends Animal</code>.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JavaScript Scope & Execution</title>
+<link rel="stylesheet" href="index.css">
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>JavaScript Scope & Execution</h1>
+    <p>How the JavaScript engine decides what a variable refers to, and how it runs your code line by line — scope, the call stack, and hoisting explained.</p>
+    <div class="toc">
+      <a href="#global-scope">Global Scope</a>
+      <a href="#function-scope">Function Scope</a>
+      <a href="#block-scope">Block Scope</a>
+      <a href="#lexical-scope">Lexical Scope</a>
+      <a href="#scope-chain">Scope Chain</a>
+      <a href="#execution-context">Execution Context</a>
+      <a href="#call-stack">Call Stack</a>
+      <a href="#call-stack-advanced">Call Stack — Advanced</a>
+      <a href="#hoisting">Hoisting</a>
+      <a href="#hoisting-advanced">Hoisting — Advanced</a>
+      <a href="#tdz">Temporal Dead Zone</a>
+    </div>
+  </div>
+
+  <div class="info-box box-note">Scope decides where a variable is visible. Execution context and the call stack decide the order code runs in. Hoisting and the TDZ explain why some variables seem to exist before they're declared — and why others throw errors instead.</div>
+
+  <!-- ===== GLOBAL SCOPE ===== -->
+  <div class="section-divider" id="global-scope"><span>1. Global Scope</span></div>
+  <div class="card theme-blue">
+    <div class="card-title">Variables Available Everywhere <span class="badge">Basics</span></div>
+    <div class="card-content">
+      <p>A variable declared outside of any function or block lives in the <strong>global scope</strong>. It's accessible from anywhere in the file — including inside every function and block.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">global-scope.js</span></div>
+        <pre><code><span class="kw">let</span> siteName = <span class="str">"MyApp"</span>; <span class="cmt">// global scope</span>
+
+<span class="kw">function</span> <span class="fn">greet</span>() {
+  <span class="fn">console</span>.<span class="fn">log</span>(siteName); <span class="cmt">// ✅ accessible here</span>
+}
+
+<span class="fn">greet</span>(); <span class="cmt">// "MyApp"</span>
+<span class="fn">console</span>.<span class="fn">log</span>(siteName); <span class="cmt">// ✅ accessible here too</span></code></pre>
+      </div>
+
+      <h4>Watch Out</h4>
+      <div class="info-box box-warning">In browsers, global <code>var</code> declarations and functions attach to the <code>window</code> object. Too many globals increase the risk of naming collisions across scripts — this is called <strong>global namespace pollution</strong>.</div>
+
+      <h4>Best Practice</h4>
+      <div class="info-box box-tip">Minimize globals. Wrap code in functions, modules, or IIFEs so variables stay contained to where they're needed.</div>
+    </div>
+  </div>
+
+  <!-- ===== FUNCTION SCOPE ===== -->
+  <div class="section-divider" id="function-scope"><span>2. Function Scope</span></div>
+  <div class="card theme-green">
+    <div class="card-title">Variables Local to a Function <span class="badge">Basics</span></div>
+    <div class="card-content">
+      <p>Every function creates its own scope. Variables declared with <code>var</code>, <code>let</code>, or <code>const</code> inside a function are not visible outside it.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">function-scope.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">calculateTotal</span>() {
+  <span class="kw">var</span> total = <span class="num">100</span>; <span class="cmt">// function-scoped</span>
+  <span class="fn">console</span>.<span class="fn">log</span>(total); <span class="cmt">// 100</span>
+}
+
+<span class="fn">calculateTotal</span>();
+<span class="fn">console</span>.<span class="fn">log</span>(total); <span class="cmt">// ❌ ReferenceError: total is not defined</span></code></pre>
+      </div>
+
+      <h4>Note</h4>
+      <div class="info-box box-note"><code>var</code> is only function-scoped, not block-scoped. A <code>var</code> declared inside an <code>if</code> block still leaks out to the whole enclosing function.</div>
+
+      <h4>Q: Do nested functions get their own scope?</h4>
+      <div class="info-box box-benefit">Yes — every function call creates a brand-new function scope, even repeated calls to the same function each get an independent set of local variables.</div>
+    </div>
+  </div>
+
+  <!-- ===== BLOCK SCOPE ===== -->
+  <div class="section-divider" id="block-scope"><span>3. Block Scope</span></div>
+  <div class="card theme-orange">
+    <div class="card-title">Variables Local to { ... } <span class="badge">Basics</span></div>
+    <div class="card-content">
+      <p><code>let</code> and <code>const</code> are scoped to the nearest enclosing curly braces — an <code>if</code> block, a <code>for</code> loop, or any standalone <code>{}</code>. <code>var</code> ignores blocks entirely.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">block-scope.js</span></div>
+        <pre><code><span class="kw">if</span> (<span class="kw">true</span>) {
+  <span class="kw">let</span> message = <span class="str">"Hi"</span>;
+  <span class="kw">var</span> leak = <span class="str">"I escape"</span>;
+}
+
+<span class="fn">console</span>.<span class="fn">log</span>(leak);    <span class="cmt">// "I escape" — var ignores the block</span>
+<span class="fn">console</span>.<span class="fn">log</span>(message); <span class="cmt">// ❌ ReferenceError — let respects the block</span></code></pre>
+      </div>
+
+      <table>
+        <tr><th>Keyword</th><th>Respects Block Scope?</th></tr>
+        <tr><td><code>var</code></td><td>No — function-scoped only</td></tr>
+        <tr><td><code>let</code></td><td>Yes</td></tr>
+        <tr><td><code>const</code></td><td>Yes</td></tr>
+      </table>
+
+      <h4>Remember</h4>
+      <div class="info-box box-benefit">Loops are a classic example — <code>for (let i = 0; ...)</code> gives each iteration its own <code>i</code>, which is why <code>let</code> in loops fixed a common closure bug that <code>var</code> used to cause.</div>
+    </div>
+  </div>
+
+  <!-- ===== LEXICAL SCOPE ===== -->
+  <div class="section-divider" id="lexical-scope"><span>4. Lexical Scope</span></div>
+  <div class="card theme-pink">
+    <div class="card-title">Scope Determined by Where Code Is Written <span class="badge">Basics</span></div>
+    <div class="card-content">
+      <p>JavaScript uses <strong>lexical (static) scoping</strong> — a function's access to variables is determined by where it's physically written in the code, not by where or how it's called.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">lexical-scope.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">outer</span>() {
+  <span class="kw">const</span> secret = <span class="str">"42"</span>;
+
+  <span class="kw">function</span> <span class="fn">inner</span>() {
+    <span class="fn">console</span>.<span class="fn">log</span>(secret); <span class="cmt">// ✅ inner "remembers" outer's scope</span>
+  }
+
+  <span class="fn">inner</span>();
+}
+
+<span class="fn">outer</span>(); <span class="cmt">// "42"</span></code></pre>
+      </div>
+
+      <h4>Note</h4>
+      <div class="info-box box-note">This is exactly what powers <strong>closures</strong> — an inner function keeps access to its outer function's variables even after the outer function has finished running.</div>
+
+      <h4>Tip</h4>
+      <div class="info-box box-tip">"Lexical" just means "based on the text of the code as written." Trace scope by looking at nesting in the source, never by tracing the call sequence.</div>
+    </div>
+  </div>
+
+  <!-- ===== SCOPE CHAIN ===== -->
+  <div class="section-divider" id="scope-chain"><span>5. Scope Chain</span></div>
+  <div class="card theme-purple">
+    <div class="card-title">How the Engine Resolves a Variable <span class="badge">Basics</span></div>
+    <div class="card-content">
+      <p>When code references a variable, the engine checks the current scope first, then walks outward through each enclosing scope until it finds the variable — or reaches the global scope and throws a <code>ReferenceError</code>.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">scope-chain.js</span></div>
+        <pre><code><span class="kw">const</span> city = <span class="str">"Delhi"</span>;
+
+<span class="kw">function</span> <span class="fn">a</span>() {
+  <span class="kw">const</span> name = <span class="str">"Sam"</span>;
+
+  <span class="kw">function</span> <span class="fn">b</span>() {
+    <span class="kw">const</span> age = <span class="num">25</span>;
+    <span class="fn">console</span>.<span class="fn">log</span>(name, city); <span class="cmt">// walks up the chain to find both</span>
+  }
+
+  <span class="fn">b</span>();
+}
+
+<span class="fn">a</span>();</code></pre>
+      </div>
+
+      <table>
+        <tr><th>Scope Checked</th><th>Contains</th><th>Found?</th></tr>
+        <tr><td>Function b</td><td><code>age</code></td><td>No — keep looking outward</td></tr>
+        <tr><td>Function a</td><td><code>name</code></td><td>No — keep looking outward</td></tr>
+        <tr><td>Global</td><td><code>city</code></td><td>Yes ✅</td></tr>
+      </table>
+
+      <h4>Watch Out</h4>
+      <div class="info-box box-warning">The scope chain only looks outward, never inward or sideways. A parent function can never see a variable declared inside a child function.</div>
+    </div>
+  </div>
+
+  <!-- ===== EXECUTION CONTEXT ===== -->
+  <div class="section-divider" id="execution-context"><span>6. Execution Context</span></div>
+  <div class="card theme-teal">
+    <div class="card-title">The Environment Code Runs In <span class="badge">Basics</span></div>
+    <div class="card-content">
+      <p>An <strong>execution context</strong> is the environment created every time code runs — it holds variables, function declarations, and the value of <code>this</code>. There are three kinds.</p>
+
+      <table>
+        <tr><th>Type</th><th>When It's Created</th></tr>
+        <tr><td>Global Execution Context</td><td>Once, when the script first runs. Sets up the global object and <code>this</code>.</td></tr>
+        <tr><td>Function Execution Context</td><td>Fresh, every time any function is called — each call gets its own.</td></tr>
+        <tr><td>Eval Execution Context</td><td>When code runs inside <code>eval()</code>. Rarely used in modern code.</td></tr>
+      </table>
+
+      <h4>Two Phases of Every Execution Context</h4>
+      <table>
+        <tr><th>Phase</th><th>What Happens</th></tr>
+        <tr><td>1. Creation Phase</td><td>Sets up scope, hoists variables/functions, determines <code>this</code></td></tr>
+        <tr><td>2. Execution Phase</td><td>Runs the code line by line, assigning real values</td></tr>
+      </table>
+
+      <h4>Note</h4>
+      <div class="info-box box-note">This two-phase process is exactly why hoisting works — variable and function declarations are registered in memory during the creation phase, before any code actually executes.</div>
+    </div>
+  </div>
+
+  <!-- ===== CALL STACK ===== -->
+  <div class="section-divider" id="call-stack"><span>7. Call Stack</span></div>
+  <div class="card theme-red">
+    <div class="card-title">Tracking Which Function Is Running <span class="badge">Basics</span></div>
+    <div class="card-content">
+      <p>The <strong>call stack</strong> is a LIFO (last-in, first-out) structure that tracks execution contexts. Every function call pushes a new context on top; every function return pops it off.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">call-stack.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">first</span>() {
+  <span class="fn">second</span>();
+  <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"first done"</span>);
+}
+<span class="kw">function</span> <span class="fn">second</span>() {
+  <span class="fn">third</span>();
+  <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"second done"</span>);
+}
+<span class="kw">function</span> <span class="fn">third</span>() {
+  <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"third done"</span>);
+}
+
+<span class="fn">first</span>();
+<span class="cmt">// Push first → push second → push third
+// Pop third (logs "third done")
+// Pop second (logs "second done")
+// Pop first (logs "first done")</span></code></pre>
+      </div>
+
+      <h4>Watch Out</h4>
+      <div class="info-box box-warning">If functions call each other too deeply — often from unintended infinite recursion — the stack runs out of space and JavaScript throws <code>RangeError: Maximum call stack size exceeded</code>.</div>
+
+      <h4>Tip</h4>
+      <div class="info-box box-tip">Browser DevTools' "call stack" panel during debugging shows exactly this structure — the current chain of function calls that led to where you paused.</div>
+    </div>
+  </div>
+
+  <!-- ===== CALL STACK ADVANCED ===== -->
+  <div class="section-divider" id="call-stack-advanced"><span>7b. Call Stack — Advanced</span></div>
+  <div class="card theme-amber">
+    <div class="card-title">Stack Traces, Recursion Limits & Async Reality <span class="badge">Advanced</span></div>
+    <div class="card-content">
+      <p>Each frame on the stack carries its own scope, <code>this</code>, and a return address. Understanding this matters most when things break — overflow errors, stack traces, and async code that only <em>looks</em> like it stays on the stack.</p>
+
+      <h4>1. A Stack Trace Is a Frozen Snapshot of Frames</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">stack-trace.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">a</span>() { <span class="fn">b</span>(); }
+<span class="kw">function</span> <span class="fn">b</span>() { <span class="fn">c</span>(); }
+<span class="kw">function</span> <span class="fn">c</span>() { <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"boom"</span>); }
+
+<span class="fn">a</span>();
+<span class="cmt">// Error: boom
+//   at c (file.js:3)
+//   at b (file.js:2)
+//   at a (file.js:1)</span></code></pre>
+      </div>
+      <div class="info-box box-note">The trace reads bottom-up in <em>time</em>, top-down in <em>depth</em>. Every line was still a live frame on the stack the moment the error threw.</div>
+
+      <h4>2. V8 Has No Tail-Call Optimization</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">recursion-limit.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">recurse</span>(n) {
+  <span class="kw">return</span> <span class="fn">recurse</span>(n + <span class="num">1</span>);
+}
+<span class="fn">recurse</span>(<span class="num">0</span>);
+<span class="cmt">// RangeError: Maximum call stack size exceeded</span></code></pre>
+      </div>
+      <div class="info-box box-warning">Tail-call optimization was in the ES6 spec, but every major engine (including V8) declined to ship it — mainly because it breaks debuggability. "Tail-recursive" JS still overflows the stack.</div>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">trampoline.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">trampoline</span>(fn) {
+  <span class="kw">let</span> result = <span class="fn">fn</span>();
+  <span class="kw">while</span> (<span class="kw">typeof</span> result === <span class="str">"function"</span>) {
+    result = <span class="fn">result</span>();
+  }
+  <span class="kw">return</span> result;
+}
+
+<span class="kw">function</span> <span class="fn">recurse</span>(n) {
+  <span class="kw">if</span> (n > <span class="num">100000</span>) <span class="kw">return</span> n;
+  <span class="kw">return</span> () => <span class="fn">recurse</span>(n + <span class="num">1</span>); <span class="cmt">// return a thunk, don't call directly</span>
+}
+
+<span class="fn">trampoline</span>(() => <span class="fn">recurse</span>(<span class="num">0</span>)); <span class="cmt">// never grows the real stack</span></code></pre>
+      </div>
+      <div class="info-box box-tip">For unavoidable deep recursion, trampoline it (as above) or convert to an explicit loop backed by your own array-based stack.</div>
+
+      <h4>3. Async Callbacks Don't Stay on the Call Stack</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">event-loop-order.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"1"</span>);
+
+<span class="fn">setTimeout</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"2"</span>), <span class="num">0</span>);
+
+<span class="fn">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"3"</span>));
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"4"</span>);
+
+<span class="cmt">// Output: 1, 4, 3, 2</span></code></pre>
+      </div>
+      <div class="info-box box-note"><code>setTimeout</code> callbacks queue as <strong>macrotasks</strong>; <code>.then()</code> callbacks queue as <strong>microtasks</strong>. The event loop only pulls from these queues once the call stack is empty, and always drains the full microtask queue before the next macrotask — that's why "3" beats "2" even with a 0ms delay.</div>
+
+      <h4>4. async/await Is Sugar Over the Same Mechanism</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">async-stack.js</span></div>
+        <pre><code><span class="kw">async function</span> <span class="fn">foo</span>() {
+  <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"start"</span>);
+  <span class="kw">await</span> <span class="kw">null</span>; <span class="cmt">// yields — schedules the rest as a microtask</span>
+  <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"end"</span>); <span class="cmt">// NOT on the original call stack anymore</span>
+}
+
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"before"</span>);
+<span class="fn">foo</span>();
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"after"</span>);
+
+<span class="cmt">// Output: before, start, after, end</span></code></pre>
+      </div>
+
+      <h4>5. Stack vs. Heap for Closures</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">closure-heap.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">counter</span>() {
+  <span class="kw">let</span> count = <span class="num">0</span>; <span class="cmt">// lives in counter's execution context</span>
+  <span class="kw">return</span> () => ++count; <span class="cmt">// closure keeps it alive after counter() returns</span>
+}
+<span class="kw">const</span> c = <span class="fn">counter</span>();
+<span class="fn">c</span>(); <span class="fn">c</span>(); <span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">c</span>()); <span class="cmt">// 3</span></code></pre>
+      </div>
+      <div class="info-box box-benefit"><code>counter</code>'s frame pops off the stack immediately after it returns, but <code>count</code> survives on the heap because the returned closure still references it.</div>
+    </div>
+  </div>
+
+  <!-- ===== HOISTING ===== -->
+  <div class="section-divider" id="hoisting"><span>8. Hoisting</span></div>
+  <div class="card theme-sky">
+    <div class="card-title">Declarations Registered Before Code Runs <span class="badge">Basics</span></div>
+    <div class="card-content">
+      <p>During the creation phase of an execution context, the engine scans the code and registers variable and function declarations in memory ahead of time. This behavior is called <strong>hoisting</strong>.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">hoisting.js</span></div>
+        <pre><code><span class="fn">console</span>.<span class="fn">log</span>(a);       <span class="cmt">// undefined — hoisted, not yet assigned</span>
+<span class="kw">var</span> a = <span class="num">5</span>;
+
+<span class="fn">sayHi</span>();             <span class="cmt">// "Hi!" — function declarations hoist fully</span>
+<span class="kw">function</span> <span class="fn">sayHi</span>() {
+  <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Hi!"</span>);
+}
+
+<span class="fn">sayBye</span>();            <span class="cmt">// ❌ TypeError: sayBye is not a function</span>
+<span class="kw">var</span> sayBye = <span class="kw">function</span>() {
+  <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"Bye!"</span>);
+};</code></pre>
+      </div>
+
+      <table>
+        <tr><th>Declaration Type</th><th>What Gets Hoisted</th></tr>
+        <tr><td><code>var</code></td><td>Declaration only, initialized as <code>undefined</code></td></tr>
+        <tr><td><code>let</code> / <code>const</code></td><td>Declaration only, stays uninitialized (TDZ)</td></tr>
+        <tr><td>Function declaration</td><td>Entire function, fully usable before its line</td></tr>
+        <tr><td>Function expression / arrow fn</td><td>Only the variable it's assigned to, not the function body</td></tr>
+      </table>
+
+      <h4>Remember</h4>
+      <div class="info-box box-benefit">"Hoisting" doesn't literally move code to the top — the engine just registers names during the creation phase before running anything.</div>
+    </div>
+  </div>
+
+  <!-- ===== HOISTING ADVANCED ===== -->
+  <div class="section-divider" id="hoisting-advanced"><span>8b. Hoisting — Advanced</span></div>
+  <div class="card theme-lime">
+    <div class="card-title">Two-Pass Compilation & Edge Cases <span class="badge">Advanced</span></div>
+    <div class="card-content">
+      <p>V8 parses an entire function or scope <strong>before</strong> executing a single line. That first pass registers every declaration — this is hoisting. What differs case to case is <em>how much</em> gets registered and <em>what value</em> it starts with.</p>
+
+      <h4>1. Function Expressions Only Hoist the Variable, Not the Value</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">fn-expr-hoist.js</span></div>
+        <pre><code><span class="fn">sayBye</span>(); <span class="cmt">// TypeError: sayBye is not a function</span>
+<span class="kw">var</span> sayBye = <span class="kw">function</span> () { <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"bye"</span>); };
+
+<span class="fn">sayHey</span>(); <span class="cmt">// ReferenceError (TDZ, since it's const)</span>
+<span class="kw">const</span> sayHey = () => <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"hey"</span>);</code></pre>
+      </div>
+
+      <h4>2. Classes Hoist Into the TDZ — Even Named Declarations</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">class-tdz.js</span></div>
+        <pre><code><span class="kw">new</span> <span class="fn">Foo</span>(); <span class="cmt">// ReferenceError: Cannot access 'Foo' before initialization</span>
+<span class="kw">class</span> Foo {}</code></pre>
+      </div>
+      <div class="info-box box-warning">This surprises people because function declarations don't have this restriction — but classes always do, no exceptions.</div>
+
+      <h4>3. Named Function Expressions — the Name Leaks Nowhere</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">named-fn-expr.js</span></div>
+        <pre><code><span class="kw">const</span> factorial = <span class="kw">function</span> <span class="fn">fact</span>(n) {
+  <span class="kw">return</span> n <= <span class="num">1</span> ? <span class="num">1</span> : n * <span class="fn">fact</span>(n - <span class="num">1</span>); <span class="cmt">// fact visible here</span>
+};
+
+<span class="fn">factorial</span>(<span class="num">5</span>); <span class="cmt">// 120</span>
+<span class="fn">console</span>.<span class="fn">log</span>(<span class="kw">typeof</span> fact); <span class="cmt">// "undefined" — fact never leaked outside</span></code></pre>
+      </div>
+      <div class="info-box box-tip">This is a classic pattern for a self-referencing function without polluting the outer scope with its own name.</div>
+
+      <h4>4. Duplicate var Declarations Collapse Into One Binding</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">var-merge.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">demo</span>() {
+  <span class="fn">console</span>.<span class="fn">log</span>(x); <span class="cmt">// undefined</span>
+  <span class="kw">var</span> x = <span class="num">1</span>;
+  <span class="kw">var</span> x = <span class="num">2</span>; <span class="cmt">// no error, just reassignment</span>
+  <span class="fn">console</span>.<span class="fn">log</span>(x); <span class="cmt">// 2</span>
+}
+<span class="fn">demo</span>();</code></pre>
+      </div>
+
+      <h4>5. The Classic Loop-Closure Bug</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">loop-closure.js</span></div>
+        <pre><code><span class="kw">for</span> (<span class="kw">var</span> i = <span class="num">0</span>; i < <span class="num">3</span>; i++) {
+  <span class="fn">setTimeout</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(i), <span class="num">0</span>);
+}
+<span class="cmt">// 3, 3, 3 — var i is one shared function-scoped variable</span>
+
+<span class="kw">for</span> (<span class="kw">let</span> j = <span class="num">0</span>; j < <span class="num">3</span>; j++) {
+  <span class="fn">setTimeout</span>(() => <span class="fn">console</span>.<span class="fn">log</span>(j), <span class="num">0</span>);
+}
+<span class="cmt">// 0, 1, 2 — let creates a NEW binding per iteration</span></code></pre>
+      </div>
+      <div class="info-box box-benefit">This is arguably the most common real-world bug blamed on "hoisting" — really it's <code>var</code>'s function-scoping colliding with closures capturing a shared reference.</div>
+
+      <h4>6. Function Declarations Inside Blocks — a Gray Area</h4>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">block-fn-decl.js</span></div>
+        <pre><code><span class="kw">if</span> (<span class="kw">true</span>) {
+  <span class="kw">function</span> <span class="fn">greet</span>() { <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"A"</span>); }
+} <span class="kw">else</span> {
+  <span class="kw">function</span> <span class="fn">greet</span>() { <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">"B"</span>); }
+}
+<span class="fn">greet</span>();</code></pre>
+      </div>
+      <div class="info-box box-warning">Per spec this is block-scoped in strict/ES6+ code, but browsers still apply legacy "Annex B" hoisting for backward compatibility — results can subtly differ between engines. Prefer assigning a function expression to <code>let</code>/<code>const</code> instead of declaring functions inside blocks.</div>
+    </div>
+  </div>
+
+  <!-- ===== TEMPORAL DEAD ZONE ===== -->
+  <div class="section-divider" id="tdz"><span>9. Temporal Dead Zone (TDZ)</span></div>
+  <div class="card theme-indigo">
+    <div class="card-title">The Gap Before let/const Are Initialized <span class="badge">Basics</span></div>
+    <div class="card-content">
+      <p><code>let</code> and <code>const</code> are hoisted, but unlike <code>var</code> they are not initialized to <code>undefined</code>. The span between entering a scope and the actual declaration line is the <strong>temporal dead zone</strong> — accessing the variable there throws an error.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">tdz.js</span></div>
+        <pre><code>{
+  <span class="fn">console</span>.<span class="fn">log</span>(score); <span class="cmt">// ❌ ReferenceError: Cannot access 'score' before initialization</span>
+  <span class="kw">let</span> score = <span class="num">90</span>;
+}</code></pre>
+      </div>
+
+      <table>
+        <tr><th>Step</th><th>State of "score"</th></tr>
+        <tr><td>Block starts</td><td>TDZ begins — accessing it throws</td></tr>
+        <tr><td><code>let score = 90;</code> runs</td><td>TDZ ends — "score" is now usable</td></tr>
+      </table>
+
+      <h4>Q: Why does the TDZ exist if it just causes errors?</h4>
+      <div class="info-box box-benefit">It catches real bugs early. Silently returning <code>undefined</code> (like <code>var</code> does) can hide a mistake; throwing immediately makes "used before declared" impossible to miss.</div>
+
+      <h4>Watch Out</h4>
+      <div class="info-box box-warning"><code>typeof</code> is normally safe on undeclared variables, but inside the TDZ it still throws — <code>typeof score</code> before <code>let score</code> is declared throws the same <code>ReferenceError</code>.</div>
+    </div>
+  </div>
+
+  <div class="info-box box-extra">
+    Use <code>const</code>/<code>let</code>, not <code>var</code> · Know your 8 data types and check with <code>typeof</code> · Primitives copy by value, objects copy by reference · Every function call pushes a new execution context onto the call stack · <code>var</code> hoists as <code>undefined</code>; <code>let</code>/<code>const</code> hoist into the TDZ and throw if touched early.
+  </div>
+
+</div>
+</body>
+</html>
