@@ -2,550 +2,600 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>MongoDB & Mongoose CRUD — Field Reference</title>
+<title>MongoDB CRUD Patterns & Best Practices</title>
 <style>
-  :root{
-    --bg:#FFFFFF;
-    --panel:#FFFFFF;
-    --panel-2:#FCFCFC;
-    --mongo-green:#00B85C;
-    --mongo-green-dim:#009e4d;
-    --amber:#E8892B;
-    --coral:#E8455C;
-    --sky:#1F8FBF;
-    --violet:#8B4FE0;
-    --text:#181D1B;
-    --text-dim:#5B6B65;
-    --code-bg:#101614;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    color: #334155;
+    font-family: "Segoe UI", Arial, sans-serif;
+    line-height: 1.75;
+}
+
+.page-shell {
+    width: 90%;
+    max-width: 1400px;
+    margin: 40px auto;
+}
+
+.hero {
     background:
-      radial-gradient(circle at 12% 8%, rgba(0,184,92,0.06), transparent 40%),
-      radial-gradient(circle at 90% 15%, rgba(139,79,224,0.05), transparent 40%),
-      var(--bg);
-    color:var(--text);
-    font-family:'Segoe UI', Helvetica, Arial, sans-serif;
-    line-height:1.6;
-    font-size:17px;
-  }
-  code, pre, .mono{
-    font-family:'Consolas','SFMono-Regular',Menlo,Monaco,monospace;
-  }
+        linear-gradient(135deg, rgba(0, 30, 43, .98), rgba(0, 104, 74, .94)),
+        radial-gradient(circle at 88% 18%, rgba(0, 237, 100, .28), transparent 30%);
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 16px 36px rgba(0, 30, 43, .22);
+    color: #066911;
+    margin-bottom: 24px;
+    padding: 40px;
+}
 
-  /* ---------- HERO ---------- */
-  .hero{
-    padding:64px 8vw 40px;
-    border-bottom:2px solid var(--mongo-green);
-    position:relative;
-    overflow:hidden;
-  }
-  .hero::before{
-    content:"{ }";
-    position:absolute;
-    right:4vw; top:-30px;
-    font-size:220px;
-    color:rgba(0,184,92,0.06);
-    font-weight:800;
-    pointer-events:none;
-  }
-  .eyebrow{
-    display:inline-block;
-    color:#fff;
-    background:var(--mongo-green);
-    font-family:monospace;
-    font-size:14px;
-    letter-spacing:2px;
-    text-transform:uppercase;
-    padding:5px 14px;
-    border-radius:20px;
-    margin-bottom:18px;
-    font-weight:700;
-  }
-  h1.title{
-    font-size:clamp(34px, 5vw, 56px);
-    margin:0 0 12px;
-    font-weight:800;
-    letter-spacing:-1px;
-    color:var(--text);
-  }
-  h1.title span{color:var(--mongo-green);}
-  .subtitle{
-    color:var(--text-dim);
-    font-size:19px;
-    max-width:680px;
-    margin:0 0 28px;
-  }
-  .stat-row{display:flex; gap:28px; flex-wrap:wrap;}
-  .stat{
-    background:var(--panel);
-    border:1px solid #E4E9E6;
-    border-top:3px solid var(--mongo-green);
-    border-radius:12px;
-    padding:14px 22px;
-    min-width:120px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.04);
-  }
-  .stat .num{font-size:26px; font-weight:800; color:var(--mongo-green);}
-  .stat .lbl{font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px;}
+.hero h1 {
+    color: #00ed64;
+    font-size: 2.4rem;
+    font-weight: 800;
+    margin: 8px 15px 6px;
+    letter-spacing: -0.5px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, .24);
+}
 
-  /* ---------- NAV ---------- */
-  .nav{
-    display:flex; flex-wrap:wrap; gap:10px;
-    padding:22px 8vw;
-    /* position:sticky; top:0; z-index:50; */
-    background:rgba(255,255,255,0.94);
-    backdrop-filter:blur(8px);
-    border-bottom:1px solid #E4E9E6;
-  }
-  .nav a{
-    color:var(--text-dim);
-    text-decoration:none;
-    font-size:13.5px;
-    font-weight:700;
-    padding:8px 14px;
-    border-radius:8px;
-    border:1px solid #E4E9E6;
-    transition:all .15s ease;
-    white-space:nowrap;
-  }
-  .nav a:hover{
-    color:#fff;
-    border-color:var(--mongo-green);
-    background:var(--mongo-green);
-  }
+.hero p {
+    font-size: 17px;
+    line-height: 1.7;
+    margin: 0;
+    max-width: 900px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #e8fff1;
+    font-weight: 600;
+}
 
-  /* ---------- SECTIONS ---------- */
-  main{
-    padding:40px 8vw 80px;
-    background:
-      radial-gradient(circle at 12% 8%, rgba(0,237,100,0.10), transparent 40%),
-      radial-gradient(circle at 90% 15%, rgba(185,140,255,0.08), transparent 40%),
-      #0b1f1a;
-  }
-  main .section-head h2{ color:#fff; }
-  main .card{
-    background:linear-gradient(180deg, #0f2a23, #123227);
-    border:1px solid rgba(255,255,255,0.06);
-    box-shadow:none;
-  }
-  main .card h3{ color:#fff; }
-  main .card p{ color:#9DBDB0; }
-  main .card p strong{ color:#EAF7F0; }
-  main .badge{
-    background:rgba(255,255,255,0.08);
-    border:1px solid transparent;
-    color:#EAF7F0;
-  }
-  main pre{
-    border:1px solid rgba(255,255,255,0.07);
-  }
-  main .theme-green .section-icon{background:rgba(0,237,100,0.15);}
-  main .theme-amber .section-icon{background:rgba(255,184,77,0.15);}
-  main .theme-coral .section-icon{background:rgba(255,107,107,0.15);}
-  main .theme-sky .section-icon{background:rgba(95,199,232,0.15);}
-  main .theme-violet .section-icon{background:rgba(185,140,255,0.15);}
-  main .faq-card{
-    background:#0f2a23;
-    border:1px solid rgba(255,255,255,0.06);
-    box-shadow:none;
-  }
-  main .faq-card p{ color:#9DBDB0; }
-  main .mini-label{ color:#EAF7F0; }
-  main .nav{ }
-  section{margin-top:56px; scroll-margin-top:90px;}
+.hero .content-label {
+    background: rgba(0, 237, 100, .16);
+    border: 1px solid rgba(0, 237, 100, .44);
+    color: #b6ffcf;
+}
 
-  .section-head{
-    display:flex; align-items:center; gap:14px;
-    margin-bottom:26px;
-  }
-  .section-icon{
-    width:42px; height:42px; border-radius:10px;
-    display:flex; align-items:center; justify-content:center;
-    font-size:20px; flex-shrink:0;
-  }
-  .section-head h2{
-    margin:0; font-size:26px; color:var(--text); font-weight:800;
-  }
+.note-block {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(0, 30, 43, .08);
+    margin-bottom: 28px;
+    overflow: hidden;
+    padding: 0;
+}
 
-  /* category color themes */
-  .theme-green .section-icon{background:rgba(0,184,92,0.12); color:var(--mongo-green);}
-  .theme-green .card{border-left-color:var(--mongo-green);}
-  .theme-amber .section-icon{background:rgba(232,137,43,0.12); color:var(--amber);}
-  .theme-amber .card{border-left-color:var(--amber);}
-  .theme-coral .section-icon{background:rgba(232,69,92,0.12); color:var(--coral);}
-  .theme-coral .card{border-left-color:var(--coral);}
-  .theme-sky .section-icon{background:rgba(31,143,191,0.12); color:var(--sky);}
-  .theme-sky .card{border-left-color:var(--sky);}
-  .theme-violet .section-icon{background:rgba(139,79,224,0.12); color:var(--violet);}
-  .theme-violet .card{border-left-color:var(--violet);}
+.content-label {
+    background: #00684a;
+    border-radius: 100px;
+    color: #fff;
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    margin: 30px 30px 0;
+    padding: 4px 14px;
+    text-transform: uppercase;
+}
 
-  .card{
-    background:var(--panel);
-    border:1px solid #E4E9E6;
-    border-left:5px solid;
-    border-radius:12px;
-    padding:22px 26px;
-    margin-bottom:18px;
-    box-shadow:0 2px 10px rgba(0,0,0,0.04);
-  }
-  .card h3{
-    margin:0 0 10px;
-    font-size:19px;
-    color:var(--text);
-    font-weight:700;
-  }
-  .card p{
-    margin:0 0 6px;
-    color:var(--text-dim);
-    font-size:15.5px;
-  }
-  .card p strong{color:var(--text);}
-  .badge{
-    display:inline-block;
-    font-family:monospace;
-    font-size:12px;
-    background:#EFF3F1;
-    border:1px solid #DCE4E0;
-    padding:2px 8px;
-    border-radius:6px;
-    color:#25423A;
-    margin-right:6px;
-    font-weight:600;
-  }
+h2 {
+    background: #e3f9ea;
+    border: 1px solid #b8edc8;
+    color: #00684a;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 16px 0 0;
+    padding: 18px 30px;
+    letter-spacing: -0.2px;
+}
 
-  pre{
-    background:var(--code-bg);
-    border:1px solid #000;
-    border-radius:10px;
-    padding:16px 18px;
-    overflow-x:auto;
-    margin:14px 0 4px;
-    font-size:14px;
-    line-height:1.55;
-    color:#DCEAE4;
-  }
-  pre .cmt{color:#6FA893;}
-  pre .kw{color:#C39BFF;}
-  pre .str{color:#FFC369;}
-  pre .fn{color:#7FD4F0;}
-  pre .good{color:#3FE087; font-weight:700;}
-  pre .bad{color:#FF7A8C; font-weight:700;}
+h3 {
+    color: #00684a;
+    font-size: 19px;
+    font-weight: 700;
+    margin: 20px 0 10px;
+    line-height: 1.4;
+}
 
-  .two-col{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:16px;
-  }
-  @media(max-width:760px){ .two-col{grid-template-columns:1fr;} }
-  .mini-label{
-    font-size:11px; font-weight:800; letter-spacing:1px;
-    text-transform:uppercase; margin-bottom:4px;
-  }
-  .mini-label.good{color:var(--mongo-green);}
-  .mini-label.bad{color:var(--coral);}
+h4 {
+    color: #0f766e;
+    font-size: 17px;
+    font-weight: 600;
+    margin: 16px 0 8px;
+}
 
-  .faq-card{
-    background:var(--panel);
-    border:1px solid #E4E9E6;
-    border-left:5px solid var(--violet);
-    border-radius:12px;
-    padding:18px 24px;
-    margin-bottom:14px;
-    box-shadow:0 2px 10px rgba(0,0,0,0.04);
-  }
-  .faq-q{
-    color:var(--violet);
-    font-weight:700;
-    font-size:16px;
-    margin:0 0 8px;
-    display:flex; gap:10px;
-  }
-  .faq-q::before{content:"Q";
-    background:var(--violet); color:#fff;
-    width:22px; height:22px; border-radius:6px;
-    display:flex; align-items:center; justify-content:center;
-    font-size:12px; flex-shrink:0;
-  }
+p {
+    color: #1e293b;
+    font-size: 17px;
+    line-height: 1.85;
+    margin-bottom: 10px;
+}
 
-  footer{
-    text-align:center;
-    padding:40px;
-    color:var(--text-dim);
-    font-size:13px;
-    border-top:1px solid #E4E9E6;
-  }
+li {
+    color: #334155;
+    font-size: 16px;
+    line-height: 1.9;
+    margin: 0;
+}
+
+.note-block > p,
+.note-block > ul,
+.note-block > ol,
+.note-block > dl,
+.note-block > table,
+.note-block > pre,
+.note-block > div,
+.note-block > blockquote {
+    margin-left: 30px;
+    margin-right: 30px;
+}
+
+.note-block > *:last-child {
+    margin-bottom: 30px;
+}
+
+ul,
+ol {
+    display: grid;
+    gap: 10px;
+    list-style: none;
+    margin-top: 14px;
+    padding-left: 0;
+}
+
+.note-block > ul li,
+.note-block > ol li {
+    background: #f8fffa;
+    border: 1px solid #d7f3df;
+    border-left: 4px solid #00a35c;
+    border-radius: 10px;
+    color: #1f2937;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.75;
+    padding: 11px 14px 11px 42px;
+    position: relative;
+}
+
+.note-block > ul li::before {
+    align-items: center;
+    background: #00a35c;
+    border-radius: 50%;
+    color: #fff;
+    content: "";
+    display: inline-flex;
+    height: 9px;
+    justify-content: center;
+    left: 18px;
+    position: absolute;
+    top: 20px;
+    width: 9px;
+}
+
+.note-block > ol {
+    counter-reset: note-step;
+}
+
+.note-block > ol li {
+    counter-increment: note-step;
+}
+
+.note-block > ol li::before {
+    align-items: center;
+    background: #00684a;
+    border-radius: 999px;
+    color: #fff;
+    content: counter(note-step);
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 800;
+    height: 24px;
+    justify-content: center;
+    left: 12px;
+    position: absolute;
+    top: 11px;
+    width: 24px;
+}
+
+.note-block > ul li:hover,
+.note-block > ol li:hover {
+    background: #eefff3;
+    border-color: #a7f3d0;
+    transform: translateX(2px);
+    transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+code {
+    background: #e3f9ea;
+    border-radius: 5px;
+    color: #00684a;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 2px 8px;
+}
+
+.code-wrap {
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .22);
+    margin-top: 14px;
+    overflow: hidden;
+}
+
+.code-bar {
+    align-items: center;
+    background: #1e1e2e;
+    border-bottom: 1px solid #313244;
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 16px;
+}
+
+.dots {
+    display: flex;
+    gap: 6px;
+}
+
+.dot-r,
+.dot-y,
+.dot-g {
+    border-radius: 50%;
+    height: 12px;
+    width: 12px;
+}
+
+.dot-r { background: #ef4444; }
+.dot-y { background: #f59e0b; }
+.dot-g { background: #22c55e; }
+
+.filename {
+    color: #cdd6f4;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12.5px;
+}
+
+.code-block {
+    background:#0f0f18;
+    color: #cdd6f4;
+    font-size: 15px;
+    line-height: 1.75;
+    margin: 0;
+    overflow-x: auto;
+    padding: 20px 22px;
+    tab-size: 4;
+}
+
+.code-block code {
+    background: transparent;
+    color: inherit;
+    font-weight: normal;
+    padding: 0;
+}
+
+.code-block .tok-keyword  { color: #cba6f7; }
+.code-block .tok-string   { color: #a6e3a1; }
+.code-block .tok-comment  { color: #6c7086; font-style: italic; }
+.code-block .tok-number   { color: #fab387; }
+.code-block .tok-literal  { color: #f38ba8; }
+.code-block .tok-function { color: #89b4fa; }
+
+.short-answer,
+.interview,
+.remember,
+.tip,
+.warning,
+.note {
+    border-radius: 10px;
+    font-size: 16px;
+    line-height: 1.85;
+    margin-top: 14px;
+    padding: 16px 20px;
+}
+
+.short-answer { background: #dcfce7; border-left: 5px solid #16a34a; color: #15803d; }
+.interview    { background: #fff7ed; border-left: 5px solid #f97316; color: #c2410c; }
+.remember     { background: #fef9c3; border-left: 5px solid #ca8a04; color: #92400e; }
+.tip          { background: #fdf2f8; border-left: 5px solid #ec4899; color: #9d174d; }
+.warning      { background: #fff1f2; border-left: 5px solid #f43f5e; color: #be123c; }
+.note         { background: #f0fdfa; border-left: 5px solid #14b8a6; color: #0f766e; }
+
+.short-answer p, .interview p, .remember p,
+.tip p, .warning p, .note p { color: inherit; font-size: 16px; margin: 6px 0 0; }
+
+.short-answer li, .interview li, .remember li,
+.tip li, .warning li, .note li { color: inherit; font-size: 15px; }
+
+.badge        { background: #e3f9ea; border-radius: 100px; color: #00684a; display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 12px; }
+.badge-green  { background: #dcfce7; color: #16a34a; }
+.badge-red    { background: #fee2e2; color: #dc2626; }
+
+table { border-collapse: collapse; font-size: 14px; margin-top: 14px; width: calc(100% - 60px); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+th { background: #00a35c; color: #fff; font-size: 15px; font-weight: 700; letter-spacing: .2px; padding: 13px 18px; text-align: left; border-right: 1px solid rgba(255,255,255,.18); }
+th:last-child { border-right: none; }
+td { background: #fff; border-bottom: 1px solid #e0e7ff; border-right: 1px solid #e0e7ff; color: #1e293b; font-size: 14px; font-weight: 500; line-height: 1.7; padding: 13px 18px; vertical-align: top; }
+td:last-child { border-right: none; }
+tr:nth-child(even) td { background: #eef2ff; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #e0e7ff; }
+
+.steps { display: grid; gap: 12px; margin-top: 16px; }
+.step-item { align-items: start; display: grid; gap: 14px; grid-template-columns: 42px 1fr; }
+.step-number { align-items: center; background: #00684a; border-radius: 50%; color: #fff; display: inline-flex; font-weight: 800; height: 34px; justify-content: center; width: 34px; }
+.step-body { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; }
+.step-body h3, .step-body p { margin-top: 0; }
+.step-body p { color: #334155; font-size: 16px; }
+
+.type-introduction .content-label,
+.type-notes .content-label      { background: #00684a; color: #fff; }
+.type-best-practices .content-label,
+.type-info .content-label       { background: #00a35c; color: #fff; }
+.type-code .content-label       { background: #001e2b; color: #00ed64; }
+.type-common-mistakes .content-label,
+.type-warning .content-label    { background: #dc2626; color: #fff; }
+
+@media (max-width: 700px) {
+    .page-shell { width: min(100% - 20px, 1400px); margin: 18px auto; }
+    .hero { padding: 24px; }
+    .hero h1 { font-size: 1.8rem; }
+
+    .content-label,
+    .note-block > p, .note-block > ul, .note-block > ol,
+    .note-block > dl, .note-block > table, .note-block > pre,
+    .note-block > div, .note-block > blockquote { margin-left: 18px; margin-right: 18px; }
+
+    h2 { font-size: 20px; padding: 14px 18px; }
+
+    table { display: block; overflow-x: auto; white-space: nowrap; width: calc(100% - 36px); }
+    .step-item { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
+<div class="page-shell">
 
-  <div class="hero">
+    <div class="hero">
+        <span class="content-label">Database Patterns</span>
+        <h1>MongoDB CRUD Patterns &amp; Best Practices</h1>
+        <p>Practical patterns for safe updates, upserts, soft deletes, pagination, population, and the mistakes to avoid along the way.</p>
+    </div>
 
-    <h1 class="title"><span>CRUD</span> Field Guide</h1>
-    <p class="subtitle">A practical reference covering core CRUD patterns, production best practices, common mistakes, and debugging tricks for Node.js + Mongoose applications.</p>
-    
-  </div>
-
-  <nav class="nav">
-    <a href="#deepdive">🟢 CRUD Deep Dive</a>
-    <a href="#practices">🟡 Best Practices</a>
-    <a href="#mistakes">🔴 Common Mistakes</a>
-    <a href="#debug">🔵 Debugging Tips</a>
-    <a href="#faq">🟣 FAQ</a>
-  </nav>
-
-  <main>
-
-    <!-- DEEP DIVE -->
-    <section id="deepdive" class="theme-green">
-      <div class="section-head">
-        <div class="section-icon">🧩</div>
-        <h2>CRUD Deep Dive</h2>
-      </div>
-
-      <div class="card">
-        <h3><span class="badge">$set</span> vs Direct Assignment</h3>
-        <p><strong>$set</strong> updates only the specified fields, preserving everything else. Without it, MongoDB <strong>replaces the entire document</strong> — any omitted fields are lost. Always use $set for partial updates.</p>
-        <pre><span class="cmt">// Safe</span>
+    <div class="note-block type-notes">
+        <span class="content-label">Updates</span>
+        <h2>$set vs Direct Assignment</h2>
+        <p><code>$set</code> updates only the specified fields, preserving everything else. Without it, MongoDB replaces the entire document — any omitted fields are lost. Always use <code>$set</code> for partial updates.</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code><span class="tok-comment">// Safe</span>
 db.users.updateOne(
   { _id: id },
-  { <span class="fn">$set</span>: { age: <span class="str">25</span> } }
+  { <span class="tok-literal">$set</span>: { age: <span class="tok-number">25</span> } }
 );
 
-<span class="cmt">// Unsafe — replaces entire document</span>
+<span class="tok-comment">// Unsafe — replaces entire document</span>
 db.users.updateOne(
   { _id: id },
-  { age: <span class="str">25</span> }
-);</pre>
-      </div>
+  { age: <span class="tok-number">25</span> }
+);</code></pre>
+        </div>
+    </div>
 
-      <div class="card">
-        <h3>Upsert</h3>
-        <p>Combines <strong>Update</strong> + <strong>Insert</strong>. With <span class="badge">upsert: true</span>, MongoDB updates a matching document, or inserts a new one if none exists.</p>
-        <pre>db.users.updateOne(
-  { email: <span class="str">"john@example.com"</span> },
-  { <span class="fn">$set</span>: { name: <span class="str">"John"</span> } },
-  { upsert: <span class="kw">true</span> }
-);</pre>
-      </div>
+    <div class="note-block type-notes">
+        <span class="content-label">Update + Insert</span>
+        <h2>Upsert</h2>
+        <p>Combines Update + Insert. With <code>upsert: true</code>, MongoDB updates a matching document, or inserts a new one if none exists.</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code>db.users.updateOne(
+  { email: <span class="tok-string">"john@example.com"</span> },
+  { <span class="tok-literal">$set</span>: { name: <span class="tok-string">"John"</span> } },
+  { upsert: <span class="tok-keyword">true</span> }
+);</code></pre>
+        </div>
+    </div>
 
-      <div class="card">
-        <h3>Soft Delete Pattern</h3>
-        <p>Instead of permanently deleting, mark documents with <span class="badge">isDeleted</span> / <span class="badge">deletedAt</span>. Enables recovery, keeps audit history, and prevents accidental data loss.</p>
-        <pre>db.users.updateOne(
+    <div class="note-block type-notes">
+        <span class="content-label">Deletion Pattern</span>
+        <h2>Soft Delete Pattern</h2>
+        <p>Instead of permanently deleting, mark documents with <code>isDeleted</code> / <code>deletedAt</code>. Enables recovery, keeps audit history, and prevents accidental data loss.</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code>db.users.updateOne(
   { _id: id },
-  { <span class="fn">$set</span>: { isDeleted: <span class="kw">true</span>, deletedAt: <span class="kw">new</span> Date() } }
+  { <span class="tok-literal">$set</span>: { isDeleted: <span class="tok-keyword">true</span>, deletedAt: <span class="tok-function">new</span> Date() } }
 );
 
-<span class="cmt">// Read only active users</span>
-db.users.find({ isDeleted: { $ne: <span class="kw">true</span> } });</pre>
-      </div>
+<span class="tok-comment">// Read only active users</span>
+db.users.find({ isDeleted: { <span class="tok-literal">$ne</span>: <span class="tok-keyword">true</span> } });</code></pre>
+        </div>
+    </div>
 
-      <div class="card">
-        <h3>Pagination</h3>
-        <p>Return data in chunks with <span class="badge">.skip()</span> + <span class="badge">.limit()</span>, combined with <span class="badge">.sort()</span> for consistent ordering. Use <span class="badge">countDocuments()</span> for totals.</p>
-        <pre>User.find()
-  .sort({ createdAt: -<span class="str">1</span> })
-  .skip((page - <span class="str">1</span>) * limit)
+    <div class="note-block type-notes">
+        <span class="content-label">Querying</span>
+        <h2>Pagination</h2>
+        <p>Return data in chunks with <code>.skip()</code> + <code>.limit()</code>, combined with <code>.sort()</code> for consistent ordering. Use <code>countDocuments()</code> for totals.</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code>User.find()
+  .sort({ createdAt: -<span class="tok-number">1</span> })
+  .skip((page - <span class="tok-number">1</span>) * limit)
   .limit(limit);
 
-<span class="kw">const</span> total = <span class="kw">await</span> User.countDocuments();</pre>
-      </div>
+<span class="tok-keyword">const</span> total = <span class="tok-keyword">await</span> User.countDocuments();</code></pre>
+        </div>
+    </div>
 
-      <div class="card">
-        <h3>populate()</h3>
-        <p>Replaces an <strong>ObjectId</strong> reference with the actual document from another collection — similar to a SQL JOIN.</p>
-        <pre>Post.find().populate(<span class="str">"author"</span>);</pre>
-      </div>
+    <div class="note-block type-notes">
+        <span class="content-label">References</span>
+        <h2>populate()</h2>
+        <p>Replaces an ObjectId reference with the actual document from another collection — similar to a SQL JOIN.</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code>Post.find().populate(<span class="tok-string">"author"</span>);</code></pre>
+        </div>
+    </div>
 
-      <div class="card">
-        <h3>Duplicate Key Errors</h3>
-        <p>Occurs when a unique index is violated (e.g. duplicate email). MongoDB returns error code <span class="badge">11000</span> — handle it gracefully.</p>
-        <pre><span class="kw">try</span> {
-  <span class="kw">await</span> User.create(data);
-} <span class="kw">catch</span> (err) {
-  <span class="kw">if</span> (err.code === <span class="str">11000</span>) {
-    <span class="kw">return</span> res.status(<span class="str">409</span>).json({ message: <span class="str">"Email already exists"</span> });
+    <div class="note-block type-warning">
+        <span class="content-label">Error Handling</span>
+        <h2>Duplicate Key Errors</h2>
+        <p>Occurs when a unique index is violated (e.g. duplicate email). MongoDB returns error code <code>11000</code> — handle it gracefully.</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code><span class="tok-keyword">try</span> {
+  <span class="tok-keyword">await</span> User.create(data);
+} <span class="tok-keyword">catch</span> (err) {
+  <span class="tok-keyword">if</span> (err.code === <span class="tok-number">11000</span>) {
+    <span class="tok-keyword">return</span> res.status(<span class="tok-number">409</span>).json({ message: <span class="tok-string">"Email already exists"</span> });
   }
-}</pre>
-      </div>
-    </section>
+}</code></pre>
+        </div>
+    </div>
 
-    <!-- BEST PRACTICES -->
-    <section id="practices" class="theme-amber">
-      <div class="section-head">
-        <div class="section-icon">✅</div>
+    <div class="note-block type-best-practices">
+        <span class="content-label">✅ Guidelines</span>
         <h2>CRUD Best Practices</h2>
-      </div>
 
-      <div class="card">
         <h3>Return the Updated Document</h3>
-        <p><span class="badge">findByIdAndUpdate()</span> returns the <strong>old</strong> document by default. Pass <span class="badge">{ new: true }</span> to get the updated one.</p>
-        <pre>User.findByIdAndUpdate(id, updateData, { new: <span class="kw">true</span> });</pre>
-      </div>
+        <p><code>findByIdAndUpdate()</code> returns the old document by default. Pass <code>{ new: true }</code> to get the updated one.</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code>User.findByIdAndUpdate(id, updateData, { new: <span class="tok-keyword">true</span> });</code></pre>
+        </div>
 
-      <div class="card">
         <h3>Enable Validation During Updates</h3>
-        <p>Mongoose validators don't run on updates unless <span class="badge">runValidators: true</span> is set.</p>
-        <pre>User.findByIdAndUpdate(id, updateData, { new: <span class="kw">true</span>, runValidators: <span class="kw">true</span> });</pre>
-      </div>
+        <p>Mongoose validators don't run on updates unless <code>runValidators: true</code> is set.</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code>User.findByIdAndUpdate(id, updateData, { new: <span class="tok-keyword">true</span>, runValidators: <span class="tok-keyword">true</span> });</code></pre>
+        </div>
 
-      <div class="card">
         <h3>Hide Sensitive Fields</h3>
-        <p>Never expose passwords or tokens in API responses — exclude them with <span class="badge">.select()</span>.</p>
-        <pre>User.find().select(<span class="str">"-password -refreshToken"</span>);</pre>
-      </div>
+        <p>Never expose passwords or tokens in API responses — exclude them with <code>.select()</code>.</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code>User.find().select(<span class="tok-string">"-password -refreshToken"</span>);</code></pre>
+        </div>
 
-      <div class="card">
         <h3>Index Frequently Queried Fields</h3>
         <p>Indexes speed up lookups on fields like email, username, or userId.</p>
-        <pre>userSchema.index({ email: <span class="str">1</span> });</pre>
-      </div>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code>userSchema.index({ email: <span class="tok-number">1</span> });</code></pre>
+        </div>
 
-      <div class="card">
         <h3>Return Only Required Fields</h3>
         <p>Fetch only what the client needs — improves performance and reduces bandwidth.</p>
-        <pre>User.find().select(<span class="str">"name email"</span>);</pre>
-      </div>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code>User.find().select(<span class="tok-string">"name email"</span>);</code></pre>
+        </div>
 
-      <div class="card">
         <h3>Validate Before DB Operations</h3>
-        <p>Validate input with a library like <strong>Joi</strong> or <strong>Zod</strong> before touching the database.</p>
-        <pre><span class="kw">const</span> { error } = schema.validate(req.body);
-<span class="kw">if</span> (error) <span class="kw">return</span> res.status(<span class="str">400</span>).json(error.details);</pre>
-      </div>
+        <p>Validate input with a library like Joi or Zod before touching the database.</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code><span class="tok-keyword">const</span> { error } = schema.validate(req.body);
+<span class="tok-keyword">if</span> (error) <span class="tok-keyword">return</span> res.status(<span class="tok-number">400</span>).json(error.details);</code></pre>
+        </div>
 
-      <div class="card">
-        <h3>Handle Errors & Check for Missing Documents</h3>
-        <p>Wrap async DB calls in try/catch, and remember methods like <span class="badge">findById()</span> return <span class="badge">null</span> when nothing matches.</p>
-        <pre><span class="kw">const</span> user = <span class="kw">await</span> User.findById(id);
-<span class="kw">if</span> (!user) <span class="kw">return</span> res.status(<span class="str">404</span>).json({ message: <span class="str">"User not found"</span> });</pre>
-      </div>
-    </section>
+        <h3>Handle Errors &amp; Check for Missing Documents</h3>
+        <p>Wrap async DB calls in try/catch, and remember methods like <code>findById()</code> return <code>null</code> when nothing matches.</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code><span class="tok-keyword">const</span> user = <span class="tok-keyword">await</span> User.findById(id);
+<span class="tok-keyword">if</span> (!user) <span class="tok-keyword">return</span> res.status(<span class="tok-number">404</span>).json({ message: <span class="tok-string">"User not found"</span> });</code></pre>
+        </div>
+    </div>
 
-    <!-- COMMON MISTAKES -->
-    <section id="mistakes" class="theme-coral">
-      <div class="section-head">
-        <div class="section-icon">⚠️</div>
+    <div class="note-block type-common-mistakes">
+        <span class="content-label">⚠️ Pitfalls</span>
         <h2>Common CRUD Mistakes</h2>
-      </div>
 
-      <div class="card">
         <h3>Replacing the Whole Document</h3>
-        <p>Updating without <span class="badge">$set</span> replaces the entire document, silently deleting existing fields.</p>
-      </div>
+        <p>Updating without <code>$set</code> replaces the entire document, silently deleting existing fields.</p>
 
-      <div class="card">
         <h3>Returning Huge Datasets Without Pagination</h3>
         <p>Fetching thousands of records at once spikes memory usage and slows the API. Always paginate large collections.</p>
-      </div>
 
-      <div class="card">
         <h3>Queries Directly in Controllers</h3>
         <p>Business logic belongs in service/repository layers — not controllers — for maintainability and testability.</p>
-      </div>
 
-      <div class="card">
         <h3>Running Queries Inside Loops — the N+1 Problem</h3>
-        <p>Calling <span class="badge">findOne()</span>/<span class="badge">findById()</span> inside a loop causes excessive DB calls. Batch with <span class="badge">$in</span> instead.</p>
-        <div class="two-col">
-          <div>
-            <div class="mini-label bad">✕ Bad</div>
-            <pre><span class="kw">for</span> (<span class="kw">const</span> id <span class="kw">of</span> ids) {
-  <span class="kw">await</span> User.findById(id);
-}</pre>
-          </div>
-          <div>
-            <div class="mini-label good">✓ Good</div>
-            <pre>User.find({ _id: { $in: ids } });</pre>
-          </div>
-        </div>
-      </div>
+        <p>Calling <code>findOne()</code> / <code>findById()</code> inside a loop causes excessive DB calls. Batch with <code>$in</code> instead.</p>
 
-      <div class="card">
+        <table>
+            <tr><th>✕ Bad</th><th>✓ Good</th></tr>
+            <tr>
+                <td>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code><span class="tok-keyword">for</span> (<span class="tok-keyword">const</span> id <span class="tok-keyword">of</span> ids) {
+  <span class="tok-keyword">await</span> User.findById(id);
+}</code></pre>
+                    </div>
+                </td>
+                <td>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code>User.find({ _id: { <span class="tok-literal">$in</span>: ids } });</code></pre>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
         <h3>Returning Sensitive Data</h3>
-        <p>Never expose passwords, tokens, OTPs, or other internal fields in API responses.</p>
-      </div>
-    </section>
+        <p>Failing to exclude fields like passwords or tokens in query results can leak sensitive data straight into API responses — always pair sensitive schemas with an explicit <code>.select()</code> exclusion.</p>
+    </div>
 
-    <!-- DEBUGGING -->
-    <section id="debug" class="theme-sky">
-      <div class="section-head">
-        <div class="section-icon">🛠️</div>
-        <h2>CRUD Debugging Tips</h2>
-      </div>
-
-      <div class="card">
-        <h3>Enable Mongoose Debug Mode</h3>
-        <p>Logs every MongoDB query Mongoose executes.</p>
-        <pre>mongoose.set(<span class="str">"debug"</span>, <span class="kw">true</span>);</pre>
-      </div>
-
-      <div class="card">
-        <h3>Verify Index Usage</h3>
-        <p>Use <span class="badge">.explain("executionStats")</span> to check whether a query is actually using an index.</p>
-        <pre>db.users.find({ email: <span class="str">"john@example.com"</span> }).explain(<span class="str">"executionStats"</span>);</pre>
-      </div>
-
-      <div class="card">
-        <h3>Validate ObjectId Before Querying</h3>
-        <p>Prevents a <strong>CastError</strong> from an invalid ID.</p>
-        <pre><span class="kw">if</span> (!mongoose.isValidObjectId(id)) {
-  <span class="kw">return</span> res.status(<span class="str">400</span>).json({ message: <span class="str">"Invalid ID"</span> });
-}</pre>
-      </div>
-
-      <div class="card">
-        <h3>Log Query Filters</h3>
-        <p>Log the filter object before running a query to catch incorrect or undefined values.</p>
-        <pre>console.log(filter);
-User.find(filter);</pre>
-      </div>
-
-      <div class="card">
-        <h3>Test APIs Independently & Register JSON Middleware</h3>
-        <p>Verify requests with Postman before debugging the frontend, and make sure body parsing is enabled — otherwise <span class="badge">req.body</span> is undefined.</p>
-        <pre>app.use(express.json());</pre>
-      </div>
-    </section>
-
-    <!-- FAQ -->
-    <section id="faq" class="theme-violet">
-      <div class="section-head">
-        <div class="section-icon">💬</div>
-        <h2>Frequently Asked Questions</h2>
-      </div>
-
-      <div class="faq-card">
-        <p class="faq-q">Can all Mongoose CRUD methods be used with async/await?</p>
-        <p>Yes — every Mongoose query method returns a promise (or thenable), so they all work with async/await.</p>
-      </div>
-
-      <div class="faq-card">
-        <p class="faq-q">What happens if an invalid ObjectId is passed?</p>
-        <p>Mongoose throws a <strong>CastError</strong>. Validate the ID first with <span class="badge">mongoose.isValidObjectId(id)</span>.</p>
-      </div>
-
-      <div class="faq-card">
-        <p class="faq-q">Is deleteMany({}) safe in production?</p>
-        <p><strong>No</strong> — it deletes every document in the collection. Always provide a filter, or use the soft delete pattern instead.</p>
-      </div>
-
-      <div class="faq-card">
-        <p class="faq-q">How do I return only specific fields?</p>
-        <p>Use <span class="badge">.select()</span> to include or exclude fields, e.g. <span class="badge">.select("name email -_id")</span>.</p>
-      </div>
-
-      <div class="faq-card">
-        <p class="faq-q">What is the N+1 Query Problem?</p>
-        <p>One query followed by many more inside a loop, causing poor performance. Fetch related records in a single query using <span class="badge">$in</span>.</p>
-      </div>
-    </section>
-
-  </main>
-
-  <footer>MongoDB &amp; Mongoose CRUD Field Guide — built for quick reference</footer>
-
+</div>
 </body>
 </html>

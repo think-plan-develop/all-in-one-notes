@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MongoDB Relationships — Complete Notes</title>
+<style>
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    color: #334155;
+    font-family: "Segoe UI", Arial, sans-serif;
+    line-height: 1.75;
+}
+
+.page-shell {
+    width: 90%;
+    max-width: 1400px;
+    margin: 40px auto;
+}
+
+.hero {
+    background:
+        linear-gradient(135deg, rgba(0, 30, 43, .98), rgba(0, 104, 74, .94)),
+        radial-gradient(circle at 88% 18%, rgba(0, 237, 100, .28), transparent 30%);
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 16px 36px rgba(0, 30, 43, .22);
+    color: #066911;
+    margin-bottom: 24px;
+    padding: 40px;
+}
+
+.hero h1 {
+    color: #00ed64;
+    font-size: 2.4rem;
+    font-weight: 800;
+    margin: 8px 15px 6px;
+    letter-spacing: -0.5px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, .24);
+}
+
+.hero p {
+    font-size: 17px;
+    line-height: 1.7;
+    margin: 0;
+    max-width: 900px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #e8fff1;
+    font-weight: 600;
+}
+
+.hero .content-label {
+    background: rgba(0, 237, 100, .16);
+    border: 1px solid rgba(0, 237, 100, .44);
+    color: #b6ffcf;
+}
+
+.content-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: -8px 0 30px;
+}
+
+.content-nav a {
+    background: #e3f9ea;
+    border: 1px solid #b8edc8;
+    border-radius: 100px;
+    color: #00684a;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 14px;
+    text-decoration: none;
+    transition: opacity .2s, transform .2s;
+}
+
+.content-nav a:hover {
+    opacity: .75;
+    transform: translateY(-2px);
+}
+
+.note-block {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(0, 30, 43, .08);
+    margin-bottom: 28px;
+    overflow: hidden;
+    padding: 0;
+}
+
+.content-label {
+    background: #00684a;
+    border-radius: 100px;
+    color: #fff;
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    margin: 30px 30px 0;
+    padding: 4px 14px;
+    text-transform: uppercase;
+}
+
+h2 {
+    background: #e3f9ea;
+    border: 1px solid #b8edc8;
+    color: #00684a;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 16px 0 0;
+    padding: 18px 30px;
+    letter-spacing: -0.2px;
+}
+
+h3 {
+    color: #00684a;
+    font-size: 19px;
+    font-weight: 700;
+    margin: 20px 0 10px;
+    line-height: 1.4;
+}
+
+h4 {
+    color: #0f766e;
+    font-size: 17px;
+    font-weight: 600;
+    margin: 16px 0 8px;
+}
+
+p {
+    color: #1e293b;
+    font-size: 17px;
+    line-height: 1.85;
+    margin-bottom: 10px;
+}
+
+li {
+    color: #334155;
+    font-size: 16px;
+    line-height: 1.9;
+    margin: 0;
+}
+
+dd {
+    color: #1e293b;
+    font-size: 16px;
+    line-height: 1.85;
+    margin: 2px 0 0;
+}
+
+.note-block > p,
+.note-block > ul,
+.note-block > ol,
+.note-block > dl,
+.note-block > table,
+.note-block > pre,
+.note-block > div,
+.note-block > blockquote {
+    margin-left: 30px;
+    margin-right: 30px;
+}
+
+.note-block > *:last-child {
+    margin-bottom: 30px;
+}
+
+ul,
+ol {
+    display: grid;
+    gap: 10px;
+    list-style: none;
+    margin-top: 14px;
+    padding-left: 0;
+}
+
+.note-block > ul li,
+.note-block > ol li {
+    background: #f8fffa;
+    border: 1px solid #d7f3df;
+    border-left: 4px solid #00a35c;
+    border-radius: 10px;
+    color: #1f2937;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.75;
+    padding: 11px 14px 11px 42px;
+    position: relative;
+}
+
+.note-block > ul li::before {
+    align-items: center;
+    background: #00a35c;
+    border-radius: 50%;
+    color: #fff;
+    content: "";
+    display: inline-flex;
+    height: 9px;
+    justify-content: center;
+    left: 18px;
+    position: absolute;
+    top: 20px;
+    width: 9px;
+}
+
+.note-block > ol {
+    counter-reset: note-step;
+}
+
+.note-block > ol li {
+    counter-increment: note-step;
+}
+
+.note-block > ol li::before {
+    align-items: center;
+    background: #00684a;
+    border-radius: 999px;
+    color: #fff;
+    content: counter(note-step);
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 800;
+    height: 24px;
+    justify-content: center;
+    left: 12px;
+    position: absolute;
+    top: 11px;
+    width: 24px;
+}
+
+.note-block > ul li:hover,
+.note-block > ol li:hover {
+    background: #eefff3;
+    border-color: #a7f3d0;
+    transform: translateX(2px);
+    transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+code {
+    background: #e3f9ea;
+    border-radius: 5px;
+    color: #00684a;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 2px 8px;
+}
+
+.code-wrap {
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .22);
+    margin-top: 14px;
+    overflow: hidden;
+}
+
+.code-bar {
+    align-items: center;
+    background: #1e1e2e;
+    border-bottom: 1px solid #313244;
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 16px;
+}
+
+.dots {
+    display: flex;
+    gap: 6px;
+}
+
+.dot-r,
+.dot-y,
+.dot-g {
+    border-radius: 50%;
+    height: 12px;
+    width: 12px;
+}
+
+.dot-r { background: #ef4444; }
+.dot-y { background: #f59e0b; }
+.dot-g { background: #22c55e; }
+
+.filename {
+    color: #cdd6f4;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12.5px;
+}
+
+.code-block {
+    background:#0f0f18;
+    color: #cdd6f4;
+    font-size: 15px;
+    line-height: 1.75;
+    margin: 0;
+    overflow-x: auto;
+    padding: 20px 22px;
+    tab-size: 4;
+}
+
+.code-block code {
+    background: transparent;
+    color: inherit;
+    font-weight: normal;
+    padding: 0;
+}
+
+.code-block .tok-keyword  { color: #cba6f7; }
+.code-block .tok-string   { color: #a6e3a1; }
+.code-block .tok-comment  { color: #6c7086; font-style: italic; }
+.code-block .tok-number   { color: #fab387; }
+.code-block .tok-literal  { color: #f38ba8; }
+.code-block .tok-function { color: #89b4fa; }
+
+.diagram-box,
+.diagram {
+    background: #fffbeb;
+    border: 2px dashed #d97706;
+    border-radius: 14px;
+    color: #92400e;
+    font-family: "Cascadia Code", "Fira Code", Consolas, "Courier New", monospace;
+    font-size: 15.5px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    line-height: 2.15;
+    margin-top: 16px;
+    overflow-x: auto;
+    padding: 22px 28px;
+    white-space: pre;
+}
+
+.short-answer,
+.interview,
+.remember,
+.tip,
+.warning,
+.note {
+    border-radius: 10px;
+    font-size: 16px;
+    line-height: 1.85;
+    margin-top: 14px;
+    padding: 16px 20px;
+}
+
+.short-answer { background: #dcfce7; border-left: 5px solid #16a34a; color: #15803d; }
+.interview    { background: #fff7ed; border-left: 5px solid #f97316; color: #c2410c; }
+.remember     { background: #fef9c3; border-left: 5px solid #ca8a04; color: #92400e; }
+.tip          { background: #fdf2f8; border-left: 5px solid #ec4899; color: #9d174d; }
+.warning      { background: #fff1f2; border-left: 5px solid #f43f5e; color: #be123c; }
+.note         { background: #f0fdfa; border-left: 5px solid #14b8a6; color: #0f766e; }
+
+.short-answer p, .interview p, .remember p, .tip p, .warning p, .note p { color: inherit; font-size: 16px; margin: 6px 0 0; }
+.short-answer li, .interview li, .remember li, .tip li, .warning li, .note li { color: inherit; font-size: 15px; }
+
+.badge        { background: #e3f9ea; border-radius: 100px; color: #00684a; display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 12px; }
+.badge-green  { background: #dcfce7; color: #16a34a; }
+.badge-orange { background: #ffedd5; color: #c2410c; }
+.badge-red    { background: #fee2e2; color: #dc2626; }
+.badge-teal   { background: #ccfbf1; color: #0f766e; }
+.badge-purple { background: #d8f8e2; color: #023430; }
+
+.definition-list { display: grid; }
+
+.definition-list dt {
+    display: block;
+    font-size: 17px;
+    font-weight: 900;
+    margin: 0;
+    padding: 14px 16px 0 16px;
+    line-height: 1.4;
+    border-radius: 12px 12px 0 0;
+    border-left-width: 5px;
+    border-left-style: solid;
+    border-top-width: 1px;
+    border-top-style: solid;
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-bottom: none;
+    margin-top: 12px;
+}
+
+.definition-list dd {
+    font-size: 15px;
+    margin: 0;
+    padding: 4px 16px 14px 16px;
+    line-height: 1.75;
+    border-radius: 0 0 12px 12px;
+    border-left-width: 5px;
+    border-left-style: solid;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-top: none;
+}
+
+.definition-list dt:nth-of-type(1)       { background:#fdf4ff; border-color:#a855f7 #e9d5ff #e9d5ff; color:#7e22ce; }
+.definition-list dt:nth-of-type(1) + dd  { background:#fdf4ff; border-color:#a855f7 #e9d5ff #e9d5ff; color:#4a044e; }
+
+.definition-list dt:nth-of-type(2)       { background:#fffbeb; border-color:#f59e0b #fde68a #fde68a; color:#b45309; }
+.definition-list dt:nth-of-type(2) + dd  { background:#fffbeb; border-color:#f59e0b #fde68a #fde68a; color:#78350f; }
+
+.definition-list dt:nth-of-type(3)       { background:#eef2ff; border-color:#6366f1 #c7d2fe #c7d2fe; color:#3730a3; }
+.definition-list dt:nth-of-type(3) + dd  { background:#eef2ff; border-color:#6366f1 #c7d2fe #c7d2fe; color:#1e1b4b; }
+
+.definition-list dt:nth-of-type(4)       { background:#fff7ed; border-color:#f97316 #fed7aa #fed7aa; color:#c2410c; }
+.definition-list dt:nth-of-type(4) + dd  { background:#fff7ed; border-color:#f97316 #fed7aa #fed7aa; color:#7c2d12; }
+
+table { border-collapse: collapse; font-size: 14px; margin-top: 14px; width: calc(100% - 60px); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+th { background: #00a35c; color: #fff; font-size: 15px; font-weight: 700; letter-spacing: .2px; padding: 13px 18px; text-align: left; border-right: 1px solid rgba(255,255,255,.18); }
+th:last-child { border-right: none; }
+td { background: #fff; border-bottom: 1px solid #e0e7ff; border-right: 1px solid #e0e7ff; color: #1e293b; font-size: 14px; font-weight: 500; line-height: 1.7; padding: 13px 18px; vertical-align: top; }
+td:last-child { border-right: none; }
+tr:nth-child(even) td { background: #eef2ff; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #e0e7ff; }
+
+.steps { display: grid; gap: 12px; margin-top: 16px; }
+.step-item { align-items: start; display: grid; gap: 14px; grid-template-columns: 42px 1fr; }
+.step-number { align-items: center; background: #00684a; border-radius: 50%; color: #fff; display: inline-flex; font-weight: 800; height: 34px; justify-content: center; width: 34px; }
+.step-body { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; }
+.step-body h3, .step-body p { margin-top: 0; }
+.step-body p { color: #334155; font-size: 16px; }
+
+.accordion-list { display: grid; gap: 10px; margin-top: 14px; }
+.accordion-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+.accordion-item summary { color: #00684a; cursor: pointer; font-size: 16px; font-weight: 700; padding: 13px 16px; }
+.accordion-item p { color: #334155; font-size: 16px; margin: 0; padding: 0 16px 16px; }
+
+.checklist { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.check-item { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 100px; color: #15803d; font-size: 13px; font-weight: 700; padding: 6px 14px; }
+
+.type-introduction .content-label { background: #00684a; color: #fff; }
+.type-diagram .content-label      { background: #10b981; color: #fff; }
+.type-terminology .content-label  { background: #023430; color: #fff; }
+.type-comparison .content-label   { background: #116149; color: #fff; }
+.type-summary .content-label      { background: #ca8a04; color: #fff; }
+.type-code .content-label         { background: #001e2b; color: #00ed64; }
+.type-warning .content-label      { background: #dc2626; color: #fff; }
+.type-qa .content-label           { background: #475569; color: #fff; }
+
+@media (max-width: 700px) {
+    .page-shell { width: min(100% - 20px, 1400px); margin: 18px auto; }
+    .hero { padding: 24px; }
+    .hero h1 { font-size: 1.8rem; }
+    .content-label,
+    .note-block > p, .note-block > ul, .note-block > ol,
+    .note-block > dl, .note-block > table, .note-block > pre,
+    .note-block > div, .note-block > blockquote { margin-left: 18px; margin-right: 18px; }
+    h2 { font-size: 20px; padding: 14px 18px; }
+    table { display: block; overflow-x: auto; white-space: nowrap; width: calc(100% - 36px); }
+    .step-item { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="page-shell">
+
+    <div class="hero">
+        <span class="content-label">Database Concepts</span>
+        <h1>MongoDB Relationships — Complete Notes</h1>
+        <p>How to model relationships between data in a document database: embedding vs referencing, one-to-one, one-to-many, many-to-many, and how to actually join data with $lookup.</p>
+        <div style="margin: 20px 0 0;">
+            <img src="shared/relationship.png" alt="MongoDB relationship modeling diagram" style="width:100%; max-width:900px; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.12); display:block;">
+        </div>
+    </div>
+
+    <div class="content-nav">
+        <a href="#whatis">What It Means</a>
+        <a href="#approaches">Embedding vs Referencing</a>
+        <a href="#onetoone">One-to-One</a>
+        <a href="#onetomany">One-to-Many</a>
+        <a href="#manytomany">Many-to-Many</a>
+        <a href="#lookup">Joining with $lookup</a>
+        <a href="#mistakes">Common Mistakes</a>
+        <a href="#interviewprep">Interview Q&A</a>
+        <a href="#bestpractices">Best Practices</a>
+        <a href="#summary">Summary</a>
+    </div>
+
+    <!-- WHAT IT MEANS -->
+    <div class="note-block type-introduction" id="whatis">
+        <span class="content-label">What It Means</span>
+        <h2>Relationships in a Document Database</h2>
+        <p>MongoDB is not a relational database, so it has no foreign keys or <code>JOIN</code> clause by default. But real applications still have related data — a user has orders, a blog post has comments, a student takes many courses. MongoDB gives you <strong>two core strategies</strong> to model these relationships:</p>
+        <div class="short-answer">
+            <strong>In short:</strong> either embed related data directly inside a document, or store it separately and reference it by <code>_id</code> — the right choice depends on how the data is accessed, how fast it grows, and whether it's read together most of the time.
+        </div>
+    </div>
+
+    <!-- EMBEDDING VS REFERENCING -->
+    <div class="note-block type-comparison" id="approaches">
+        <span class="content-label">Two Core Approaches</span>
+        <h2>Embedding vs Referencing</h2>
+        <table>
+            <tr><th>Embedding</th><th>Referencing</th></tr>
+            <tr><td>Related data is nested inside the parent document.</td><td>Related data lives in a separate collection, linked by an <code>_id</code>.</td></tr>
+            <tr><td>One read gets everything — no joins needed.</td><td>Requires a separate query or a <code>$lookup</code> to combine data.</td></tr>
+            <tr><td>Best for data that's always read together and doesn't grow unbounded.</td><td>Best for data that's large, shared across parents, or grows without limit.</td></tr>
+            <tr><td>Risk: documents can hit the 16MB size limit if arrays grow too large.</td><td>Risk: extra queries/joins add latency and complexity.</td></tr>
+        </table>
+        <div class="tip">
+            <strong>Rule of thumb:</strong> embed data that's "owned" by and always viewed with the parent (e.g. an address on a user profile). Reference data that's independent, reused, or could grow very large (e.g. millions of orders for a user).
+        </div>
+    </div>
+
+    <!-- ONE TO ONE -->
+    <div class="note-block type-code" id="onetoone">
+        <span class="content-label">One-to-One</span>
+        <h2>One-to-One Relationship</h2>
+        <p>Example: a <code>user</code> and their <code>profile</code> details. Usually modeled by embedding, since the profile is small and always read with the user.</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">embedded (recommended)</div>
+            </div>
+            <pre class="code-block"><code>{
+  _id: ObjectId(<span class="tok-string">"u1"</span>),
+  name: <span class="tok-string">"Asha"</span>,
+  profile: {
+    bio: <span class="tok-string">"Backend engineer"</span>,
+    avatarUrl: <span class="tok-string">"https://..."</span>
+  }
+}</code></pre>
+        </div>
+        <p>If the sub-document is large or optional and rarely fetched, referencing works too:</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">referenced</div>
+            </div>
+            <pre class="code-block"><code><span class="tok-comment">// users collection</span>
+{ _id: ObjectId(<span class="tok-string">"u1"</span>), name: <span class="tok-string">"Asha"</span>, profileId: ObjectId(<span class="tok-string">"p1"</span>) }
+
+<span class="tok-comment">// profiles collection</span>
+{ _id: ObjectId(<span class="tok-string">"p1"</span>), bio: <span class="tok-string">"Backend engineer"</span> }</code></pre>
+        </div>
+    </div>
+
+    <!-- ONE TO MANY -->
+    <div class="note-block type-code" id="onetomany">
+        <span class="content-label">One-to-Many</span>
+        <h2>One-to-Many Relationship</h2>
+        <p>Example: a blog <code>post</code> and its <code>comments</code>. Three common patterns depending on scale:</p>
+
+        <div class="steps">
+            <div class="step-item">
+                <span class="step-number">1</span>
+                <div class="step-body">
+                    <h3>Embed an array (small, bounded lists)</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">post document</div>
+                        </div>
+                        <pre class="code-block"><code>{
+  _id: ObjectId(<span class="tok-string">"post1"</span>),
+  title: <span class="tok-string">"Intro to MongoDB"</span>,
+  comments: [
+    { user: <span class="tok-string">"Raj"</span>, text: <span class="tok-string">"Great post!"</span> },
+    { user: <span class="tok-string">"Meera"</span>, text: <span class="tok-string">"Very helpful"</span> }
+  ]
+}</code></pre>
+                    </div>
+                    <p>Simple and fast to read, but risky if comments can grow into the thousands (16MB document limit, degraded write performance).</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <span class="step-number">2</span>
+                <div class="step-body">
+                    <h3>Reference with a parent pointer (large, unbounded lists)</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">comments collection</div>
+                        </div>
+                        <pre class="code-block"><code>{ _id: ObjectId(), postId: ObjectId(<span class="tok-string">"post1"</span>), user: <span class="tok-string">"Raj"</span>, text: <span class="tok-string">"Great post!"</span> }
+{ _id: ObjectId(), postId: ObjectId(<span class="tok-string">"post1"</span>), user: <span class="tok-string">"Meera"</span>, text: <span class="tok-string">"Very helpful"</span> }</code></pre>
+                    </div>
+                    <p>Query comments for a post with:</p>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">query</div>
+                        </div>
+                        <pre class="code-block"><code>db.comments.find({ postId: ObjectId(<span class="tok-string">"post1"</span>) })</code></pre>
+                    </div>
+                    <p>This scales to millions of comments per post, at the cost of needing a separate query (or <code>$lookup</code>).</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <span class="step-number">3</span>
+                <div class="step-body">
+                    <h3>Reference with a child array of IDs (medium-sized, static-ish lists)</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">post document</div>
+                        </div>
+                        <pre class="code-block"><code>{
+  _id: ObjectId(<span class="tok-string">"post1"</span>),
+  title: <span class="tok-string">"Intro to MongoDB"</span>,
+  commentIds: [ ObjectId(<span class="tok-string">"c1"</span>), ObjectId(<span class="tok-string">"c2"</span>) ]
+}</code></pre>
+                    </div>
+                    <p>Keeps the parent document lean while still tracking the relationship — but requires a second query to fetch the actual comments.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MANY TO MANY -->
+    <div class="note-block type-code" id="manytomany">
+        <span class="content-label">Many-to-Many</span>
+        <h2>Many-to-Many Relationship</h2>
+        <p>Example: <code>students</code> and <code>courses</code> — a student takes many courses, and a course has many students. Modeled with arrays of references on one or both sides.</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">students collection</div>
+            </div>
+            <pre class="code-block"><code>{
+  _id: ObjectId(<span class="tok-string">"s1"</span>),
+  name: <span class="tok-string">"Vikram"</span>,
+  courseIds: [ ObjectId(<span class="tok-string">"c1"</span>), ObjectId(<span class="tok-string">"c2"</span>) ]
+}</code></pre>
+        </div>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">courses collection</div>
+            </div>
+            <pre class="code-block"><code>{
+  _id: ObjectId(<span class="tok-string">"c1"</span>),
+  title: <span class="tok-string">"Databases 101"</span>,
+  studentIds: [ ObjectId(<span class="tok-string">"s1"</span>), ObjectId(<span class="tok-string">"s2"</span>) ]
+}</code></pre>
+        </div>
+        <div class="warning">
+            <strong>Watch out:</strong> storing the relationship on both sides (two-way referencing) means every enrollment change has to update two documents — easy to get out of sync. Many teams instead use a third "join" collection, similar to a relational many-to-many table.
+        </div>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">enrollments collection (join collection)</div>
+            </div>
+            <pre class="code-block"><code>{ _id: ObjectId(), studentId: ObjectId(<span class="tok-string">"s1"</span>), courseId: ObjectId(<span class="tok-string">"c1"</span>) }
+{ _id: ObjectId(), studentId: ObjectId(<span class="tok-string">"s1"</span>), courseId: ObjectId(<span class="tok-string">"c2"</span>) }</code></pre>
+        </div>
+    </div>
+
+    <!-- $LOOKUP -->
+    <div class="note-block type-code" id="lookup">
+        <span class="content-label">Joining Data</span>
+        <h2>Joining Referenced Data with $lookup</h2>
+        <p>When data is referenced across collections, <code>$lookup</code> in the aggregation pipeline performs a left-outer-join-style operation to bring it back together.</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">aggregation pipeline</div>
+            </div>
+            <pre class="code-block"><code>db.posts.aggregate([
+  {
+    <span class="tok-literal">$lookup</span>: {
+      <span class="tok-literal">from</span>: <span class="tok-string">"comments"</span>,
+      <span class="tok-literal">localField</span>: <span class="tok-string">"_id"</span>,
+      <span class="tok-literal">foreignField</span>: <span class="tok-string">"postId"</span>,
+      <span class="tok-literal">as</span>: <span class="tok-string">"comments"</span>
+    }
+  }
+])</code></pre>
+        </div>
+        <p>This attaches a <code>comments</code> array to each post, populated with all matching documents from the <code>comments</code> collection — similar to a SQL <code>LEFT JOIN</code>.</p>
+        <div class="note">
+            <strong>Note:</strong> <code>$lookup</code> is powerful but not free — it runs at query time and can be slower than embedding, especially without an index on <code>foreignField</code>. Index the field being joined on for good performance.
+        </div>
+    </div>
+
+    <!-- COMMON MISTAKES -->
+    <div class="note-block type-warning" id="mistakes">
+        <span class="content-label">Common Mistakes</span>
+        <h2>Pitfalls to Avoid</h2>
+        <ol>
+            <li>Embedding unbounded arrays (e.g. all comments ever made) that can eventually breach the 16MB document size limit.</li>
+            <li>Overusing <code>$lookup</code> as a crutch to mimic SQL joins, when the access pattern would be far simpler and faster with embedding.</li>
+            <li>Two-way referencing without a plan to keep both sides in sync, leading to orphaned or mismatched references.</li>
+            <li>Forgetting to index the foreign field used in <code>$lookup</code>, causing slow joins at scale.</li>
+            <li>Modeling every relationship the same way regardless of read/write patterns — the right choice is workload-specific, not one-size-fits-all.</li>
+        </ol>
+    </div>
+
+    <!-- INTERVIEW Q&A -->
+    <div class="note-block type-qa" id="interviewprep">
+        <span class="content-label">Interview Prep</span>
+        <h2>Important Interview Q&A</h2>
+        <div class="accordion-list">
+            <div class="accordion-item">
+                <details>
+                    <summary>1. Does MongoDB support relationships like a relational database?</summary>
+                    <p>Not natively through foreign keys or joins. It supports relationships through document design — embedding related data, or referencing it by <code>_id</code> and combining it manually or via <code>$lookup</code>.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>2. When should you choose embedding over referencing?</summary>
+                    <p>When the related data is small, bounded in size, always read together with the parent, and doesn't need to be queried independently.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>3. When should you choose referencing over embedding?</summary>
+                    <p>When the related data is large, grows without a clear bound, is shared across multiple parents, or is frequently queried on its own.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>4. What is $lookup and how does it behave like SQL?</summary>
+                    <p><code>$lookup</code> is an aggregation stage that joins documents from another collection based on matching field values, similar to a SQL <code>LEFT OUTER JOIN</code>.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>5. What is the 16MB document size limit and why does it matter for relationships?</summary>
+                    <p>Every MongoDB document has a hard 16MB size limit. It matters for relationship modeling because embedding an ever-growing array (like all comments on a viral post) can eventually hit that limit and start failing writes.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>6. How do you model many-to-many relationships in MongoDB?</summary>
+                    <p>Either with arrays of references on both sides (simple but can get out of sync), or with a dedicated join/enrollment collection that stores each pairing as its own document, similar to a relational join table.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>7. What's a hybrid approach to modeling relationships?</summary>
+                    <p>Many real schemas mix both: embed a small preview or summary of related data (e.g. the last 3 comments) for fast reads, while also referencing the full related collection for when more data is needed.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>8. Is $lookup as performant as embedding?</summary>
+                    <p>Generally no — <code>$lookup</code> performs the join at query time and adds overhead, especially without proper indexes on the joined field. Embedding avoids that cost entirely by keeping related data in one document.</p>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <!-- BEST PRACTICES -->
+    <div class="note-block" id="bestpractices">
+        <span class="content-label">Best Practices ⭐⭐⭐⭐⭐</span>
+        <h2>Best Practices</h2>
+        <ul>
+            <li>Model your schema around how the application reads data, not around how a relational schema would look.</li>
+            <li>Embed data that's small, bounded, and always accessed together with its parent.</li>
+            <li>Reference data that's large, shared, or queried independently of its parent.</li>
+            <li>Always index the field used as the join key before relying on <code>$lookup</code> in production.</li>
+            <li>For many-to-many relationships at scale, prefer a dedicated join collection over two-way array references.</li>
+            <li>Revisit your schema as access patterns change — document modeling is iterative, not fixed at design time.</li>
+        </ul>
+        <div class="checklist">
+            <span class="check-item">✓ Design for reads first</span>
+            <span class="check-item">✓ Bound your arrays</span>
+            <span class="check-item">✓ Index $lookup fields</span>
+            <span class="check-item">✓ Use join collections for M:N</span>
+            <span class="check-item">✓ Revisit as usage evolves</span>
+        </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="note-block type-summary" id="summary">
+        <span class="content-label">Takeaway</span>
+        <h2>Summary</h2>
+        <p>MongoDB models relationships through document design rather than foreign keys: <strong>embed</strong> when data is small and always read together, <strong>reference</strong> when data is large, shared, or queried independently, and use <code>$lookup</code> to join referenced data when needed. One-to-one and small one-to-many relationships usually favor embedding; large one-to-many and most many-to-many relationships favor referencing, often through a dedicated join collection.</p>
+    </div>
+
+</div>
+</body>
+</html>

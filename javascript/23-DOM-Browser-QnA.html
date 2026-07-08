@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JavaScript DOM & Browser — Interview Questions</title>
+<link href="index.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>JavaScript DOM &amp; Browser <span class="badge">10 Core Questions</span></h1>
+    <p>Event propagation, Fetch API, browser storage, memoization, memory leaks, and more — each explained with diagrams, tables, and annotated code.</p>
+    <div class="toc">
+      <a href="#events">Event Model</a>
+      <a href="#dom">DOM Content</a>
+      <a href="#fetch">Fetch &amp; Abort</a>
+      <a href="#strict">Strict Mode</a>
+      <a href="#storage">Storage</a>
+      <a href="#memo">Memoization</a>
+      <a href="#memory">Memory Leaks</a>
+    </div>
+  </div>
+
+  <!-- ================= EVENTS ================= -->
+  <div class="section-divider" id="events"><span>A. Event Model</span></div>
+
+  <div class="card theme-blue">
+    <div class="card-title">🫧 Event Bubbling, Capturing &amp; Propagation Control</div>
+    <div class="card-content card-content-QA">
+
+      <h4>1. What is Event Bubbling?</h4>
+      <p>Event bubbling is JavaScript's default propagation behavior: when an event fires on an element, it doesn't stay there. After triggering the handler on the target, the event "bubbles up" through every ancestor in the DOM tree — parent, grandparent, all the way to the document — giving each one a chance to respond. This bottom-up flow is why attaching a single listener on a parent can catch events from all of its children, a technique called Event Delegation.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">diagram</span></div>
+        <pre><code>     document
+        ↑
+     &lt;div id="parent"&gt;
+        ↑
+     &lt;button id="child"&gt;  ← event starts HERE (target)
+        then bubbles upward ↑↑↑</code></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bubbling.js</span></div>
+        <pre><code>document.getElementById(<span class="str">"parent"</span>).addEventListener(<span class="str">"click"</span>, () =&gt; {
+  console.log(<span class="str">"Parent Clicked"</span>);
+});
+
+document.getElementById(<span class="str">"child"</span>).addEventListener(<span class="str">"click"</span>, () =&gt; {
+  console.log(<span class="str">"Button Clicked"</span>);
+});
+
+<span class="cmt">// Click the button → Output:</span>
+<span class="cmt">// "Button Clicked"  (target fires first)</span>
+<span class="cmt">// "Parent Clicked"  (bubbles up to parent)</span></code></pre>
+      </div>
+
+      <p><strong>Real-world use — Event Delegation:</strong> instead of attaching a click listener to each <code>&lt;li&gt;</code> individually, you attach one listener to the parent <code>&lt;ul&gt;</code> and let bubbling do the work. This is both more memory-efficient and automatically handles list items added to the DOM later.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">event-delegation.js</span></div>
+        <pre><code>document.getElementById(<span class="str">"products"</span>).addEventListener(<span class="str">"click"</span>, (event) =&gt; {
+  console.log(event.target.textContent);
+  <span class="cmt">// works for every &lt;li&gt;, including ones added dynamically</span>
+});</code></pre>
+      </div>
+
+      <h4>2. What is Event Capturing?</h4>
+      <p>Event capturing (also called "trickling") is the opposite direction of propagation — the event begins at the document and travels <em>downward</em> through ancestors until it reaches the target. Capturing happens in the first phase of event flow, before bubbling. It's rarely needed in everyday code, but it's useful when you need to intercept an event at a parent level before it reaches its target. You opt in by passing <code>true</code> or <code>{ capture: true }</code> as the third argument to <code>addEventListener</code>.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">diagram</span></div>
+        <pre><code>Full event flow:
+
+  ┌─── 1. CAPTURING PHASE ──────────────────────────┐
+  │  document → html → body → parent → target        │
+  └─────────────────────────────────────────────────-┘
+  ┌─── 2. TARGET PHASE ─────────────────────────────┐
+  │  handlers on the target itself                   │
+  └──────────────────────────────────────────────────┘
+  ┌─── 3. BUBBLING PHASE ───────────────────────────┐
+  │  target → parent → body → html → document        │
+  └──────────────────────────────────────────────────┘</code></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">capturing.js</span></div>
+        <pre><code>document.getElementById(<span class="str">"parent"</span>).addEventListener(<span class="str">"click"</span>, () =&gt; {
+  console.log(<span class="str">"Parent"</span>);
+}, <span class="kw">true</span>); <span class="cmt">// true = capturing phase</span>
+
+document.getElementById(<span class="str">"child"</span>).addEventListener(<span class="str">"click"</span>, () =&gt; {
+  console.log(<span class="str">"Child"</span>);
+}, <span class="kw">true</span>);
+
+<span class="cmt">// Click the child → Output:</span>
+<span class="cmt">// "Parent"  (captured on the way down)</span>
+<span class="cmt">// "Child"</span></code></pre>
+      </div>
+
+      <div class="info-box box-note">Bubbling is the default — no extra argument needed. Capturing must be explicitly enabled. In practice, most code only ever uses bubbling.</div>
+
+      <h4>3. What is the difference between preventDefault() and stopPropagation()?</h4>
+      <p>These two methods are often confused because they both appear inside event handlers, but they solve completely different problems. <code>preventDefault()</code> stops the <em>browser's built-in reaction</em> to an event — like following a link or submitting a form — while still allowing the event to propagate normally through the DOM. <code>stopPropagation()</code> does the opposite: it allows the browser's default action to happen but stops the event from traveling any further up (or down) the DOM tree, so parent element listeners never fire.</p>
+
+      <table>
+        <tr><th></th><th><code>preventDefault()</code></th><th><code>stopPropagation()</code></th></tr>
+        <tr><td>Stops browser default (link, form submit)</td><td>✅ Yes</td><td>❌ No</td></tr>
+        <tr><td>Stops bubbling/capturing to parent elements</td><td>❌ No</td><td>✅ Yes</td></tr>
+        <tr><td>Typical use</td><td>Forms, links, right-click menus</td><td>Nested elements with conflicting handlers</td></tr>
+      </table>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">prevent-stop.js</span></div>
+        <pre><code><span class="cmt">// preventDefault — stops navigation, bubbling still happens</span>
+document.getElementById(<span class="str">"link"</span>).addEventListener(<span class="str">"click"</span>, (e) =&gt; {
+  e.preventDefault();
+  console.log(<span class="str">"Navigation prevented, event still bubbles"</span>);
+});
+
+<span class="cmt">// stopPropagation — parent handler never fires</span>
+document.getElementById(<span class="str">"parent"</span>).addEventListener(<span class="str">"click"</span>, () =&gt; {
+  console.log(<span class="str">"Parent"</span>); <span class="cmt">// never runs</span>
+});
+
+document.getElementById(<span class="str">"child"</span>).addEventListener(<span class="str">"click"</span>, (e) =&gt; {
+  e.stopPropagation();
+  console.log(<span class="str">"Child only"</span>);
+});</code></pre>
+      </div>
+
+      <div class="info-box box-tip">They can also be combined: <code>e.preventDefault(); e.stopPropagation();</code> — stop the browser action AND prevent the event from travelling further.</div>
+
+    </div>
+  </div>
+
+  <!-- ================= DOM CONTENT ================= -->
+  <div class="section-divider" id="dom"><span>B. DOM Content</span></div>
+
+  <div class="card theme-green">
+    <div class="card-title">📄 innerHTML vs innerText vs textContent</div>
+    <div class="card-content card-content-QA">
+
+      <h4>4. What is the difference between innerHTML, innerText, and textContent?</h4>
+      <p>All three read or set the content of a DOM element, but they differ in what they include and how they treat HTML markup and hidden elements. <code>innerHTML</code> works with the raw HTML string, meaning it parses tags when reading and renders them when writing. <code>innerText</code> gives you the rendered, human-visible text, respecting CSS — hidden elements are excluded, just as they would be from a user's perspective. <code>textContent</code> gives you everything from the DOM tree as a raw text string, regardless of CSS visibility, and is faster because it doesn't trigger a layout recalculation.</p>
+
+      <table>
+        <tr><th></th><th><code>innerHTML</code></th><th><code>innerText</code></th><th><code>textContent</code></th></tr>
+        <tr><td>Reads/writes HTML tags</td><td>✅ Yes</td><td>❌ No</td><td>❌ No</td></tr>
+        <tr><td>Respects CSS visibility</td><td>❌ No</td><td>✅ Yes (hides hidden)</td><td>❌ No (includes all)</td></tr>
+        <tr><td>Performance</td><td>Slower</td><td>Slower (needs layout)</td><td>✅ Fastest</td></tr>
+        <tr><td>XSS risk if using user input</td><td>⚠️ High risk</td><td>✅ Safe</td><td>✅ Safe</td></tr>
+      </table>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">dom-content.js</span></div>
+        <pre><code><span class="cmt">&lt;div id="demo"&gt;
+  Hello &lt;b&gt;World&lt;/b&gt;
+  &lt;span style="display:none"&gt;Hidden&lt;/span&gt;
+&lt;/div&gt;</span>
+
+<span class="kw">const</span> el = document.getElementById(<span class="str">"demo"</span>);
+
+el.innerHTML;     <span class="cmt">// 'Hello &lt;b&gt;World&lt;/b&gt; &lt;span style...&gt;Hidden&lt;/span&gt;'</span>
+el.innerText;     <span class="cmt">// 'Hello World'  (hidden span excluded)</span>
+el.textContent;   <span class="cmt">// 'Hello World Hidden'  (all text, ignores CSS)</span>
+
+<span class="cmt">// Writing HTML — only innerHTML renders tags</span>
+el.innerHTML  = <span class="str">"&lt;h2&gt;Welcome&lt;/h2&gt;"</span>; <span class="cmt">// renders an h2</span>
+el.textContent = <span class="str">"&lt;h2&gt;Welcome&lt;/h2&gt;"</span>; <span class="cmt">// shows the literal string</span></code></pre>
+      </div>
+
+      <div class="info-box box-warning"><strong>Security note:</strong> never assign user-provided input to <code>innerHTML</code> without sanitizing it first — malicious scripts embedded in the string will execute, creating a Cross-Site Scripting (XSS) vulnerability. Use <code>textContent</code> when inserting plain text.</div>
+
+    </div>
+  </div>
+
+  <!-- ================= FETCH & ABORT ================= -->
+  <div class="section-divider" id="fetch"><span>C. Fetch API &amp; AbortController</span></div>
+
+  <div class="card theme-purple">
+    <div class="card-title">🌐 Fetch API &amp; Request Cancellation</div>
+    <div class="card-content card-content-QA">
+
+      <h4>5. What is the Fetch API?</h4>
+      <p>The Fetch API is the modern, Promise-based replacement for the older <code>XMLHttpRequest</code>. Calling <code>fetch(url)</code> returns a Promise that resolves to a <code>Response</code> object once the server responds. Because it's Promise-based, it works naturally with <code>.then().catch()</code> chaining and even more naturally with <code>async/await</code>. You can configure every aspect of the request — method, headers, body, credentials — through an options object passed as the second argument.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">fetch.js</span></div>
+        <pre><code><span class="cmt">// GET request with async/await</span>
+<span class="kw">async function</span> <span class="fn">getUsers</span>() {
+  <span class="kw">try</span> {
+    <span class="kw">const</span> response = <span class="kw">await</span> fetch(<span class="str">"https://jsonplaceholder.typicode.com/users"</span>);
+
+    <span class="cmt">// fetch only rejects for network failures —</span>
+    <span class="cmt">// a 404 or 500 still "resolves", so check manually:</span>
+    <span class="kw">if</span> (!response.ok) {
+      <span class="kw">throw new</span> Error(<span class="str">`HTTP error: ${response.status}`</span>);
+    }
+
+    <span class="kw">const</span> users = <span class="kw">await</span> response.json();
+    console.log(users);
+  } <span class="kw">catch</span> (error) {
+    console.error(error);
+  }
+}
+
+<span class="cmt">// POST request</span>
+fetch(<span class="str">"https://example.com/api"</span>, {
+  method: <span class="str">"POST"</span>,
+  headers: { <span class="str">"Content-Type"</span>: <span class="str">"application/json"</span> },
+  body: JSON.stringify({ name: <span class="str">"John"</span> })
+});</code></pre>
+      </div>
+
+      <div class="info-box box-warning"><strong>Critical interview point:</strong> <code>fetch()</code> only rejects the Promise on a <em>network failure</em> (e.g. no internet, DNS error). HTTP error codes like <code>404 Not Found</code> or <code>500 Server Error</code> still resolve normally — you must check <code>response.ok</code> or <code>response.status</code> manually to detect them.</div>
+
+      <h4>6. What is AbortController?</h4>
+      <p><code>AbortController</code> gives you a way to programmatically cancel a <code>fetch()</code> request that's already in flight. You create a controller, pass its <code>signal</code> to <code>fetch()</code>, and call <code>controller.abort()</code> whenever you want to cancel — the Promise rejects with an <code>AbortError</code>. The canonical real-world scenario is a search-as-you-type input: every new keystroke cancels the previous request so only the latest query's result ever arrives, avoiding race conditions where an older, slower response overwrites a newer one.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">abort-controller.js</span></div>
+        <pre><code><span class="cmt">// Basic usage</span>
+<span class="kw">const</span> controller = <span class="kw">new</span> AbortController();
+
+fetch(<span class="str">"https://jsonplaceholder.typicode.com/users"</span>, {
+  signal: controller.signal
+})
+  .then(r =&gt; r.json())
+  .then(console.log)
+  .catch(err =&gt; {
+    <span class="kw">if</span> (err.name === <span class="str">"AbortError"</span>) {
+      console.log(<span class="str">"Request was cancelled"</span>);
+    }
+  });
+
+controller.abort(); <span class="cmt">// cancel it</span>
+
+<span class="cmt">// Real-world: cancel previous search on each keystroke</span>
+<span class="kw">let</span> controller;
+
+<span class="kw">function</span> <span class="fn">search</span>(query) {
+  <span class="kw">if</span> (controller) controller.abort(); <span class="cmt">// cancel the previous</span>
+
+  controller = <span class="kw">new</span> AbortController();
+
+  fetch(<span class="str">`/search?q=${query}`</span>, { signal: controller.signal })
+    .then(r =&gt; r.json())
+    .then(showResults)
+    .catch(err =&gt; { <span class="kw">if</span> (err.name !== <span class="str">"AbortError"</span>) <span class="kw">throw</span> err; });
+}</code></pre>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= STRICT MODE ================= -->
+  <div class="section-divider" id="strict"><span>D. Strict Mode</span></div>
+
+  <div class="card theme-teal">
+    <div class="card-title">🔒 Strict Mode — "use strict"</div>
+    <div class="card-content card-content-QA">
+
+      <h4>7. What is Strict Mode?</h4>
+      <p>Strict mode is an opt-in feature introduced in ES5 that makes the JavaScript engine enforce a stricter, safer set of parsing and runtime rules. Without it, many common mistakes — like forgetting to declare a variable — are silently ignored and produce hard-to-trace bugs. In strict mode those same mistakes throw clear errors immediately, making the source of the problem obvious. You enable it by placing the string <code>"use strict"</code> at the top of a file or function. ES6 modules and classes run in strict mode automatically, which is why modern JavaScript codebases effectively operate under it without explicitly writing the directive.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">strict-mode.js</span></div>
+        <pre><code><span class="cmt">// Without strict mode — silent bug</span>
+x = <span class="num">10</span>;
+console.log(x); <span class="cmt">// 10 — accidentally created a global variable</span>
+
+<span class="cmt">// With strict mode — immediate, clear error</span>
+<span class="str">"use strict"</span>;
+x = <span class="num">10</span>; <span class="cmt">// ReferenceError: x is not defined</span></code></pre>
+      </div>
+
+      <div class="info-box box-note">
+        <strong>What strict mode prevents:</strong> accidental global variables · assigning to read-only properties · deleting undeletable properties · duplicate parameter names · using reserved future keywords like <code>implements</code>, <code>interface</code>, <code>let</code> (in non-ES6 contexts) · <code>with</code> statements.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= STORAGE ================= -->
+  <div class="section-divider" id="storage"><span>E. Browser Storage</span></div>
+
+  <div class="card theme-orange">
+    <div class="card-title">💾 Cookies, Local Storage &amp; Session Storage</div>
+    <div class="card-content card-content-QA">
+
+      <h4>8. What is the difference between Cookies, Local Storage, and Session Storage?</h4>
+      <p>All three store key-value data in the browser, but they differ significantly in how much they hold, how long they persist, whether they travel to the server, and how they're scoped. The right choice depends on the use case: if the server needs the data (e.g. auth tokens for session management), cookies are the only option. If the data should survive the browser being closed and reopened, Local Storage is the answer. If the data only needs to last for a single tab session, Session Storage is the cleanest fit.</p>
+
+      <table>
+        <tr><th>Feature</th><th>Cookies</th><th>Local Storage</th><th>Session Storage</th></tr>
+        <tr><td>Storage limit</td><td>~4 KB</td><td>~5–10 MB</td><td>~5 MB</td></tr>
+        <tr><td>Expiration</td><td>Configurable (can be permanent)</td><td>Never — persists until cleared</td><td>Cleared when the tab closes</td></tr>
+        <tr><td>Sent with every HTTP request</td><td>✅ Yes</td><td>❌ No</td><td>❌ No</td></tr>
+        <tr><td>Accessible via JavaScript</td><td>✅ Yes</td><td>✅ Yes</td><td>✅ Yes</td></tr>
+        <tr><td>Shared across tabs</td><td>✅ Yes (same domain)</td><td>✅ Yes</td><td>❌ No — per tab only</td></tr>
+        <tr><td>Typical use case</td><td>Auth tokens, session IDs, user preferences the server needs</td><td>Theme, language, shopping cart, cached data</td><td>Multi-step forms, OTP flow, temporary tab state</td></tr>
+      </table>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">storage.js</span></div>
+        <pre><code><span class="cmt">// Cookies</span>
+document.cookie = <span class="str">"username=John; max-age=3600"</span>;
+
+<span class="cmt">// Local Storage — survives tab/browser close</span>
+localStorage.setItem(<span class="str">"theme"</span>, <span class="str">"dark"</span>);
+console.log(localStorage.getItem(<span class="str">"theme"</span>)); <span class="cmt">// "dark"</span>
+localStorage.removeItem(<span class="str">"theme"</span>);
+
+<span class="cmt">// Session Storage — cleared when the tab closes</span>
+sessionStorage.setItem(<span class="str">"user"</span>, <span class="str">"John"</span>);
+console.log(sessionStorage.getItem(<span class="str">"user"</span>)); <span class="cmt">// "John"</span></code></pre>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= MEMOIZATION ================= -->
+  <div class="section-divider" id="memo"><span>F. Memoization</span></div>
+
+  <div class="card theme-pink">
+    <div class="card-title">⚡ Memoization — Cache Results for Performance</div>
+    <div class="card-content card-content-QA">
+
+      <h4>9. What is Memoization?</h4>
+      <p>Memoization is a performance optimization technique where a function caches its output for each unique set of inputs the first time it's called. On subsequent calls with the same inputs, instead of repeating the computation, it returns the stored result instantly. It's a specific application of the caching concept, and it works particularly well for pure functions — functions that always return the same result for the same input and have no side effects. The cache is typically held alive by a closure over the memoized function.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">memoize.js</span></div>
+        <pre><code><span class="cmt">// Without memoization — recalculates every call</span>
+<span class="kw">function</span> <span class="fn">square</span>(num) {
+  console.log(<span class="str">"Calculating..."</span>);
+  <span class="kw">return</span> num * num;
+}
+square(<span class="num">5</span>); <span class="cmt">// "Calculating..." → 25</span>
+square(<span class="num">5</span>); <span class="cmt">// "Calculating..." → 25  (same work done again)</span>
+
+<span class="cmt">// With memoization — second call hits the cache</span>
+<span class="kw">function</span> <span class="fn">memoize</span>(fn) {
+  <span class="kw">const</span> cache = {};
+  <span class="kw">return function</span>(...args) {
+    <span class="kw">const</span> key = JSON.stringify(args);
+    <span class="kw">if</span> (cache[key] !== <span class="kw">undefined</span>) {
+      <span class="kw">return</span> cache[key]; <span class="cmt">// cache hit</span>
+    }
+    console.log(<span class="str">"Calculating..."</span>);
+    cache[key] = fn(...args);
+    <span class="kw">return</span> cache[key];
+  };
+}
+
+<span class="kw">const</span> memoSquare = memoize(num =&gt; num * num);
+memoSquare(<span class="num">5</span>); <span class="cmt">// "Calculating..." → 25  (computed, stored)</span>
+memoSquare(<span class="num">5</span>); <span class="cmt">// 25  (returned from cache instantly)</span>
+memoSquare(<span class="num">6</span>); <span class="cmt">// "Calculating..." → 36  (new input, computed)</span></code></pre>
+      </div>
+
+      <div class="info-box box-benefit">
+        <strong>Common real-world uses:</strong> expensive mathematical or recursive computations (e.g. Fibonacci) · API response caching to avoid duplicate network requests · React's <code>useMemo</code> hook to skip recalculating derived state on every render · selector caching in Redux with Reselect.
+      </div>
+
+      <div class="info-box box-warning"><strong>When NOT to memoize:</strong> functions with side effects, functions whose results change over time (non-pure), or functions called with too many unique inputs — the cache can grow large and waste memory instead of saving time.</div>
+
+    </div>
+  </div>
+
+  <!-- ================= MEMORY LEAKS ================= -->
+  <div class="section-divider" id="memory"><span>G. Memory Leaks</span></div>
+
+  <div class="card theme-red">
+    <div class="card-title">🚨 Memory Leaks — Causes &amp; Prevention</div>
+    <div class="card-content card-content-QA">
+
+      <h4>10. What causes Memory Leaks? How do you prevent them?</h4>
+      <p>A memory leak happens when the application allocates memory for something, then loses the ability or intention to use it — but the garbage collector can't reclaim it because at least one reference to it still exists somewhere. Since the mark-and-sweep garbage collector only frees memory that is completely unreachable, even a single forgotten reference is enough to keep a large object alive indefinitely. Over time, leaked memory accumulates and can slow down or crash the application.</p>
+
+      <h4>Cause 1 — Accidental Global Variables</h4>
+      <p>Assigning to an undeclared variable in non-strict mode creates a property on the global object. Global variables are always reachable (from the root), so they never get collected.</p>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">leak-globals.js</span></div>
+        <pre><code>data = []; <span class="cmt">// no 'const/let/var' — creates window.data globally</span>
+<span class="cmt">// Fix: always use const / let / var, or enable strict mode</span></code></pre>
+      </div>
+
+      <h4>Cause 2 — Forgotten Event Listeners</h4>
+      <p>Attaching an event listener to a DOM element holds a reference to both the listener function and its closure scope. If the element is removed from the DOM but the listener is never detached, both the element and everything the listener closes over stay in memory.</p>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">leak-listeners.js</span></div>
+        <pre><code>button.addEventListener(<span class="str">"click"</span>, handleClick);
+
+<span class="cmt">// When done, remove it:</span>
+button.removeEventListener(<span class="str">"click"</span>, handleClick);</code></pre>
+      </div>
+
+      <h4>Cause 3 — Uncleared Timers</h4>
+      <p><code>setInterval</code> keeps its callback (and everything in that callback's closure) alive forever unless the interval is cleared. Removing a component from the UI doesn't automatically stop its running intervals.</p>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">leak-timers.js</span></div>
+        <pre><code><span class="kw">const</span> id = setInterval(() =&gt; {
+  console.log(<span class="str">"Running..."</span>);
+}, <span class="num">1000</span>);
+
+<span class="cmt">// When the feature is done:</span>
+clearInterval(id);</code></pre>
+      </div>
+
+      <h4>Cause 4 — Closures Holding Large References</h4>
+      <p>A closure keeps its entire outer scope alive. If an inner function captures a reference to a large data structure and that inner function itself stays reachable (e.g. attached to an event listener or stored in a long-lived variable), the large object can never be collected.</p>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">leak-closures.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">outer</span>() {
+  <span class="kw">const</span> largeData = <span class="kw">new</span> Array(<span class="num">1000000</span>).fill(<span class="str">"x"</span>);
+
+  <span class="kw">return function</span> inner() {
+    console.log(largeData.length); <span class="cmt">// largeData stays alive as long as inner does</span>
+  };
+}</code></pre>
+      </div>
+
+      <h4>Cause 5 — Detached DOM Elements</h4>
+      <p>Removing an element from the page with <code>removeChild</code> or <code>innerHTML = ""</code> disconnects it from the document, but if your JavaScript still holds a reference to that element in a variable, the element object remains in heap memory and can't be garbage collected.</p>
+
+      <table>
+        <tr><th>Leak cause</th><th>Prevention</th></tr>
+        <tr><td>Accidental global variables</td><td>Always use <code>const</code>/<code>let</code>; enable <code>"use strict"</code></td></tr>
+        <tr><td>Forgotten event listeners</td><td>Call <code>removeEventListener</code> when element is destroyed</td></tr>
+        <tr><td>Uncleared timers</td><td>Call <code>clearInterval</code>/<code>clearTimeout</code> when done</td></tr>
+        <tr><td>Closures over large data</td><td>Null out references when no longer needed</td></tr>
+        <tr><td>Detached DOM elements</td><td>Clear all JS references when removing elements from DOM</td></tr>
+        <tr><td>React: forgetting cleanup</td><td>Return a cleanup function from <code>useEffect</code></td></tr>
+      </table>
+
+    </div>
+  </div>
+
+  <!-- ================= SUMMARY ================= -->
+  <div class="section-divider"><span>Quick Summary</span></div>
+
+  <div class="card theme-amber">
+    <div class="card-title">⚡ Cheat Sheet — All 10 Topics</div>
+    <div class="card-content">
+      <table>
+        <tr><th>Topic</th><th>Key Point</th></tr>
+        <tr><td>Event Bubbling</td><td>Default flow: target → parent → document</td></tr>
+        <tr><td>Event Capturing</td><td>Reverse flow (document → target); opt-in with <code>true</code></td></tr>
+        <tr><td><code>preventDefault()</code></td><td>Blocks browser default action; bubbling still continues</td></tr>
+        <tr><td><code>stopPropagation()</code></td><td>Stops event traveling to parent elements</td></tr>
+        <tr><td><code>innerHTML</code></td><td>Reads/writes raw HTML — XSS risk with user input</td></tr>
+        <tr><td><code>innerText</code></td><td>Visible rendered text only</td></tr>
+        <tr><td><code>textContent</code></td><td>All text including hidden — fastest, safest for output</td></tr>
+        <tr><td>Fetch API</td><td>Promise-based HTTP; <code>response.ok</code> must be checked manually</td></tr>
+        <tr><td>AbortController</td><td>Cancel in-flight <code>fetch()</code> requests; essential for search inputs</td></tr>
+        <tr><td>Strict Mode</td><td>Throws on unsafe code; automatic in ES6 modules</td></tr>
+        <tr><td>Cookies</td><td>4 KB, sent to server; use for auth tokens</td></tr>
+        <tr><td>Local Storage</td><td>5–10 MB, permanent, never sent to server</td></tr>
+        <tr><td>Session Storage</td><td>Per-tab, cleared on tab close</td></tr>
+        <tr><td>Memoization</td><td>Cache function results by input; avoids repeated computation</td></tr>
+        <tr><td>Memory Leaks</td><td>Globals, orphan listeners, stale timers, closures, detached DOM</td></tr>
+      </table>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

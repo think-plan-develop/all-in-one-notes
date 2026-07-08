@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MongoDB Replica Set Explained</title>
+<style>
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    color: #334155;
+    font-family: "Segoe UI", Arial, sans-serif;
+    line-height: 1.75;
+}
+
+.page-shell {
+    width: 90%;
+    max-width: 1400px;
+    margin: 40px auto;
+}
+
+.hero {
+    background:
+        linear-gradient(135deg, rgba(0, 30, 43, .98), rgba(0, 104, 74, .94)),
+        radial-gradient(circle at 88% 18%, rgba(0, 237, 100, .28), transparent 30%);
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 16px 36px rgba(0, 30, 43, .22);
+    color: #066911;
+    margin-bottom: 24px;
+    padding: 40px;
+}
+
+.hero h1 {
+    color: #00ed64;
+    font-size: 2.4rem;
+    font-weight: 800;
+    margin: 8px 15px 6px;
+    letter-spacing: -0.5px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, .24);
+}
+
+.hero p {
+    font-size: 17px;
+    line-height: 1.7;
+    margin: 0;
+    max-width: 900px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #e8fff1;
+    font-weight: 600;
+}
+
+.hero .content-label {
+    background: rgba(0, 237, 100, .16);
+    border: 1px solid rgba(0, 237, 100, .44);
+    color: #b6ffcf;
+}
+
+.content-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: -8px 0 30px;
+}
+
+.content-nav a {
+    background: #e3f9ea;
+    border: 1px solid #b8edc8;
+    border-radius: 100px;
+    color: #00684a;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 14px;
+    text-decoration: none;
+    transition: opacity .2s, transform .2s;
+}
+
+.content-nav a:nth-child(3n) {
+    background: #8bbd9c;
+    border-color: #b0d6e7;
+    color: #1b442c;
+}
+
+.content-nav a:nth-child(2n) {
+    background: #d8f8e2;
+    border-color: #9ee9b5;
+    color: #023430;
+}
+
+.content-nav a:nth-child(4n) {
+    background: #ccfbf1;
+    border-color: #5eead4;
+    color: #0f766e;
+}
+
+.content-nav a:nth-child(5n) {
+    background: #0f766e;
+    border-color: #115e59;
+    color: #ecfdf5;
+}
+
+.content-nav a:hover {
+    opacity: .75;
+    transform: translateY(-2px);
+}
+
+.note-block {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(0, 30, 43, .08);
+    margin-bottom: 28px;
+    overflow: hidden;
+    padding: 0;
+}
+
+.content-label {
+    background: #00684a;
+    border-radius: 100px;
+    color: #fff;
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    margin: 30px 30px 0;
+    padding: 4px 14px;
+    text-transform: uppercase;
+}
+
+h2 {
+    background: #e3f9ea;
+    border: 1px solid #b8edc8;
+    color: #00684a;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 16px 0 0;
+    padding: 18px 30px;
+    letter-spacing: -0.2px;
+}
+
+h3 {
+    color: #00684a;
+    font-size: 19px;
+    font-weight: 700;
+    margin: 20px 0 10px;
+    line-height: 1.4;
+}
+
+h4 {
+    color: #0f766e;
+    font-size: 17px;
+    font-weight: 600;
+    margin: 16px 0 8px;
+}
+
+p {
+    color: #1e293b;
+    font-size: 17px;
+    line-height: 1.85;
+    margin-bottom: 10px;
+}
+
+li {
+    color: #334155;
+    font-size: 16px;
+    line-height: 1.9;
+    margin: 0;
+}
+
+dd {
+    color: #1e293b;
+    font-size: 16px;
+    line-height: 1.85;
+    margin: 2px 0 0;
+}
+
+.note-block > p,
+.note-block > ul,
+.note-block > ol,
+.note-block > dl,
+.note-block > table,
+.note-block > pre,
+.note-block > div,
+.note-block > blockquote {
+    margin-left: 30px;
+    margin-right: 30px;
+}
+
+.note-block > *:last-child {
+    margin-bottom: 30px;
+}
+
+ul,
+ol {
+    display: grid;
+    gap: 10px;
+    list-style: none;
+    margin-top: 14px;
+    padding-left: 0;
+}
+
+.note-block > ul li,
+.note-block > ol li {
+    background: #f8fffa;
+    border: 1px solid #d7f3df;
+    border-left: 4px solid #00a35c;
+    border-radius: 10px;
+    color: #1f2937;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.75;
+    padding: 11px 14px 11px 42px;
+    position: relative;
+}
+
+.note-block > ul li::before {
+    align-items: center;
+    background: #00a35c;
+    border-radius: 50%;
+    color: #fff;
+    content: "";
+    display: inline-flex;
+    height: 9px;
+    justify-content: center;
+    left: 18px;
+    position: absolute;
+    top: 20px;
+    width: 9px;
+}
+
+.note-block > ol {
+    counter-reset: note-step;
+}
+
+.note-block > ol li {
+    counter-increment: note-step;
+}
+
+.note-block > ol li::before {
+    align-items: center;
+    background: #00684a;
+    border-radius: 999px;
+    color: #fff;
+    content: counter(note-step);
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 800;
+    height: 24px;
+    justify-content: center;
+    left: 12px;
+    position: absolute;
+    top: 11px;
+    width: 24px;
+}
+
+.note-block > ul li:hover,
+.note-block > ol li:hover {
+    background: #eefff3;
+    border-color: #a7f3d0;
+    transform: translateX(2px);
+    transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+code {
+    background: #e3f9ea;
+    border-radius: 5px;
+    color: #00684a;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 2px 8px;
+}
+
+.code-wrap {
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .22);
+    margin-top: 14px;
+    overflow: hidden;
+}
+
+.code-bar {
+    align-items: center;
+    background: #1e1e2e;
+    border-bottom: 1px solid #313244;
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 16px;
+}
+
+.dots {
+    display: flex;
+    gap: 6px;
+}
+
+.dot-r,
+.dot-y,
+.dot-g {
+    border-radius: 50%;
+    height: 12px;
+    width: 12px;
+}
+
+.dot-r { background: #ef4444; }
+.dot-y { background: #f59e0b; }
+.dot-g { background: #22c55e; }
+
+.filename {
+    color: #cdd6f4;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12.5px;
+}
+
+.code-block {
+    background:#0f0f18;
+    color: #cdd6f4;
+    font-size: 15px;
+    line-height: 1.75;
+    margin: 0;
+    overflow-x: auto;
+    padding: 20px 22px;
+    tab-size: 4;
+}
+
+.code-block code {
+    background: transparent;
+    color: inherit;
+    font-weight: normal;
+    padding: 0;
+}
+
+.code-block .tok-keyword  { color: #cba6f7; }
+.code-block .tok-string   { color: #a6e3a1; }
+.code-block .tok-comment  { color: #6c7086; font-style: italic; }
+.code-block .tok-number   { color: #fab387; }
+.code-block .tok-literal  { color: #f38ba8; }
+.code-block .tok-function { color: #89b4fa; }
+
+/* ── DIAGRAM BOX ── */
+.diagram-box,
+.diagram {
+    background: #fffbeb;
+    border: 2px dashed #d97706;
+    border-radius: 14px;
+    color: #92400e;
+    font-family: "Cascadia Code", "Fira Code", Consolas, "Courier New", monospace;
+    font-size: 15.5px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    line-height: 2.15;
+    margin-top: 16px;
+    overflow-x: auto;
+    padding: 22px 28px;
+    white-space: pre;
+}
+
+.short-answer,
+.interview,
+.remember,
+.tip,
+.warning,
+.note {
+    border-radius: 10px;
+    font-size: 16px;
+    line-height: 1.85;
+    margin-top: 14px;
+    padding: 16px 20px;
+}
+
+.short-answer { background: #dcfce7; border-left: 5px solid #16a34a; color: #15803d; }
+.interview    { background: #fff7ed; border-left: 5px solid #f97316; color: #c2410c; }
+.remember     { background: #fef9c3; border-left: 5px solid #ca8a04; color: #92400e; }
+.tip          { background: #fdf2f8; border-left: 5px solid #ec4899; color: #9d174d; }
+.warning      { background: #fff1f2; border-left: 5px solid #f43f5e; color: #be123c; }
+.note         { background: #f0fdfa; border-left: 5px solid #14b8a6; color: #0f766e; }
+
+.short-answer p, .interview p, .remember p,
+.tip p, .warning p, .note p { color: inherit; font-size: 16px; margin: 6px 0 0; }
+
+.short-answer li, .interview li, .remember li,
+.tip li, .warning li, .note li { color: inherit; font-size: 15px; }
+
+.badge        { background: #e3f9ea; border-radius: 100px; color: #00684a; display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 12px; }
+.badge-green  { background: #dcfce7; color: #16a34a; }
+.badge-orange { background: #ffedd5; color: #c2410c; }
+.badge-purple { background: #d8f8e2; color: #023430; }
+.badge-pink   { background: #fce7f3; color: #be185d; }
+.badge-teal   { background: #ccfbf1; color: #0f766e; }
+.badge-red    { background: #fee2e2; color: #dc2626; }
+.badge-yellow { background: #fef9c3; color: #92400e; }
+
+.definition-list {
+    display: grid;
+}
+
+.definition-list dt {
+    display: block;
+    font-size: 17px;
+    font-weight: 900;
+    margin: 0;
+    padding: 14px 16px 0 16px;
+    line-height: 1.4;
+    border-radius: 12px 12px 0 0;
+    border-left-width: 5px;
+    border-left-style: solid;
+    border-top-width: 1px;
+    border-top-style: solid;
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-bottom: none;
+    margin-top: 12px;
+}
+
+.definition-list dd {
+    font-size: 15px;
+    margin: 0;
+    padding: 4px 16px 14px 16px;
+    line-height: 1.75;
+    border-radius: 0 0 12px 12px;
+    border-left-width: 5px;
+    border-left-style: solid;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-top: none;
+}
+
+.definition-list .code-block {
+    border-radius: 20px;
+    border-left: 4px solid #0284c7;
+}
+
+.definition-list dt:nth-of-type(1)       { background:#fdf4ff; border-color:#a855f7 #e9d5ff #e9d5ff; color:#7e22ce; }
+.definition-list dt:nth-of-type(1) + dd  { background:#fdf4ff; border-color:#a855f7 #e9d5ff #e9d5ff; color:#4a044e; }
+
+.definition-list dt:nth-of-type(2)       { background:#fffbeb; border-color:#f59e0b #fde68a #fde68a; color:#b45309; }
+.definition-list dt:nth-of-type(2) + dd  { background:#fffbeb; border-color:#f59e0b #fde68a #fde68a; color:#78350f; }
+
+.definition-list dt:nth-of-type(3)       { background:#eef2ff; border-color:#6366f1 #c7d2fe #c7d2fe; color:#3730a3; }
+.definition-list dt:nth-of-type(3) + dd  { background:#eef2ff; border-color:#6366f1 #c7d2fe #c7d2fe; color:#1e1b4b; }
+
+.definition-list dt:nth-of-type(4)       { background:#fff7ed; border-color:#f97316 #fed7aa #fed7aa; color:#c2410c; }
+.definition-list dt:nth-of-type(4) + dd  { background:#fff7ed; border-color:#f97316 #fed7aa #fed7aa; color:#7c2d12; }
+
+.definition-list dt:nth-of-type(5)       { background:#ecfdf5; border-color:#10b981 #a7f3d0 #a7f3d0; color:#047857; }
+.definition-list dt:nth-of-type(5) + dd  { background:#ecfdf5; border-color:#10b981 #a7f3d0 #a7f3d0; color:#14532d; }
+
+.definition-list dt:nth-of-type(6)       { background:#fef2f2; border-color:#ef4444 #fecaca #fecaca; color:#b91c1c; }
+.definition-list dt:nth-of-type(6) + dd  { background:#fef2f2; border-color:#ef4444 #fecaca #fecaca; color:#7f1d1d; }
+
+.definition-list dt:nth-of-type(7)       { background:#f0f9ff; border-color:#0ea5e9 #bae6fd #bae6fd; color:#0369a1; }
+.definition-list dt:nth-of-type(7) + dd  { background:#f0f9ff; border-color:#0ea5e9 #bae6fd #bae6fd; color:#0c4a6e; }
+
+table { border-collapse: collapse; font-size: 14px; margin-top: 14px; width: calc(100% - 60px); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+th { background: #00a35c; color: #fff; font-size: 15px; font-weight: 700; letter-spacing: .2px; padding: 13px 18px; text-align: left; border-right: 1px solid rgba(255,255,255,.18); }
+th:last-child { border-right: none; }
+td { background: #fff; border-bottom: 1px solid #e0e7ff; border-right: 1px solid #e0e7ff; color: #1e293b; font-size: 14px; font-weight: 500; line-height: 1.7; padding: 13px 18px; vertical-align: top; }
+td:last-child { border-right: none; }
+tr:nth-child(even) td { background: #eef2ff; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #e0e7ff; }
+
+.qa-card,
+.info-card {
+    background: #dbddff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin-top: 14px;
+    padding: 16px 18px;
+}
+
+.qa-card p,
+.info-card p { color: #1e293b; font-size: 16px; margin: 0; font-weight: 600; }
+
+.timeline { display: grid; gap: 14px; margin-top: 16px; }
+.timeline-item { align-items: start; display: grid; gap: 14px; grid-template-columns: 62px 1fr; }
+.timeline-marker { background: #00684a; border-radius: 100px; color: #fff; font-size: 12px; font-weight: 800; padding: 5px 10px; text-align: center; }
+.timeline-body { border-left: 3px solid #a7f3d0; padding-left: 16px; }
+.timeline-body h3, .timeline-body p { margin-top: 0; }
+
+.checklist { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.check-item { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 100px; color: #15803d; font-size: 13px; font-weight: 700; padding: 6px 14px; }
+
+.accordion-list { display: grid; gap: 10px; margin-top: 14px; }
+.accordion-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+.accordion-item summary { color: #00684a; cursor: pointer; font-size: 16px; font-weight: 700; padding: 13px 16px; }
+.accordion-item p { color: #334155; font-size: 16px; margin: 0; padding: 0 16px 16px; }
+
+.quote-box { background: #fef9c3; border-left: 5px solid #ca8a04; border-radius: 10px; color: #92400e; margin-top: 14px; padding: 16px 20px; }
+.quote-box p { color: inherit; font-size: 16px; font-weight: 700; margin: 0; }
+.quote-box cite { color: #854d0e; display: block; font-size: 13px; font-style: normal; margin-top: 8px; }
+
+.steps { display: grid; gap: 12px; margin-top: 16px; }
+.step-item { align-items: start; display: grid; gap: 14px; grid-template-columns: 42px 1fr; }
+.step-number { align-items: center; background: #00684a; border-radius: 50%; color: #fff; display: inline-flex; font-weight: 800; height: 34px; justify-content: center; width: 34px; }
+.step-body { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; }
+.step-body h3, .step-body p { margin-top: 0; }
+.step-body p { color: #334155; font-size: 16px; }
+
+.type-introduction .content-label,
+.type-workflow .content-label,
+.type-table .content-label      { background: #00684a; color: #fff; }
+.type-notes .content-label,
+.type-best-practices .content-label,
+.type-info .content-label       { background: #00a35c; color: #fff; }
+.type-terminology .content-label,
+.type-interview .content-label,
+.type-steps .content-label      { background: #023430; color: #fff; }
+.type-diagram .content-label    { background: #10b981; color: #fff; }
+.type-code .content-label       { background: #001e2b; color: #00ed64; }
+.type-explanation .content-label,
+.type-comparison .content-label,
+.type-accordion .content-label  { background: #116149; color: #fff; }
+.type-use-cases .content-label,
+.type-checklist .content-label  { background: #00a35c; color: #fff; }
+.type-common-mistakes .content-label,
+.type-warning .content-label    { background: #dc2626; color: #fff; }
+.type-debugging-tips .content-label,
+.type-tip .content-label        { background: #ea580c; color: #fff; }
+.type-qa .content-label         { background: #475569; color: #fff; }
+.type-summary .content-label,
+.type-highlight .content-label,
+.type-quote .content-label      { background: #ca8a04; color: #fff; }
+
+@media (max-width: 700px) {
+    .page-shell { width: min(100% - 20px, 1400px); margin: 18px auto; }
+    .hero { padding: 24px; }
+    .hero h1 { font-size: 1.8rem; }
+    .content-label,
+    .note-block > p, .note-block > ul, .note-block > ol,
+    .note-block > dl, .note-block > table, .note-block > pre,
+    .note-block > div, .note-block > blockquote { margin-left: 18px; margin-right: 18px; }
+    h2 { font-size: 20px; padding: 14px 18px; }
+    table { display: block; overflow-x: auto; white-space: nowrap; width: calc(100% - 36px); }
+    .timeline-item, .step-item { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="page-shell">
+
+    <div class="hero">
+        <span class="badge content-label">MongoDB · High Availability</span>
+        <h1>Replica Sets in MongoDB</h1>
+        <p>A replica set is a group of MongoDB servers that keep the same data in sync, so your application keeps running even if one of the servers goes down.</p>
+        <div style="margin: 20px 0 0;">
+            <img src="shared/replica-replicaset.png" alt="MongoDB replica set architecture" style="width:100%; max-width:900px; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.12); display:block;">
+        </div>
+    </div>
+
+    <div class="content-nav">
+        <a href="#intro">Introduction</a>
+        <a href="#replica">What is a Replica</a>
+        <a href="#terminology">Terminology</a>
+        <a href="#diagram">Architecture</a>
+        <a href="#election">Elections & Failover</a>
+        <a href="#code">Setup Example</a>
+        <a href="#writeconcern">Write & Read Concerns</a>
+        <a href="#replvssharding">Replication vs Sharding</a>
+        <a href="#usecases">Use Cases</a>
+        <a href="#mistakes">Common Mistakes</a>
+        <a href="#qa">Quick Q&A</a>
+    </div>
+
+    <!-- INTRODUCTION -->
+    <div class="note-block type-introduction" id="intro">
+        <span class="content-label">Introduction</span>
+        <h2>What is a Replica Set?</h2>
+        <p>A <strong>replica set</strong> is MongoDB's built-in mechanism for data redundancy and high availability. Instead of running a single MongoDB server, you run a group of <code>mongod</code> processes that all maintain the exact same data set.</p>
+        <p>One member is elected the <strong>Primary</strong> and accepts all write operations. The remaining members are <strong>Secondaries</strong>, which replicate the primary's data by continuously applying its operation log (the <code>oplog</code>). If the primary ever becomes unavailable, the remaining members automatically hold an election and promote a new primary — with no manual intervention required.</p>
+        <div class="short-answer">
+            <strong>In short:</strong> a replica set = one primary + multiple secondaries + automatic failover, giving you a database that survives server crashes, network partitions, and planned maintenance without downtime.
+        </div>
+    </div>
+
+    <!-- WHAT IS A REPLICA -->
+    <div class="note-block type-notes" id="replica">
+        <span class="content-label">Core Concept</span>
+        <h2>What is a Replica?</h2>
+        <p>A <strong>replica</strong> is simply <em>one copy</em> of the data — a single <code>mongod</code> server instance that holds the same data as the other members in the group. It's the individual unit; it is <strong>not</strong> the whole system.</p>
+        <p>A <strong>replica set</strong>, on the other hand, is the entire collection of these replicas working together as one logical database — with a primary, one or more secondaries, and automatic failover between them.</p>
+        <div class="short-answer">
+            <strong>Simple way to remember:</strong> a replica = one node/copy of the data. A replica set = the whole group of replicas (primary + secondaries) managed as a single unit.
+        </div>
+        <table>
+            <thead>
+                <tr><th>Term</th><th>What it refers to</th><th>Example</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Replica</td><td>A single data-bearing member (one copy of the data)</td><td>The secondary running on <code>host2:27018</code></td></tr>
+                <tr><td>Replica Set</td><td>The full group of replicas + arbiter, managed as one unit</td><td><code>rs0</code> made up of 3 replicas</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- TERMINOLOGY -->
+    <div class="note-block type-terminology" id="terminology">
+        <span class="content-label">Terminology</span>
+        <h2>Key Terms</h2>
+        <dl class="definition-list">
+            <dt>Primary</dt>
+            <dd>The only member of the replica set that accepts write operations. There is always at most one primary at a time.</dd>
+
+            <dt>Secondary</dt>
+            <dd>Replicates data from the primary by applying oplog entries. Can serve read requests if the client opts in with an appropriate read preference.</dd>
+
+            <dt>Arbiter</dt>
+            <dd>A member that holds no data and doesn't accept reads or writes. It exists only to vote in elections, useful for keeping an odd number of voters without adding another full data-bearing server.</dd>
+
+            <dt>Oplog (Operation Log)</dt>
+            <dd>A special capped collection on the primary that records every write operation. Secondaries tail this log and re-apply the operations locally to stay in sync.</dd>
+
+            <dt>Election</dt>
+            <dd>The process by which remaining members choose a new primary when the current one becomes unreachable, using a Raft-derived consensus protocol.</dd>
+
+            <dt>Replication Lag</dt>
+            <dd>The delay between a write being applied on the primary and that same write being applied on a secondary.</dd>
+
+            <dt>Hidden / Delayed Member</dt>
+            <dd>A secondary that is invisible to application read traffic (hidden) or intentionally kept behind by a fixed delay (delayed), often used for backups or reporting.</dd>
+        </dl>
+    </div>
+
+    <!-- ARCHITECTURE DIAGRAM -->
+    <div class="note-block type-diagram" id="diagram">
+        <span class="content-label">Architecture</span>
+        <h2>How the Members Are Connected</h2>
+        <p>A typical production replica set has three data-bearing members (the minimum recommended for automatic failover with majority voting):</p>
+        <div class="diagram-box">
+        ┌─────────────────────────────────────────────┐
+        │                 APPLICATION                  │
+        └───────────────────────┬─────────────────────┘
+                                 │  writes / reads
+                                 ▼
+                      ┌───────────────────┐
+                      │      PRIMARY      │
+                      │   (accepts writes)│
+                      └─────────┬─────────┘
+                                │  oplog replication
+                     ┌──────────┴──────────┐
+                     ▼                     ▼
+             ┌───────────────┐     ┌───────────────┐
+             │  SECONDARY 1  │     │  SECONDARY 2  │
+             │ (replicates)  │     │ (replicates)  │
+             └───────────────┘     └───────────────┘
+
+           If PRIMARY goes down → members vote →
+           one SECONDARY is elected new PRIMARY
+        </div>
+        <div class="note">
+            <strong>Why an odd number of members?</strong> Elections require a majority vote. With 3 members, 2 votes elect a primary; a 4-member set (2 vs 2) risks a tie, so an arbiter is often added to break it.
+        </div>
+    </div>
+
+    <!-- ELECTIONS -->
+    <div class="note-block type-workflow" id="election">
+        <span class="content-label">Failover Workflow</span>
+        <h2>Elections & Automatic Failover</h2>
+        <div class="steps">
+            <div class="step-item">
+                <div class="step-number">1</div>
+                <div class="step-body">
+                    <h3>Heartbeat Failure</h3>
+                    <p>Every member sends heartbeats to every other member roughly every 2 seconds. If a secondary doesn't hear from the primary within the configured <code>electionTimeoutMillis</code> (default 10s), it assumes the primary is down.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">2</div>
+                <div class="step-body">
+                    <h3>Nomination</h3>
+                    <p>An eligible secondary calls for an election and requests votes from the rest of the set.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">3</div>
+                <div class="step-body">
+                    <h3>Voting</h3>
+                    <p>Members vote based on data freshness (highest priority and most up-to-date oplog wins). A candidate needs a majority of votes to become primary.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">4</div>
+                <div class="step-body">
+                    <h3>New Primary</h3>
+                    <p>The winning member transitions to primary state and starts accepting writes. The driver on the application side automatically detects this and redirects traffic — no code change needed.</p>
+                </div>
+            </div>
+        </div>
+        <div class="warning">
+            <strong>Watch out:</strong> during an election (usually a few seconds), the replica set has no primary, so write operations will fail or block until a new primary is elected.
+        </div>
+    </div>
+
+    <!-- CODE EXAMPLE -->
+    <div class="note-block type-code" id="code">
+        <span class="content-label">Setup Example</span>
+        <h2>Initializing a Replica Set</h2>
+        <p>Start three <code>mongod</code> instances with the same <code>--replSet</code> name, then initiate the set from the shell:</p>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code><span class="tok-comment">// Start each node (run once per server/port)</span>
+mongod --replSet <span class="tok-string">"rs0"</span> --port <span class="tok-number">27017</span> --dbpath /data/rs0 --bind_ip localhost
+
+<span class="tok-comment">// Connect to one node and initiate the set</span>
+rs.initiate({
+  _id: <span class="tok-string">"rs0"</span>,
+  members: [
+    { _id: <span class="tok-number">0</span>, host: <span class="tok-string">"localhost:27017"</span> },
+    { _id: <span class="tok-number">1</span>, host: <span class="tok-string">"localhost:27018"</span> },
+    { _id: <span class="tok-number">2</span>, host: <span class="tok-string">"localhost:27019"</span> }
+  ]
+})
+
+<span class="tok-comment">// Check status of all members</span>
+rs.status()
+
+<span class="tok-comment">// See which member is currently primary</span>
+rs.isMaster()</code></pre>
+        </div>
+        <div class="tip">
+            <strong>Tip:</strong> your MongoDB connection string should list all members so the driver can find the primary automatically: <code>mongodb://host1:27017,host2:27018,host3:27019/?replicaSet=rs0</code>
+        </div>
+    </div>
+
+    <!-- WRITE / READ CONCERNS -->
+    <div class="note-block type-explanation" id="writeconcern">
+        <span class="content-label">Write & Read Behavior</span>
+        <h2>Write Concern and Read Preference</h2>
+        <p>Replica sets let you tune the trade-off between consistency, durability, and performance.</p>
+        <table>
+            <thead>
+                <tr><th>Setting</th><th>Option</th><th>Effect</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Write Concern</td><td><code>w: 1</code></td><td>Acknowledged once the primary writes it. Fastest, least durable.</td></tr>
+                <tr><td>Write Concern</td><td><code>w: "majority"</code></td><td>Acknowledged once a majority of members confirm. Recommended for production.</td></tr>
+                <tr><td>Read Preference</td><td><code>primary</code></td><td>All reads go to the primary. Strongest consistency (default).</td></tr>
+                <tr><td>Read Preference</td><td><code>secondary</code></td><td>Reads are spread across secondaries. Reduces primary load but may return slightly stale data.</td></tr>
+                <tr><td>Read Preference</td><td><code>secondaryPreferred</code></td><td>Prefers secondaries, falls back to primary if none are available.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- USE CASES -->
+    <div class="note-block type-use-cases" id="usecases">
+        <span class="content-label">Use Cases</span>
+        <h2>When Replica Sets Matter Most</h2>
+        <ul>
+            <li>Production applications that cannot tolerate downtime during server failure or maintenance</li>
+            <li>Read-heavy workloads that want to offload reporting/analytics queries to secondaries</li>
+            <li>Geographically distributed teams that want a nearby secondary for lower-latency local reads</li>
+            <li>Disaster recovery setups using a delayed secondary to recover from accidental data corruption</li>
+        </ul>
+        <div class="checklist">
+            <span class="check-item">✓ High Availability</span>
+            <span class="check-item">✓ Automatic Failover</span>
+            <span class="check-item">✓ Data Redundancy</span>
+            <span class="check-item">✓ Read Scaling</span>
+            <span class="check-item">✓ Zero-Downtime Maintenance</span>
+        </div>
+    </div>
+
+    <!-- REPLICATION VS SHARDING -->
+    <div class="note-block type-comparison" id="replvssharding">
+        <span class="content-label">Comparison</span>
+        <h2>Replication vs Sharding</h2>
+        <p>Replication and sharding solve two different problems, and it's easy to mix them up. Here's how they compare:</p>
+        <table>
+            <thead>
+                <tr><th>Replication</th><th>Sharding</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Copies the same data to multiple servers.</td><td>Splits data across multiple servers.</td></tr>
+                <tr><td>Provides High Availability.</td><td>Provides Horizontal Scaling.</td></tr>
+                <tr><td>Used for fault tolerance and disaster recovery.</td><td>Used to handle very large datasets and high write/read workloads.</td></tr>
+                <tr><td>All nodes contain the same data (except replication lag).</td><td>Each shard stores only a portion of the total data.</td></tr>
+            </tbody>
+        </table>
+        <div class="interview">
+            <strong>Interview tip:</strong> a common architecture in production combines both concepts — each shard is itself a replica set, giving you horizontal scaling through sharding and high availability through replication.
+        </div>
+    </div>
+
+    <!-- COMMON MISTAKES -->
+    <div class="note-block type-common-mistakes" id="mistakes">
+        <span class="content-label">Common Mistakes</span>
+        <h2>Pitfalls to Avoid</h2>
+        <ol>
+            <li>Running only 2 data-bearing members — a tie during elections can leave the set without a primary</li>
+            <li>Assuming a replica set is a backup strategy — it protects against hardware failure, not accidental deletes or corrupted writes (use proper backups too)</li>
+            <li>Reading from secondaries without understanding replication lag, then being surprised by stale data</li>
+            <li>Forgetting to include all hosts in the connection string, causing the driver to miss a failover</li>
+        </ol>
+    </div>
+
+    <!-- QUICK Q&A -->
+    <div class="note-block type-qa" id="qa">
+        <span class="content-label">Quick Q&A</span>
+        <h2>Frequently Asked Questions</h2>
+        <div class="qa-card">
+            <p>Q: Can a replica set have more than one primary at the same time?</p>
+        </div>
+        <div class="note">No. MongoDB guarantees only a single primary at any given moment, which is what keeps writes consistent.</div>
+
+        <div class="qa-card">
+            <p>Q: Is a replica set the same thing as sharding?</p>
+        </div>
+        <div class="note">No. A replica set is about redundancy and availability (same data copied everywhere). Sharding is about horizontal scaling (data split across separate replica sets called shards). Sharded clusters are typically built on top of replica sets.</div>
+
+        <div class="qa-card">
+            <p>Q: What is the minimum number of members for automatic failover?</p>
+        </div>
+        <div class="note">Three data-bearing members is the recommended minimum, since it allows a majority vote to succeed even if one member fails.</div>
+
+        <div class="remember">
+            <strong>Remember:</strong> a replica set = primary + secondaries + oplog replication + automatic election on failure. It's the foundation of high availability in MongoDB.
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MongoDB Indexing — Complete Notes</title>
+<style>
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    color: #334155;
+    font-family: "Segoe UI", Arial, sans-serif;
+    line-height: 1.75;
+}
+
+.page-shell {
+    width: 90%;
+    max-width: 1400px;
+    margin: 40px auto;
+}
+
+.hero {
+    background:
+        linear-gradient(135deg, rgba(0, 30, 43, .98), rgba(0, 104, 74, .94)),
+        radial-gradient(circle at 88% 18%, rgba(0, 237, 100, .28), transparent 30%);
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 16px 36px rgba(0, 30, 43, .22);
+    color: #066911;
+    margin-bottom: 24px;
+    padding: 40px;
+}
+
+.hero h1 {
+    color: #00ed64;
+    font-size: 2.4rem;
+    font-weight: 800;
+    margin: 8px 15px 6px;
+    letter-spacing: -0.5px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, .24);
+}
+
+.hero p {
+    font-size: 17px;
+    line-height: 1.7;
+    margin: 0;
+    max-width: 900px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #e8fff1;
+    font-weight: 600;
+}
+
+.hero .content-label {
+    background: rgba(0, 237, 100, .16);
+    border: 1px solid rgba(0, 237, 100, .44);
+    color: #b6ffcf;
+}
+
+.content-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: -8px 0 30px;
+}
+
+.content-nav a {
+    background: #e3f9ea;
+    border: 1px solid #b8edc8;
+    border-radius: 100px;
+    color: #00684a;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 14px;
+    text-decoration: none;
+    transition: opacity .2s, transform .2s;
+}
+
+.content-nav a:hover {
+    opacity: .75;
+    transform: translateY(-2px);
+}
+
+.note-block {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(0, 30, 43, .08);
+    margin-bottom: 28px;
+    overflow: hidden;
+    padding: 0;
+}
+
+.content-label {
+    background: #00684a;
+    border-radius: 100px;
+    color: #fff;
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    margin: 30px 30px 0;
+    padding: 4px 14px;
+    text-transform: uppercase;
+}
+
+h2 {
+    background: #e3f9ea;
+    border: 1px solid #b8edc8;
+    color: #00684a;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 16px 0 0;
+    padding: 18px 30px;
+    letter-spacing: -0.2px;
+}
+
+h3 {
+    color: #00684a;
+    font-size: 19px;
+    font-weight: 700;
+    margin: 20px 0 10px;
+    line-height: 1.4;
+}
+
+h4 {
+    color: #0f766e;
+    font-size: 17px;
+    font-weight: 600;
+    margin: 16px 0 8px;
+}
+
+p {
+    color: #1e293b;
+    font-size: 17px;
+    line-height: 1.85;
+    margin-bottom: 10px;
+}
+
+li {
+    color: #334155;
+    font-size: 16px;
+    line-height: 1.9;
+    margin: 0;
+}
+
+dd {
+    color: #1e293b;
+    font-size: 16px;
+    line-height: 1.85;
+    margin: 2px 0 0;
+}
+
+.note-block > p,
+.note-block > ul,
+.note-block > ol,
+.note-block > dl,
+.note-block > table,
+.note-block > pre,
+.note-block > div,
+.note-block > blockquote {
+    margin-left: 30px;
+    margin-right: 30px;
+}
+
+.note-block > *:last-child {
+    margin-bottom: 30px;
+}
+
+ul,
+ol {
+    display: grid;
+    gap: 10px;
+    list-style: none;
+    margin-top: 14px;
+    padding-left: 0;
+}
+
+.note-block > ul li,
+.note-block > ol li {
+    background: #f8fffa;
+    border: 1px solid #d7f3df;
+    border-left: 4px solid #00a35c;
+    border-radius: 10px;
+    color: #1f2937;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.75;
+    padding: 11px 14px 11px 42px;
+    position: relative;
+}
+
+.note-block > ul li::before {
+    align-items: center;
+    background: #00a35c;
+    border-radius: 50%;
+    color: #fff;
+    content: "";
+    display: inline-flex;
+    height: 9px;
+    justify-content: center;
+    left: 18px;
+    position: absolute;
+    top: 20px;
+    width: 9px;
+}
+
+.note-block > ol {
+    counter-reset: note-step;
+}
+
+.note-block > ol li {
+    counter-increment: note-step;
+}
+
+.note-block > ol li::before {
+    align-items: center;
+    background: #00684a;
+    border-radius: 999px;
+    color: #fff;
+    content: counter(note-step);
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 800;
+    height: 24px;
+    justify-content: center;
+    left: 12px;
+    position: absolute;
+    top: 11px;
+    width: 24px;
+}
+
+.note-block > ul li:hover,
+.note-block > ol li:hover {
+    background: #eefff3;
+    border-color: #a7f3d0;
+    transform: translateX(2px);
+    transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+code {
+    background: #e3f9ea;
+    border-radius: 5px;
+    color: #00684a;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 2px 8px;
+}
+
+.code-wrap {
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .22);
+    margin-top: 14px;
+    overflow: hidden;
+}
+
+.code-bar {
+    align-items: center;
+    background: #1e1e2e;
+    border-bottom: 1px solid #313244;
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 16px;
+}
+
+.dots {
+    display: flex;
+    gap: 6px;
+}
+
+.dot-r,
+.dot-y,
+.dot-g {
+    border-radius: 50%;
+    height: 12px;
+    width: 12px;
+}
+
+.dot-r { background: #ef4444; }
+.dot-y { background: #f59e0b; }
+.dot-g { background: #22c55e; }
+
+.filename {
+    color: #cdd6f4;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12.5px;
+}
+
+.code-block {
+    background:#0f0f18;
+    color: #cdd6f4;
+    font-size: 15px;
+    line-height: 1.75;
+    margin: 0;
+    overflow-x: auto;
+    padding: 20px 22px;
+    tab-size: 4;
+}
+
+.code-block code {
+    background: transparent;
+    color: inherit;
+    font-weight: normal;
+    padding: 0;
+}
+
+.code-block .tok-keyword  { color: #cba6f7; }
+.code-block .tok-string   { color: #a6e3a1; }
+.code-block .tok-comment  { color: #6c7086; font-style: italic; }
+.code-block .tok-number   { color: #fab387; }
+.code-block .tok-literal  { color: #f38ba8; }
+.code-block .tok-function { color: #89b4fa; }
+
+.diagram-box,
+.diagram {
+    background: #fffbeb;
+    border: 2px dashed #d97706;
+    border-radius: 14px;
+    color: #92400e;
+    font-family: "Cascadia Code", "Fira Code", Consolas, "Courier New", monospace;
+    font-size: 15.5px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    line-height: 2.15;
+    margin-top: 16px;
+    overflow-x: auto;
+    padding: 22px 28px;
+    white-space: pre;
+}
+
+.short-answer,
+.interview,
+.remember,
+.tip,
+.warning,
+.note {
+    border-radius: 10px;
+    font-size: 16px;
+    line-height: 1.85;
+    margin-top: 14px;
+    padding: 16px 20px;
+}
+
+.short-answer { background: #dcfce7; border-left: 5px solid #16a34a; color: #15803d; }
+.interview    { background: #fff7ed; border-left: 5px solid #f97316; color: #c2410c; }
+.remember     { background: #fef9c3; border-left: 5px solid #ca8a04; color: #92400e; }
+.tip          { background: #fdf2f8; border-left: 5px solid #ec4899; color: #9d174d; }
+.warning      { background: #fff1f2; border-left: 5px solid #f43f5e; color: #be123c; }
+.note         { background: #f0fdfa; border-left: 5px solid #14b8a6; color: #0f766e; }
+
+.short-answer p, .interview p, .remember p, .tip p, .warning p, .note p { color: inherit; font-size: 16px; margin: 6px 0 0; }
+.short-answer li, .interview li, .remember li, .tip li, .warning li, .note li { color: inherit; font-size: 15px; }
+
+.badge        { background: #e3f9ea; border-radius: 100px; color: #00684a; display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 12px; }
+.badge-green  { background: #dcfce7; color: #16a34a; }
+.badge-orange { background: #ffedd5; color: #c2410c; }
+.badge-red    { background: #fee2e2; color: #dc2626; }
+.badge-teal   { background: #ccfbf1; color: #0f766e; }
+
+.definition-list { display: grid; }
+
+.definition-list dt {
+    display: block;
+    font-size: 17px;
+    font-weight: 900;
+    margin: 0;
+    padding: 14px 16px 0 16px;
+    line-height: 1.4;
+    border-radius: 12px 12px 0 0;
+    border-left-width: 5px;
+    border-left-style: solid;
+    border-top-width: 1px;
+    border-top-style: solid;
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-bottom: none;
+    margin-top: 12px;
+}
+
+.definition-list dd {
+    font-size: 15px;
+    margin: 0;
+    padding: 4px 16px 14px 16px;
+    line-height: 1.75;
+    border-radius: 0 0 12px 12px;
+    border-left-width: 5px;
+    border-left-style: solid;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-top: none;
+}
+
+.definition-list dt:nth-of-type(1)       { background:#fdf4ff; border-color:#a855f7 #e9d5ff #e9d5ff; color:#7e22ce; }
+.definition-list dt:nth-of-type(1) + dd  { background:#fdf4ff; border-color:#a855f7 #e9d5ff #e9d5ff; color:#4a044e; }
+
+.definition-list dt:nth-of-type(2)       { background:#fffbeb; border-color:#f59e0b #fde68a #fde68a; color:#b45309; }
+.definition-list dt:nth-of-type(2) + dd  { background:#fffbeb; border-color:#f59e0b #fde68a #fde68a; color:#78350f; }
+
+.definition-list dt:nth-of-type(3)       { background:#eef2ff; border-color:#6366f1 #c7d2fe #c7d2fe; color:#3730a3; }
+.definition-list dt:nth-of-type(3) + dd  { background:#eef2ff; border-color:#6366f1 #c7d2fe #c7d2fe; color:#1e1b4b; }
+
+.definition-list dt:nth-of-type(4)       { background:#fff7ed; border-color:#f97316 #fed7aa #fed7aa; color:#c2410c; }
+.definition-list dt:nth-of-type(4) + dd  { background:#fff7ed; border-color:#f97316 #fed7aa #fed7aa; color:#7c2d12; }
+
+.definition-list dt:nth-of-type(5)       { background:#ecfdf5; border-color:#10b981 #a7f3d0 #a7f3d0; color:#047857; }
+.definition-list dt:nth-of-type(5) + dd  { background:#ecfdf5; border-color:#10b981 #a7f3d0 #a7f3d0; color:#14532d; }
+
+.definition-list dt:nth-of-type(6)       { background:#fef2f2; border-color:#ef4444 #fecaca #fecaca; color:#b91c1c; }
+.definition-list dt:nth-of-type(6) + dd  { background:#fef2f2; border-color:#ef4444 #fecaca #fecaca; color:#7f1d1d; }
+
+.definition-list dt:nth-of-type(7)       { background:#f0f9ff; border-color:#0ea5e9 #bae6fd #bae6fd; color:#0369a1; }
+.definition-list dt:nth-of-type(7) + dd  { background:#f0f9ff; border-color:#0ea5e9 #bae6fd #bae6fd; color:#0c4a6e; }
+
+.definition-list dt:nth-of-type(8)       { background:#f0fdfa; border-color:#14b8a6 #99f6e4 #99f6e4; color:#0f766e; }
+.definition-list dt:nth-of-type(8) + dd  { background:#f0fdfa; border-color:#14b8a6 #99f6e4 #99f6e4; color:#134e4a; }
+
+table { border-collapse: collapse; font-size: 14px; margin-top: 14px; width: calc(100% - 60px); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+th { background: #00a35c; color: #fff; font-size: 15px; font-weight: 700; letter-spacing: .2px; padding: 13px 18px; text-align: left; border-right: 1px solid rgba(255,255,255,.18); }
+th:last-child { border-right: none; }
+td { background: #fff; border-bottom: 1px solid #e0e7ff; border-right: 1px solid #e0e7ff; color: #1e293b; font-size: 14px; font-weight: 500; line-height: 1.7; padding: 13px 18px; vertical-align: top; }
+td:last-child { border-right: none; }
+tr:nth-child(even) td { background: #eef2ff; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #e0e7ff; }
+
+.steps { display: grid; gap: 12px; margin-top: 16px; }
+.step-item { align-items: start; display: grid; gap: 14px; grid-template-columns: 42px 1fr; }
+.step-number { align-items: center; background: #00684a; border-radius: 50%; color: #fff; display: inline-flex; font-weight: 800; height: 34px; justify-content: center; width: 34px; }
+.step-body { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; }
+.step-body h3, .step-body p { margin-top: 0; }
+.step-body p { color: #334155; font-size: 16px; }
+
+.accordion-list { display: grid; gap: 10px; margin-top: 14px; }
+.accordion-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+.accordion-item summary { color: #00684a; cursor: pointer; font-size: 16px; font-weight: 700; padding: 13px 16px; }
+.accordion-item p { color: #334155; font-size: 16px; margin: 0; padding: 0 16px 16px; }
+.accordion-item p + p { padding-top: 0; }
+
+.checklist { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.check-item { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 100px; color: #15803d; font-size: 13px; font-weight: 700; padding: 6px 14px; }
+
+.timeline { display: grid; gap: 14px; margin-top: 16px; }
+.timeline-item { align-items: start; display: grid; gap: 14px; grid-template-columns: 62px 1fr; }
+.timeline-marker { background: #00684a; border-radius: 100px; color: #fff; font-size: 12px; font-weight: 800; padding: 5px 10px; text-align: center; }
+.timeline-body { border-left: 3px solid #a7f3d0; padding-left: 16px; }
+.timeline-body h3, .timeline-body p { margin-top: 0; }
+
+.type-introduction .content-label { background: #00684a; color: #fff; }
+.type-diagram .content-label      { background: #10b981; color: #fff; }
+.type-terminology .content-label  { background: #023430; color: #fff; }
+.type-comparison .content-label   { background: #116149; color: #fff; }
+.type-summary .content-label      { background: #ca8a04; color: #fff; }
+.type-code .content-label         { background: #001e2b; color: #00ed64; }
+.type-warning .content-label      { background: #dc2626; color: #fff; }
+.type-qa .content-label           { background: #475569; color: #fff; }
+
+@media (max-width: 700px) {
+    .page-shell { width: min(100% - 20px, 1400px); margin: 18px auto; }
+    .hero { padding: 24px; }
+    .hero h1 { font-size: 1.8rem; }
+    .content-label,
+    .note-block > p, .note-block > ul, .note-block > ol,
+    .note-block > dl, .note-block > table, .note-block > pre,
+    .note-block > div, .note-block > blockquote { margin-left: 18px; margin-right: 18px; }
+    h2 { font-size: 20px; padding: 14px 18px; }
+    table { display: block; overflow-x: auto; white-space: nowrap; width: calc(100% - 36px); }
+    .timeline-item, .step-item { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="page-shell">
+
+    <div class="hero">
+        <span class="content-label">Database Concepts</span>
+        <h1>MongoDB Indexing — Complete Notes</h1>
+        <p>How indexes speed up queries, the different index types, the commands to create and inspect them, and how to check whether a query is actually using one.</p>
+        <div style="margin: 20px 0 0;">
+            <img src="shared/indexing.png" alt="MongoDB indexing concept illustration" style="width:100%; max-width:900px; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.12); display:block;">
+        </div>
+    </div>
+
+    <div class="content-nav">
+        <a href="#whatis">What Is an Index</a>
+        <a href="#types">Types of Indexes</a>
+        <a href="#create">Creating Indexes</a>
+        <a href="#inspect">Checking & Scanning Queries</a>
+        <a href="#manage">Managing Indexes</a>
+        <a href="#mistakes">Common Mistakes</a>
+        <a href="#interviewprep">Interview Q&A</a>
+        <a href="#bestpractices">Best Practices</a>
+        <a href="#summary">Summary</a>
+    </div>
+
+    <!-- WHAT IS AN INDEX -->
+    <div class="note-block type-introduction" id="whatis">
+        <span class="content-label">What It Is</span>
+        <h2>What Is an Index in MongoDB?</h2>
+        <p>An <strong>index</strong> is a special data structure that stores a small, sorted portion of a collection's data, allowing MongoDB to quickly locate documents without scanning every single one.</p>
+        <p>Without an index, MongoDB has to perform a <strong>collection scan</strong> — reading every document to find matches. With the right index, it can jump directly to the relevant documents, similar to using the index at the back of a book instead of reading every page.</p>
+        <div class="short-answer">
+            <strong>In short:</strong> indexes trade a small amount of extra storage and slightly slower writes for dramatically faster reads on the fields you query, sort, or filter by most.
+        </div>
+    </div>
+
+    <!-- TYPES OF INDEXES -->
+    <div class="note-block type-terminology" id="types">
+        <span class="content-label">Index Types</span>
+        <h2>Types of Indexes</h2>
+        <dl class="definition-list">
+            <dt>Single Field Index</dt>
+            <dd>Indexes one field, in ascending (1) or descending (-1) order. The most common and simplest index type.</dd>
+
+            <dt>Compound Index</dt>
+            <dd>Indexes multiple fields together in a defined order. Supports queries that filter/sort on a prefix of the indexed fields (the "prefix rule").</dd>
+
+            <dt>Multikey Index</dt>
+            <dd>Automatically created when you index a field that holds an array — MongoDB indexes each array element separately.</dd>
+
+            <dt>Text Index</dt>
+            <dd>Supports text search queries on string content, with basic word-based matching, stemming, and relevance scoring.</dd>
+
+            <dt>Geospatial Index (2dsphere / 2d)</dt>
+            <dd>Supports efficient queries on location data, such as "find all points within this radius."</dd>
+
+            <dt>Hashed Index</dt>
+            <dd>Stores a hash of the field's value. Commonly used as a shard key to distribute writes evenly across a sharded cluster.</dd>
+
+            <dt>Wildcard Index</dt>
+            <dd>Indexes all fields (or a specified subset) dynamically — useful for collections with unpredictable or highly variable schemas.</dd>
+
+            <dt>Unique / Partial / TTL Index</dt>
+            <dd>Modifiers rather than separate types: <code>unique</code> enforces no duplicate values, <code>partial</code> only indexes documents matching a filter, and <code>TTL</code> automatically deletes documents after a set time.</dd>
+        </dl>
+    </div>
+
+    <!-- CREATING INDEXES -->
+    <div class="note-block type-code" id="create">
+        <span class="content-label">Commands</span>
+        <h2>Creating Indexes</h2>
+
+        <div class="steps">
+            <div class="step-item">
+                <span class="step-number">1</span>
+                <div class="step-body">
+                    <h3>Single field index</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code>db.users.createIndex({ <span class="tok-literal">email</span>: <span class="tok-number">1</span> })</code></pre>
+                    </div>
+                    <p>Creates an ascending index on <code>email</code>. Use <code>-1</code> for descending.</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <span class="step-number">2</span>
+                <div class="step-body">
+                    <h3>Compound index</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code>db.orders.createIndex({ <span class="tok-literal">userId</span>: <span class="tok-number">1</span>, <span class="tok-literal">createdAt</span>: <span class="tok-number">-1</span> })</code></pre>
+                    </div>
+                    <p>Speeds up queries that filter on <code>userId</code> alone, or on <code>userId</code> + <code>createdAt</code> together, thanks to the prefix rule.</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <span class="step-number">3</span>
+                <div class="step-body">
+                    <h3>Unique index</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code>db.users.createIndex(
+  { <span class="tok-literal">email</span>: <span class="tok-number">1</span> },
+  { <span class="tok-literal">unique</span>: <span class="tok-keyword">true</span> }
+)</code></pre>
+                    </div>
+                    <p>Rejects any insert or update that would create a duplicate <code>email</code> value.</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <span class="step-number">4</span>
+                <div class="step-body">
+                    <h3>Partial index</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code>db.orders.createIndex(
+  { <span class="tok-literal">status</span>: <span class="tok-number">1</span> },
+  { <span class="tok-literal">partialFilterExpression</span>: { status: <span class="tok-string">"pending"</span> } }
+)</code></pre>
+                    </div>
+                    <p>Only indexes documents where <code>status: "pending"</code>, keeping the index small when most documents don't match.</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <span class="step-number">5</span>
+                <div class="step-body">
+                    <h3>TTL index</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code>db.sessions.createIndex(
+  { <span class="tok-literal">createdAt</span>: <span class="tok-number">1</span> },
+  { <span class="tok-literal">expireAfterSeconds</span>: <span class="tok-number">3600</span> }
+)</code></pre>
+                    </div>
+                    <p>Automatically deletes documents 1 hour after <code>createdAt</code> — great for sessions, logs, or temporary tokens.</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <span class="step-number">6</span>
+                <div class="step-body">
+                    <h3>Text index</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code>db.articles.createIndex({ <span class="tok-literal">title</span>: <span class="tok-string">"text"</span>, <span class="tok-literal">body</span>: <span class="tok-string">"text"</span> })
+
+<span class="tok-comment">// query it with</span>
+db.articles.find({ <span class="tok-literal">$text</span>: { <span class="tok-literal">$search</span>: <span class="tok-string">"mongodb indexing"</span> } })</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <span class="step-number">7</span>
+                <div class="step-body">
+                    <h3>Geospatial index</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code>db.places.createIndex({ <span class="tok-literal">location</span>: <span class="tok-string">"2dsphere"</span> })</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHECKING / SCANNING QUERIES -->
+    <div class="note-block type-code" id="inspect">
+        <span class="content-label">Checking Index Usage</span>
+        <h2>How to Check & Scan Queries/Commands for Indexing</h2>
+        <p>This is the part interviewers love to probe: knowing an index <em>exists</em> isn't enough — you need to prove a specific query is actually <em>using</em> it.</p>
+
+        <div class="steps">
+            <div class="step-item">
+                <span class="step-number">1</span>
+                <div class="step-body">
+                    <h3>List all indexes on a collection</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code>db.users.getIndexes()</code></pre>
+                    </div>
+                    <p>Returns every index defined on the collection, including the default <code>_id</code> index.</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <span class="step-number">2</span>
+                <div class="step-body">
+                    <h3>Explain a query's execution plan</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code>db.users.find({ <span class="tok-literal">email</span>: <span class="tok-string">"a@x.com"</span> }).explain(<span class="tok-string">"executionStats"</span>)</code></pre>
+                    </div>
+                    <p>This is <strong>the</strong> command for checking whether a query is scanning the collection or using an index. Look at these two fields in the output:</p>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">explain output (simplified)</div>
+                        </div>
+                        <pre class="code-block"><code>{
+  <span class="tok-literal">winningPlan</span>: {
+    <span class="tok-literal">stage</span>: <span class="tok-string">"IXSCAN"</span>,     <span class="tok-comment">// good: used an index</span>
+    <span class="tok-literal">indexName</span>: <span class="tok-string">"email_1"</span>
+  },
+  <span class="tok-literal">executionStats</span>: {
+    <span class="tok-literal">totalKeysExamined</span>: <span class="tok-number">1</span>,
+    <span class="tok-literal">totalDocsExamined</span>: <span class="tok-number">1</span>,
+    <span class="tok-literal">executionTimeMillis</span>: <span class="tok-number">0</span>
+  }
+}</code></pre>
+                    </div>
+                    <div class="warning">
+                        <strong>Red flag:</strong> if <code>stage</code> shows <code>COLLSCAN</code> instead of <code>IXSCAN</code>, the query is scanning the entire collection — no usable index was found.
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <span class="step-number">3</span>
+                <div class="step-body">
+                    <h3>Compare docs examined vs docs returned</h3>
+                    <p>A healthy, well-indexed query has <code>totalKeysExamined</code> and <code>totalDocsExamined</code> close to the number of documents actually <code>returned</code>. If MongoDB is examining thousands of documents to return just a few, the index isn't selective enough — or isn't being used.</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <span class="step-number">4</span>
+                <div class="step-body">
+                    <h3>Check index usage statistics</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code>db.users.aggregate([{ <span class="tok-literal">$indexStats</span>: {} }])</code></pre>
+                    </div>
+                    <p>Shows how many times each index has actually been used since the server started — great for spotting indexes that are never hit (candidates for removal).</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <span class="step-number">5</span>
+                <div class="step-body">
+                    <h3>Find slow queries with the profiler</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code><span class="tok-comment">// Log all queries slower than 100ms</span>
+db.setProfilingLevel(<span class="tok-number">1</span>, { <span class="tok-literal">slowms</span>: <span class="tok-number">100</span> })
+
+<span class="tok-comment">// Review the logged slow queries</span>
+db.system.profile.find().sort({ <span class="tok-literal">ts</span>: <span class="tok-number">-1</span> }).limit(<span class="tok-number">10</span>)</code></pre>
+                    </div>
+                    <p>The database profiler records queries that exceed a time threshold, which is often the first place to look when hunting for missing indexes in production.</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <span class="step-number">6</span>
+                <div class="step-body">
+                    <h3>Watch currently running operations</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code>db.currentOp({ <span class="tok-literal">"secs_running"</span>: { <span class="tok-literal">$gt</span>: <span class="tok-number">3</span> } })</code></pre>
+                    </div>
+                    <p>Useful for catching a long-running, unindexed query while it's actively happening on a live system.</p>
+                </div>
+            </div>
+
+            <div class="step-item">
+                <span class="step-number">7</span>
+                <div class="step-body">
+                    <h3>Force a specific index (testing only)</h3>
+                    <div class="code-wrap">
+                        <div class="code-bar">
+                            <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                            <div class="filename">mongosh</div>
+                        </div>
+                        <pre class="code-block"><code>db.users.find({ <span class="tok-literal">email</span>: <span class="tok-string">"a@x.com"</span> }).hint({ <span class="tok-literal">email</span>: <span class="tok-number">1</span> })</code></pre>
+                    </div>
+                    <p><code>hint()</code> forces the query planner to use a specific index — handy for comparing performance between two candidate indexes, but not something to leave in production code long-term.</p>
+                </div>
+            </div>
+        </div>
+
+        <h3>Query Plan Stages Cheat Sheet</h3>
+        <table>
+            <tr><th>Stage</th><th>Meaning</th></tr>
+            <tr><td><code>COLLSCAN</code></td><td>Full collection scan — no index used. Slow on large collections.</td></tr>
+            <tr><td><code>IXSCAN</code></td><td>Index scan — the query used an index to find matching documents.</td></tr>
+            <tr><td><code>FETCH</code></td><td>After finding index entries, MongoDB fetches the full documents from disk.</td></tr>
+            <tr><td><code>SORT</code></td><td>An in-memory sort was needed because no index provided the sorted order.</td></tr>
+            <tr><td><code>SORT_KEY_GENERATOR</code></td><td>Precedes an in-memory sort stage — another signal a sort index would help.</td></tr>
+        </table>
+    </div>
+
+    <!-- MANAGING INDEXES -->
+    <div class="note-block type-code" id="manage">
+        <span class="content-label">Management</span>
+        <h2>Managing Existing Indexes</h2>
+        <div class="code-wrap">
+            <div class="code-bar">
+                <div class="dots"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div></div>
+                <div class="filename">mongosh</div>
+            </div>
+            <pre class="code-block"><code><span class="tok-comment">// Drop one index by name</span>
+db.users.dropIndex(<span class="tok-string">"email_1"</span>)
+
+<span class="tok-comment">// Drop all indexes except _id</span>
+db.users.dropIndexes()
+
+<span class="tok-comment">// Rebuild indexes (reclaims space, fixes fragmentation)</span>
+db.users.reIndex()
+
+<span class="tok-comment">// Build an index in the background without blocking other ops (default behavior in modern MongoDB)</span>
+db.users.createIndex({ email: <span class="tok-number">1</span> }, { <span class="tok-literal">background</span>: <span class="tok-keyword">true</span> })</code></pre>
+        </div>
+        <div class="tip">
+            <strong>Tip:</strong> in recent MongoDB versions index builds are non-blocking by default, but they still consume CPU and I/O — schedule large index builds during low-traffic windows on busy production systems.
+        </div>
+    </div>
+
+    <!-- COMMON MISTAKES -->
+    <div class="note-block type-warning" id="mistakes">
+        <span class="content-label">Common Mistakes</span>
+        <h2>Pitfalls to Avoid</h2>
+        <ol>
+            <li>Creating an index for every field "just in case" — each extra index slows down writes and uses more RAM/disk.</li>
+            <li>Ignoring the compound index prefix rule — a query that skips the first field(s) of a compound index often can't use it efficiently.</li>
+            <li>Not checking <code>explain()</code> before assuming a slow query is indexed correctly.</li>
+            <li>Using a low-cardinality field (like a boolean) as the sole index — it won't narrow down results much.</li>
+            <li>Forgetting that a leading wildcard regex (<code>/^.*abc/</code>) can't use a standard index at all.</li>
+        </ol>
+    </div>
+
+    <!-- INTERVIEW Q&A -->
+    <div class="note-block type-qa" id="interviewprep">
+        <span class="content-label">Interview Prep</span>
+        <h2>Important Interview Q&A</h2>
+        <div class="accordion-list">
+            <div class="accordion-item">
+                <details>
+                    <summary>1. What is the default index MongoDB creates automatically?</summary>
+                    <p>Every collection automatically gets a unique index on the <code>_id</code> field — it can't be dropped.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>2. How do you check if a query is using an index?</summary>
+                    <p>Run <code>.explain("executionStats")</code> on the query and check whether <code>winningPlan.stage</code> is <code>IXSCAN</code> (index used) or <code>COLLSCAN</code> (full scan, no index used).</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>3. What is the "index prefix rule" for compound indexes?</summary>
+                    <p>A compound index on <code>{ a: 1, b: 1, c: 1 }</code> can support queries on <code>a</code>, or <code>a + b</code>, or <code>a + b + c</code> — but not on <code>b</code> or <code>c</code> alone, since the index is only efficiently searchable from its leftmost field onward.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>4. What's the difference between a covered query and a regular indexed query?</summary>
+                    <p>A covered query is satisfied entirely from the index itself, without ever fetching the actual documents — the index must contain every field the query needs (both filter and projection). This skips the <code>FETCH</code> stage entirely and is faster than a normal index scan.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>5. Why can too many indexes hurt performance?</summary>
+                    <p>Every index must be updated on every insert, update, and delete, which adds write overhead. Indexes also consume RAM and disk, and MongoDB's query planner has to evaluate more candidate plans, which adds a small amount of query-planning overhead too.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>6. What is a multikey index, and what's a key limitation?</summary>
+                    <p>A multikey index is created automatically when you index an array field, indexing each element separately. The limitation: you cannot create a compound index with more than one array field, since MongoDB can't efficiently represent the cross-product of two arrays in one index.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>7. When would you use a TTL index?</summary>
+                    <p>For data that should automatically expire, like session tokens, temporary verification codes, cached data, or log entries — instead of writing a separate cleanup job.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>8. What does ESR (Equality, Sort, Range) mean when designing a compound index?</summary>
+                    <p>It's a guideline for ordering fields in a compound index: put Equality-match fields first, then Sort fields, then Range-query fields last — this ordering lets MongoDB narrow down results as early as possible.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>9. How do you find unused indexes in production?</summary>
+                    <p>Run <code>db.collection.aggregate([{ $indexStats: {} }])</code> — it reports how many operations have used each index since the last server restart. Indexes with near-zero usage over a meaningful time window are candidates to drop.</p>
+                </details>
+            </div>
+            <div class="accordion-item">
+                <details>
+                    <summary>10. Does an index guarantee faster performance?</summary>
+                    <p>Not always. Indexes speed up selective reads but add write overhead, use memory/disk, and can even be ignored by the query planner if it estimates a collection scan would be faster (e.g., very small collections).</p>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <!-- BEST PRACTICES -->
+    <div class="note-block" id="bestpractices">
+        <span class="content-label">Best Practices ⭐⭐⭐⭐⭐</span>
+        <h2>Best Practices</h2>
+        <ul>
+            <li>Always run <code>explain("executionStats")</code> before and after adding an index to confirm it actually helped.</li>
+            <li>Follow the ESR rule (Equality, Sort, Range) when ordering fields in compound indexes.</li>
+            <li>Periodically check <code>$indexStats</code> and drop indexes that see no real usage.</li>
+            <li>Use partial indexes when only a subset of documents are ever queried on a field.</li>
+            <li>Avoid creating overlapping/redundant indexes — a compound index on <code>{a:1, b:1}</code> already covers queries that a single index on <code>{a:1}</code> would.</li>
+            <li>Schedule large index builds for low-traffic periods; monitor with <code>currentOp()</code> during the build.</li>
+        </ul>
+        <div class="checklist">
+            <span class="check-item">✓ explain() before shipping</span>
+            <span class="check-item">✓ ESR field ordering</span>
+            <span class="check-item">✓ Drop unused indexes</span>
+            <span class="check-item">✓ Watch write overhead</span>
+            <span class="check-item">✓ Use partial/TTL where relevant</span>
+        </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="note-block type-summary" id="summary">
+        <span class="content-label">Takeaway</span>
+        <h2>Summary</h2>
+        <p>Indexes let MongoDB find data without scanning every document, at the cost of extra storage and slower writes. The single most important habit is checking <code>.explain("executionStats")</code> to confirm a query hits <code>IXSCAN</code> rather than <code>COLLSCAN</code>, and using <code>$indexStats</code> to spot indexes that are quietly doing nothing. Design compound indexes with the ESR rule, avoid over-indexing, and treat indexing as an ongoing tuning process — not a one-time setup step.</p>
+    </div>
+
+</div>
+</body>
+</html>
