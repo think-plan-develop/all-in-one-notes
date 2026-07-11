@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>React Lifecycle — Class & Functional Components</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+.container {
+  --accent-dark:  #1e3a8a;
+  --accent:       #2563eb;
+  --accent-light: #3b82f6;
+  --content-bg:   #eff6ff;
+  --heading:      #1e3a8a;
+  --shadow-rgb:   37,99,235;
+  --qa-h4-a: #bfdbfe; --qa-h4-b: #93c5fd;
+  --qa-p-a:  #eff6ff; --qa-p-b:  #dbeafe;
+}
+
+.theme-indigo {
+  --accent-dark:  #3730a3; --accent: #4338ca; --accent-light: #6366f1;
+  --content-bg:   #eef2ff; --heading: #3730a3; --shadow-rgb: 67,56,202;
+  --qa-h4-a: #c7d2fe; --qa-h4-b: #a5b4fc; --qa-p-a: #eef2ff; --qa-p-b: #e0e7ff;
+}
+
+.header {
+  background: linear-gradient(120deg, var(--accent-dark), var(--accent-light));
+  border-radius: 16px; padding: 40px 36px; margin-bottom: 50px;
+  box-shadow: 0 12px 30px rgba(var(--shadow-rgb), 0.3);
+}
+.header h1 { color: #fff; font-size: 34px; margin-bottom: 8px; font-weight: 800; letter-spacing: -0.5px; }
+.header p { color: #f0eaff; font-size: 17px; margin-bottom: 24px; }
+.toc { display: flex; flex-wrap: wrap; gap: 8px; }
+.toc a { text-decoration: none; padding: 7px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; transition: all 0.2s ease; cursor: pointer; background: rgba(255,255,255,0.18); color: #fff; border: 1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background: #fff; color: var(--accent); }
+
+.part-banner {
+  border-radius: 14px;
+  padding: 22px 30px;
+  margin: 10px 0 26px;
+  background: linear-gradient(120deg, var(--accent-dark), var(--accent));
+  box-shadow: 0 10px 24px rgba(var(--shadow-rgb), 0.25);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.part-banner .part-num {
+  flex-shrink: 0;
+  width: 46px; height: 46px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+.part-banner h2 { color: #fff; font-size: 24px; font-weight: 800; letter-spacing: -0.3px; }
+.part-banner p { color: rgba(255,255,255,0.85); font-size: 14.5px; margin-top: 2px; }
+
+.card { border-radius: 14px; margin-bottom: 30px; overflow: hidden; box-shadow: 0 10px 24px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04); }
+.card-title { color: #fff; font-size: 21px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding: 26px; background: var(--content-bg); }
+.card-content p { color: #333; font-size: 17px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+.card-content h4 { font-size: 17px; margin-bottom: 6px; margin-top: 18px; font-weight: 800; color: var(--heading); }
+.card-content ul, .card-content ol { margin: 6px 0 16px 22px; }
+.card-content li { font-size: 15.5px; line-height: 1.8; color: #333; margin-bottom: 4px; }
+
+.card-content-QA h4,
+.card-content-QA .q-block {
+  padding: 14px 18px; margin: 22px 0 12px; border-radius: 12px; font-size: 18px; font-weight: 700;
+  box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset;
+  background: linear-gradient(135deg, var(--qa-h4-a), var(--qa-h4-b));
+  color: var(--heading); border-left: 3px solid var(--accent);
+}
+.card-content-QA p,
+.card-content-QA .a-block {
+  padding: 14px 18px; margin: 0 0 18px; border-radius: 12px; font-size: 16px; line-height: 2.3; font-weight: 500;
+  box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset;
+  background: linear-gradient(135deg, var(--qa-p-a), var(--qa-p-b));
+  color: var(--heading); border-left: 3px solid var(--accent);
+}
+
+.intro-summary { margin: 0 0 50px; }
+.intro-summary-title { font-size: 22px; font-weight: 800; color: #1a1a1a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.summary-grid { display: flex; flex-direction: column; gap: 10px; }
+.summary-item { display: flex; align-items: center; gap: 14px; width: 100%; border-radius: 10px; padding: 14px 20px; }
+.summary-icon { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 19px; background: rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size: 15px; line-height: 1.7; font-weight: 500; }
+.summary-text strong { font-weight: 800; margin-right: 4px; }
+
+.summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; }
+.summary-teal   .summary-text strong { color: #0d9488; }
+.summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; }
+.summary-pink   .summary-text strong { color: #db2777; }
+.summary-indigo { background: linear-gradient(135deg,#eef2ff,#e0e7ff); color: #3730a3; }
+.summary-indigo .summary-text strong { color: #4338ca; }
+.summary-orange { background: linear-gradient(135deg,#fff7ed,#ffedd5); color: #9a3412; }
+.summary-orange .summary-text strong { color: #ea580c; }
+
+.section-divider { margin: 44px 0 20px; position: relative; }
+.section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity: 0.25; }
+.section-divider span { background: #f6f7fb; padding: 0 16px 0 0; position: relative; font-size: 20px; font-weight: 800; color: #1a1a1a; }
+
+.code-block { background: #1a1a1a; border-radius: 10px; overflow: hidden; margin: 14px 0; box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background: #111; padding: 8px 14px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #333; }
+.code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+.code-bar .dot-red { background: #ff5f57; }
+.code-bar .dot-grey { background: #febc2e; }
+.code-bar .dot-green { background: #28c840; }
+.code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; }
+.code-block pre { padding: 18px; overflow-x: auto; }
+.code-block code { color: #d4d4d4; font-size: 15px; font-family: 'Fira Code', 'Consolas', monospace; }
+.kw  { color: #c792ea; font-weight: 600; }
+.str { color: #c3e88d; }
+.fn  { color: #82aaff; }
+.cmt { color: #7a7a7a; font-style: italic; }
+.num { color: #f78c6c; }
+.type { color: #f07178; }
+
+.badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-left: 10px; background: rgba(255,255,255,0.25); color: #fff; }
+
+.info-box { border-radius: 10px; padding: 14px 18px; margin: 12px 0; font-size: 16px; line-height: 1.8; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+.box-tip     { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+.box-note    { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+.box-warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+.box-extra   { background: linear-gradient(135deg,#fef3c7,#fde68a); color: #92400e; }
+
+.pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+.pros { background: linear-gradient(135deg,#dcfce7,#bbf7d0); border-radius: 10px; padding: 15px; }
+.cons { background: linear-gradient(135deg,#fee2e2,#fecaca); border-radius: 10px; padding: 15px; }
+.pros h5 { color: #166534; margin-bottom: 8px; font-weight: 800; }
+.cons h5 { color: #991b1b; margin-bottom: 8px; font-weight: 800; }
+.pros li, .cons li { font-size: 14px; line-height: 1.7; color: #333; margin-left: 18px; }
+
+table { width: 100%; border-collapse: collapse; margin: 15px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 17px; padding: 14px 18px; text-align: left; }
+table td { padding: 12px 18px; font-size: 15px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; }
+table tr:nth-child(even) { background: #f8fafc; }
+
+@media (max-width: 768px) {
+  .header h1 { font-size: 26px; }
+  .toc a { padding: 6px 12px; font-size: 12px; }
+  .pros-cons { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="container theme-indigo">
+
+  <div class="header">
+    <h1>🔄 React Component Lifecycle</h1>
+    <p>Class components (complete lifecycle) followed by Functional components with Hooks (complete lifecycle)</p>
+    <div class="toc">
+      <a href="#overview" onclick="document.getElementById('overview').scrollIntoView({behavior:'smooth'});return false;">Overview</a>
+      <a href="#class-part" onclick="document.getElementById('class-part').scrollIntoView({behavior:'smooth'});return false;">Class: All Phases</a>
+      <a href="#func-part" onclick="document.getElementById('func-part').scrollIntoView({behavior:'smooth'});return false;">Functional: All Phases</a>
+      <a href="#mapping" onclick="document.getElementById('mapping').scrollIntoView({behavior:'smooth'});return false;">Class ↔ Hooks Mapping</a>
+      <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&A</a>
+    </div>
+  </div>
+
+  <div class="intro-summary" id="overview">
+    <div class="intro-summary-title">📌 Quick Summary</div>
+    <div class="summary-grid">
+      <div class="summary-item summary-indigo">
+        <div class="summary-icon">🧬</div>
+        <div class="summary-text"><strong>Mounting:</strong> The component is created and inserted into the DOM for the first time.</div>
+      </div>
+      <div class="summary-item summary-teal">
+        <div class="summary-icon">🔁</div>
+        <div class="summary-text"><strong>Updating:</strong> The component re-renders because its props or state changed.</div>
+      </div>
+      <div class="summary-item summary-pink">
+        <div class="summary-icon">🗑️</div>
+        <div class="summary-text"><strong>Unmounting:</strong> The component is removed from the DOM and its resources are cleaned up.</div>
+      </div>
+      <div class="summary-item summary-orange">
+        <div class="summary-icon">🪝</div>
+        <div class="summary-text"><strong>Structure below:</strong> Class component walks through all three phases first, then the functional/Hooks version walks through all three phases on its own.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PART 1 — CLASS COMPONENT — ALL PHASES
+  ══════════════════════════════════════════════════════════ -->
+
+  <div class="part-banner" id="class-part">
+    <div class="part-num">1</div>
+    <div>
+      <h2>Class Component — Complete Lifecycle</h2>
+      <p>Mounting → Updating → Unmounting, all shown on the same component</p>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>1.1 Mounting</span></div>
+
+  <div class="card">
+    <div class="card-title">Mounting Methods <span class="badge">runs once</span></div>
+    <div class="card-content">
+      <p>Mounting is when React creates the component instance and inserts it into the DOM for the first time. The methods fire in this order:</p>
+      <ol>
+        <li><code>constructor()</code> — initialize state and bind methods</li>
+        <li><code>static getDerivedStateFromProps()</code> — rarely used, syncs state from props</li>
+        <li><code>render()</code> — returns JSX</li>
+        <li><code>componentDidMount()</code> — DOM is ready; fetch data, set subscriptions, start timers</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>1.2 Updating</span></div>
+
+  <div class="card">
+    <div class="card-title">Updating Methods <span class="badge">runs on prop/state change</span></div>
+    <div class="card-content">
+      <p>Updating happens whenever props or state change. The relevant methods, in order:</p>
+      <ol>
+        <li><code>static getDerivedStateFromProps()</code></li>
+        <li><code>shouldComponentUpdate()</code> — return <code>false</code> to skip re-render (performance)</li>
+        <li><code>render()</code></li>
+        <li><code>getSnapshotBeforeUpdate()</code> — capture info (like scroll position) before DOM updates</li>
+        <li><code>componentDidUpdate(prevProps, prevState)</code> — DOM has updated; good place for side effects that depend on the new props/state</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>1.3 Unmounting</span></div>
+
+  <div class="card">
+    <div class="card-title">Unmounting Method <span class="badge">runs once, on removal</span></div>
+    <div class="card-content">
+      <p><code>componentWillUnmount()</code> fires right before the component is removed from the DOM. Use it to clean up anything that would otherwise leak: timers, subscriptions, event listeners, open sockets.</p>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>1.4 Full Class Example — All Phases in One Component</span></div>
+
+  <div class="card">
+    <div class="card-title">Timer.jsx — Class Component <span class="badge">mount + update + unmount</span></div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Timer.jsx (Class)</span></div>
+        <pre><code><span class="kw">class</span> <span class="fn">Timer</span> <span class="kw">extends</span> <span class="fn">React.Component</span> {
+  <span class="kw">constructor</span>(<span class="type">props</span>) {
+    <span class="kw">super</span>(<span class="type">props</span>);
+    <span class="kw">this</span>.state = { <span class="type">seconds</span>: <span class="num">0</span> };
+    console.log(<span class="str">'MOUNT 1: constructor'</span>);
+  }
+
+  <span class="cmt">// ── MOUNTING ──────────────────────────────</span>
+  <span class="fn">componentDidMount</span>() {
+    console.log(<span class="str">'MOUNT 2: componentDidMount — start timer'</span>);
+    <span class="kw">this</span>.intervalId = setInterval(() =&gt; {
+      <span class="kw">this</span>.setState({ seconds: <span class="kw">this</span>.state.seconds + <span class="num">1</span> });
+    }, <span class="num">1000</span>);
+  }
+
+  <span class="cmt">// ── UPDATING ──────────────────────────────</span>
+  <span class="fn">shouldComponentUpdate</span>(<span class="type">nextProps</span>, <span class="type">nextState</span>) {
+    console.log(<span class="str">'UPDATE 1: shouldComponentUpdate'</span>);
+    <span class="kw">return</span> <span class="num">true</span>; <span class="cmt">// return false here to skip a re-render</span>
+  }
+
+  <span class="fn">componentDidUpdate</span>(<span class="type">prevProps</span>, <span class="type">prevState</span>) {
+    console.log(<span class="str">`UPDATE 2: componentDidUpdate — was ${prevState.seconds}, now ${this.state.seconds}`</span>);
+  }
+
+  <span class="cmt">// ── UNMOUNTING ────────────────────────────</span>
+  <span class="fn">componentWillUnmount</span>() {
+    console.log(<span class="str">'UNMOUNT: clearing interval'</span>);
+    clearInterval(<span class="kw">this</span>.intervalId); <span class="cmt">// prevent memory leak</span>
+  }
+
+  <span class="fn">render</span>() {
+    console.log(<span class="str">'RENDER: render()'</span>);
+    <span class="kw">return</span> &lt;<span class="type">p</span>&gt;{<span class="kw">this</span>.state.seconds}s&lt;/<span class="type">p</span>&gt;;
+  }
+}</code></pre>
+      </div>
+
+      <div class="info-box box-note">
+        <strong>Order you'd see in the console:</strong> constructor → render → componentDidMount → (every second) shouldComponentUpdate → render → componentDidUpdate → ... → componentWillUnmount (when the component is removed, e.g. navigating away).
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PART 2 — FUNCTIONAL COMPONENT — ALL PHASES
+  ══════════════════════════════════════════════════════════ -->
+
+  <div class="part-banner" id="func-part">
+    <div class="part-num">2</div>
+    <div>
+      <h2>Functional Component — Complete Lifecycle (Hooks)</h2>
+      <p>Same Mounting → Updating → Unmounting phases, rebuilt using useState / useEffect</p>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>2.1 Mounting</span></div>
+
+  <div class="card">
+    <div class="card-title">Mounting with Hooks <span class="badge">runs once</span></div>
+    <div class="card-content">
+      <p>Functional components use <code>useEffect</code> with an <strong>empty dependency array</strong> <code>[]</code> to replicate <code>componentDidMount</code> — the code inside runs exactly once, right after the first render commits to the DOM.</p>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>2.2 Updating</span></div>
+
+  <div class="card">
+    <div class="card-title">Updating with Hooks <span class="badge">runs on dependency change</span></div>
+    <div class="card-content">
+      <p><code>useEffect</code> with a <strong>dependency array containing values</strong> replicates <code>componentDidUpdate</code> — it re-runs whenever any listed dependency changes. <code>React.memo</code> replicates <code>shouldComponentUpdate</code> by skipping re-renders when props are shallowly equal.</p>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>2.3 Unmounting</span></div>
+
+  <div class="card">
+    <div class="card-title">Unmounting with Hooks <span class="badge">cleanup function</span></div>
+    <div class="card-content">
+      <p>The <strong>function returned from inside <code>useEffect</code></strong> is the cleanup function. React calls it right before the component unmounts — and also before every re-run of the effect.</p>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>2.4 Full Functional Example — All Phases in One Component</span></div>
+
+  <div class="card">
+    <div class="card-title">Timer.jsx — Functional Component <span class="badge">mount + update + unmount</span></div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Timer.jsx (Functional)</span></div>
+        <pre><code><span class="kw">import</span> { <span class="fn">useState</span>, <span class="fn">useEffect</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">function</span> <span class="fn">Timer</span>() {
+  <span class="kw">const</span> [<span class="type">seconds</span>, <span class="fn">setSeconds</span>] = <span class="fn">useState</span>(<span class="num">0</span>);
+  console.log(<span class="str">'RENDER: function body runs'</span>);
+
+  <span class="cmt">// ── MOUNTING + UNMOUNTING (empty deps array) ──</span>
+  <span class="fn">useEffect</span>(() =&gt; {
+    console.log(<span class="str">'MOUNT: useEffect (once) — start timer'</span>);
+    <span class="kw">const</span> <span class="type">intervalId</span> = setInterval(() =&gt; {
+      <span class="fn">setSeconds</span>(<span class="type">s</span> =&gt; <span class="type">s</span> + <span class="num">1</span>);
+    }, <span class="num">1000</span>);
+
+    <span class="kw">return</span> () =&gt; {
+      console.log(<span class="str">'UNMOUNT: cleanup — clearing interval'</span>);
+      clearInterval(<span class="type">intervalId</span>);
+    };
+  }, []); <span class="cmt">{/* [] = mount once, cleanup on unmount only */}</span>
+
+  <span class="cmt">// ── UPDATING (deps array with a value) ──</span>
+  <span class="fn">useEffect</span>(() =&gt; {
+    console.log(<span class="str">`UPDATE: seconds changed to ${seconds}`</span>);
+  }, [<span class="type">seconds</span>]); <span class="cmt">{/* re-runs every time "seconds" changes */}</span>
+
+  <span class="kw">return</span> &lt;<span class="type">p</span>&gt;{<span class="type">seconds</span>}s&lt;/<span class="type">p</span>&gt;;
+}</code></pre>
+      </div>
+
+      <div class="info-box box-warning">
+        <strong>Common bug:</strong> Forgetting the cleanup return in <code>useEffect</code> is the functional-component equivalent of forgetting <code>componentWillUnmount</code> — timers keep running and state updates fire on unmounted components.
+      </div>
+
+      <div class="info-box box-tip">
+        <strong>Tip:</strong> Notice this example uses <strong>two separate <code>useEffect</code> calls</strong> — one for mount/unmount (empty array), one for updates (<code>[seconds]</code>). Splitting concerns like this is idiomatic; a class component would have to mix all of this into <code>componentDidMount</code> / <code>componentDidUpdate</code> / <code>componentWillUnmount</code>.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       COMPARISON
+  ══════════════════════════════════════════════════════════ -->
+
+  <div class="section-divider" id="mapping"><span>3. Class ↔ Hooks Mapping</span></div>
+
+  <div class="card">
+    <div class="card-title">Side-by-Side Reference</div>
+    <div class="card-content">
+      <table>
+        <tr><th>Class Lifecycle Method</th><th>Functional Hook Equivalent</th><th>Phase</th></tr>
+        <tr><td><code>constructor()</code></td><td><code>useState()</code> initial value</td><td>Mounting</td></tr>
+        <tr><td><code>componentDidMount()</code></td><td><code>useEffect(() =&gt; {...}, [])</code></td><td>Mounting</td></tr>
+        <tr><td><code>componentDidUpdate()</code></td><td><code>useEffect(() =&gt; {...}, [deps])</code></td><td>Updating</td></tr>
+        <tr><td><code>componentWillUnmount()</code></td><td><code>useEffect</code> cleanup (<code>return () =&gt; {...}</code>)</td><td>Unmounting</td></tr>
+        <tr><td><code>shouldComponentUpdate()</code></td><td><code>React.memo()</code> / <code>useMemo()</code></td><td>Updating</td></tr>
+        <tr><td><code>getDerivedStateFromProps()</code></td><td>Calculate value directly in the render body, or <code>useEffect</code></td><td>Mounting &amp; Updating</td></tr>
+        <tr><td><code>componentDidCatch()</code></td><td>No hook equivalent — still needs a class (Error Boundary)</td><td>Error handling</td></tr>
+      </table>
+
+      <div class="pros-cons">
+        <div class="pros">
+          <h5>✅ Why Hooks are preferred today</h5>
+          <ul>
+            <li>Less boilerplate than class syntax</li>
+            <li>Related logic lives together in one <code>useEffect</code>, instead of split across lifecycle methods</li>
+            <li>Custom hooks let you reuse "lifecycle" logic across components</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h5>⚠️ Where classes still matter</h5>
+          <ul>
+            <li>Error Boundaries (<code>componentDidCatch</code>) have no hook equivalent</li>
+            <li>Legacy codebases still use class components extensively</li>
+            <li><code>useEffect</code> timing can be trickier to reason about than named lifecycle methods</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="qa"><span>Interview Q&A</span></div>
+
+  <div class="card">
+    <div class="card-title">Interview Q&A — React Lifecycle</div>
+    <div class="card-content card-content-QA">
+      <h4>Q: What are the three phases of a React component's lifecycle?</h4>
+      <p><strong>A:</strong> Mounting (component is created and inserted into the DOM), Updating (component re-renders due to changed props or state), and Unmounting (component is removed from the DOM).</p>
+
+      <h4>Q: How do you replicate componentDidMount in a functional component?</h4>
+      <p><strong>A:</strong> Use <code>useEffect</code> with an empty dependency array <code>[]</code>. The effect callback runs exactly once, right after the first render commits to the DOM.</p>
+
+      <h4>Q: How does useEffect handle cleanup, and when does it run?</h4>
+      <p><strong>A:</strong> The function returned from inside <code>useEffect</code> is the cleanup function. It runs before the component unmounts, and also before the effect re-runs on a dependency change — so it prevents leftover timers, subscriptions, or listeners from a previous run.</p>
+
+      <h4>Q: What is the functional equivalent of shouldComponentUpdate?</h4>
+      <p><strong>A:</strong> Wrapping a component in <code>React.memo()</code> skips re-rendering when props are shallowly equal, similar to returning <code>false</code> from <code>shouldComponentUpdate</code>. <code>useMemo</code> and <code>useCallback</code> help avoid unnecessary recalculations and re-renders further down.</p>
+
+      <h4>Q: Why can't functional components be Error Boundaries?</h4>
+      <p><strong>A:</strong> React doesn't provide a Hook for catching rendering errors — only the class lifecycle method <code>componentDidCatch</code> (along with <code>static getDerivedStateFromError</code>) can catch errors in a child component tree, so Error Boundaries must still be class components.</p>
+
+      <h4>Q: What happens if you forget the dependency array in useEffect?</h4>
+      <p><strong>A:</strong> Omitting the array entirely makes the effect run after every render — mounting and every update — which is rarely what you want and can cause performance issues or infinite loops if the effect also updates state.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

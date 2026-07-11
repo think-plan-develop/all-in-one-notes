@@ -4,29 +4,178 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>React Performance Optimization - Complete Guide</title>
-  <link rel="stylesheet" href="common.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f4f7f9; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+    .container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+    .container {
+      --accent-dark:  #115e59;
+      --accent:       #0d9488;
+      --accent-light: #14b8a6;
+      --content-bg:   #f0fdfa;
+      --heading:      #115e59;
+      --shadow-rgb:   13,148,136;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(120deg, var(--accent-dark), var(--accent-light));
+      border-radius: 18px;
+      padding: 44px 40px;
+      margin-bottom: 54px;
+      box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.32);
+    }
+    .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.5px; }
+    .header p { color: #d3fef4; font-size: 17px; margin-bottom: 26px; line-height: 1.6; }
+    .toc { display: flex; flex-wrap: wrap; gap: 8px; }
+    .toc a {
+      text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px;
+      font-weight: 700; transition: all 0.2s ease; cursor: pointer;
+      background: rgba(255,255,255,0.16); color: #fff; border: 1px solid rgba(255,255,255,0.32);
+    }
+    .toc a:hover { background: #fff; color: var(--accent-dark); transform: translateY(-1px); }
+
+    /* Section dividers */
+    .section-divider { margin: 56px 0 26px; position: relative; }
+    .section-divider::before {
+      content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg,#0d9488,#3b82f6,#f59e0b); opacity: 0.25;
+    }
+    .section-divider span {
+      background: #f4f7f9; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; color: #1a1a1a;
+    }
+
+    /* Cards */
+    .card { border-radius: 16px; margin-bottom: 34px; overflow: hidden; box-shadow: 0 12px 28px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+    .card-title {
+      color: #fff; font-size: 21px; font-weight: 700; padding: 20px 28px;
+      background: linear-gradient(120deg, var(--accent), var(--accent-light));
+    }
+    .card-content { padding: 30px; background: var(--content-bg); }
+    .card-content > p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 16px; font-weight: 500; }
+    .card-content h3 {
+      font-size: 18px; margin: 28px 0 14px; font-weight: 800; color: var(--heading);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-content h3::before { content: ''; width: 5px; height: 18px; background: var(--accent); border-radius: 3px; display: inline-block; }
+
+    /* Short answer callout */
+    .short-answer {
+      background: linear-gradient(135deg, #ccfbf1, #99f6e4);
+      border-left: 4px solid var(--accent);
+      border-radius: 12px;
+      padding: 18px 22px;
+      font-size: 16px;
+      line-height: 1.8;
+      color: #134e4a;
+      font-weight: 500;
+      margin-bottom: 18px;
+      box-shadow: rgba(255,255,255,.6) 0 0 0 1px inset;
+    }
+
+    /* Hook syntax banner */
+    .hook-syntax {
+      background: #0f172a;
+      color: #5eead4;
+      font-family: 'Fira Code','Consolas',monospace;
+      font-size: 14.5px;
+      padding: 14px 20px;
+      border-radius: 10px;
+      margin: 10px 0 20px;
+      border-left: 4px solid var(--accent-light);
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* Code blocks */
+    .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+    .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #333; }
+    .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .code-bar .dot-red { background: #ff5f57; }
+    .code-bar .dot-grey { background: #febc2e; }
+    .code-bar .dot-green { background: #28c840; }
+    .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code','Consolas',monospace; }
+    .code-block pre { padding: 20px; overflow-x: auto; }
+    .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code', 'Consolas', monospace; white-space: pre; line-height: 1.65; }
+    .kw   { color: #c792ea; font-weight: 600; }
+    .str  { color: #c3e88d; }
+    .fn   { color: #82aaff; }
+    .cmt  { color: #7a7a7a; font-style: italic; }
+    .num  { color: #f78c6c; }
+    .type { color: #f07178; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin: 16px 0 20px; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 24px rgba(0,0,0,0.08); }
+    table th { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+    table td { padding: 13px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; background: #fff; }
+    table tr:nth-child(even) td { background: #f8fafc; }
+    table td code, table th code { font-family: 'Fira Code','Consolas',monospace; background: #eef2f7; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #0f766e; }
+
+    /* Diagrams (ASCII art) */
+    .diagram {
+      background: #0f172a;
+      color: #93c5fd;
+      font-family: 'Fira Code','Consolas',monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 20px 24px;
+      border-radius: 12px;
+      white-space: pre;
+      overflow-x: auto;
+      margin: 16px 0 20px;
+      border: 1px solid #1e293b;
+    }
+
+    /* Info boxes */
+    .note, .warning, .remember, .tip {
+      border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15px; line-height: 1.8; font-weight: 500;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+    }
+    .note     { background: linear-gradient(135deg,#e0f2fe,#bae6fd); color: #075985; }
+    .warning  { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+    .remember { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+    .tip      { background: linear-gradient(135deg,#fef3c7,#fde68a); color: #92400e; }
+
+    /* Q&A blocks */
+    .q-block {
+      padding: 14px 18px; margin: 22px 0 10px; border-radius: 12px; font-size: 16.5px; font-weight: 700;
+      background: linear-gradient(135deg, #99f6e4, #5eead4); color: var(--heading);
+      border-left: 3px solid var(--accent); box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset;
+    }
+    .a-block {
+      padding: 16px 18px; margin: 0 0 22px; border-radius: 12px; font-size: 15px; line-height: 1.85;
+      background: linear-gradient(135deg, #f0fdfa, #ccfbf1); color: #134e4a;
+      border-left: 3px solid var(--accent-light); box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset;
+    }
+    .a-block code { font-family: 'Fira Code','Consolas',monospace; background: #d1fae5; padding: 1px 6px; border-radius: 4px; font-size: 13.5px; color: #065f46; }
+
+    @media (max-width: 768px) {
+      .header h1 { font-size: 25px; }
+      .toc a { padding: 6px 14px; font-size: 12px; }
+      .diagram, .code-block code { font-size: 11.5px; }
+    }
+  </style>
 </head>
 <body>
   <div class="container">
 
-    <!-- ==================== HEADER ==================== -->
     <div class="header">
       <h1>⚡ React Performance Optimization</h1>
       <p>React.memo, useMemo, useCallback, Lazy Loading, Suspense, Code Splitting & Image Optimization</p>
       <div class="toc">
-        <a href="#overview" class="pill-indigo" onclick="document.getElementById('overview').scrollIntoView({behavior:'smooth'});return false;">Overview</a>
-        <a href="#react-memo" class="pill-teal" onclick="document.getElementById('react-memo').scrollIntoView({behavior:'smooth'});return false;">React.memo</a>
-        <a href="#usememo" class="pill-indigo" onclick="document.getElementById('usememo').scrollIntoView({behavior:'smooth'});return false;">useMemo</a>
-        <a href="#usecallback" class="pill-red" onclick="document.getElementById('usecallback').scrollIntoView({behavior:'smooth'});return false;">useCallback</a>
-        <a href="#lazy-loading" class="pill-teal" onclick="document.getElementById('lazy-loading').scrollIntoView({behavior:'smooth'});return false;">Lazy Loading</a>
-        <a href="#suspense" class="pill-indigo" onclick="document.getElementById('suspense').scrollIntoView({behavior:'smooth'});return false;">Suspense</a>
-        <a href="#code-splitting" class="pill-red" onclick="document.getElementById('code-splitting').scrollIntoView({behavior:'smooth'});return false;">Code Splitting</a>
-        <a href="#image-optimization" class="pill-teal" onclick="document.getElementById('image-optimization').scrollIntoView({behavior:'smooth'});return false;">Image Optimization</a>
-        <a href="#interview" class="pill-indigo" onclick="document.getElementById('interview').scrollIntoView({behavior:'smooth'});return false;">Interview Q&A</a>
+        <a href="#overview" onclick="document.getElementById('overview').scrollIntoView({behavior:'smooth'});return false;">Overview</a>
+        <a href="#react-memo" onclick="document.getElementById('react-memo').scrollIntoView({behavior:'smooth'});return false;">React.memo</a>
+        <a href="#usememo" onclick="document.getElementById('usememo').scrollIntoView({behavior:'smooth'});return false;">useMemo</a>
+        <a href="#usecallback" onclick="document.getElementById('usecallback').scrollIntoView({behavior:'smooth'});return false;">useCallback</a>
+        <a href="#lazy-loading" onclick="document.getElementById('lazy-loading').scrollIntoView({behavior:'smooth'});return false;">Lazy Loading</a>
+        <a href="#suspense" onclick="document.getElementById('suspense').scrollIntoView({behavior:'smooth'});return false;">Suspense</a>
+        <a href="#code-splitting" onclick="document.getElementById('code-splitting').scrollIntoView({behavior:'smooth'});return false;">Code Splitting</a>
+        <a href="#image-optimization" onclick="document.getElementById('image-optimization').scrollIntoView({behavior:'smooth'});return false;">Image Optimization</a>
+        <a href="#interview" onclick="document.getElementById('interview').scrollIntoView({behavior:'smooth'});return false;">Interview Q&A</a>
       </div>
     </div>
 
-    <!-- ==================== OVERVIEW ==================== -->
     <div class="section-divider" id="overview"><span>Performance Overview</span></div>
 
     <div class="card">
@@ -71,7 +220,6 @@
       </div>
     </div>
 
-    <!-- ==================== REACT.MEMO ==================== -->
     <div class="section-divider" id="react-memo"><span>React.memo</span></div>
 
     <div class="card">
@@ -194,7 +342,6 @@
       </div>
     </div>
 
-    <!-- ==================== useMemo ==================== -->
     <div class="section-divider" id="usememo"><span>useMemo</span></div>
 
     <div class="card">
@@ -259,7 +406,6 @@
       </div>
     </div>
 
-    <!-- ==================== useCallback ==================== -->
     <div class="section-divider" id="usecallback"><span>useCallback</span></div>
 
     <div class="card">
@@ -346,7 +492,6 @@
       </div>
     </div>
 
-    <!-- ==================== LAZY LOADING ==================== -->
     <div class="section-divider" id="lazy-loading"><span>Lazy Loading</span></div>
 
     <div class="card">
@@ -410,7 +555,6 @@ AFTER (with lazy loading):
       </div>
     </div>
 
-    <!-- ==================== SUSPENSE ==================== -->
     <div class="section-divider" id="suspense"><span>Suspense</span></div>
 
     <div class="card">
@@ -484,7 +628,6 @@ AFTER (with lazy loading):
       </div>
     </div>
 
-    <!-- ==================== CODE SPLITTING ==================== -->
     <div class="section-divider" id="code-splitting"><span>Code Splitting</span></div>
 
     <div class="card">
@@ -594,7 +737,6 @@ Total: 495 KB → User downloads only 85 + 210 + 12 = 307 KB initially!</div>
       </div>
     </div>
 
-    <!-- ==================== IMAGE OPTIMIZATION ==================== -->
     <div class="section-divider" id="image-optimization"><span>Image Optimization</span></div>
 
     <div class="card">
@@ -781,7 +923,6 @@ Total: 495 KB → User downloads only 85 + 210 + 12 = 307 KB initially!</div>
       </div>
     </div>
 
-    <!-- ==================== REAL PROJECT EXAMPLE ==================== -->
     <div class="section-divider"><span>Real Project Example</span></div>
 
     <div class="card">
@@ -886,7 +1027,6 @@ Total: 495 KB → User downloads only 85 + 210 + 12 = 307 KB initially!</div>
       </div>
     </div>
 
-    <!-- ==================== INTERVIEW Q&A ==================== -->
     <div class="section-divider" id="interview"><span>Interview Q&A</span></div>
 
     <div class="card">
