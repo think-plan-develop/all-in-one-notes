@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>React Routing - Complete Guide</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+    .container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+    /* header */
+    .header { background: linear-gradient(120deg,#3730a3,#6366f1); border-radius: 16px; padding: 40px 36px; margin-bottom: 50px; box-shadow: 0 12px 30px rgba(99,102,241,0.3); }
+    .header h1 { color: #fff; font-size: 32px; margin-bottom: 8px; font-weight: 800; letter-spacing: -0.5px; }
+    .header p { color: #e0e7ff; font-size: 16px; margin-bottom: 22px; }
+    .toc { display: flex; flex-wrap: wrap; gap: 8px; }
+    .toc a { text-decoration: none; padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.35); transition: all .2s ease; }
+    .pill-indigo { background: rgba(99,102,241,0.3); color: #fff; }
+    .pill-teal   { background: rgba(13,148,136,0.35); color: #fff; }
+    .pill-red    { background: rgba(219,39,119,0.3); color: #fff; }
+    .toc a:hover { background: #fff; color: #3730a3; }
+
+    /* section divider */
+    .section-divider { margin: 48px 0 24px; position: relative; }
+    .section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background: linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+    .section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+    /* card */
+    .card { border-radius: 14px; margin-bottom: 30px; overflow: hidden; box-shadow: 0 10px 24px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04); background:#fff; }
+    .card-title { color:#fff; font-size:20px; font-weight:700; padding:18px 26px; background: linear-gradient(120deg,#4338ca,#6366f1); }
+    .card-content { padding: 26px; background: #eef2ff; }
+    .card-content p { color:#333; font-size:16px; line-height:1.8; margin-bottom:14px; font-weight:500; }
+    .card-content h3 { font-size:17px; margin: 22px 0 10px; font-weight:800; color:#3730a3; }
+    .card-content code { background: rgba(67,56,202,0.08); padding: 1px 6px; border-radius: 5px; font-family:'Fira Code','Consolas',monospace; font-size: .92em; color:#3730a3; }
+
+    /* short-answer / hook-syntax / diagram */
+    .short-answer { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); border-left: 4px solid #4338ca; border-radius: 10px; padding: 16px 20px; margin-bottom: 18px; font-size: 16px; line-height: 1.8; color:#312e81; }
+    .hook-syntax { background:#1a1a1a; color:#c3e88d; font-family:'Fira Code','Consolas',monospace; font-size:15px; padding:14px 18px; border-radius:10px; margin: 10px 0 18px; box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+    .diagram { background:#0f172a; color:#93c5fd; font-family:'Fira Code','Consolas',monospace; font-size:13px; line-height:1.6; padding:18px 20px; border-radius:10px; margin: 14px 0; overflow-x:auto; white-space:pre; box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
+
+    /* code block */
+    .code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+    .code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+    .code-bar .dot { width:10px; height:10px; border-radius:50%; }
+    .dot-red{background:#ff5f57;} .dot-grey{background:#febc2e;} .dot-green{background:#28c840;}
+    .filename { color:#999; font-size:12px; margin-left:8px; }
+    .code-block pre { padding:18px; overflow-x:auto; }
+    .code-block code { background:none; color:#d4d4d4; font-size:14.5px; font-family:'Fira Code','Consolas',monospace; padding:0; }
+    .kw{color:#c792ea;font-weight:600;} .str{color:#c3e88d;} .fn{color:#82aaff;} .cmt{color:#7a7a7a;font-style:italic;} .num{color:#f78c6c;} .type{color:#f07178;}
+
+    /* info boxes */
+    .note, .warning, .tip, .remember { border-radius:10px; padding:14px 18px; margin:14px 0; font-size:15px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+    .note     { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+    .warning  { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+    .tip      { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+    .remember { background: linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+    /* table */
+    table { width:100%; border-collapse:collapse; margin:15px 0; border-radius:12px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.08); }
+    table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color:#fff; font-size:16px; padding:12px 16px; text-align:left; }
+    table td { padding:11px 16px; font-size:14.5px; font-weight:500; border-bottom:1px solid #eef0f4; color:#334155; }
+    table tr:nth-child(even){ background:#f8fafc; }
+
+    /* QA */
+    .card-content-QA .q-block { padding:14px 18px; margin:22px 0 10px; border-radius:12px; font-size:17px; font-weight:700; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; border-left:3px solid #4338ca; background: linear-gradient(135deg,#c7d2fe,#a5b4fc); color:#3730a3; }
+    .card-content-QA .a-block { padding:14px 18px; margin:0 0 16px; border-radius:12px; font-size:15px; line-height:1.8; font-weight:500; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; border-left:3px solid #4338ca; background: linear-gradient(135deg,#eef2ff,#e0e7ff); color:#312e81; }
+    .card-content-QA.theme-green .q-block { border-left-color:#059669; background: linear-gradient(135deg,#a7f3d0,#6ee7b7); color:#065f46; }
+    .card-content-QA.theme-green .a-block { border-left-color:#059669; background: linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; }
+    .card-content-QA.theme-purple .q-block { border-left-color:#7c3aed; background: linear-gradient(135deg,#ddd6fe,#c4b5fd); color:#5b21b6; }
+    .card-content-QA.theme-purple .a-block { border-left-color:#7c3aed; background: linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; }
+
+    .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; margin-left:8px; background: rgba(255,255,255,0.25); color:#fff; vertical-align: middle; }
+
+    @media (max-width: 768px) {
+      .header h1 { font-size: 24px; }
+      .toc a { padding:6px 12px; font-size:11px; }
+      .diagram { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header">
+      <h1>🧭 React Routing — Complete Guide</h1>
+      <p>BrowserRouter, Routes, Route, Link, NavLink, useNavigate, URL Params, Nested Routes & Authentication</p>
+      <div class="toc">
+        <a href="#overview" class="pill-indigo" onclick="document.getElementById('overview').scrollIntoView({behavior:'smooth'});return false;">Overview</a>
+        <a href="#browserrouter" class="pill-teal" onclick="document.getElementById('browserrouter').scrollIntoView({behavior:'smooth'});return false;">BrowserRouter</a>
+        <a href="#routes-route" class="pill-indigo" onclick="document.getElementById('routes-route').scrollIntoView({behavior:'smooth'});return false;">Routes & Route</a>
+        <a href="#link-navlink" class="pill-red" onclick="document.getElementById('link-navlink').scrollIntoView({behavior:'smooth'});return false;">Link & NavLink</a>
+        <a href="#usenavigate" class="pill-teal" onclick="document.getElementById('usenavigate').scrollIntoView({behavior:'smooth'});return false;">useNavigate</a>
+        <a href="#url-params" class="pill-indigo" onclick="document.getElementById('url-params').scrollIntoView({behavior:'smooth'});return false;">URL Parameters</a>
+        <a href="#nested-routes" class="pill-red" onclick="document.getElementById('nested-routes').scrollIntoView({behavior:'smooth'});return false;">Nested Routes</a>
+        <a href="#auth" class="pill-teal" onclick="document.getElementById('auth').scrollIntoView({behavior:'smooth'});return false;">Authentication</a>
+        <a href="#protected-routes" class="pill-indigo" onclick="document.getElementById('protected-routes').scrollIntoView({behavior:'smooth'});return false;">Protected Routes</a>
+        <a href="#interview" class="pill-red" onclick="document.getElementById('interview').scrollIntoView({behavior:'smooth'});return false;">Interview Q&A</a>
+      </div>
+    </div>
+
+    <!-- ==================== OVERVIEW ==================== -->
+    <div class="section-divider" id="overview"><span>Routing Overview</span></div>
+
+    <div class="card">
+      <div class="card-title">What is React Router?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>React Router</strong> is the standard client-side routing library for React SPAs. It enables navigation between different views/pages without full page reloads, using the browser's History API to change the URL.
+        </div>
+
+        <h3>Installation</h3>
+        <div class="hook-syntax">npm install react-router-dom</div>
+
+        <h3>Key Concepts</h3>
+        <table>
+          <tr><th>Component / Hook</th><th>Purpose</th></tr>
+          <tr><td><code>&lt;BrowserRouter&gt;</code></td><td>Wraps entire app, enables routing using History API</td></tr>
+          <tr><td><code>&lt;Routes&gt;</code></td><td>Container for all Route definitions (replaces Switch in v5)</td></tr>
+          <tr><td><code>&lt;Route&gt;</code></td><td>Maps a URL path to a component</td></tr>
+          <tr><td><code>&lt;Link&gt;</code></td><td>Navigates without page reload (replaces &lt;a&gt; tag)</td></tr>
+          <tr><td><code>&lt;NavLink&gt;</code></td><td>Link with active state styling</td></tr>
+          <tr><td><code>useNavigate()</code></td><td>Programmatic navigation (redirect)</td></tr>
+          <tr><td><code>useParams()</code></td><td>Access URL parameters (:id)</td></tr>
+          <tr><td><code>useSearchParams()</code></td><td>Access query string (?key=value)</td></tr>
+          <tr><td><code>useLocation()</code></td><td>Current URL location object</td></tr>
+          <tr><td><code>&lt;Outlet&gt;</code></td><td>Renders child routes in nested layouts</td></tr>
+          <tr><td><code>&lt;Navigate&gt;</code></td><td>Declarative redirect component</td></tr>
+        </table>
+
+        <div class="diagram">URL: /dashboard/users/42
+                      │
+                      ▼
+┌──────────────────────────────────────────────┐
+│  &lt;BrowserRouter&gt;                             │
+│    │                                         │
+│    ├── &lt;Routes&gt;                              │
+│    │     ├── &lt;Route path="/" element={Home}  │
+│    │     ├── &lt;Route path="/dashboard" ...&gt;   │  ← matches
+│    │     │     ├── &lt;Route path="users" ...&gt;  │  ← matches
+│    │     │     │     └── &lt;Route path=":id"&gt;  │  ← matches (42)
+│    │     │     └── &lt;Route path="settings"&gt;   │
+│    │     └── &lt;Route path="*" element={404}&gt;  │
+│    │                                         │
+│    └── Renders: Dashboard → Users → User(42) │
+└──────────────────────────────────────────────┘</div>
+
+        <div class="note">
+          <strong>📝 Note:</strong> This guide covers <strong>React Router v6</strong> (latest). v5 used <code>&lt;Switch&gt;</code>, <code>useHistory()</code>, and <code>component=</code> prop — all replaced in v6.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== BROWSERROUTER ==================== -->
+    <div class="section-divider" id="browserrouter"><span>BrowserRouter</span></div>
+
+    <div class="card">
+      <div class="card-title">BrowserRouter — The Router Provider</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>&lt;BrowserRouter&gt;</strong> wraps your entire application and enables React Router. It uses the HTML5 History API (<code>pushState</code>, <code>replaceState</code>) to keep the URL in sync with the UI without page reloads.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">main.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">BrowserRouter</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+<span class="kw">import</span> <span class="fn">App</span> <span class="kw">from</span> <span class="str">'./App'</span>;
+
+<span class="fn">createRoot</span>(document.<span class="fn">getElementById</span>(<span class="str">'root'</span>)).<span class="fn">render</span>(
+  &lt;<span class="fn">BrowserRouter</span>&gt;
+    &lt;<span class="fn">App</span> /&gt;
+  &lt;/<span class="fn">BrowserRouter</span>&gt;
+);</code></pre>
+        </div>
+
+        <h3>Router Types</h3>
+        <table>
+          <tr><th>Router</th><th>URL Format</th><th>Use Case</th></tr>
+          <tr><td><code>BrowserRouter</code></td><td><code>/about</code></td><td>Production apps (needs server config)</td></tr>
+          <tr><td><code>HashRouter</code></td><td><code>/#/about</code></td><td>Static hosting (GitHub Pages, no server)</td></tr>
+          <tr><td><code>MemoryRouter</code></td><td>No URL change</td><td>Testing, React Native</td></tr>
+          <tr><td><code>StaticRouter</code></td><td>Server-rendered</td><td>SSR (Next.js alternative)</td></tr>
+        </table>
+
+        <div class="warning">
+          <strong>⚠️ Server Config Required:</strong> BrowserRouter requires the server to serve <code>index.html</code> for ALL routes. Without this, refreshing <code>/about</code> returns 404. In Vite/CRA dev server, this works automatically. In production (Nginx/Apache), add a fallback rule.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">nginx.conf (production fix)</span></div>
+          <pre><code><span class="cmt"># Serve index.html for all routes (SPA fallback)</span>
+location / {
+  try_files $uri $uri/ /index.html;
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ROUTES & ROUTE ==================== -->
+    <div class="section-divider" id="routes-route"><span>Routes & Route</span></div>
+
+    <div class="card">
+      <div class="card-title">Routes & Route — Defining Pages</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>&lt;Routes&gt;</strong> is a container that looks at the current URL and renders the matching <strong>&lt;Route&gt;</strong>. Each Route maps a <code>path</code> to a component via the <code>element</code> prop.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">App.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">Routes</span>, <span class="fn">Route</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+<span class="kw">import</span> <span class="fn">Home</span> <span class="kw">from</span> <span class="str">'./pages/Home'</span>;
+<span class="kw">import</span> <span class="fn">About</span> <span class="kw">from</span> <span class="str">'./pages/About'</span>;
+<span class="kw">import</span> <span class="fn">Products</span> <span class="kw">from</span> <span class="str">'./pages/Products'</span>;
+<span class="kw">import</span> <span class="fn">NotFound</span> <span class="kw">from</span> <span class="str">'./pages/NotFound'</span>;
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="fn">Routes</span>&gt;
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/"</span> <span class="type">element</span>={&lt;<span class="fn">Home</span> /&gt;} /&gt;
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/about"</span> <span class="type">element</span>={&lt;<span class="fn">About</span> /&gt;} /&gt;
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/products"</span> <span class="type">element</span>={&lt;<span class="fn">Products</span> /&gt;} /&gt;
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"*"</span> <span class="type">element</span>={&lt;<span class="fn">NotFound</span> /&gt;} /&gt;  {<span class="cmt">/* 404 catch-all */</span>}
+    &lt;/<span class="fn">Routes</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>Route Path Patterns</h3>
+        <table>
+          <tr><th>Pattern</th><th>Matches</th><th>Example</th></tr>
+          <tr><td><code>"/"</code></td><td>Exact root path</td><td><code>localhost:3000/</code></td></tr>
+          <tr><td><code>"/about"</code></td><td>Exact match</td><td><code>/about</code></td></tr>
+          <tr><td><code>"/users/:id"</code></td><td>Dynamic parameter</td><td><code>/users/42</code>, <code>/users/abc</code></td></tr>
+          <tr><td><code>"/files/*"</code></td><td>Wildcard (any sub-path)</td><td><code>/files/docs/resume.pdf</code></td></tr>
+          <tr><td><code>"*"</code></td><td>Catch-all (404)</td><td>Any unmatched URL</td></tr>
+          <tr><td><code>"users"</code></td><td>Relative path (nested)</td><td>Appended to parent path</td></tr>
+        </table>
+
+        <div class="remember">
+          <strong>💡 Remember:</strong> In React Router v6, routes are <strong>automatically exact</strong>. You don't need <code>exact</code> prop anymore. <code>path="/"</code> only matches <code>/</code>, not <code>/about</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== LINK & NAVLINK ==================== -->
+    <div class="section-divider" id="link-navlink"><span>Link & NavLink</span></div>
+
+    <div class="card">
+      <div class="card-title">Link — Navigation Without Reload</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>&lt;Link&gt;</strong> renders an <code>&lt;a&gt;</code> tag that navigates to a new route without triggering a full page reload. It uses the History API to update the URL and let React Router render the matching component.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Navbar.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">Link</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+
+<span class="kw">function</span> <span class="fn">Navbar</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="type">nav</span>&gt;
+      &lt;<span class="fn">Link</span> <span class="type">to</span>=<span class="str">"/"</span>&gt;Home&lt;/<span class="fn">Link</span>&gt;
+      &lt;<span class="fn">Link</span> <span class="type">to</span>=<span class="str">"/about"</span>&gt;About&lt;/<span class="fn">Link</span>&gt;
+      &lt;<span class="fn">Link</span> <span class="type">to</span>=<span class="str">"/products"</span>&gt;Products&lt;/<span class="fn">Link</span>&gt;
+      &lt;<span class="fn">Link</span> <span class="type">to</span>=<span class="str">"/contact"</span> <span class="type">state</span>={{ <span class="type">from</span>: <span class="str">'navbar'</span> }}&gt;Contact&lt;/<span class="fn">Link</span>&gt;
+    &lt;/<span class="type">nav</span>&gt;
+  );
+}
+
+<span class="cmt">// ❌ DON'T use &lt;a href="/about"&gt; — causes full page reload!</span>
+<span class="cmt">// ✅ USE &lt;Link to="/about"&gt; — client-side navigation</span></code></pre>
+        </div>
+
+        <div class="warning">
+          <strong>⚠️ Never use <code>&lt;a href="..."&gt;</code> for internal navigation!</strong> It triggers a full page reload, losing all React state, Redux store, and re-fetching everything. Use <code>&lt;Link&gt;</code> for internal routes and <code>&lt;a&gt;</code> only for external URLs.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">NavLink — Link with Active Styling</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>&lt;NavLink&gt;</strong> is just like <code>&lt;Link&gt;</code> but automatically adds an <code>active</code> class (or custom styling) when the current URL matches the link's <code>to</code> prop. Perfect for navigation menus.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Sidebar.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">NavLink</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+
+<span class="kw">function</span> <span class="fn">Sidebar</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="type">nav</span> className=<span class="str">"sidebar"</span>&gt;
+      {<span class="cmt">/* Method 1: className function */</span>}
+      &lt;<span class="fn">NavLink</span>
+        <span class="type">to</span>=<span class="str">"/"</span>
+        className={({ <span class="type">isActive</span> }) =&gt;
+          <span class="type">isActive</span> ? <span class="str">'nav-link active'</span> : <span class="str">'nav-link'</span>
+        }
+      &gt;
+        Home
+      &lt;/<span class="fn">NavLink</span>&gt;
+
+      {<span class="cmt">/* Method 2: style function */</span>}
+      &lt;<span class="fn">NavLink</span>
+        <span class="type">to</span>=<span class="str">"/dashboard"</span>
+        style={({ <span class="type">isActive</span> }) =&gt; ({
+          <span class="type">color</span>: <span class="type">isActive</span> ? <span class="str">'#2563eb'</span> : <span class="str">'#64748b'</span>,
+          <span class="type">fontWeight</span>: <span class="type">isActive</span> ? <span class="str">'bold'</span> : <span class="str">'normal'</span>,
+          <span class="type">borderLeft</span>: <span class="type">isActive</span> ? <span class="str">'3px solid #2563eb'</span> : <span class="str">'none'</span>
+        })}
+      &gt;
+        Dashboard
+      &lt;/<span class="fn">NavLink</span>&gt;
+
+      {<span class="cmt">/* Method 3: end prop — exact match only */</span>}
+      &lt;<span class="fn">NavLink</span> <span class="type">to</span>=<span class="str">"/products"</span> <span class="type">end</span>&gt;All Products&lt;/<span class="fn">NavLink</span>&gt;
+      &lt;<span class="fn">NavLink</span> <span class="type">to</span>=<span class="str">"/products/new"</span>&gt;Add Product&lt;/<span class="fn">NavLink</span>&gt;
+    &lt;/<span class="type">nav</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>Link vs NavLink</h3>
+        <table>
+          <tr><th>Feature</th><th>Link</th><th>NavLink</th></tr>
+          <tr><td><strong>Navigation</strong></td><td>✅</td><td>✅</td></tr>
+          <tr><td><strong>Active class</strong></td><td>❌</td><td>✅ (auto <code>.active</code>)</td></tr>
+          <tr><td><strong>isActive callback</strong></td><td>❌</td><td>✅ className/style function</td></tr>
+          <tr><td><strong>end prop</strong></td><td>N/A</td><td>✅ (exact active match)</td></tr>
+          <tr><td><strong>Use case</strong></td><td>Inline links, buttons</td><td>Navigation menus, sidebars</td></tr>
+        </table>
+
+        <div class="tip">
+          <strong>💡 Tip:</strong> Use the <code>end</code> prop on NavLink when you have nested routes. Without it, <code>/products</code> stays active even on <code>/products/42</code>. With <code>end</code>, it's only active on exact <code>/products</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== useNavigate ==================== -->
+    <div class="section-divider" id="usenavigate"><span>useNavigate</span></div>
+
+    <div class="card">
+      <div class="card-title">useNavigate — Programmatic Navigation</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>useNavigate()</strong> returns a function that lets you navigate programmatically — after form submission, after login, on button click, or conditionally in code. It replaces <code>useHistory()</code> from React Router v5.
+        </div>
+
+        <div class="hook-syntax"><span class="kw">const</span> <span class="fn">navigate</span> = <span class="fn">useNavigate</span>();</div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">LoginPage.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useNavigate</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+
+<span class="kw">function</span> <span class="fn">LoginPage</span>() {
+  <span class="kw">const</span> <span class="fn">navigate</span> = <span class="fn">useNavigate</span>();
+
+  <span class="kw">const</span> <span class="fn">handleLogin</span> = <span class="kw">async</span> (<span class="type">e</span>) =&gt; {
+    <span class="type">e</span>.<span class="fn">preventDefault</span>();
+    <span class="kw">const</span> <span class="type">success</span> = <span class="kw">await</span> <span class="fn">loginUser</span>(<span class="type">email</span>, <span class="type">password</span>);
+
+    <span class="kw">if</span> (<span class="type">success</span>) {
+      <span class="cmt">// Navigate to dashboard after successful login</span>
+      <span class="fn">navigate</span>(<span class="str">'/dashboard'</span>);
+
+      <span class="cmt">// OR replace history (can't go back to login)</span>
+      <span class="fn">navigate</span>(<span class="str">'/dashboard'</span>, { <span class="type">replace</span>: <span class="num">true</span> });
+    }
+  };
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">form</span> <span class="fn">onSubmit</span>={<span class="fn">handleLogin</span>}&gt;
+      {<span class="cmt">/* form fields */</span>}
+      &lt;<span class="type">button</span> <span class="type">type</span>=<span class="str">"submit"</span>&gt;Login&lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">form</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>All useNavigate Options</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">NavigationExamples.jsx</span></div>
+          <pre><code><span class="kw">const</span> <span class="fn">navigate</span> = <span class="fn">useNavigate</span>();
+
+<span class="cmt">// Basic navigation</span>
+<span class="fn">navigate</span>(<span class="str">'/products'</span>);
+
+<span class="cmt">// Replace current history entry (no back button)</span>
+<span class="fn">navigate</span>(<span class="str">'/dashboard'</span>, { <span class="type">replace</span>: <span class="num">true</span> });
+
+<span class="cmt">// Pass state (accessible via useLocation().state)</span>
+<span class="fn">navigate</span>(<span class="str">'/checkout'</span>, { <span class="type">state</span>: { <span class="type">from</span>: <span class="str">'/cart'</span>, <span class="type">items</span>: <span class="num">3</span> } });
+
+<span class="cmt">// Go back (like browser back button)</span>
+<span class="fn">navigate</span>(-<span class="num">1</span>);
+
+<span class="cmt">// Go forward</span>
+<span class="fn">navigate</span>(<span class="num">1</span>);
+
+<span class="cmt">// Go back 2 pages</span>
+<span class="fn">navigate</span>(-<span class="num">2</span>);
+
+<span class="cmt">// Navigate with search params</span>
+<span class="fn">navigate</span>(<span class="str">'/products?category=electronics&sort=price'</span>);
+
+<span class="cmt">// Navigate to relative path</span>
+<span class="fn">navigate</span>(<span class="str">'../settings'</span>); <span class="cmt">// relative to current route</span></code></pre>
+        </div>
+
+        <h3>Declarative Redirect: &lt;Navigate&gt;</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ProtectedRoute.jsx (preview — full version below)</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">Navigate</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+
+<span class="cmt">// Redirect unauthenticated users</span>
+<span class="kw">function</span> <span class="fn">ProtectedRoute</span>({ <span class="type">children</span> }) {
+  <span class="kw">const</span> { <span class="type">isAuthenticated</span> } = <span class="fn">useAuth</span>();
+
+  <span class="kw">if</span> (!<span class="type">isAuthenticated</span>) {
+    <span class="cmt">// Declarative redirect — renders Navigate component</span>
+    <span class="kw">return</span> &lt;<span class="fn">Navigate</span> <span class="type">to</span>=<span class="str">"/login"</span> <span class="type">replace</span> /&gt;;
+  }
+
+  <span class="kw">return</span> <span class="type">children</span>;
+}</code></pre>
+        </div>
+
+        <div class="note">
+          <strong>📝 useNavigate vs Navigate:</strong> Use <code>useNavigate()</code> for programmatic navigation (in event handlers, after async operations). Use <code>&lt;Navigate&gt;</code> for declarative redirects (in JSX render logic, like auth guards). The full auth-aware version of ProtectedRoute is built out in the <a href="#protected-routes" onclick="document.getElementById('protected-routes').scrollIntoView({behavior:'smooth'});return false;" style="color:#4338ca;">Protected Routes section</a> below.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== URL PARAMETERS ==================== -->
+    <div class="section-divider" id="url-params"><span>URL Parameters</span></div>
+
+    <div class="card">
+      <div class="card-title">URL Parameters — Dynamic Routes</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>URL Parameters</strong> (dynamic segments) let you create routes like <code>/users/:id</code> where <code>:id</code> can be any value. Access them with the <code>useParams()</code> hook inside the rendered component.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">App.jsx + ProductDetail.jsx</span></div>
+          <pre><code><span class="cmt">// Route definition with :id parameter</span>
+&lt;<span class="fn">Routes</span>&gt;
+  &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/products"</span> <span class="type">element</span>={&lt;<span class="fn">ProductList</span> /&gt;} /&gt;
+  &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/products/:productId"</span> <span class="type">element</span>={&lt;<span class="fn">ProductDetail</span> /&gt;} /&gt;
+  &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/users/:userId/posts/:postId"</span> <span class="type">element</span>={&lt;<span class="fn">UserPost</span> /&gt;} /&gt;
+&lt;/<span class="fn">Routes</span>&gt;
+
+<span class="cmt">// ─────────────────────────────────────────────────</span>
+<span class="cmt">// Access params with useParams()</span>
+<span class="kw">import</span> { <span class="fn">useParams</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+
+<span class="kw">function</span> <span class="fn">ProductDetail</span>() {
+  <span class="kw">const</span> { <span class="type">productId</span> } = <span class="fn">useParams</span>();  <span class="cmt">// "42" from /products/42</span>
+  <span class="kw">const</span> [<span class="type">product</span>, <span class="fn">setProduct</span>] = <span class="fn">useState</span>(<span class="num">null</span>);
+
+  <span class="fn">useEffect</span>(() =&gt; {
+    <span class="fn">fetch</span>(<span class="str">`/api/products/${productId}`</span>)
+      .<span class="fn">then</span>(<span class="type">res</span> =&gt; <span class="type">res</span>.<span class="fn">json</span>())
+      .<span class="fn">then</span>(<span class="type">data</span> =&gt; <span class="fn">setProduct</span>(<span class="type">data</span>));
+  }, [<span class="type">productId</span>]); <span class="cmt">// re-fetch when param changes</span>
+
+  <span class="kw">if</span> (!<span class="type">product</span>) <span class="kw">return</span> &lt;<span class="type">p</span>&gt;Loading...&lt;/<span class="type">p</span>&gt;;
+  <span class="kw">return</span> &lt;<span class="type">h1</span>&gt;{<span class="type">product</span>.name} — ₹{<span class="type">product</span>.price}&lt;/<span class="type">h1</span>&gt;;
+}</code></pre>
+        </div>
+
+        <h3>Query Parameters (Search Params)</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">SearchPage.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useSearchParams</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+
+<span class="cmt">// URL: /search?q=laptop&category=electronics&page=2</span>
+<span class="kw">function</span> <span class="fn">SearchPage</span>() {
+  <span class="kw">const</span> [<span class="type">searchParams</span>, <span class="fn">setSearchParams</span>] = <span class="fn">useSearchParams</span>();
+
+  <span class="cmt">// Read params</span>
+  <span class="kw">const</span> <span class="type">query</span> = <span class="type">searchParams</span>.<span class="fn">get</span>(<span class="str">'q'</span>);         <span class="cmt">// "laptop"</span>
+  <span class="kw">const</span> <span class="type">category</span> = <span class="type">searchParams</span>.<span class="fn">get</span>(<span class="str">'category'</span>); <span class="cmt">// "electronics"</span>
+  <span class="kw">const</span> <span class="type">page</span> = <span class="type">searchParams</span>.<span class="fn">get</span>(<span class="str">'page'</span>) || <span class="str">'1'</span>;  <span class="cmt">// "2"</span>
+
+  <span class="cmt">// Update params (updates URL without reload)</span>
+  <span class="kw">const</span> <span class="fn">handlePageChange</span> = (<span class="type">newPage</span>) =&gt; {
+    <span class="fn">setSearchParams</span>({ <span class="type">q</span>: <span class="type">query</span>, <span class="type">category</span>, <span class="type">page</span>: <span class="type">newPage</span> });
+  };
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">p</span>&gt;Results for: {<span class="type">query</span>} in {<span class="type">category</span>}&lt;/<span class="type">p</span>&gt;
+      &lt;<span class="type">button</span> <span class="fn">onClick</span>={() =&gt; <span class="fn">handlePageChange</span>(Number(<span class="type">page</span>) + <span class="num">1</span>)}&gt;
+        Next Page
+      &lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>URL Params vs Query Params</h3>
+        <table>
+          <tr><th>Feature</th><th>URL Params (:id)</th><th>Query Params (?key=val)</th></tr>
+          <tr><td><strong>Format</strong></td><td><code>/users/42</code></td><td><code>/users?id=42</code></td></tr>
+          <tr><td><strong>Hook</strong></td><td><code>useParams()</code></td><td><code>useSearchParams()</code></td></tr>
+          <tr><td><strong>Required?</strong></td><td>Yes (route won't match without)</td><td>No (optional)</td></tr>
+          <tr><td><strong>Use for</strong></td><td>Identifying a resource</td><td>Filtering, sorting, pagination</td></tr>
+          <tr><td><strong>Example</strong></td><td>Product ID, User ID</td><td>Search query, page number, sort order</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== NESTED ROUTES ==================== -->
+    <div class="section-divider" id="nested-routes"><span>Nested Routes</span></div>
+
+    <div class="card">
+      <div class="card-title">Nested Routes — Shared Layouts</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>Nested Routes</strong> let you create shared layouts where a parent route renders a persistent layout (header, sidebar) and child routes render inside it using the <code>&lt;Outlet&gt;</code> component. This is how you build dashboard layouts, settings pages, etc.
+        </div>
+
+        <div class="diagram">URL: /dashboard/analytics
+
+┌─────────────────────────────────────────────┐
+│  &lt;DashboardLayout&gt;  (parent route)          │
+│  ┌───────┬────────────────────────────────┐ │
+│  │       │                                │ │
+│  │ Side  │   &lt;Outlet /&gt;                   │ │
+│  │ bar   │   ↓                            │ │
+│  │       │   Renders &lt;Analytics /&gt;        │ │
+│  │ • Home│   (child route)                │ │
+│  │ • Anal│                                │ │
+│  │ • Set │                                │ │
+│  │       │                                │ │
+│  └───────┴────────────────────────────────┘ │
+└─────────────────────────────────────────────┘</div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">App.jsx — Nested Route Definition</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">Routes</span>, <span class="fn">Route</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="fn">Routes</span>&gt;
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/"</span> <span class="type">element</span>={&lt;<span class="fn">Home</span> /&gt;} /&gt;
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/login"</span> <span class="type">element</span>={&lt;<span class="fn">Login</span> /&gt;} /&gt;
+
+      {<span class="cmt">/* Nested Routes — DashboardLayout wraps all children */</span>}
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/dashboard"</span> <span class="type">element</span>={&lt;<span class="fn">DashboardLayout</span> /&gt;}&gt;
+        &lt;<span class="fn">Route</span> <span class="type">index</span> <span class="type">element</span>={&lt;<span class="fn">DashboardHome</span> /&gt;} /&gt;        {<span class="cmt">/* /dashboard */</span>}
+        &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"analytics"</span> <span class="type">element</span>={&lt;<span class="fn">Analytics</span> /&gt;} /&gt;  {<span class="cmt">/* /dashboard/analytics */</span>}
+        &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"users"</span> <span class="type">element</span>={&lt;<span class="fn">Users</span> /&gt;} /&gt;        {<span class="cmt">/* /dashboard/users */</span>}
+        &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"users/:id"</span> <span class="type">element</span>={&lt;<span class="fn">UserDetail</span> /&gt;} /&gt; {<span class="cmt">/* /dashboard/users/42 */</span>}
+        &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"settings"</span> <span class="type">element</span>={&lt;<span class="fn">Settings</span> /&gt;} /&gt;  {<span class="cmt">/* /dashboard/settings */</span>}
+      &lt;/<span class="fn">Route</span>&gt;
+
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"*"</span> <span class="type">element</span>={&lt;<span class="fn">NotFound</span> /&gt;} /&gt;
+    &lt;/<span class="fn">Routes</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>Layout Component with &lt;Outlet&gt;</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">DashboardLayout.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">Outlet</span>, <span class="fn">NavLink</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+
+<span class="kw">function</span> <span class="fn">DashboardLayout</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span> className=<span class="str">"dashboard"</span>&gt;
+      {<span class="cmt">/* Sidebar — persists across all child routes */</span>}
+      &lt;<span class="type">aside</span> className=<span class="str">"sidebar"</span>&gt;
+        &lt;<span class="fn">NavLink</span> <span class="type">to</span>=<span class="str">"/dashboard"</span> <span class="type">end</span>&gt;🏠 Home&lt;/<span class="fn">NavLink</span>&gt;
+        &lt;<span class="fn">NavLink</span> <span class="type">to</span>=<span class="str">"/dashboard/analytics"</span>&gt;📊 Analytics&lt;/<span class="fn">NavLink</span>&gt;
+        &lt;<span class="fn">NavLink</span> <span class="type">to</span>=<span class="str">"/dashboard/users"</span>&gt;👥 Users&lt;/<span class="fn">NavLink</span>&gt;
+        &lt;<span class="fn">NavLink</span> <span class="type">to</span>=<span class="str">"/dashboard/settings"</span>&gt;⚙️ Settings&lt;/<span class="fn">NavLink</span>&gt;
+      &lt;/<span class="type">aside</span>&gt;
+
+      {<span class="cmt">/* Content area — child routes render HERE */</span>}
+      &lt;<span class="type">main</span> className=<span class="str">"content"</span>&gt;
+        &lt;<span class="fn">Outlet</span> /&gt;  {<span class="cmt">/* ← This renders the matched child route */</span>}
+      &lt;/<span class="type">main</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>Index Route</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Index Route Explanation</span></div>
+          <pre><code><span class="cmt">// What renders at /dashboard (no sub-path)?</span>
+<span class="cmt">// The "index" route — it's the DEFAULT child</span>
+
+&lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/dashboard"</span> <span class="type">element</span>={&lt;<span class="fn">DashboardLayout</span> /&gt;}&gt;
+  &lt;<span class="fn">Route</span> <span class="type">index</span> <span class="type">element</span>={&lt;<span class="fn">DashboardHome</span> /&gt;} /&gt;  {<span class="cmt">/* /dashboard → shows this */</span>}
+  &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"analytics"</span> <span class="type">element</span>={&lt;<span class="fn">Analytics</span> /&gt;} /&gt;  {<span class="cmt">/* /dashboard/analytics */</span>}
+&lt;/<span class="fn">Route</span>&gt;
+
+<span class="cmt">// "index" means: render when parent path matches exactly</span>
+<span class="cmt">// It's like path="" but with special semantics</span></code></pre>
+        </div>
+
+        <h3>Sharing Data with Nested Children — useOutletContext</h3>
+        <p>Sometimes a child route needs data the parent layout already fetched (e.g. the logged-in user, a shared filter). Instead of prop-drilling, pass it through <code>&lt;Outlet context={...}&gt;</code> and read it in the child with <code>useOutletContext()</code>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">DashboardLayout.jsx + Analytics.jsx</span></div>
+          <pre><code><span class="cmt">// Parent layout provides context to whatever child renders</span>
+<span class="kw">function</span> <span class="fn">DashboardLayout</span>() {
+  <span class="kw">const</span> { <span class="type">user</span> } = <span class="fn">useAuth</span>();
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="fn">Sidebar</span> /&gt;
+      &lt;<span class="fn">Outlet</span> <span class="type">context</span>={{ <span class="type">user</span> }} /&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}
+
+<span class="cmt">// Child reads it without any prop being passed manually</span>
+<span class="kw">import</span> { <span class="fn">useOutletContext</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+
+<span class="kw">function</span> <span class="fn">Analytics</span>() {
+  <span class="kw">const</span> { <span class="type">user</span> } = <span class="fn">useOutletContext</span>();
+  <span class="kw">return</span> &lt;<span class="type">p</span>&gt;Analytics for {<span class="type">user</span>.name}&lt;/<span class="type">p</span>&gt;;
+}</code></pre>
+        </div>
+
+        <div class="remember">
+          <strong>💡 Remember:</strong> Child route paths are <strong>relative</strong> — no leading slash! <code>path="analytics"</code> (not <code>"/analytics"</code>) automatically becomes <code>/dashboard/analytics</code> because the parent is <code>/dashboard</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== AUTHENTICATION ==================== -->
+    <div class="section-divider" id="auth"><span>Authentication</span></div>
+
+    <div class="card">
+      <div class="card-title">Authentication Context — useAuth</div>
+      <div class="card-content">
+        <div class="short-answer">
+          Authentication state (current user, token, login/logout functions) is usually stored in a <strong>Context Provider</strong> near the top of the app, so route guards and any page can read "is this user logged in?" without prop drilling.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">AuthContext.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">createContext</span>, <span class="fn">useContext</span>, <span class="fn">useState</span>, <span class="fn">useEffect</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">const</span> <span class="type">AuthContext</span> = <span class="fn">createContext</span>(<span class="num">null</span>);
+
+<span class="kw">export function</span> <span class="fn">AuthProvider</span>({ <span class="type">children</span> }) {
+  <span class="kw">const</span> [<span class="type">user</span>, <span class="fn">setUser</span>] = <span class="fn">useState</span>(<span class="num">null</span>);
+  <span class="kw">const</span> [<span class="type">isLoading</span>, <span class="fn">setIsLoading</span>] = <span class="fn">useState</span>(<span class="kw">true</span>); <span class="cmt">// checking existing session</span>
+
+  <span class="cmt">// On first load, check if a token already exists and restore the session</span>
+  <span class="fn">useEffect</span>(() =&gt; {
+    <span class="kw">const</span> <span class="type">token</span> = localStorage.<span class="fn">getItem</span>(<span class="str">'token'</span>);
+    <span class="kw">if</span> (!<span class="type">token</span>) { <span class="fn">setIsLoading</span>(<span class="kw">false</span>); <span class="kw">return</span>; }
+
+    <span class="fn">fetch</span>(<span class="str">'/api/me'</span>, { <span class="type">headers</span>: { Authorization: <span class="str">`Bearer ${token}`</span> } })
+      .<span class="fn">then</span>((<span class="type">res</span>) =&gt; (<span class="type">res</span>.ok ? <span class="type">res</span>.<span class="fn">json</span>() : <span class="kw">null</span>))
+      .<span class="fn">then</span>(<span class="fn">setUser</span>)
+      .<span class="fn">finally</span>(() =&gt; <span class="fn">setIsLoading</span>(<span class="kw">false</span>));
+  }, []);
+
+  <span class="kw">const</span> <span class="fn">login</span> = <span class="kw">async</span> (<span class="type">credentials</span>) =&gt; {
+    <span class="kw">const</span> <span class="type">res</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/api/login'</span>, {
+      <span class="type">method</span>: <span class="str">'POST'</span>,
+      <span class="type">headers</span>: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+      <span class="type">body</span>: <span class="fn">JSON.stringify</span>(<span class="type">credentials</span>),
+    });
+    <span class="kw">if</span> (!<span class="type">res</span>.ok) <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">'Invalid credentials'</span>);
+    <span class="kw">const</span> <span class="type">data</span> = <span class="kw">await</span> <span class="type">res</span>.<span class="fn">json</span>();
+    localStorage.<span class="fn">setItem</span>(<span class="str">'token'</span>, <span class="type">data</span>.token);
+    <span class="fn">setUser</span>(<span class="type">data</span>.user);
+  };
+
+  <span class="kw">const</span> <span class="fn">logout</span> = () =&gt; {
+    localStorage.<span class="fn">removeItem</span>(<span class="str">'token'</span>);
+    <span class="fn">setUser</span>(<span class="num">null</span>);
+  };
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">AuthContext</span>.Provider <span class="type">value</span>={{ <span class="type">user</span>, <span class="type">isLoading</span>, <span class="type">login</span>, <span class="type">logout</span> }}&gt;
+      {<span class="type">children</span>}
+    &lt;/<span class="type">AuthContext</span>.Provider&gt;
+  );
+}
+
+<span class="kw">export const</span> <span class="fn">useAuth</span> = () =&gt; <span class="fn">useContext</span>(<span class="type">AuthContext</span>);</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">main.jsx — wiring the provider in</span></div>
+          <pre><code>&lt;<span class="fn">BrowserRouter</span>&gt;
+  &lt;<span class="fn">AuthProvider</span>&gt;
+    &lt;<span class="fn">App</span> /&gt;
+  &lt;/<span class="fn">AuthProvider</span>&gt;
+&lt;/<span class="fn">BrowserRouter</span>&gt;</code></pre>
+        </div>
+
+        <div class="warning">
+          <strong>⚠️ localStorage token caveat:</strong> Storing a raw JWT in <code>localStorage</code> is common and simple, but it's readable by any script on the page, so it's exposed to XSS. Higher-security apps prefer an <strong>httpOnly cookie</strong> set by the server, which JavaScript can't read at all.
+        </div>
+
+        <div class="note">
+          <strong>📝 Why track <code>isLoading</code> separately from <code>user</code>?</strong> On page refresh, there's a brief moment where you don't yet know if the user is logged in (the <code>/api/me</code> call hasn't returned). If a guard checks <code>user === null</code> during that window, it'll incorrectly redirect to login. Always gate redirects on <code>isLoading</code> finishing first — see the Protected Route section below.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PROTECTED ROUTES ==================== -->
+    <div class="section-divider" id="protected-routes"><span>Protected Routes</span></div>
+
+    <div class="card">
+      <div class="card-title">ProtectedRoute — Guarding Authenticated Pages</div>
+      <div class="card-content">
+        <div class="short-answer">
+          A <strong>Protected Route</strong> checks auth state before rendering a route's content. If the user isn't logged in, it redirects to <code>/login</code> — and remembers where they were trying to go, using <code>location</code> state, so it can send them back after they log in.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ProtectedRoute.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">Navigate</span>, <span class="fn">Outlet</span>, <span class="fn">useLocation</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+<span class="kw">import</span> { <span class="fn">useAuth</span> } <span class="kw">from</span> <span class="str">'./AuthContext'</span>;
+
+<span class="kw">function</span> <span class="fn">ProtectedRoute</span>({ <span class="type">allowedRoles</span> }) {
+  <span class="kw">const</span> { <span class="type">user</span>, <span class="type">isLoading</span> } = <span class="fn">useAuth</span>();
+  <span class="kw">const</span> <span class="type">location</span> = <span class="fn">useLocation</span>();
+
+  <span class="kw">if</span> (<span class="type">isLoading</span>) {
+    <span class="cmt">// still checking for an existing session — don't redirect yet</span>
+    <span class="kw">return</span> &lt;<span class="type">p</span>&gt;Checking session…&lt;/<span class="type">p</span>&gt;;
+  }
+
+  <span class="kw">if</span> (!<span class="type">user</span>) {
+    <span class="cmt">// not logged in — send to login, remember where they came from</span>
+    <span class="kw">return</span> &lt;<span class="fn">Navigate</span> <span class="type">to</span>=<span class="str">"/login"</span> <span class="type">state</span>={{ <span class="type">from</span>: <span class="type">location</span> }} <span class="type">replace</span> /&gt;;
+  }
+
+  <span class="kw">if</span> (<span class="type">allowedRoles</span> && !<span class="type">allowedRoles</span>.includes(<span class="type">user</span>.role)) {
+    <span class="cmt">// logged in, but wrong role — role-based guard</span>
+    <span class="kw">return</span> &lt;<span class="fn">Navigate</span> <span class="type">to</span>=<span class="str">"/unauthorized"</span> <span class="type">replace</span> /&gt;;
+  }
+
+  <span class="kw">return</span> &lt;<span class="fn">Outlet</span> /&gt;; <span class="cmt">// authorized — render the matched nested route</span>
+}</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">App.jsx — wiring it up</span></div>
+          <pre><code>&lt;<span class="fn">Routes</span>&gt;
+  &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/login"</span> <span class="type">element</span>={&lt;<span class="fn">Login</span> /&gt;} /&gt;
+
+  {<span class="cmt">/* everything nested inside here requires login */</span>}
+  &lt;<span class="fn">Route</span> <span class="type">element</span>={&lt;<span class="fn">ProtectedRoute</span> /&gt;}&gt;
+    &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/dashboard"</span> <span class="type">element</span>={&lt;<span class="fn">DashboardLayout</span> /&gt;}&gt;
+      &lt;<span class="fn">Route</span> <span class="type">index</span> <span class="type">element</span>={&lt;<span class="fn">DashboardHome</span> /&gt;} /&gt;
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"orders"</span> <span class="type">element</span>={&lt;<span class="fn">Orders</span> /&gt;} /&gt;
+    &lt;/<span class="fn">Route</span>&gt;
+  &lt;/<span class="fn">Route</span>&gt;
+
+  {<span class="cmt">/* admin-only nested guard, stacked role check */</span>}
+  &lt;<span class="fn">Route</span> <span class="type">element</span>={&lt;<span class="fn">ProtectedRoute</span> <span class="type">allowedRoles</span>={[<span class="str">'admin'</span>]} /&gt;}&gt;
+    &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/admin"</span> <span class="type">element</span>={&lt;<span class="fn">AdminPanel</span> /&gt;} /&gt;
+  &lt;/<span class="fn">Route</span>&gt;
+&lt;/<span class="fn">Routes</span>&gt;</code></pre>
+        </div>
+
+        <div class="tip">
+          <strong>💡 Tip:</strong> Notice the guard is just another route rendering <code>&lt;Outlet /&gt;</code> — the same nested-routing mechanism used for layouts is reused here to gate access instead of sharing UI.
+        </div>
+
+        <h3>Redirecting Back After Login</h3>
+        <p>When <code>ProtectedRoute</code> redirects to <code>/login</code>, it passes the original location in <code>state.from</code>. The login page reads that and sends the user back where they wanted to go.</p>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Login.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useNavigate</span>, <span class="fn">useLocation</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+<span class="kw">import</span> { <span class="fn">useAuth</span> } <span class="kw">from</span> <span class="str">'./AuthContext'</span>;
+
+<span class="kw">function</span> <span class="fn">Login</span>() {
+  <span class="kw">const</span> { <span class="type">login</span> } = <span class="fn">useAuth</span>();
+  <span class="kw">const</span> <span class="fn">navigate</span> = <span class="fn">useNavigate</span>();
+  <span class="kw">const</span> <span class="type">location</span> = <span class="fn">useLocation</span>();
+  <span class="kw">const</span> <span class="type">from</span> = <span class="type">location</span>.state?.from?.pathname || <span class="str">'/dashboard'</span>;
+
+  <span class="kw">const</span> <span class="fn">handleSubmit</span> = <span class="kw">async</span> (<span class="type">e</span>) =&gt; {
+    <span class="type">e</span>.<span class="fn">preventDefault</span>();
+    <span class="kw">await</span> <span class="fn">login</span>({ <span class="type">email</span>, <span class="type">password</span> });
+    <span class="fn">navigate</span>(<span class="type">from</span>, { <span class="type">replace</span>: <span class="kw">true</span> }); <span class="cmt">// back to where they wanted to go</span>
+  };
+
+  <span class="kw">return</span> &lt;<span class="type">form</span> <span class="fn">onSubmit</span>={<span class="fn">handleSubmit</span>}&gt;{<span class="cmt">/* email/password inputs */</span>}&lt;/<span class="type">form</span>&gt;;
+}</code></pre>
+        </div>
+
+        <h3>GuestOnly — Keep Logged-In Users off Login/Register</h3>
+        <p>The mirror-image guard: if a user is <em>already</em> logged in, visiting <code>/login</code> or <code>/register</code> should bounce them to the dashboard instead.</p>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">GuestOnly.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">Navigate</span>, <span class="fn">Outlet</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+<span class="kw">import</span> { <span class="fn">useAuth</span> } <span class="kw">from</span> <span class="str">'./AuthContext'</span>;
+
+<span class="kw">function</span> <span class="fn">GuestOnly</span>() {
+  <span class="kw">const</span> { <span class="type">user</span>, <span class="type">isLoading</span> } = <span class="fn">useAuth</span>();
+  <span class="kw">if</span> (<span class="type">isLoading</span>) <span class="kw">return</span> <span class="num">null</span>;
+  <span class="kw">if</span> (<span class="type">user</span>) <span class="kw">return</span> &lt;<span class="fn">Navigate</span> <span class="type">to</span>=<span class="str">"/dashboard"</span> <span class="type">replace</span> /&gt;;
+  <span class="kw">return</span> &lt;<span class="fn">Outlet</span> /&gt;;
+}
+
+<span class="cmt">// usage:</span>
+&lt;<span class="fn">Route</span> <span class="type">element</span>={&lt;<span class="fn">GuestOnly</span> /&gt;}&gt;
+  &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/login"</span> <span class="type">element</span>={&lt;<span class="fn">Login</span> /&gt;} /&gt;
+  &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/register"</span> <span class="type">element</span>={&lt;<span class="fn">Register</span> /&gt;} /&gt;
+&lt;/<span class="fn">Route</span>&gt;</code></pre>
+        </div>
+
+        <table>
+          <tr><th>Guard</th><th>Blocks route when…</th><th>Redirects to</th></tr>
+          <tr><td><code>ProtectedRoute</code></td><td>user is <em>not</em> logged in</td><td><code>/login</code> (with <code>from</code> state)</td></tr>
+          <tr><td><code>ProtectedRoute allowedRoles</code></td><td>user is logged in but wrong role</td><td><code>/unauthorized</code></td></tr>
+          <tr><td><code>GuestOnly</code></td><td>user <em>is already</em> logged in</td><td><code>/dashboard</code></td></tr>
+        </table>
+
+        <h3>Full E-Commerce Routing Setup (Lazy Loading + Auth Guards)</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">App.jsx — Full Routing Setup</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">Routes</span>, <span class="fn">Route</span>, <span class="fn">Navigate</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+<span class="kw">import</span> { <span class="fn">lazy</span>, <span class="fn">Suspense</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="cmt">// Lazy-loaded pages (code splitting)</span>
+<span class="kw">const</span> <span class="fn">Home</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/Home'</span>));
+<span class="kw">const</span> <span class="fn">Products</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/Products'</span>));
+<span class="kw">const</span> <span class="fn">ProductDetail</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/ProductDetail'</span>));
+<span class="kw">const</span> <span class="fn">Cart</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/Cart'</span>));
+<span class="kw">const</span> <span class="fn">Dashboard</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/Dashboard'</span>));
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="fn">Suspense</span> <span class="type">fallback</span>={&lt;<span class="fn">LoadingSpinner</span> /&gt;}&gt;
+      &lt;<span class="fn">Routes</span>&gt;
+        {<span class="cmt">/* Public Routes */</span>}
+        &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/"</span> <span class="type">element</span>={&lt;<span class="fn">MainLayout</span> /&gt;}&gt;
+          &lt;<span class="fn">Route</span> <span class="type">index</span> <span class="type">element</span>={&lt;<span class="fn">Home</span> /&gt;} /&gt;
+          &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"products"</span> <span class="type">element</span>={&lt;<span class="fn">Products</span> /&gt;} /&gt;
+          &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"products/:id"</span> <span class="type">element</span>={&lt;<span class="fn">ProductDetail</span> /&gt;} /&gt;
+          &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"cart"</span> <span class="type">element</span>={&lt;<span class="fn">Cart</span> /&gt;} /&gt;
+          &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"about"</span> <span class="type">element</span>={&lt;<span class="fn">About</span> /&gt;} /&gt;
+        &lt;/<span class="fn">Route</span>&gt;
+
+        {<span class="cmt">/* Guest-only Routes (redirect if already logged in) */</span>}
+        &lt;<span class="fn">Route</span> <span class="type">element</span>={&lt;<span class="fn">GuestOnly</span> /&gt;}&gt;
+          &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/login"</span> <span class="type">element</span>={&lt;<span class="fn">Login</span> /&gt;} /&gt;
+          &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/register"</span> <span class="type">element</span>={&lt;<span class="fn">Register</span> /&gt;} /&gt;
+        &lt;/<span class="fn">Route</span>&gt;
+
+        {<span class="cmt">/* Protected Routes (requires login) */</span>}
+        &lt;<span class="fn">Route</span> <span class="type">element</span>={&lt;<span class="fn">ProtectedRoute</span> /&gt;}&gt;
+          &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/dashboard"</span> <span class="type">element</span>={&lt;<span class="fn">DashboardLayout</span> /&gt;}&gt;
+            &lt;<span class="fn">Route</span> <span class="type">index</span> <span class="type">element</span>={&lt;<span class="fn">Dashboard</span> /&gt;} /&gt;
+            &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"orders"</span> <span class="type">element</span>={&lt;<span class="fn">Orders</span> /&gt;} /&gt;
+            &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"orders/:orderId"</span> <span class="type">element</span>={&lt;<span class="fn">OrderDetail</span> /&gt;} /&gt;
+            &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"settings"</span> <span class="type">element</span>={&lt;<span class="fn">SettingsLayout</span> /&gt;}&gt;
+              &lt;<span class="fn">Route</span> <span class="type">index</span> <span class="type">element</span>={&lt;<span class="fn">Navigate</span> <span class="type">to</span>=<span class="str">"profile"</span> <span class="type">replace</span> /&gt;} /&gt;
+              &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"profile"</span> <span class="type">element</span>={&lt;<span class="fn">ProfileSettings</span> /&gt;} /&gt;
+              &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"security"</span> <span class="type">element</span>={&lt;<span class="fn">SecuritySettings</span> /&gt;} /&gt;
+            &lt;/<span class="fn">Route</span>&gt;
+          &lt;/<span class="fn">Route</span>&gt;
+        &lt;/<span class="fn">Route</span>&gt;
+
+        {<span class="cmt">/* Admin-only Routes (role-based) */</span>}
+        &lt;<span class="fn">Route</span> <span class="type">element</span>={&lt;<span class="fn">ProtectedRoute</span> <span class="type">allowedRoles</span>={[<span class="str">'admin'</span>]} /&gt;}&gt;
+          &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/admin"</span> <span class="type">element</span>={&lt;<span class="fn">AdminPanel</span> /&gt;} /&gt;
+        &lt;/<span class="fn">Route</span>&gt;
+
+        {<span class="cmt">/* 404 */</span>}
+        &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"*"</span> <span class="type">element</span>={&lt;<span class="fn">NotFound</span> /&gt;} /&gt;
+      &lt;/<span class="fn">Routes</span>&gt;
+    &lt;/<span class="fn">Suspense</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="tip">
+          <strong>💡 Production Patterns Used:</strong><br>
+          • <strong>Lazy loading:</strong> Each page loaded only when needed (code splitting)<br>
+          • <strong>Protected routes:</strong> Auth guard redirects to login, remembers destination<br>
+          • <strong>Guest-only routes:</strong> Login/Register redirect to dashboard if already logged in<br>
+          • <strong>Role-based guard:</strong> Admin panel requires <code>role === 'admin'</code><br>
+          • <strong>Nested layouts:</strong> MainLayout (header/footer), DashboardLayout (sidebar), SettingsLayout (tabs)<br>
+          • <strong>Index redirect:</strong> /dashboard/settings → auto-redirects to /dashboard/settings/profile
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="interview"><span>Interview Q&A</span></div>
+
+    <div class="card">
+      <div class="card-title">Routing Interview Questions</div>
+      <div class="card-content card-content-QA theme-green">
+        <div class="q-block">Q: What is React Router and why is it needed?</div>
+        <div class="a-block"><strong>A:</strong> React Router is a client-side routing library for React SPAs. It's needed because React itself has no built-in routing. It enables: (1) Navigation between views without page reload, (2) URL synchronization with UI state, (3) Browser back/forward button support, (4) Deep linking (shareable URLs), (5) Nested layouts with shared UI elements.</div>
+
+        <div class="q-block">Q: What is the difference between Link and NavLink?</div>
+        <div class="a-block"><strong>A:</strong> Both navigate without page reload. <code>&lt;Link&gt;</code> is a basic navigation component. <code>&lt;NavLink&gt;</code> adds automatic <strong>active styling</strong> — it applies an <code>active</code> class (or custom className/style) when the current URL matches its <code>to</code> prop. Use NavLink for navigation menus/sidebars, Link for inline links.</div>
+
+        <div class="q-block">Q: What's the difference between useParams and useSearchParams?</div>
+        <div class="a-block"><strong>A:</strong> <code>useParams()</code> reads <strong>path parameters</strong> defined with <code>:param</code> in the route (e.g., <code>/users/:id</code> → <code>{id: "42"}</code>). These are required — the route won't match without them. <code>useSearchParams()</code> reads <strong>query string</strong> parameters (e.g., <code>?page=2&sort=name</code>). These are optional and don't affect route matching.</div>
+
+        <div class="q-block">Q: What are nested routes and how does Outlet work?</div>
+        <div class="a-block"><strong>A:</strong> Nested routes let you define child routes inside a parent route. The parent renders a shared layout (header, sidebar), and <code>&lt;Outlet /&gt;</code> is a placeholder where the matched child route's component renders. This creates persistent layouts — the sidebar stays while inner content changes. Child paths are relative to the parent path.</div>
+
+        <div class="q-block">Q: What is the difference between useNavigate and Navigate component?</div>
+        <div class="a-block"><strong>A:</strong> <code>useNavigate()</code> is a hook that returns a function for <strong>programmatic</strong> navigation — used in event handlers, after async operations (login, form submit). <code>&lt;Navigate&gt;</code> is a <strong>declarative</strong> component that redirects when rendered — used in JSX for conditional redirects (auth guards, default routes). Both achieve the same result, different usage patterns.</div>
+
+        <div class="q-block">Q: How do you implement lazy loading with React Router?</div>
+        <div class="a-block"><strong>A:</strong> Use <code>React.lazy()</code> for dynamic imports and <code>&lt;Suspense&gt;</code> for loading state: <code>const Page = lazy(() => import('./Page'))</code>. Wrap Routes with <code>&lt;Suspense fallback={&lt;Spinner/&gt;}&gt;</code>. This enables code splitting — each page's JS loads only when the user navigates to it, reducing initial bundle size significantly.</div>
+
+        <div class="q-block">Q: How do you handle 404 pages in React Router?</div>
+        <div class="a-block"><strong>A:</strong> Add a catch-all route at the end of your Routes: <code>&lt;Route path="*" element={&lt;NotFound /&gt;} /&gt;</code>. The <code>*</code> wildcard matches any URL that doesn't match previous routes. Place it last because Routes matches top-to-bottom. You can also add catch-all routes inside nested layouts for section-specific 404 pages.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Authentication & Protected Route Interview Questions</div>
+      <div class="card-content card-content-QA theme-purple">
+        <div class="q-block">Q: How do you implement a protected route in React Router v6?</div>
+        <div class="a-block"><strong>A:</strong> Create a guard component that reads auth state and returns <code>&lt;Outlet /&gt;</code> when authorized, or <code>&lt;Navigate to="/login" /&gt;</code> when not. Wrap it around the protected routes as a parent route: <code>&lt;Route element={&lt;ProtectedRoute /&gt;}&gt;...protected children...&lt;/Route&gt;</code>. This is the same nested-routing/Outlet mechanism used for layouts, repurposed as a gate.</div>
+
+        <div class="q-block">Q: Where should authentication state live?</div>
+        <div class="a-block"><strong>A:</strong> In a Context Provider (e.g. AuthProvider using createContext) wrapping the app, or in a global state library. This lets both pages and route guards read <code>user</code> without prop drilling, and centralizes login/logout logic in one place.</div>
+
+        <div class="q-block">Q: How do you send a user back to the page they wanted after login?</div>
+        <div class="a-block"><strong>A:</strong> When ProtectedRoute redirects, pass the current location as state: <code>&lt;Navigate to="/login" state={{ from: location }} /&gt;</code>. On the login page, read <code>location.state?.from?.pathname</code> and call <code>navigate(from, { replace: true })</code> after a successful login.</div>
+
+        <div class="q-block">Q: Why check a loading flag before redirecting in a protected route?</div>
+        <div class="a-block"><strong>A:</strong> On page refresh, the app doesn't yet know if a session exists until an async check (e.g. GET /api/me) resolves. If the guard redirects the instant <code>user</code> is null, it will incorrectly bounce a logged-in user to login during that brief window. Track an <code>isLoading</code> flag and wait for it to finish before deciding.</div>
+
+        <div class="q-block">Q: How do you build role-based access control (e.g. admin-only routes)?</div>
+        <div class="a-block"><strong>A:</strong> Extend the protected route guard to accept an <code>allowedRoles</code> prop. After confirming the user is logged in, check <code>allowedRoles.includes(user.role)</code>; if it fails, redirect to an "/unauthorized" page instead of "/login" (the user is authenticated, just not authorized for this resource).</div>
+
+        <div class="q-block">Q: What is a "guest-only" route and why is it needed?</div>
+        <div class="a-block"><strong>A:</strong> It's the inverse guard — it redirects an already-logged-in user away from pages like /login or /register (usually to /dashboard), preventing a logged-in user from seeing the login form again.</div>
+
+        <div class="q-block">Q: Is storing a JWT in localStorage safe?</div>
+        <div class="a-block"><strong>A:</strong> It's common and simple, but any JavaScript on the page (including from an XSS vulnerability) can read it. Higher-security apps prefer an httpOnly, secure cookie set by the server, which client-side JS can't access, paired with CSRF protection.</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

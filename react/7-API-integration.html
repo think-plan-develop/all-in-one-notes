@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>React API Integration — Notes</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+.container {
+  --accent-dark:  #1e3a8a;
+  --accent:       #2563eb;
+  --accent-light: #3b82f6;
+  --content-bg:   #eff6ff;
+  --heading:      #1e3a8a;
+  --shadow-rgb:   37,99,235;
+  --qa-h4-a: #bfdbfe; --qa-h4-b: #93c5fd;
+  --qa-p-a:  #eff6ff; --qa-p-b:  #dbeafe;
+}
+
+.header {
+  background: linear-gradient(120deg, var(--accent-dark), var(--accent-light));
+  border-radius: 16px;
+  padding: 40px 36px;
+  margin-bottom: 50px;
+  box-shadow: 0 12px 30px rgba(var(--shadow-rgb), 0.3);
+}
+.header h1 { color: #fff; font-size: 34px; margin-bottom: 8px; font-weight: 800; letter-spacing: -0.5px; }
+.header p { color: #f0eaff; font-size: 17px; margin-bottom: 24px; }
+.toc { display: flex; flex-wrap: wrap; gap: 8px; }
+.toc a { text-decoration: none; padding: 7px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; transition: all 0.2s ease; cursor: pointer; background: rgba(255,255,255,0.18); color: #fff; border: 1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background: #fff; color: var(--accent); }
+
+.card { border-radius: 14px; margin-bottom: 30px; overflow: hidden; box-shadow: 0 10px 24px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04); }
+.card-title { color: #fff; font-size: 21px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding: 26px; background: var(--content-bg); }
+.card-content p { color: #333; font-size: 17px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+.card-content h4 { font-size: 17px; margin-bottom: 6px; margin-top: 18px; font-weight: 800; color: var(--heading); }
+
+.card-content-QA h4,
+.card-content-QA .q-block {
+  padding: 14px 18px;
+  margin: 22px 0 12px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset;
+  background: linear-gradient(135deg, var(--qa-h4-a), var(--qa-h4-b));
+  color: var(--heading);
+  border-left: 3px solid var(--accent);
+}
+.card-content-QA p,
+.card-content-QA .a-block {
+  padding: 14px 18px;
+  margin: 0 0 18px;
+  border-radius: 12px;
+  font-size: 16px;
+  line-height: 1.8;
+  font-weight: 500;
+  box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset;
+  background: linear-gradient(135deg, var(--qa-p-a), var(--qa-p-b));
+  color: var(--heading);
+  border-left: 3px solid var(--accent);
+}
+
+.intro-summary { margin: 0 0 50px; }
+.intro-summary-title { font-size: 22px; font-weight: 800; color: #1a1a1a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.summary-grid { display: flex; flex-direction: column; gap: 10px; }
+.summary-item { display: flex; align-items: center; gap: 14px; width: 100%; border-radius: 10px; padding: 14px 20px; }
+.summary-icon { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 19px; background: rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size: 15px; line-height: 1.7; font-weight: 500; }
+.summary-text strong { font-weight: 800; margin-right: 4px; }
+
+.summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; }
+.summary-teal   .summary-text strong { color: #0d9488; }
+
+.summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; }
+.summary-pink   .summary-text strong { color: #db2777; }
+
+.summary-indigo { background: linear-gradient(135deg,#eef2ff,#e0e7ff); color: #3730a3; }
+.summary-indigo .summary-text strong { color: #4338ca; }
+
+.summary-orange { background: linear-gradient(135deg,#fff7ed,#ffedd5); color: #9a3412; }
+.summary-orange .summary-text strong { color: #ea580c; }
+
+.section-divider { margin: 48px 0 24px; position: relative; }
+.section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity: 0.25; }
+.section-divider span { background: #f6f7fb; padding: 0 16px 0 0; position: relative; font-size: 22px; font-weight: 800; color: #1a1a1a; }
+
+.code-block { background: #1a1a1a; border-radius: 10px; overflow: hidden; margin: 14px 0; box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background: #111; padding: 8px 14px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #333; }
+.code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+.code-bar .dot-red { background: #ff5f57; }
+.code-bar .dot-grey { background: #febc2e; }
+.code-bar .dot-green { background: #28c840; }
+.code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; }
+.code-block pre { padding: 18px; overflow-x: auto; }
+.code-block code { color: #d4d4d4; font-size: 15px; font-family: 'Fira Code', 'Consolas', monospace; }
+.kw  { color: #c792ea; font-weight: 600; }
+.str { color: #c3e88d; }
+.fn  { color: #82aaff; }
+.cmt { color: #7a7a7a; font-style: italic; }
+.num { color: #f78c6c; }
+
+.badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-left: 10px; background: rgba(255,255,255,0.25); color: #fff; }
+
+.info-box { border-radius: 10px; padding: 14px 18px; margin: 12px 0; font-size: 16px; line-height: 1.8; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+.box-tip     { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+.box-note    { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+.box-warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+.box-extra   { background: linear-gradient(135deg,#fef3c7,#fde68a); color: #92400e; }
+
+.pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+.pros { background: linear-gradient(135deg,#dcfce7,#bbf7d0); border-radius: 10px; padding: 15px; }
+.cons { background: linear-gradient(135deg,#fee2e2,#fecaca); border-radius: 10px; padding: 15px; }
+.pros h5 { color: #166534; margin-bottom: 8px; font-weight: 800; }
+.cons h5 { color: #991b1b; margin-bottom: 8px; font-weight: 800; }
+.pros li, .cons li { font-size: 14px; line-height: 1.7; color: #333; margin-left: 18px; }
+
+table { width: 100%; border-collapse: collapse; margin: 15px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 17px; padding: 14px 18px; text-align: left; }
+table td { padding: 12px 18px; font-size: 15px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; }
+table tr:nth-child(even) { background: #f8fafc; }
+
+@media (max-width: 768px) {
+  .header h1 { font-size: 26px; }
+  .toc a { padding: 6px 12px; font-size: 12px; }
+  .pros-cons { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>React API Integration <span class="badge">Interview Notes</span></h1>
+    <p>Theory + a working CRUD example — fetch, axios, loading/error states, AbortController, Promise.all, pagination and infinite scroll.</p>
+    <div class="toc">
+      <a href="#fetch">Fetch</a>
+      <a href="#axios">Axios</a>
+      <a href="#loading">Loading State</a>
+      <a href="#error">Error Handling</a>
+      <a href="#abort">AbortController</a>
+      <a href="#promiseall">Promise.all</a>
+      <a href="#pagination">Pagination</a>
+      <a href="#infinite">Infinite Scroll</a>
+      <a href="#crud">CRUD App</a>
+    </div>
+  </div>
+
+  <div class="intro-summary">
+    <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+    <div class="summary-grid">
+      <div class="summary-item summary-teal">
+        <div class="summary-icon">🌐</div>
+        <div class="summary-text"><strong>fetch()</strong> Native browser API for making HTTP requests; returns a Promise that resolves even on HTTP errors (4xx/5xx).</div>
+      </div>
+      <div class="summary-item summary-pink">
+        <div class="summary-icon">📦</div>
+        <div class="summary-text"><strong>axios</strong> A third-party HTTP client with automatic JSON parsing, interceptors, and built-in request cancellation.</div>
+      </div>
+      <div class="summary-item summary-indigo">
+        <div class="summary-icon">🛑</div>
+        <div class="summary-text"><strong>AbortController</strong> Browser API used to cancel in-flight fetch requests — essential for cleanup in useEffect.</div>
+      </div>
+      <div class="summary-item summary-orange">
+        <div class="summary-icon">⏳</div>
+        <div class="summary-text"><strong>Loading/Error state</strong> The three UI states every data-fetching component needs: loading, error, and success.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>📘 Theory</span></div>
+
+  <!-- FETCH -->
+  <div class="card" id="fetch">
+    <div class="card-title">1. Fetch API</div>
+    <div class="card-content">
+      <p>The <code>fetch()</code> function is built into the browser (no install needed) and returns a Promise that resolves to a <code>Response</code> object. A key gotcha: <strong>fetch does not reject on HTTP error status codes</strong> (like 404 or 500) — it only rejects on network failure. You must check <code>response.ok</code> yourself.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">useUsers.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">useUsers</span>() {
+  <span class="kw">const</span> [users, setUsers] = <span class="fn">useState</span>([]);
+
+  <span class="fn">useEffect</span>(() => {
+    <span class="fn">fetch</span>(<span class="str">'https://api.example.com/users'</span>)
+      .then(<span class="kw">async</span> (res) => {
+        <span class="cmt">// fetch only rejects on network errors — check .ok manually</span>
+        <span class="kw">if</span> (!res.ok) <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">`HTTP </span><span class="fn">${res.status}</span><span class="str">`</span>);
+        <span class="kw">return</span> res.json();
+      })
+      .then(setUsers)
+      .catch((err) => <span class="fn">console.error</span>(err));
+  }, []);
+
+  <span class="kw">return</span> users;
+}</code></pre>
+      </div>
+
+      <div class="info-box box-warning">⚠️ Common interview trap: "Does fetch reject on a 404?" — No. You must manually throw based on <code>response.ok</code> or <code>response.status</code>.</div>
+    </div>
+  </div>
+
+  <!-- AXIOS -->
+  <div class="card" id="axios">
+    <div class="card-title">2. Axios</div>
+    <div class="card-content">
+      <p>Axios is a popular HTTP client that wraps XMLHttpRequest/fetch with a friendlier API. Unlike fetch, it <strong>automatically parses JSON</strong> and <strong>rejects the promise on non-2xx status codes</strong>, so a simple <code>.catch()</code> handles HTTP errors too.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">useUsersAxios.js</span></div>
+        <pre><code><span class="kw">import</span> axios <span class="kw">from</span> <span class="str">'axios'</span>;
+
+<span class="kw">const</span> api = axios.<span class="fn">create</span>({
+  baseURL: <span class="str">'https://api.example.com'</span>,
+  timeout: <span class="num">8000</span>,
+});
+
+<span class="cmt">// interceptor: attach auth token to every request</span>
+api.interceptors.request.<span class="fn">use</span>((config) => {
+  config.headers.Authorization = <span class="str">`Bearer </span><span class="fn">${token}</span><span class="str">`</span>;
+  <span class="kw">return</span> config;
+});
+
+<span class="fn">useEffect</span>(() => {
+  api.<span class="fn">get</span>(<span class="str">'/users'</span>)
+    .then((res) => <span class="fn">setUsers</span>(res.data)) <span class="cmt">// already parsed JSON</span>
+    .catch((err) => <span class="fn">setError</span>(err.message));
+}, []);</code></pre>
+      </div>
+
+      <div class="pros-cons">
+        <div class="pros">
+          <h5>✅ Axios advantages</h5>
+          <ul>
+            <li>Auto JSON parsing</li>
+            <li>Interceptors (auth, logging)</li>
+            <li>Rejects on HTTP error automatically</li>
+            <li>Built-in cancel tokens / AbortController support</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h5>❌ Fetch advantages</h5>
+          <ul>
+            <li>No extra dependency / bundle size</li>
+            <li>Native streaming support</li>
+            <li>Simpler for basic use cases</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING STATE -->
+  <div class="card" id="loading">
+    <div class="card-title">3. Loading State</div>
+    <div class="card-content">
+      <p>Every async request needs a way to represent "in progress" so the UI can show a spinner or skeleton instead of a blank/stale screen. The most robust pattern uses a single <strong>status enum</strong> rather than multiple booleans, which avoids impossible states like <code>loading: true</code> and <code>error: true</code> at the same time.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">useFetch.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">useFetch</span>(url) {
+  <span class="kw">const</span> [state, setState] = <span class="fn">useState</span>({
+    status: <span class="str">'idle'</span>, <span class="cmt">// 'idle' | 'loading' | 'success' | 'error'</span>
+    data: <span class="kw">null</span>,
+    error: <span class="kw">null</span>,
+  });
+
+  <span class="fn">useEffect</span>(() => {
+    <span class="fn">setState</span>({ status: <span class="str">'loading'</span>, data: <span class="kw">null</span>, error: <span class="kw">null</span> });
+    <span class="fn">fetch</span>(url)
+      .then((res) => res.json())
+      .then((data) => <span class="fn">setState</span>({ status: <span class="str">'success'</span>, data, error: <span class="kw">null</span> }))
+      .catch((error) => <span class="fn">setState</span>({ status: <span class="str">'error'</span>, data: <span class="kw">null</span>, error }));
+  }, [url]);
+
+  <span class="kw">return</span> state;
+}</code></pre>
+      </div>
+
+      <div class="info-box box-tip">💡 Tip: with React 19 / Suspense-enabled data fetching, loading states can be handled declaratively via <code>&lt;Suspense fallback={...}&gt;</code> instead of manual booleans.</div>
+    </div>
+  </div>
+
+  <!-- ERROR HANDLING -->
+  <div class="card" id="error">
+    <div class="card-title">4. Error Handling</div>
+    <div class="card-content">
+      <p>Good error handling covers three layers: <strong>network failures</strong> (offline, DNS, CORS), <strong>HTTP errors</strong> (4xx/5xx status codes), and <strong>rendering errors</strong> once the response is used in the UI (caught by an Error Boundary).</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ErrorBoundary.jsx</span></div>
+        <pre><code><span class="kw">class</span> <span class="fn">ErrorBoundary</span> <span class="kw">extends</span> React.Component {
+  state = { hasError: <span class="kw">false</span> };
+
+  <span class="kw">static</span> <span class="fn">getDerivedStateFromError</span>() {
+    <span class="kw">return</span> { hasError: <span class="kw">true</span> };
+  }
+
+  <span class="fn">componentDidCatch</span>(error, info) {
+    <span class="fn">logErrorToService</span>(error, info);
+  }
+
+  <span class="fn">render</span>() {
+    <span class="kw">if</span> (this.state.hasError) <span class="kw">return</span> <span class="str">&lt;p&gt;Something went wrong.&lt;/p&gt;</span>;
+    <span class="kw">return</span> this.props.children;
+  }
+}</code></pre>
+      </div>
+
+      <table>
+        <tr><th>Layer</th><th>Example</th><th>Where handled</th></tr>
+        <tr><td>Network</td><td>Offline, timeout, CORS blocked</td><td><code>.catch()</code> on the request</td></tr>
+        <tr><td>HTTP status</td><td>401 Unauthorized, 404, 500</td><td>check <code>response.ok</code> / axios interceptor</td></tr>
+        <tr><td>Render-time</td><td>Cannot read property of undefined</td><td>Error Boundary component</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ABORTCONTROLLER -->
+  <div class="card" id="abort">
+    <div class="card-title">5. AbortController</div>
+    <div class="card-content">
+      <p><code>AbortController</code> lets you cancel a fetch request that's no longer needed — for example when a component unmounts, or when a new search query supersedes the previous one (avoids the classic <strong>race condition</strong> bug where an older, slower response overwrites a newer one).</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">useSearch.js</span></div>
+        <pre><code><span class="fn">useEffect</span>(() => {
+  <span class="kw">const</span> controller = <span class="kw">new</span> <span class="fn">AbortController</span>();
+
+  <span class="fn">fetch</span>(<span class="str">`/api/search?q=</span><span class="fn">${query}</span><span class="str">`</span>, { signal: controller.signal })
+    .then((res) => res.json())
+    .then(setResults)
+    .catch((err) => {
+      <span class="kw">if</span> (err.name === <span class="str">'AbortError'</span>) <span class="kw">return</span>; <span class="cmt">// expected — ignore</span>
+      <span class="fn">setError</span>(err);
+    });
+
+  <span class="cmt">// cleanup: cancel the request if query changes or component unmounts</span>
+  <span class="kw">return</span> () => controller.<span class="fn">abort</span>();
+}, [query]);</code></pre>
+      </div>
+
+      <div class="info-box box-note">📌 With axios, pass <code>{ signal: controller.signal }</code> in the config too — same native <code>AbortController</code> works for both.</div>
+    </div>
+  </div>
+
+  <!-- PROMISE.ALL -->
+  <div class="card" id="promiseall" style="margin-bottom: 30px;">
+    <div class="card-title">6. Promise.all</div>
+    <div class="card-content">
+      <p><code>Promise.all()</code> runs multiple requests <strong>in parallel</strong> instead of sequentially with <code>await</code> one after another — much faster when the requests are independent. It rejects immediately if <em>any</em> promise rejects. Use <code>Promise.allSettled()</code> instead if you want all results regardless of individual failures.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">useDashboard.js</span></div>
+        <pre><code><span class="fn">useEffect</span>(() => {
+  <span class="kw">async function</span> <span class="fn">loadDashboard</span>() {
+    <span class="kw">try</span> {
+      <span class="kw">const</span> [userRes, ordersRes, statsRes] = <span class="kw">await</span> <span class="fn">Promise.all</span>([
+        <span class="fn">fetch</span>(<span class="str">'/api/user'</span>),
+        <span class="fn">fetch</span>(<span class="str">'/api/orders'</span>),
+        <span class="fn">fetch</span>(<span class="str">'/api/stats'</span>),
+      ]);
+      <span class="kw">const</span> [user, orders, stats] = <span class="kw">await</span> <span class="fn">Promise.all</span>(
+        [userRes, ordersRes, statsRes].map((r) => r.json())
+      );
+      <span class="fn">setData</span>({ user, orders, stats });
+    } <span class="kw">catch</span> (err) {
+      <span class="cmt">// if ANY request fails, we land here</span>
+      <span class="fn">setError</span>(err);
+    }
+  }
+  <span class="fn">loadDashboard</span>();
+}, []);</code></pre>
+      </div>
+
+      <div class="pros-cons">
+        <div class="pros">
+          <h5>Promise.all</h5>
+          <ul><li>Fails fast on first rejection</li><li>Cleaner when all-or-nothing is correct</li></ul>
+        </div>
+        <div class="cons">
+          <h5>Promise.allSettled</h5>
+          <ul><li>Always resolves</li><li>Returns per-item status/value/reason</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGINATION -->
+  <div class="card" id="pagination">
+    <div class="card-title">7. Pagination</div>
+    <div class="card-content">
+      <p>Pagination fetches data in fixed-size chunks (pages) using query params like <code>?page=2&limit=20</code>, so the UI stays fast and the server doesn't return huge payloads. State needed: current page, total pages/count, and the current page's data.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">usePagination.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">useUsersPage</span>(page, limit = <span class="num">10</span>) {
+  <span class="kw">const</span> [data, setData] = <span class="fn">useState</span>({ items: [], total: <span class="num">0</span> });
+  <span class="kw">const</span> [loading, setLoading] = <span class="fn">useState</span>(<span class="kw">true</span>);
+
+  <span class="fn">useEffect</span>(() => {
+    <span class="fn">setLoading</span>(<span class="kw">true</span>);
+    <span class="fn">fetch</span>(<span class="str">`/api/users?page=</span><span class="fn">${page}</span><span class="str">&limit=</span><span class="fn">${limit}</span><span class="str">`</span>)
+      .then((res) => res.json())
+      .then((res) => <span class="fn">setData</span>({ items: res.data, total: res.total }))
+      .finally(() => <span class="fn">setLoading</span>(<span class="kw">false</span>));
+  }, [page, limit]);
+
+  <span class="kw">const</span> totalPages = Math.<span class="fn">ceil</span>(data.total / limit);
+  <span class="kw">return</span> { ...data, loading, totalPages };
+}</code></pre>
+      </div>
+
+      <div class="info-box box-note">📌 Two common styles: <strong>offset-based</strong> (<code>page</code>/<code>limit</code> — simple, but can skip/duplicate rows if data changes) vs <strong>cursor-based</strong> (<code>after=lastId</code> — more stable for real-time feeds, used by Twitter/GitHub APIs).</div>
+    </div>
+  </div>
+
+  <!-- INFINITE SCROLL -->
+  <div class="card" id="infinite">
+    <div class="card-title">8. Infinite Scroll</div>
+    <div class="card-content">
+      <p>Infinite scroll loads the next page automatically as the user nears the bottom of the list, appending results instead of replacing them. The most efficient trigger uses <code>IntersectionObserver</code> on a sentinel element rather than listening to <code>scroll</code> events (which fire constantly and hurt performance).</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">useInfiniteScroll.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">useInfiniteScroll</span>(fetchPage) {
+  <span class="kw">const</span> [items, setItems] = <span class="fn">useState</span>([]);
+  <span class="kw">const</span> [page, setPage] = <span class="fn">useState</span>(<span class="num">1</span>);
+  <span class="kw">const</span> [hasMore, setHasMore] = <span class="fn">useState</span>(<span class="kw">true</span>);
+  <span class="kw">const</span> sentinelRef = <span class="fn">useRef</span>(<span class="kw">null</span>);
+
+  <span class="fn">useEffect</span>(() => {
+    <span class="kw">const</span> observer = <span class="kw">new</span> <span class="fn">IntersectionObserver</span>(([entry]) => {
+      <span class="kw">if</span> (entry.isIntersecting && hasMore) {
+        <span class="fn">setPage</span>((p) => p + <span class="num">1</span>);
+      }
+    });
+    <span class="kw">if</span> (sentinelRef.current) observer.<span class="fn">observe</span>(sentinelRef.current);
+    <span class="kw">return</span> () => observer.<span class="fn">disconnect</span>();
+  }, [hasMore]);
+
+  <span class="fn">useEffect</span>(() => {
+    <span class="fn">fetchPage</span>(page).then((newItems) => {
+      <span class="fn">setItems</span>((prev) => [...prev, ...newItems]);
+      <span class="fn">setHasMore</span>(newItems.length > <span class="num">0</span>);
+    });
+  }, [page]);
+
+  <span class="kw">return</span> { items, sentinelRef, hasMore };
+}</code></pre>
+      </div>
+
+      <div class="info-box box-benefit">✅ Interview soundbite: "Infinite scroll = pagination + IntersectionObserver + appending instead of replacing state."</div>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>💻 Coding — CRUD App</span></div>
+
+  <div class="card" id="crud">
+    <div class="card-title">9. Full CRUD App (Create · Read · Update · Delete)</div>
+    <div class="card-content">
+      <p>A common live-coding exercise: build a small app against a REST API (e.g. JSONPlaceholder or your own backend) that lists items, adds a new one, edits one inline, and deletes one — with loading/error state and an AbortController cleanup.</p>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">TodoApp.jsx</span></div>
+        <pre><code><span class="kw">import</span> { useState, useEffect } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">const</span> API = <span class="str">'https://jsonplaceholder.typicode.com/todos'</span>;
+
+<span class="kw">export default function</span> <span class="fn">TodoApp</span>() {
+  <span class="kw">const</span> [todos, setTodos] = <span class="fn">useState</span>([]);
+  <span class="kw">const</span> [title, setTitle] = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [status, setStatus] = <span class="fn">useState</span>(<span class="str">'idle'</span>);
+  <span class="kw">const</span> [error, setError] = <span class="fn">useState</span>(<span class="kw">null</span>);
+
+  <span class="cmt">// READ — load todos once, cancel on unmount</span>
+  <span class="fn">useEffect</span>(() => {
+    <span class="kw">const</span> controller = <span class="kw">new</span> <span class="fn">AbortController</span>();
+    <span class="fn">setStatus</span>(<span class="str">'loading'</span>);
+    <span class="fn">fetch</span>(<span class="str">`</span><span class="fn">${API}</span><span class="str">?_limit=10`</span>, { signal: controller.signal })
+      .then((res) => {
+        <span class="kw">if</span> (!res.ok) <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">'Failed to load todos'</span>);
+        <span class="kw">return</span> res.json();
+      })
+      .then((data) => { <span class="fn">setTodos</span>(data); <span class="fn">setStatus</span>(<span class="str">'success'</span>); })
+      .catch((err) => {
+        <span class="kw">if</span> (err.name !== <span class="str">'AbortError'</span>) { <span class="fn">setError</span>(err.message); <span class="fn">setStatus</span>(<span class="str">'error'</span>); }
+      });
+    <span class="kw">return</span> () => controller.<span class="fn">abort</span>();
+  }, []);
+
+  <span class="cmt">// CREATE</span>
+  <span class="kw">const</span> <span class="fn">addTodo</span> = <span class="kw">async</span> (e) => {
+    e.<span class="fn">preventDefault</span>();
+    <span class="kw">if</span> (!title.trim()) <span class="kw">return</span>;
+    <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(API, {
+      method: <span class="str">'POST'</span>,
+      headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+      body: <span class="fn">JSON.stringify</span>({ title, completed: <span class="kw">false</span> }),
+    });
+    <span class="kw">const</span> newTodo = <span class="kw">await</span> res.json();
+    <span class="fn">setTodos</span>((prev) => [{ ...newTodo, id: Date.<span class="fn">now</span>() }, ...prev]);
+    <span class="fn">setTitle</span>(<span class="str">''</span>);
+  };
+
+  <span class="cmt">// UPDATE — toggle completed</span>
+  <span class="kw">const</span> <span class="fn">toggleTodo</span> = <span class="kw">async</span> (todo) => {
+    <span class="kw">const</span> updated = { ...todo, completed: !todo.completed };
+    <span class="fn">setTodos</span>((prev) => prev.<span class="fn">map</span>((t) => (t.id === todo.id ? updated : t))); <span class="cmt">// optimistic update</span>
+    <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">`</span><span class="fn">${API}</span><span class="str">/</span><span class="fn">${todo.id}</span><span class="str">`</span>, {
+      method: <span class="str">'PATCH'</span>,
+      headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+      body: <span class="fn">JSON.stringify</span>({ completed: updated.completed }),
+    });
+  };
+
+  <span class="cmt">// DELETE</span>
+  <span class="kw">const</span> <span class="fn">deleteTodo</span> = <span class="kw">async</span> (id) => {
+    <span class="fn">setTodos</span>((prev) => prev.<span class="fn">filter</span>((t) => t.id !== id)); <span class="cmt">// optimistic remove</span>
+    <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">`</span><span class="fn">${API}</span><span class="str">/</span><span class="fn">${id}</span><span class="str">`</span>, { method: <span class="str">'DELETE'</span> });
+  };
+
+  <span class="kw">if</span> (status === <span class="str">'loading'</span>) <span class="kw">return</span> <span class="str">&lt;p&gt;Loading todos…&lt;/p&gt;</span>;
+  <span class="kw">if</span> (status === <span class="str">'error'</span>)   <span class="kw">return</span> <span class="str">&lt;p&gt;Error: {error}&lt;/p&gt;</span>;
+
+  <span class="kw">return</span> (
+    <span class="str">&lt;div&gt;</span>
+      <span class="str">&lt;form onSubmit={addTodo}&gt;</span>
+        <span class="str">&lt;input value={title} onChange={(e) =&gt; setTitle(e.target.value)} /&gt;</span>
+        <span class="str">&lt;button type="submit"&gt;Add&lt;/button&gt;</span>
+      <span class="str">&lt;/form&gt;</span>
+      <span class="str">&lt;ul&gt;</span>
+        {todos.map((todo) =&gt; (
+          <span class="str">&lt;li key={todo.id}&gt;</span>
+            <span class="str">&lt;input</span>
+              <span class="str">type="checkbox"</span>
+              <span class="str">checked={todo.completed}</span>
+              <span class="str">onChange={() =&gt; toggleTodo(todo)}</span>
+            <span class="str">/&gt;</span>
+            {todo.title}
+            <span class="str">&lt;button onClick={() =&gt; deleteTodo(todo.id)}&gt;Delete&lt;/button&gt;</span>
+          <span class="str">&lt;/li&gt;</span>
+        ))}
+      <span class="str">&lt;/ul&gt;</span>
+    <span class="str">&lt;/div&gt;</span>
+  );
+}</code></pre>
+      </div>
+
+      <div class="info-box box-benefit">✅ Notice the pattern: <strong>optimistic updates</strong> for toggle/delete (update UI immediately, don't wait for the response) — a strong signal of senior-level React knowledge in interviews.</div>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>❓ Rapid-Fire Q&amp;A</span></div>
+
+  <div class="card">
+    <div class="card-title">Quick Recall</div>
+    <div class="card-content card-content-QA">
+      <h4>Q: Does fetch() reject on a 404 response?</h4>
+      <p>A: No — only on network failure. You must check <code>response.ok</code> and throw manually.</p>
+
+      <h4>Q: Why use AbortController inside useEffect?</h4>
+      <p>A: To cancel a stale request on unmount or dependency change, preventing race conditions and "set state on unmounted component" warnings.</p>
+
+      <h4>Q: Promise.all vs Promise.allSettled?</h4>
+      <p>A: Promise.all rejects as soon as one promise rejects; Promise.allSettled always resolves with the status of every promise, succeeded or failed.</p>
+
+      <h4>Q: Offset pagination vs cursor pagination?</h4>
+      <p>A: Offset (page/limit) is simple but can skip or duplicate items if the underlying data changes; cursor-based (using a stable pointer like last ID) stays consistent for frequently changing lists.</p>
+
+      <h4>Q: What triggers infinite scroll efficiently?</h4>
+      <p>A: An IntersectionObserver watching a sentinel element at the bottom of the list, instead of a scroll event listener.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

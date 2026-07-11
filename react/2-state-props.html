@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>React - State vs Props & Forms</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+    .container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+    /* header */
+    .header { background: linear-gradient(120deg,#3730a3,#6366f1); border-radius: 16px; padding: 40px 36px; margin-bottom: 50px; box-shadow: 0 12px 30px rgba(99,102,241,0.3); }
+    .header h1 { color: #fff; font-size: 32px; margin-bottom: 8px; font-weight: 800; letter-spacing: -0.5px; }
+    .header p { color: #e0e7ff; font-size: 16px; margin-bottom: 22px; }
+    .toc { display: flex; flex-wrap: wrap; gap: 8px; }
+    .toc a { text-decoration: none; padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.35); transition: all .2s ease; }
+    .pill-indigo { background: rgba(99,102,241,0.3); color: #fff; }
+    .pill-teal   { background: rgba(13,148,136,0.35); color: #fff; }
+    .pill-red    { background: rgba(219,39,119,0.3); color: #fff; }
+    .toc a:hover { background: #fff; color: #3730a3; }
+
+    /* intro summary (in header) */
+    .intro-summary { margin-top: 26px; }
+    .intro-summary-title { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .summary-grid { display: flex; flex-direction: column; gap: 10px; }
+    .summary-item { display: flex; align-items: center; gap: 14px; width: 100%; border-radius: 10px; padding: 14px 20px; }
+    .summary-icon { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 19px; background: rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+    .summary-text { font-size: 14.5px; line-height: 1.7; font-weight: 500; }
+    .summary-text strong { font-weight: 800; margin-right: 4px; }
+    .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; }
+    .summary-teal   .summary-text strong { color: #0d9488; }
+    .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; }
+    .summary-pink   .summary-text strong { color: #db2777; }
+    .summary-orange { background: linear-gradient(135deg,#fff7ed,#ffedd5); color: #9a3412; }
+    .summary-orange .summary-text strong { color: #ea580c; }
+
+    /* section divider */
+    .section-divider { margin: 48px 0 24px; position: relative; }
+    .section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background: linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+    .section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+    /* card */
+    .card { border-radius: 14px; margin-bottom: 30px; overflow: hidden; box-shadow: 0 10px 24px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04); background:#fff; }
+    .card-title { color:#fff; font-size:20px; font-weight:700; padding:18px 26px; background: linear-gradient(120deg,#4338ca,#6366f1); }
+    .card-content { padding: 26px; background: #eef2ff; }
+    .card-content p { color:#333; font-size:16px; line-height:1.8; margin-bottom:14px; font-weight:500; }
+    .card-content h3 { font-size:17px; margin: 22px 0 10px; font-weight:800; color:#3730a3; }
+    .card-content h4 { font-size: 16px; margin-bottom: 6px; font-weight: 800; }
+    .card-content code { background: rgba(67,56,202,0.08); padding: 1px 6px; border-radius: 5px; font-family:'Fira Code','Consolas',monospace; font-size: .92em; color:#3730a3; }
+    .card-content ol, .card-content ul { margin: 8px 0 14px 22px; }
+    .card-content ol li, .card-content ul li { font-size: 15.5px; line-height: 1.8; color: #333; margin-bottom: 4px; }
+
+    /* short-answer / compact-summary / hook-syntax / diagram */
+    .short-answer { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); border-left: 4px solid #4338ca; border-radius: 10px; padding: 16px 20px; margin-bottom: 18px; font-size: 16px; line-height: 1.8; color:#312e81; }
+    .compact-summary { font-size: 14.5px; padding: 12px 20px; }
+    .hook-syntax { background:#1a1a1a; color:#c3e88d; font-family:'Fira Code','Consolas',monospace; font-size:15px; padding:14px 18px; border-radius:10px; margin: 10px 0 18px; box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+    .diagram { background:#0f172a; color:#93c5fd; font-family:'Fira Code','Consolas',monospace; font-size:12.5px; line-height:1.6; padding:18px 20px; border-radius:10px; margin: 14px 0; overflow-x:auto; white-space:pre; box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
+
+    /* code block */
+    .code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+    .code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+    .code-bar .dot { width:10px; height:10px; border-radius:50%; }
+    .dot-red{background:#ff5f57;} .dot-grey{background:#febc2e;} .dot-green{background:#28c840;}
+    .filename { color:#999; font-size:12px; margin-left:8px; }
+    .code-block pre { padding:18px; overflow-x:auto; }
+    .code-block code { background:none; color:#d4d4d4; font-size:14.5px; font-family:'Fira Code','Consolas',monospace; padding:0; }
+    .kw{color:#c792ea;font-weight:600;} .str{color:#c3e88d;} .fn{color:#82aaff;} .cmt{color:#7a7a7a;font-style:italic;} .num{color:#f78c6c;} .type{color:#f07178;}
+
+    /* info boxes */
+    .note, .warning, .tip, .remember { border-radius:10px; padding:14px 18px; margin:14px 0; font-size:15px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+    .note     { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+    .warning  { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+    .tip      { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+    .remember { background: linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+    /* vs boxes */
+    .vs-container { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+    .vs-box { border-radius: 12px; padding: 18px 20px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04); }
+    .vs-box ul { margin: 8px 0 0 20px; }
+    .vs-box li { font-size: 14.5px; line-height: 1.8; color: #333; }
+    .vs-state, .vs-controlled { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); }
+    .vs-props, .vs-uncontrolled { background: linear-gradient(135deg,#fce7f3,#fbcfe8); }
+    @media (max-width: 768px) { .vs-container { grid-template-columns: 1fr; } }
+
+    /* table */
+    table { width:100%; border-collapse:collapse; margin:15px 0; border-radius:12px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.08); }
+    table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color:#fff; font-size:16px; padding:12px 16px; text-align:left; }
+    table td { padding:11px 16px; font-size:14.5px; font-weight:500; border-bottom:1px solid #eef0f4; color:#334155; }
+    table tr:nth-child(even){ background:#f8fafc; }
+
+    /* QA */
+    .card-content-QA .q-block { padding:14px 18px; margin:22px 0 10px; border-radius:12px; font-size:17px; font-weight:700; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; border-left:3px solid #4338ca; background: linear-gradient(135deg,#c7d2fe,#a5b4fc); color:#3730a3; }
+    .card-content-QA .a-block { padding:14px 18px; margin:0 0 16px; border-radius:12px; font-size:15px; line-height:1.8; font-weight:500; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; border-left:3px solid #4338ca; background: linear-gradient(135deg,#eef2ff,#e0e7ff); color:#312e81; }
+    .card-content-QA .a-block ul { margin: 8px 0 0 20px; }
+    .card-content-QA.theme-green .q-block { border-left-color:#059669; background: linear-gradient(135deg,#a7f3d0,#6ee7b7); color:#065f46; }
+    .card-content-QA.theme-green .a-block { border-left-color:#059669; background: linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; }
+    .card-content-QA.theme-purple .q-block { border-left-color:#7c3aed; background: linear-gradient(135deg,#ddd6fe,#c4b5fd); color:#5b21b6; }
+    .card-content-QA.theme-purple .a-block { border-left-color:#7c3aed; background: linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; }
+
+    .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; margin-left:8px; background: rgba(255,255,255,0.25); color:#fff; vertical-align: middle; }
+
+    @media (max-width: 768px) {
+      .header h1 { font-size: 24px; }
+      .toc a { padding:6px 12px; font-size:11px; }
+      .diagram { font-size: 10.5px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header">
+      <h1>⚛️ React — State vs Props & Forms</h1>
+      <p>Complete guide to State, Props, Controlled/Uncontrolled Components & Form Validation</p>
+      <div class="toc">
+        <a href="#state-vs-props" class="pill-indigo" onclick="document.getElementById('state-vs-props').scrollIntoView({behavior:'smooth'});return false;">State vs Props</a>
+        <a href="#controlled" class="pill-red" onclick="document.getElementById('controlled').scrollIntoView({behavior:'smooth'});return false;">Controlled Components</a>
+        <a href="#uncontrolled" class="pill-indigo" onclick="document.getElementById('uncontrolled').scrollIntoView({behavior:'smooth'});return false;">Uncontrolled Components</a>
+        <a href="#form-validation" class="pill-indigo" onclick="document.getElementById('form-validation').scrollIntoView({behavior:'smooth'});return false;">Form Validation</a>
+        <a href="#live-demos" class="pill-red" onclick="document.getElementById('live-demos').scrollIntoView({behavior:'smooth'});return false;">Live Demos</a>
+      </div>
+      <div class="intro-summary">
+        <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+        <div class="summary-grid">
+          <div class="summary-item summary-teal">
+            <div class="summary-icon">⚛️</div>
+            <div class="summary-text"><strong>State:</strong> Internal component data that can change over time. <strong>Mutable</strong> means it can change; in React, state is updated through setState or useState.</div>
+          </div>
+          <div class="summary-item summary-pink">
+            <div class="summary-icon">📦</div>
+            <div class="summary-text"><strong>Props:</strong> Read-only data passed from parent to child. <strong>Immutable</strong> means it should not be changed directly; props are controlled by the parent component.</div>
+          </div>
+          <div class="summary-item summary-orange">
+            <div class="summary-icon">🛠️</div>
+            <div class="summary-text"><strong>Controlled vs Uncontrolled:</strong> Controlled inputs are managed by React state, while uncontrolled inputs keep their own internal DOM state.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="state-vs-props"><span>State vs Props</span></div>
+
+    <div class="card">
+      <div class="card-title">What are State & Props?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>State</strong> is internal, mutable data managed within a component. <strong>Props</strong> are external, read-only data passed from parent to child. Together they control what a component renders.
+        </div>
+
+        <div class="short-answer compact-summary">
+          <strong>Mutable:</strong> data that can change during the component's life, like state.
+          <br />
+          <strong>Immutable:</strong> data that should not be changed directly, like props.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">StateVsProps.jsx</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">Counter</span>({ <span class="type">title</span> }) {
+  <span class="kw">const</span> [<span class="type">count</span>, <span class="type">setCount</span>] = <span class="fn">useState</span>(<span class="num">0</span>);
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">h3</span>&gt;{<span class="type">title</span>}&lt;/<span class="type">h3</span>&gt;  {<span class="cmt">/* prop: immutable */</span>}
+      &lt;<span class="type">p</span>&gt;Count: {<span class="type">count</span>}&lt;/<span class="type">p</span>&gt;   {<span class="cmt">/* state: mutable */</span>}
+      &lt;<span class="type">button</span> <span class="kw">onClick</span>={() =&gt; <span class="type">setCount</span>(<span class="type">count</span> + <span class="num">1</span>)}&gt;
+        Increase
+      &lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="vs-container">
+          <div class="vs-box vs-state">
+            <h4 style="color:#6366f1;">🔄 State</h4>
+            <ul>
+              <li>Internal to the component</li>
+              <li>Mutable (via setState / useState)</li>
+              <li>Managed by the component itself</li>
+              <li>Triggers re-render on change</li>
+              <li>Not accessible by other components</li>
+              <li>Used for dynamic/interactive data</li>
+            </ul>
+          </div>
+          <div class="vs-box vs-props">
+            <h4 style="color:#16a34a;">📦 Props</h4>
+            <ul>
+              <li>External — passed from parent</li>
+              <li>Immutable (read-only)</li>
+              <li>Managed by the parent component</li>
+              <li>Re-render when parent updates them</li>
+              <li>Accessible by child components</li>
+              <li>Used for configuration/data passing</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">State vs Props — Comparison Table</div>
+      <div class="card-content">
+        <table>
+          <tr><th>Feature</th><th>State</th><th>Props</th></tr>
+          <tr><td><strong>Ownership</strong></td><td>Owned by the component</td><td>Owned by the parent</td></tr>
+          <tr><td><strong>Mutability</strong></td><td>Mutable (via setter function)</td><td>Immutable (read-only)</td></tr>
+          <tr><td><strong>Scope</strong></td><td>Local to the component</td><td>Passed from parent to child</td></tr>
+          <tr><td><strong>Purpose</strong></td><td>Interactive / dynamic data</td><td>Configuration / data transfer</td></tr>
+          <tr><td><strong>Default Value</strong></td><td>Set via useState initial value</td><td>Set via defaultProps or default params</td></tr>
+          <tr><td><strong>Triggers Re-render</strong></td><td>Yes, when setState is called</td><td>Yes, when parent passes new props</td></tr>
+          <tr><td><strong>Direction</strong></td><td>Internal (no direction)</td><td>Top-down (parent → child)</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">State Example</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Counter.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">function</span> <span class="fn">Counter</span>() {
+  <span class="cmt">// state: internal, mutable, triggers re-render</span>
+  <span class="kw">const</span> [<span class="type">count</span>, <span class="fn">setCount</span>] = <span class="fn">useState</span>(<span class="num">0</span>);
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">p</span>&gt;Count: {<span class="type">count</span>}&lt;/<span class="type">p</span>&gt;
+      &lt;<span class="type">button</span> <span class="fn">onClick</span>={() =&gt; <span class="fn">setCount</span>(<span class="type">count</span> + <span class="num">1</span>)}&gt;
+        Increment
+      &lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Props Example</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Greeting.jsx</span></div>
+          <pre><code><span class="cmt">// Props: external, read-only, passed from parent</span>
+<span class="kw">function</span> <span class="fn">Greeting</span>({ <span class="type">name</span>, <span class="type">age</span> }) {
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">h2</span>&gt;Hello, {<span class="type">name</span>}!&lt;/<span class="type">h2</span>&gt;
+      &lt;<span class="type">p</span>&gt;You are {<span class="type">age</span>} years old.&lt;/<span class="type">p</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}
+
+<span class="cmt">// Parent passes props</span>
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">return</span> &lt;<span class="fn">Greeting</span> <span class="type">name</span>=<span class="str">"Shiva"</span> <span class="type">age</span>={<span class="num">25</span>} /&gt;;
+}</code></pre>
+        </div>
+
+        <div class="diagram">┌────────────────────────────────────┐
+│           App (Parent)             │
+│                                    │
+│  State: name="Shiva", age=25      │
+│                                    │
+│  Renders:                          │
+│    &lt;Greeting name="Shiva" age={25}/&gt;│
+│         │                          │
+│         │ props (one-way ↓)        │
+│         ▼                          │
+│  ┌─────────────────────────┐      │
+│  │   Greeting (Child)      │      │
+│  │                         │      │
+│  │   props.name → "Shiva"  │      │
+│  │   props.age  → 25       │      │
+│  │   (READ-ONLY)           │      │
+│  └─────────────────────────┘      │
+└────────────────────────────────────┘</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">When to Use State vs Props</div>
+      <div class="card-content">
+        <table>
+          <tr><th>Use Case</th><th>Use State</th><th>Use Props</th></tr>
+          <tr><td>Form input value</td><td>✅</td><td></td></tr>
+          <tr><td>Toggle visibility (show/hide)</td><td>✅</td><td></td></tr>
+          <tr><td>API response data</td><td>✅</td><td></td></tr>
+          <tr><td>Passing data to child</td><td></td><td>✅</td></tr>
+          <tr><td>Configuration options</td><td></td><td>✅</td></tr>
+          <tr><td>Callback functions</td><td></td><td>✅</td></tr>
+          <tr><td>Shopping cart items</td><td>✅</td><td></td></tr>
+          <tr><td>User info display in child</td><td></td><td>✅</td></tr>
+        </table>
+
+        <div class="remember">
+          <strong>💡 Remember:</strong> If data needs to change over time within a component → use <strong>State</strong>. If data is passed from outside and shouldn't be modified → use <strong>Props</strong>. Often a parent holds state and passes it down as props to children.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Interview Q&A — State vs Props</div>
+      <div class="card-content card-content-QA">
+        <div class="q-block">Q: What is the difference between State and Props in React?</div>
+        <div class="a-block"><strong>A:</strong> <strong>State</strong> is internal, mutable data owned and managed by the component itself using useState or setState. <strong>Props</strong> are external, immutable data passed from parent to child. State triggers re-renders when updated; props cause re-renders when the parent sends new values. State is for dynamic/interactive data; props are for configuration and data transfer.</div>
+
+        <div class="q-block">Q: Can you modify props inside a child component?</div>
+        <div class="a-block"><strong>A:</strong> No. Props are <strong>read-only</strong> in React. If a child needs to change data, the parent should pass a callback function as a prop. The child calls this callback, which updates the parent's state, and the new state flows back down as updated props.</div>
+
+        <div class="q-block">Q: When does a component re-render?</div>
+        <div class="a-block">
+          <strong>A:</strong>
+          <ul>
+            <li>Its <strong>state</strong> changes via <code>setState</code> or a <code>useState</code> setter</li>
+            <li>Its <strong>props</strong> change because the parent passes new values</li>
+            <li>Its <strong>parent re-renders</strong>, even if the props are the same, unless it is wrapped in <code>React.memo</code></li>
+            <li><strong>Context</strong> changes, if the component uses <code>useContext</code></li>
+          </ul>
+        </div>
+
+        <div class="q-block">Q: What is "lifting state up" in React?</div>
+        <div class="a-block"><strong>A:</strong> Lifting state up means moving shared state to the closest common ancestor (parent) of the components that need it. The parent holds the state and passes it down as props. This pattern is used when multiple sibling components need to share and sync data.</div>
+      </div>
+    </div>
+
+    <!-- ==================== FORMS: CONTROLLED COMPONENTS ==================== -->
+    <div class="section-divider" id="controlled"><span>Forms — Controlled Components</span></div>
+
+    <div class="card">
+      <div class="card-title">What are Controlled Components?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          A <strong>Controlled Component</strong> is a form element whose value is controlled by React state. The component's state is the "single source of truth" — every input change goes through a state update handler.
+        </div>
+
+        <p>In a controlled component:</p>
+        <ol>
+          <li>Form element value is bound to state → <code>value={state}</code></li>
+          <li>Every change triggers an event handler → <code>onChange={handler}</code></li>
+          <li>Handler updates state → <code>setState(newValue)</code></li>
+          <li>React re-renders with new value</li>
+        </ol>
+
+        <div class="diagram">User Types → onChange fires → setState() → Re-render → Input shows new value
+
+┌──────────────────────────────────────────┐
+│          CONTROLLED COMPONENT FLOW        │
+├──────────────────────────────────────────┤
+│                                           │
+│  ┌─────────┐    onChange    ┌──────────┐ │
+│  │  Input  │ ─────────────→ │ Handler  │ │
+│  │  Field  │                │ setState │ │
+│  └────┬────┘                └────┬─────┘ │
+│       ↑                          │       │
+│       │      value={state}       │       │
+│       │                          ▼       │
+│       │                    ┌──────────┐  │
+│       └────────────────────│  State   │  │
+│                            │ (source  │  │
+│                            │ of truth)│  │
+│                            └──────────┘  │
+└──────────────────────────────────────────┘</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Controlled Component Examples</div>
+      <div class="card-content">
+        <h3>Basic Text Input</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ControlledInput.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">function</span> <span class="fn">ControlledInput</span>() {
+  <span class="kw">const</span> [<span class="type">name</span>, <span class="fn">setName</span>] = <span class="fn">useState</span>(<span class="str">''</span>);
+
+  <span class="kw">const</span> <span class="fn">handleChange</span> = (<span class="type">e</span>) =&gt; {
+    <span class="fn">setName</span>(<span class="type">e</span>.target.value);
+  };
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">form</span>&gt;
+      &lt;<span class="type">label</span>&gt;Name:&lt;/<span class="type">label</span>&gt;
+      &lt;<span class="type">input</span>
+        <span class="type">type</span>=<span class="str">"text"</span>
+        <span class="type">value</span>={<span class="type">name</span>}
+        <span class="fn">onChange</span>={<span class="fn">handleChange</span>}
+      /&gt;
+      &lt;<span class="type">p</span>&gt;Hello, {<span class="type">name</span>}!&lt;/<span class="type">p</span>&gt;
+    &lt;/<span class="type">form</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>Full Controlled Form (Multiple Fields)</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">RegistrationForm.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">function</span> <span class="fn">RegistrationForm</span>() {
+  <span class="kw">const</span> [<span class="type">formData</span>, <span class="fn">setFormData</span>] = <span class="fn">useState</span>({
+    <span class="type">username</span>: <span class="str">''</span>,
+    <span class="type">email</span>: <span class="str">''</span>,
+    <span class="type">password</span>: <span class="str">''</span>,
+    <span class="type">role</span>: <span class="str">'user'</span>,
+    <span class="type">agree</span>: <span class="num">false</span>
+  });
+
+  <span class="kw">const</span> <span class="fn">handleChange</span> = (<span class="type">e</span>) =&gt; {
+    <span class="kw">const</span> { <span class="type">name</span>, <span class="type">value</span>, <span class="type">type</span>, <span class="type">checked</span> } = <span class="type">e</span>.target;
+    <span class="fn">setFormData</span>(<span class="type">prev</span> =&gt; ({
+      ...<span class="type">prev</span>,
+      [<span class="type">name</span>]: <span class="type">type</span> === <span class="str">'checkbox'</span> ? <span class="type">checked</span> : <span class="type">value</span>
+    }));
+  };
+
+  <span class="kw">const</span> <span class="fn">handleSubmit</span> = (<span class="type">e</span>) =&gt; {
+    <span class="type">e</span>.<span class="fn">preventDefault</span>();
+    console.<span class="fn">log</span>(<span class="type">formData</span>);
+  };
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">form</span> <span class="fn">onSubmit</span>={<span class="fn">handleSubmit</span>}&gt;
+      &lt;<span class="type">input</span> <span class="type">name</span>=<span class="str">"username"</span> <span class="type">value</span>={<span class="type">formData</span>.username}
+             <span class="fn">onChange</span>={<span class="fn">handleChange</span>} /&gt;
+      &lt;<span class="type">input</span> <span class="type">name</span>=<span class="str">"email"</span> <span class="type">type</span>=<span class="str">"email"</span> <span class="type">value</span>={<span class="type">formData</span>.email}
+             <span class="fn">onChange</span>={<span class="fn">handleChange</span>} /&gt;
+      &lt;<span class="type">input</span> <span class="type">name</span>=<span class="str">"password"</span> <span class="type">type</span>=<span class="str">"password"</span> <span class="type">value</span>={<span class="type">formData</span>.password}
+             <span class="fn">onChange</span>={<span class="fn">handleChange</span>} /&gt;
+      &lt;<span class="type">select</span> <span class="type">name</span>=<span class="str">"role"</span> <span class="type">value</span>={<span class="type">formData</span>.role} <span class="fn">onChange</span>={<span class="fn">handleChange</span>}&gt;
+        &lt;<span class="type">option</span> <span class="type">value</span>=<span class="str">"user"</span>&gt;User&lt;/<span class="type">option</span>&gt;
+        &lt;<span class="type">option</span> <span class="type">value</span>=<span class="str">"admin"</span>&gt;Admin&lt;/<span class="type">option</span>&gt;
+      &lt;/<span class="type">select</span>&gt;
+      &lt;<span class="type">input</span> <span class="type">name</span>=<span class="str">"agree"</span> <span class="type">type</span>=<span class="str">"checkbox"</span> <span class="type">checked</span>={<span class="type">formData</span>.agree}
+             <span class="fn">onChange</span>={<span class="fn">handleChange</span>} /&gt;
+      &lt;<span class="type">button</span> <span class="type">type</span>=<span class="str">"submit"</span>&gt;Register&lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">form</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="tip">
+          <strong>💡 Tip:</strong> Use a single <code>handleChange</code> with <code>[e.target.name]</code> computed property to handle multiple form fields instead of writing a separate handler for each input.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== UNCONTROLLED COMPONENTS ==================== -->
+    <div class="section-divider" id="uncontrolled"><span>Forms — Uncontrolled Components</span></div>
+
+    <div class="card">
+      <div class="card-title">What are Uncontrolled Components?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          An <strong>Uncontrolled Component</strong> is a form element that stores its own state internally in the DOM. Instead of using React state, you access values using a <code>ref</code> (useRef) when needed (e.g., on submit).
+        </div>
+
+        <p>In an uncontrolled component:</p>
+        <ol>
+          <li>No <code>value</code> binding to state</li>
+          <li>Use <code>defaultValue</code> for initial value</li>
+          <li>Access current value via <code>ref.current.value</code></li>
+          <li>DOM is the source of truth (not React state)</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Uncontrolled Component Example</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">UncontrolledForm.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useRef</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">function</span> <span class="fn">UncontrolledForm</span>() {
+  <span class="kw">const</span> <span class="type">nameRef</span> = <span class="fn">useRef</span>(<span class="num">null</span>);
+  <span class="kw">const</span> <span class="type">emailRef</span> = <span class="fn">useRef</span>(<span class="num">null</span>);
+
+  <span class="kw">const</span> <span class="fn">handleSubmit</span> = (<span class="type">e</span>) =&gt; {
+    <span class="type">e</span>.<span class="fn">preventDefault</span>();
+    <span class="cmt">// Access DOM values directly via ref</span>
+    console.<span class="fn">log</span>(<span class="str">'Name:'</span>, <span class="type">nameRef</span>.current.value);
+    console.<span class="fn">log</span>(<span class="str">'Email:'</span>, <span class="type">emailRef</span>.current.value);
+  };
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">form</span> <span class="fn">onSubmit</span>={<span class="fn">handleSubmit</span>}&gt;
+      &lt;<span class="type">input</span>
+        <span class="type">type</span>=<span class="str">"text"</span>
+        <span class="type">defaultValue</span>=<span class="str">"John"</span>
+        <span class="type">ref</span>={<span class="type">nameRef</span>}
+      /&gt;
+      &lt;<span class="type">input</span>
+        <span class="type">type</span>=<span class="str">"email"</span>
+        <span class="type">defaultValue</span>=<span class="str">""</span>
+        <span class="type">ref</span>={<span class="type">emailRef</span>}
+      /&gt;
+      &lt;<span class="type">button</span> <span class="type">type</span>=<span class="str">"submit"</span>&gt;Submit&lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">form</span>&gt;
+  );
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Controlled vs Uncontrolled — Comparison</div>
+      <div class="card-content">
+        <div class="vs-container">
+          <div class="vs-box vs-controlled">
+            <h4 style="color:#2563eb;">✅ Controlled (Recommended)</h4>
+            <ul>
+              <li>React state is source of truth</li>
+              <li>Uses <code>value</code> + <code>onChange</code></li>
+              <li>Instant validation possible</li>
+              <li>Easy to manipulate input values</li>
+              <li>Conditional disable/submit</li>
+              <li>More React "idiomatic"</li>
+            </ul>
+          </div>
+          <div class="vs-box vs-uncontrolled">
+            <h4 style="color:#ec4899;">⚡ Uncontrolled (Simpler)</h4>
+            <ul>
+              <li>DOM is source of truth</li>
+              <li>Uses <code>defaultValue</code> + <code>ref</code></li>
+              <li>Less code for simple forms</li>
+              <li>Better for file inputs</li>
+              <li>Easier integration with non-React code</li>
+              <li>No re-render on every keystroke</li>
+            </ul>
+          </div>
+        </div>
+
+        <table>
+          <tr><th>Feature</th><th>Controlled</th><th>Uncontrolled</th></tr>
+          <tr><td><strong>Source of Truth</strong></td><td>React state</td><td>DOM</td></tr>
+          <tr><td><strong>Value Access</strong></td><td>From state directly</td><td>Via ref on submit</td></tr>
+          <tr><td><strong>Re-renders</strong></td><td>Every keystroke</td><td>Only on submit</td></tr>
+          <tr><td><strong>Validation</strong></td><td>Real-time (on change)</td><td>On submit only</td></tr>
+          <tr><td><strong>File Input</strong></td><td>❌ Not possible</td><td>✅ Must use ref</td></tr>
+          <tr><td><strong>Dynamic Control</strong></td><td>Full control (disable, format)</td><td>Limited</td></tr>
+          <tr><td><strong>Performance</strong></td><td>More re-renders</td><td>Fewer re-renders</td></tr>
+          <tr><td><strong>Best For</strong></td><td>Most forms</td><td>Simple forms, file uploads</td></tr>
+        </table>
+
+        <div class="warning">
+          <strong>⚠️ Important:</strong> <code>&lt;input type="file"&gt;</code> is ALWAYS uncontrolled in React because its value is read-only for security reasons. You must use a ref to access file data.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== FORM VALIDATION ==================== -->
+    <div class="section-divider" id="form-validation"><span>Forms — Form Validation</span></div>
+
+    <div class="card">
+      <div class="card-title">Form Validation Approaches</div>
+      <div class="card-content">
+        <div class="short-answer">
+          React form validation can be done <strong>manually</strong> (custom logic in handlers), with <strong>HTML5 attributes</strong> (required, pattern, minLength), or with <strong>libraries</strong> (React Hook Form, Formik, Yup/Zod).
+        </div>
+
+        <table>
+          <tr><th>Approach</th><th>When to Use</th><th>Complexity</th></tr>
+          <tr><td><strong>HTML5 Built-in</strong></td><td>Very simple forms</td><td>Low</td></tr>
+          <tr><td><strong>Custom (useState)</strong></td><td>Small-medium forms, custom rules</td><td>Medium</td></tr>
+          <tr><td><strong>React Hook Form</strong></td><td>Production apps, performance</td><td>Medium</td></tr>
+          <tr><td><strong>Formik + Yup</strong></td><td>Complex forms, schema validation</td><td>Higher</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Custom Validation Example</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ValidatedForm.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">function</span> <span class="fn">ValidatedForm</span>() {
+  <span class="kw">const</span> [<span class="type">formData</span>, <span class="fn">setFormData</span>] = <span class="fn">useState</span>({
+    <span class="type">email</span>: <span class="str">''</span>, <span class="type">password</span>: <span class="str">''</span>
+  });
+  <span class="kw">const</span> [<span class="type">errors</span>, <span class="fn">setErrors</span>] = <span class="fn">useState</span>({});
+
+  <span class="kw">const</span> <span class="fn">validate</span> = () =&gt; {
+    <span class="kw">const</span> <span class="type">newErrors</span> = {};
+
+    <span class="cmt">// Email validation</span>
+    <span class="kw">if</span> (!<span class="type">formData</span>.email) {
+      <span class="type">newErrors</span>.email = <span class="str">'Email is required'</span>;
+    } <span class="kw">else if</span> (!/\S+@\S+\.\S+/.<span class="fn">test</span>(<span class="type">formData</span>.email)) {
+      <span class="type">newErrors</span>.email = <span class="str">'Email is invalid'</span>;
+    }
+
+    <span class="cmt">// Password validation</span>
+    <span class="kw">if</span> (!<span class="type">formData</span>.password) {
+      <span class="type">newErrors</span>.password = <span class="str">'Password is required'</span>;
+    } <span class="kw">else if</span> (<span class="type">formData</span>.password.length &lt; <span class="num">6</span>) {
+      <span class="type">newErrors</span>.password = <span class="str">'Password must be at least 6 chars'</span>;
+    }
+
+    <span class="fn">setErrors</span>(<span class="type">newErrors</span>);
+    <span class="kw">return</span> Object.<span class="fn">keys</span>(<span class="type">newErrors</span>).length === <span class="num">0</span>;
+  };
+
+  <span class="kw">const</span> <span class="fn">handleSubmit</span> = (<span class="type">e</span>) =&gt; {
+    <span class="type">e</span>.<span class="fn">preventDefault</span>();
+    <span class="kw">if</span> (<span class="fn">validate</span>()) {
+      console.<span class="fn">log</span>(<span class="str">'Form submitted!'</span>, <span class="type">formData</span>);
+    }
+  };
+
+  <span class="kw">const</span> <span class="fn">handleChange</span> = (<span class="type">e</span>) =&gt; {
+    <span class="fn">setFormData</span>({ ...<span class="type">formData</span>, [<span class="type">e</span>.target.name]: <span class="type">e</span>.target.value });
+  };
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">form</span> <span class="fn">onSubmit</span>={<span class="fn">handleSubmit</span>}&gt;
+      &lt;<span class="type">input</span> <span class="type">name</span>=<span class="str">"email"</span> <span class="type">value</span>={<span class="type">formData</span>.email}
+             <span class="fn">onChange</span>={<span class="fn">handleChange</span>} <span class="type">placeholder</span>=<span class="str">"Email"</span> /&gt;
+      {<span class="type">errors</span>.email &amp;&amp; &lt;<span class="type">span</span> style={{<span class="type">color</span>:<span class="str">'red'</span>}}&gt;{<span class="type">errors</span>.email}&lt;/<span class="type">span</span>&gt;}
+
+      &lt;<span class="type">input</span> <span class="type">name</span>=<span class="str">"password"</span> <span class="type">type</span>=<span class="str">"password"</span>
+             <span class="type">value</span>={<span class="type">formData</span>.password}
+             <span class="fn">onChange</span>={<span class="fn">handleChange</span>} <span class="type">placeholder</span>=<span class="str">"Password"</span> /&gt;
+      {<span class="type">errors</span>.password &amp;&amp; &lt;<span class="type">span</span> style={{<span class="type">color</span>:<span class="str">'red'</span>}}&gt;{<span class="type">errors</span>.password}&lt;/<span class="type">span</span>&gt;}
+
+      &lt;<span class="type">button</span> <span class="type">type</span>=<span class="str">"submit"</span>&gt;Login&lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">form</span>&gt;
+  );
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Real-Time Validation (onChange)</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">RealTimeValidation.jsx</span></div>
+          <pre><code><span class="kw">const</span> <span class="fn">handleChange</span> = (<span class="type">e</span>) =&gt; {
+  <span class="kw">const</span> { <span class="type">name</span>, <span class="type">value</span> } = <span class="type">e</span>.target;
+  <span class="fn">setFormData</span>(<span class="type">prev</span> =&gt; ({ ...<span class="type">prev</span>, [<span class="type">name</span>]: <span class="type">value</span> }));
+
+  <span class="cmt">// Real-time validation</span>
+  <span class="kw">let</span> <span class="type">error</span> = <span class="str">''</span>;
+  <span class="kw">if</span> (<span class="type">name</span> === <span class="str">'email'</span> &amp;&amp; <span class="type">value</span> &amp;&amp; !/\S+@\S+\.\S+/.<span class="fn">test</span>(<span class="type">value</span>)) {
+    <span class="type">error</span> = <span class="str">'Invalid email format'</span>;
+  }
+  <span class="kw">if</span> (<span class="type">name</span> === <span class="str">'password'</span> &amp;&amp; <span class="type">value</span> &amp;&amp; <span class="type">value</span>.length &lt; <span class="num">6</span>) {
+    <span class="type">error</span> = <span class="str">'Min 6 characters'</span>;
+  }
+
+  <span class="fn">setErrors</span>(<span class="type">prev</span> =&gt; ({ ...<span class="type">prev</span>, [<span class="type">name</span>]: <span class="type">error</span> }));
+};</code></pre>
+        </div>
+
+        <div class="note">
+          <strong>📝 Note:</strong> Real-time validation provides instant feedback but can be annoying if too aggressive. A good UX pattern: validate on <code>onBlur</code> (when user leaves the field) and clear errors on <code>onChange</code>.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Validation with React Hook Form (Library)</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">HookFormExample.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useForm</span> } <span class="kw">from</span> <span class="str">'react-hook-form'</span>;
+
+<span class="kw">function</span> <span class="fn">HookFormExample</span>() {
+  <span class="kw">const</span> {
+    <span class="type">register</span>,
+    <span class="fn">handleSubmit</span>,
+    <span class="type">formState</span>: { <span class="type">errors</span> }
+  } = <span class="fn">useForm</span>();
+
+  <span class="kw">const</span> <span class="fn">onSubmit</span> = (<span class="type">data</span>) =&gt; console.<span class="fn">log</span>(<span class="type">data</span>);
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">form</span> <span class="fn">onSubmit</span>={<span class="fn">handleSubmit</span>(<span class="fn">onSubmit</span>)}&gt;
+      &lt;<span class="type">input</span>
+        {...<span class="fn">register</span>(<span class="str">'email'</span>, {
+          <span class="type">required</span>: <span class="str">'Email is required'</span>,
+          <span class="type">pattern</span>: {
+            <span class="type">value</span>: /\S+@\S+\.\S+/,
+            <span class="type">message</span>: <span class="str">'Invalid email'</span>
+          }
+        })}
+      /&gt;
+      {<span class="type">errors</span>.email &amp;&amp; &lt;<span class="type">p</span>&gt;{<span class="type">errors</span>.email.message}&lt;/<span class="type">p</span>&gt;}
+
+      &lt;<span class="type">input</span>
+        <span class="type">type</span>=<span class="str">"password"</span>
+        {...<span class="fn">register</span>(<span class="str">'password'</span>, {
+          <span class="type">required</span>: <span class="str">'Password is required'</span>,
+          <span class="type">minLength</span>: { <span class="type">value</span>: <span class="num">6</span>, <span class="type">message</span>: <span class="str">'Min 6 chars'</span> }
+        })}
+      /&gt;
+      {<span class="type">errors</span>.password &amp;&amp; &lt;<span class="type">p</span>&gt;{<span class="type">errors</span>.password.message}&lt;/<span class="type">p</span>&gt;}
+
+      &lt;<span class="type">button</span> <span class="type">type</span>=<span class="str">"submit"</span>&gt;Submit&lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">form</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="remember">
+          <strong>💡 Remember:</strong> React Hook Form uses uncontrolled components internally (refs) for performance — fewer re-renders. But it provides the same control as controlled components via its API. It's the most popular form library in React.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Common Validation Rules</div>
+      <div class="card-content">
+        <table>
+          <tr><th>Rule</th><th>Regex / Check</th><th>Error Message</th></tr>
+          <tr><td><strong>Required</strong></td><td><code>!value.trim()</code></td><td>This field is required</td></tr>
+          <tr><td><strong>Email</strong></td><td><code>/^\S+@\S+\.\S+$/</code></td><td>Invalid email format</td></tr>
+          <tr><td><strong>Min Length</strong></td><td><code>value.length &lt; n</code></td><td>Must be at least n characters</td></tr>
+          <tr><td><strong>Max Length</strong></td><td><code>value.length &gt; n</code></td><td>Cannot exceed n characters</td></tr>
+          <tr><td><strong>Number Only</strong></td><td><code>/^\d+$/</code></td><td>Only numbers allowed</td></tr>
+          <tr><td><strong>Phone</strong></td><td><code>/^\d{10}$/</code></td><td>Must be 10 digits</td></tr>
+          <tr><td><strong>Password Strength</strong></td><td><code>/(?=.*[A-Z])(?=.*\d)/</code></td><td>Must have uppercase + number</td></tr>
+          <tr><td><strong>Match Fields</strong></td><td><code>password === confirmPassword</code></td><td>Passwords do not match</td></tr>
+          <tr><td><strong>URL</strong></td><td><code>/^https?:\/\/.+/</code></td><td>Invalid URL</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Interview Q&A — Forms</div>
+      <div class="card-content card-content-QA">
+        <div class="q-block">Q: What is the difference between Controlled and Uncontrolled Components?</div>
+        <div class="a-block"><strong>A:</strong> In a <strong>Controlled component</strong>, form data is handled by React state (value + onChange). React is the source of truth. In an <strong>Uncontrolled component</strong>, form data is stored in the DOM itself, accessed via refs. DOM is the source of truth. Controlled gives more control (validation, formatting); Uncontrolled has fewer re-renders and less code.</div>
+
+        <div class="q-block">Q: Why is Controlled Component preferred in React?</div>
+        <div class="a-block"><strong>A:</strong> Controlled components are preferred because: (1) Single source of truth (React state), (2) Real-time validation possible, (3) Can conditionally disable submit button, (4) Easy to modify/format input (uppercase, trim), (5) Predictable behavior aligned with React's declarative model. They give full programmatic control over form inputs.</div>
+
+        <div class="q-block">Q: How do you handle form validation in React?</div>
+        <div class="a-block"><strong>A:</strong> Three approaches: (1) <strong>Custom validation</strong> — maintain an errors state object, validate in onChange/onSubmit, display error messages conditionally. (2) <strong>HTML5 attributes</strong> — use required, pattern, minLength for basic browser validation. (3) <strong>Libraries</strong> — React Hook Form (performance-focused), Formik + Yup/Zod (schema-based validation).</div>
+
+        <div class="q-block">Q: What is React Hook Form and why use it?</div>
+        <div class="a-block"><strong>A:</strong> React Hook Form is a performant form library that uses uncontrolled components (refs) internally to minimize re-renders. Benefits: (1) Less code than manual validation, (2) Built-in validation rules, (3) Excellent performance (isolates re-renders), (4) Easy integration with schema validators (Yup, Zod), (5) Small bundle size (~9KB).</div>
+
+        <div class="q-block">Q: When would you use an Uncontrolled Component?</div>
+        <div class="a-block"><strong>A:</strong> Use uncontrolled components when: (1) Handling <strong>file inputs</strong> (must use ref), (2) Integrating with <strong>non-React libraries</strong>, (3) Simple forms where you only need the value on submit, (4) <strong>Performance</strong> is critical and you want to avoid re-renders on every keystroke. React Hook Form uses this pattern internally.</div>
+      </div>
+    </div>
+
+    <!-- ==================== LIVE FORM DEMOS ==================== -->
+    <div class="section-divider" id="live-demos"><span>Live Form Demos</span></div>
+
+    <!-- FORM 1: Submit-time validation -->
+    <div class="card">
+      <div class="card-title">Demo 1: Validation on Submit</div>
+      <div class="card-content">
+        <p>This form validates <strong>only when you click Submit</strong>. Errors appear after submission attempt.</p>
+        <form id="form-submit" novalidate style="margin-top:20px;">
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Full Name</label>
+            <input type="text" id="f1-name" placeholder="Enter your name"
+              style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:10px;font-size:16px;outline:none;transition:border 0.3s;" 
+              onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'" />
+            <span id="f1-name-err" style="color:#be123c;font-size:14px;display:none;margin-top:4px;"></span>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Email</label>
+            <input type="email" id="f1-email" placeholder="your@email.com"
+              style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:10px;font-size:16px;outline:none;transition:border 0.3s;"
+              onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'" />
+            <span id="f1-email-err" style="color:#be123c;font-size:14px;display:none;margin-top:4px;"></span>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Password</label>
+            <input type="password" id="f1-password" placeholder="Min 6 characters"
+              style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:10px;font-size:16px;outline:none;transition:border 0.3s;"
+              onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'" />
+            <span id="f1-password-err" style="color:#be123c;font-size:14px;display:none;margin-top:4px;"></span>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Phone</label>
+            <input type="tel" id="f1-phone" placeholder="10-digit number"
+              style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:10px;font-size:16px;outline:none;transition:border 0.3s;"
+              onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'" />
+            <span id="f1-phone-err" style="color:#be123c;font-size:14px;display:none;margin-top:4px;"></span>
+          </div>
+          <button type="submit" style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;border:none;padding:14px 35px;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;"
+            onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(99,102,241,0.4)'"
+            onmouseout="this.style.transform='';this.style.boxShadow=''">
+            Submit
+          </button>
+          <div id="f1-success" style="display:none;margin-top:15px;" class="short-answer">
+            <strong>✅ Form submitted successfully!</strong>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- FORM 2: Real-time validation (errors while typing) -->
+    <div class="card">
+      <div class="card-title">Demo 2: Real-Time Validation (Errors While Typing)</div>
+      <div class="card-content">
+        <p>This form shows errors <strong>instantly as you type</strong>. Red border + error message appear immediately when input is invalid.</p>
+        <form id="form-realtime" novalidate style="margin-top:20px;">
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Full Name <span style="color:#be123c;">*</span></label>
+            <input type="text" id="f2-name" placeholder="Enter your name"
+              style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:10px;font-size:16px;outline:none;transition:all 0.3s;" />
+            <span id="f2-name-err" style="color:#be123c;font-size:14px;display:none;margin-top:4px;font-weight:500;"></span>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Email <span style="color:#be123c;">*</span></label>
+            <input type="email" id="f2-email" placeholder="your@email.com"
+              style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:10px;font-size:16px;outline:none;transition:all 0.3s;" />
+            <span id="f2-email-err" style="color:#be123c;font-size:14px;display:none;margin-top:4px;font-weight:500;"></span>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Password <span style="color:#be123c;">*</span></label>
+            <input type="password" id="f2-password" placeholder="Min 6 chars, 1 uppercase, 1 number"
+              style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:10px;font-size:16px;outline:none;transition:all 0.3s;" />
+            <span id="f2-password-err" style="color:#be123c;font-size:14px;display:none;margin-top:4px;font-weight:500;"></span>
+            <div id="f2-password-strength" style="margin-top:8px;display:none;">
+              <div style="height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
+                <div id="f2-strength-bar" style="height:100%;width:0%;transition:all 0.3s;border-radius:3px;"></div>
+              </div>
+              <span id="f2-strength-text" style="font-size:12px;font-weight:600;margin-top:3px;display:inline-block;"></span>
+            </div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Confirm Password <span style="color:#be123c;">*</span></label>
+            <input type="password" id="f2-confirm" placeholder="Re-enter password"
+              style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:10px;font-size:16px;outline:none;transition:all 0.3s;" />
+            <span id="f2-confirm-err" style="color:#be123c;font-size:14px;display:none;margin-top:4px;font-weight:500;"></span>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-weight:600;margin-bottom:6px;color:#1e293b;">Phone <span style="color:#be123c;">*</span></label>
+            <input type="tel" id="f2-phone" placeholder="10-digit number"
+              style="width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:10px;font-size:16px;outline:none;transition:all 0.3s;" />
+            <span id="f2-phone-err" style="color:#be123c;font-size:14px;display:none;margin-top:4px;font-weight:500;"></span>
+          </div>
+          <button type="submit" id="f2-submit-btn" disabled
+            style="background:#94a3b8;color:#fff;border:none;padding:14px 35px;border-radius:10px;font-size:17px;font-weight:600;cursor:not-allowed;transition:all 0.3s;">
+            Submit
+          </button>
+          <div id="f2-success" style="display:none;margin-top:15px;" class="short-answer">
+            <strong>✅ Form submitted successfully!</strong>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ======================== FORM 1: Submit-time validation ========================
+    document.getElementById('form-submit').addEventListener('submit', function(e) {
+      e.preventDefault();
+      let valid = true;
+
+      // Reset errors
+      ['f1-name-err','f1-email-err','f1-password-err','f1-phone-err'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+      document.getElementById('f1-success').style.display = 'none';
+
+      const name = document.getElementById('f1-name').value.trim();
+      const email = document.getElementById('f1-email').value.trim();
+      const password = document.getElementById('f1-password').value;
+      const phone = document.getElementById('f1-phone').value.trim();
+
+      // Name
+      if (!name) {
+        showErr('f1-name', 'f1-name-err', 'Name is required');
+        valid = false;
+      } else if (name.length < 2) {
+        showErr('f1-name', 'f1-name-err', 'Name must be at least 2 characters');
+        valid = false;
+      }
+
+      // Email
+      if (!email) {
+        showErr('f1-email', 'f1-email-err', 'Email is required');
+        valid = false;
+      } else if (!/^\S+@\S+\.\S+$/.test(email)) {
+        showErr('f1-email', 'f1-email-err', 'Please enter a valid email');
+        valid = false;
+      }
+
+      // Password
+      if (!password) {
+        showErr('f1-password', 'f1-password-err', 'Password is required');
+        valid = false;
+      } else if (password.length < 6) {
+        showErr('f1-password', 'f1-password-err', 'Password must be at least 6 characters');
+        valid = false;
+      }
+
+      // Phone
+      if (!phone) {
+        showErr('f1-phone', 'f1-phone-err', 'Phone number is required');
+        valid = false;
+      } else if (!/^\d{10}$/.test(phone)) {
+        showErr('f1-phone', 'f1-phone-err', 'Phone must be exactly 10 digits');
+        valid = false;
+      }
+
+      if (valid) {
+        document.getElementById('f1-success').style.display = 'block';
+      }
+    });
+
+    function showErr(inputId, errId, msg) {
+      const input = document.getElementById(inputId);
+      const err = document.getElementById(errId);
+      input.style.borderColor = '#f43f5e';
+      err.textContent = '⚠ ' + msg;
+      err.style.display = 'block';
+    }
+
+    // ======================== FORM 2: Real-time validation ========================
+    const f2Fields = {
+      name: { el: 'f2-name', err: 'f2-name-err', valid: false },
+      email: { el: 'f2-email', err: 'f2-email-err', valid: false },
+      password: { el: 'f2-password', err: 'f2-password-err', valid: false },
+      confirm: { el: 'f2-confirm', err: 'f2-confirm-err', valid: false },
+      phone: { el: 'f2-phone', err: 'f2-phone-err', valid: false }
+    };
+
+    // Name — real-time
+    document.getElementById('f2-name').addEventListener('input', function() {
+      const val = this.value.trim();
+      if (!val) {
+        setFieldError('name', this, 'Name is required');
+      } else if (val.length < 2) {
+        setFieldError('name', this, 'Name must be at least 2 characters');
+      } else if (!/^[a-zA-Z\s]+$/.test(val)) {
+        setFieldError('name', this, 'Name can only contain letters and spaces');
+      } else {
+        setFieldSuccess('name', this);
+      }
+      checkAllValid();
+    });
+
+    // Email — real-time
+    document.getElementById('f2-email').addEventListener('input', function() {
+      const val = this.value.trim();
+      if (!val) {
+        setFieldError('email', this, 'Email is required');
+      } else if (!/^\S+@\S+\.\S+$/.test(val)) {
+        setFieldError('email', this, 'Invalid email format (need: user@domain.com)');
+      } else {
+        setFieldSuccess('email', this);
+      }
+      checkAllValid();
+    });
+
+    // Password — real-time with strength
+    document.getElementById('f2-password').addEventListener('input', function() {
+      const val = this.value;
+      const strengthDiv = document.getElementById('f2-password-strength');
+      const strengthBar = document.getElementById('f2-strength-bar');
+      const strengthText = document.getElementById('f2-strength-text');
+
+      strengthDiv.style.display = val ? 'block' : 'none';
+
+      if (!val) {
+        setFieldError('password', this, 'Password is required');
+      } else if (val.length < 6) {
+        setFieldError('password', this, 'Must be at least 6 characters (now: ' + val.length + ')');
+      } else if (!/[A-Z]/.test(val)) {
+        setFieldError('password', this, 'Must contain at least 1 uppercase letter');
+      } else if (!/\d/.test(val)) {
+        setFieldError('password', this, 'Must contain at least 1 number');
+      } else {
+        setFieldSuccess('password', this);
+      }
+
+      // Strength meter
+      let strength = 0;
+      if (val.length >= 6) strength++;
+      if (val.length >= 8) strength++;
+      if (/[A-Z]/.test(val)) strength++;
+      if (/\d/.test(val)) strength++;
+      if (/[!@#$%^&*]/.test(val)) strength++;
+
+      const pct = (strength / 5) * 100;
+      strengthBar.style.width = pct + '%';
+      if (strength <= 1) { strengthBar.style.background = '#f43f5e'; strengthText.textContent = 'Weak'; strengthText.style.color = '#f43f5e'; }
+      else if (strength <= 3) { strengthBar.style.background = '#f59e0b'; strengthText.textContent = 'Medium'; strengthText.style.color = '#f59e0b'; }
+      else { strengthBar.style.background = '#16a34a'; strengthText.textContent = 'Strong'; strengthText.style.color = '#16a34a'; }
+
+      // Re-validate confirm
+      const confirmEl = document.getElementById('f2-confirm');
+      if (confirmEl.value) confirmEl.dispatchEvent(new Event('input'));
+
+      checkAllValid();
+    });
+
+    // Confirm Password — real-time
+    document.getElementById('f2-confirm').addEventListener('input', function() {
+      const val = this.value;
+      const password = document.getElementById('f2-password').value;
+      if (!val) {
+        setFieldError('confirm', this, 'Please confirm your password');
+      } else if (val !== password) {
+        setFieldError('confirm', this, 'Passwords do not match');
+      } else {
+        setFieldSuccess('confirm', this);
+      }
+      checkAllValid();
+    });
+
+    // Phone — real-time
+    document.getElementById('f2-phone').addEventListener('input', function() {
+      const val = this.value.trim();
+      if (!val) {
+        setFieldError('phone', this, 'Phone number is required');
+      } else if (!/^\d+$/.test(val)) {
+        setFieldError('phone', this, 'Only digits allowed');
+      } else if (val.length !== 10) {
+        setFieldError('phone', this, 'Must be exactly 10 digits (now: ' + val.length + ')');
+      } else {
+        setFieldSuccess('phone', this);
+      }
+      checkAllValid();
+    });
+
+    // Submit form 2
+    document.getElementById('form-realtime').addEventListener('submit', function(e) {
+      e.preventDefault();
+      document.getElementById('f2-success').style.display = 'block';
+    });
+
+    function setFieldError(field, el, msg) {
+      f2Fields[field].valid = false;
+      el.style.borderColor = '#f43f5e';
+      el.style.background = '#fff5f5';
+      const errEl = document.getElementById(f2Fields[field].err);
+      errEl.textContent = '⚠ ' + msg;
+      errEl.style.display = 'block';
+    }
+
+    function setFieldSuccess(field, el) {
+      f2Fields[field].valid = true;
+      el.style.borderColor = '#16a34a';
+      el.style.background = '#f0fdf4';
+      const errEl = document.getElementById(f2Fields[field].err);
+      errEl.style.display = 'none';
+    }
+
+    function checkAllValid() {
+      const btn = document.getElementById('f2-submit-btn');
+      const allValid = Object.values(f2Fields).every(f => f.valid);
+      if (allValid) {
+        btn.disabled = false;
+        btn.style.background = 'linear-gradient(135deg,#2563eb,#7c3aed)';
+        btn.style.cursor = 'pointer';
+      } else {
+        btn.disabled = true;
+        btn.style.background = '#94a3b8';
+        btn.style.cursor = 'not-allowed';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>React.memo, Error Boundaries & HOC - Complete Guide</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+    .container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+    /* header */
+    .header { background: linear-gradient(120deg,#3730a3,#6366f1); border-radius: 16px; padding: 40px 36px; margin-bottom: 50px; box-shadow: 0 12px 30px rgba(99,102,241,0.3); }
+    .header h1 { color: #fff; font-size: 32px; margin-bottom: 8px; font-weight: 800; letter-spacing: -0.5px; }
+    .header p { color: #e0e7ff; font-size: 16px; margin-bottom: 22px; }
+    .toc { display: flex; flex-wrap: wrap; gap: 8px; }
+    .toc a { text-decoration: none; padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.35); transition: all .2s ease; }
+    .pill-indigo { background: rgba(99,102,241,0.3); color: #fff; }
+    .pill-teal   { background: rgba(13,148,136,0.35); color: #fff; }
+    .pill-red    { background: rgba(219,39,119,0.3); color: #fff; }
+    .toc a:hover { background: #fff; color: #3730a3; }
+
+    /* intro summary (in header) */
+    .intro-summary { margin-top: 26px; }
+    .intro-summary-title { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .summary-grid { display: flex; flex-direction: column; gap: 10px; }
+    .summary-item { display: flex; align-items: center; gap: 14px; width: 100%; border-radius: 10px; padding: 14px 20px; }
+    .summary-icon { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 19px; background: rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+    .summary-text { font-size: 14.5px; line-height: 1.7; font-weight: 500; }
+    .summary-text strong { font-weight: 800; margin-right: 4px; }
+    .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; }
+    .summary-teal   .summary-text strong { color: #0d9488; }
+    .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; }
+    .summary-pink   .summary-text strong { color: #db2777; }
+    .summary-orange { background: linear-gradient(135deg,#fff7ed,#ffedd5); color: #9a3412; }
+    .summary-orange .summary-text strong { color: #ea580c; }
+    .summary-indigo { background: linear-gradient(135deg,#eef2ff,#e0e7ff); color: #3730a3; }
+    .summary-indigo .summary-text strong { color: #4338ca; }
+
+    /* section divider */
+    .section-divider { margin: 48px 0 24px; position: relative; }
+    .section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background: linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+    .section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+    /* card */
+    .card { border-radius: 14px; margin-bottom: 30px; overflow: hidden; box-shadow: 0 10px 24px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04); background:#fff; }
+    .card-title { color:#fff; font-size:20px; font-weight:700; padding:18px 26px; background: linear-gradient(120deg,#4338ca,#6366f1); }
+    .card-content { padding: 26px; background: #eef2ff; }
+    .card-content p { color:#333; font-size:16px; line-height:1.8; margin-bottom:14px; font-weight:500; }
+    .card-content h3 { font-size:17px; margin: 22px 0 10px; font-weight:800; color:#3730a3; }
+    .card-content h4 { font-size: 16px; margin-bottom: 6px; font-weight: 800; }
+    .card-content code { background: rgba(67,56,202,0.08); padding: 1px 6px; border-radius: 5px; font-family:'Fira Code','Consolas',monospace; font-size: .92em; color:#3730a3; }
+    .card-content ol, .card-content ul { margin: 8px 0 14px 22px; }
+    .card-content ol li, .card-content ul li { font-size: 15.5px; line-height: 1.8; color: #333; margin-bottom: 4px; }
+
+    /* short-answer / compact-summary / hook-syntax / diagram */
+    .short-answer { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); border-left: 4px solid #4338ca; border-radius: 10px; padding: 16px 20px; margin-bottom: 18px; font-size: 16px; line-height: 1.8; color:#312e81; }
+    .compact-summary { font-size: 14.5px; padding: 12px 20px; }
+    .hook-syntax { background:#1a1a1a; color:#c3e88d; font-family:'Fira Code','Consolas',monospace; font-size:15px; padding:14px 18px; border-radius:10px; margin: 10px 0 18px; box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+    .diagram { background:#0f172a; color:#93c5fd; font-family:'Fira Code','Consolas',monospace; font-size:12.5px; line-height:1.6; padding:18px 20px; border-radius:10px; margin: 14px 0; overflow-x:auto; white-space:pre; box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
+
+    /* code block */
+    .code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+    .code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+    .code-bar .dot { width:10px; height:10px; border-radius:50%; }
+    .dot-red{background:#ff5f57;} .dot-grey{background:#febc2e;} .dot-green{background:#28c840;}
+    .filename { color:#999; font-size:12px; margin-left:8px; }
+    .code-block pre { padding:18px; overflow-x:auto; }
+    .code-block code { background:none; color:#d4d4d4; font-size:14.5px; font-family:'Fira Code','Consolas',monospace; padding:0; }
+    .kw{color:#c792ea;font-weight:600;} .str{color:#c3e88d;} .fn{color:#82aaff;} .cmt{color:#7a7a7a;font-style:italic;} .num{color:#f78c6c;} .type{color:#f07178;}
+
+    /* info boxes */
+    .note, .warning, .tip, .remember { border-radius:10px; padding:14px 18px; margin:14px 0; font-size:15px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+    .note     { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+    .warning  { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+    .tip      { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+    .remember { background: linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+    /* vs boxes */
+    .vs-container { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+    .vs-box { border-radius: 12px; padding: 18px 20px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04); }
+    .vs-box ul { margin: 8px 0 0 20px; }
+    .vs-box li { font-size: 14.5px; line-height: 1.8; color: #333; }
+    .vs-state, .vs-controlled { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); }
+    .vs-props, .vs-uncontrolled { background: linear-gradient(135deg,#fce7f3,#fbcfe8); }
+    @media (max-width: 768px) { .vs-container { grid-template-columns: 1fr; } }
+
+    /* table */
+    table { width:100%; border-collapse:collapse; margin:15px 0; border-radius:12px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.08); }
+    table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color:#fff; font-size:16px; padding:12px 16px; text-align:left; }
+    table td { padding:11px 16px; font-size:14.5px; font-weight:500; border-bottom:1px solid #eef0f4; color:#334155; }
+    table tr:nth-child(even){ background:#f8fafc; }
+
+    /* QA */
+    .card-content-QA .q-block { padding:14px 18px; margin:22px 0 10px; border-radius:12px; font-size:17px; font-weight:700; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; border-left:3px solid #4338ca; background: linear-gradient(135deg,#c7d2fe,#a5b4fc); color:#3730a3; }
+    .card-content-QA .a-block { padding:14px 18px; margin:0 0 16px; border-radius:12px; font-size:15px; line-height:1.8; font-weight:500; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; border-left:3px solid #4338ca; background: linear-gradient(135deg,#eef2ff,#e0e7ff); color:#312e81; }
+    .card-content-QA .a-block ul { margin: 8px 0 0 20px; }
+    .card-content-QA.theme-green .q-block { border-left-color:#059669; background: linear-gradient(135deg,#a7f3d0,#6ee7b7); color:#065f46; }
+    .card-content-QA.theme-green .a-block { border-left-color:#059669; background: linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; }
+    .card-content-QA.theme-purple .q-block { border-left-color:#7c3aed; background: linear-gradient(135deg,#ddd6fe,#c4b5fd); color:#5b21b6; }
+    .card-content-QA.theme-purple .a-block { border-left-color:#7c3aed; background: linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; }
+
+    .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; margin-left:8px; background: rgba(255,255,255,0.25); color:#fff; vertical-align: middle; }
+
+    @media (max-width: 768px) {
+      .header h1 { font-size: 24px; }
+      .toc a { padding:6px 12px; font-size:11px; }
+      .diagram { font-size: 10.5px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <h1>⚛️ React.memo, Error Boundaries & HOC</h1>
+      <p>Performance optimization, error handling, and component composition patterns in React</p>
+      <div class="toc">
+        <a href="#memo" class="pill-indigo" onclick="document.getElementById('memo').scrollIntoView({behavior:'smooth'});return false;">React.memo</a>
+        <a href="#error-boundary" class="pill-red" onclick="document.getElementById('error-boundary').scrollIntoView({behavior:'smooth'});return false;">Error Boundaries</a>
+        <a href="#hoc" class="pill-teal" onclick="document.getElementById('hoc').scrollIntoView({behavior:'smooth'});return false;">HOC</a>
+        <a href="#custom-hooks" class="pill-indigo" onclick="document.getElementById('custom-hooks').scrollIntoView({behavior:'smooth'});return false;">Custom Hooks</a>
+        <a href="#qa" class="pill-red" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&A</a>
+      </div>
+
+      <div class="intro-summary">
+        <div class="intro-summary-title">📌 Quick Summary</div>
+        <div class="summary-grid">
+          <div class="summary-item summary-teal">
+            <div class="summary-icon">⚡</div>
+            <div class="summary-text"><strong>React.memo:</strong> Prevents unnecessary re-renders by skipping updates when props have not changed.</div>
+          </div>
+          <div class="summary-item summary-pink">
+            <div class="summary-icon">🛡️</div>
+            <div class="summary-text"><strong>Error Boundary:</strong> Catches rendering errors in child components and shows a fallback UI instead of crashing the whole app.</div>
+          </div>
+          <div class="summary-item summary-orange">
+            <div class="summary-icon">🧩</div>
+            <div class="summary-text"><strong>HOC:</strong> A Higher-Order Component is a function that takes a component and returns an enhanced component.</div>
+          </div>
+          <div class="summary-item summary-indigo">
+            <div class="summary-icon">🪝</div>
+            <div class="summary-text"><strong>Custom Hooks:</strong> Reusable hook functions that share logic across components without wrapper nesting.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="memo"><span>1. React.memo</span></div>
+
+    <div class="card">
+      <div class="card-title">What is React.memo?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>React.memo</strong> is a higher-order component that memoizes a functional component. If the component's props stay the same, React skips re-rendering it.
+        </div>
+        <div class="remember">
+          <strong>🛒 Real-world example — Product Cards:</strong> An e-commerce page shows 200+ product cards. When the user updates the cart or changes filters, only affected cards should re-render. Wrapping <code>ProductCard</code> with <code>React.memo</code> prevents hundreds of unnecessary re-renders because each card's props (name, price, image) haven't changed.
+        </div>
+        <p>It is mainly used to optimize performance in components that re-render often with the same props. It does a shallow comparison of props by default.</p>
+
+        <h3>When to use it</h3>
+        <ul>
+          <li>When a component renders often with the same props</li>
+          <li>When the component is expensive to render</li>
+          <li>When you want to reduce unnecessary child re-renders</li>
+        </ul>
+
+        <h3>Real-World Example — E-commerce Product Card</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">ProductCard.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> React, { <span class="fn">memo</span>, <span class="fn">useCallback</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="cmt">// ✅ Memoized — won't re-render when cart/filter state changes in parent</span>
+<span class="kw">const</span> <span class="fn">ProductCard</span> = <span class="fn">memo</span>(<span class="kw">function</span> <span class="fn">ProductCard</span>({ <span class="type">id</span>, <span class="type">name</span>, <span class="type">price</span>, <span class="type">image</span>, <span class="type">onAddToCart</span> }) {
+  console.log(<span class="str">`Rendering: ${name}`</span>); <span class="cmt">// only logs when THIS card's props change</span>
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span> className=<span class="str">"product-card"</span>&gt;
+      &lt;<span class="type">img</span> src={<span class="type">image</span>} alt={<span class="type">name</span>} /&gt;
+      &lt;<span class="type">h3</span>&gt;{<span class="type">name</span>}&lt;/<span class="type">h3</span>&gt;
+      &lt;<span class="type">p</span>&gt;₹{<span class="type">price</span>}&lt;/<span class="type">p</span>&gt;
+      &lt;<span class="type">button</span> onClick={() =&gt; <span class="fn">onAddToCart</span>(<span class="type">id</span>)}&gt;Add to Cart&lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+});
+
+<span class="cmt">// Parent — Product Listing Page</span>
+<span class="kw">function</span> <span class="fn">ProductList</span>({ <span class="type">products</span> }) {
+  <span class="kw">const</span> [<span class="type">cart</span>, <span class="fn">setCart</span>] = <span class="fn">useState</span>([]);
+  <span class="kw">const</span> [<span class="type">filter</span>, <span class="fn">setFilter</span>] = <span class="fn">useState</span>(<span class="str">''</span>);
+
+  <span class="cmt">// ✅ Stable function ref — prevents memo from breaking</span>
+  <span class="kw">const</span> <span class="fn">handleAddToCart</span> = <span class="fn">useCallback</span>((<span class="type">id</span>) =&gt; {
+    <span class="fn">setCart</span>(<span class="type">prev</span> =&gt; [...<span class="type">prev</span>, <span class="type">id</span>]);
+  }, []);
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">input</span> value={<span class="type">filter</span>} onChange={<span class="type">e</span> =&gt; <span class="fn">setFilter</span>(<span class="type">e</span>.target.value)} /&gt;
+      <span class="cmt">{/* When filter/cart changes, only matching cards re-render */}</span>
+      {<span class="type">products</span>.map(<span class="type">p</span> =&gt; (
+        &lt;<span class="fn">ProductCard</span> key={<span class="type">p</span>.id} {...<span class="type">p</span>} onAddToCart={<span class="fn">handleAddToCart</span>} /&gt;
+      ))}
+      &lt;<span class="type">p</span>&gt;Cart items: {<span class="type">cart</span>.length}&lt;/<span class="type">p</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="tip">
+          <strong>Tip:</strong> Always pair <code>React.memo</code> with <code>useCallback</code> for function props — otherwise a new function reference on every render defeats memoization.
+        </div>
+
+        <h3>Simple Example — Chat App Message Bubble</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">MessageBubble.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> React, { <span class="fn">memo</span>, <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="cmt">// ✅ Memoized — old messages won't re-render when new ones arrive</span>
+<span class="kw">const</span> <span class="fn">MessageBubble</span> = <span class="fn">memo</span>(<span class="kw">function</span> <span class="fn">MessageBubble</span>({ <span class="type">text</span>, <span class="type">sender</span>, <span class="type">time</span> }) {
+  console.log(<span class="str">`Rendering message from ${sender}`</span>);
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span> className={<span class="str">`bubble ${sender === 'me' ? 'sent' : 'received'}`</span>}&gt;
+      &lt;<span class="type">p</span>&gt;{<span class="type">text</span>}&lt;/<span class="type">p</span>&gt;
+      &lt;<span class="type">span</span> className=<span class="str">"time"</span>&gt;{<span class="type">time</span>}&lt;/<span class="type">span</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+});
+
+<span class="cmt">// Parent — Chat Window</span>
+<span class="kw">function</span> <span class="fn">ChatWindow</span>() {
+  <span class="kw">const</span> [<span class="type">messages</span>, <span class="fn">setMessages</span>] = <span class="fn">useState</span>([
+    { id: <span class="num">1</span>, text: <span class="str">'Hey!'</span>, sender: <span class="str">'friend'</span>, time: <span class="str">'10:01'</span> },
+    { id: <span class="num">2</span>, text: <span class="str">'Hi, how are you?'</span>, sender: <span class="str">'me'</span>, time: <span class="str">'10:02'</span> },
+  ]);
+  <span class="kw">const</span> [<span class="type">input</span>, <span class="fn">setInput</span>] = <span class="fn">useState</span>(<span class="str">''</span>);
+
+  <span class="kw">const</span> <span class="fn">sendMessage</span> = () =&gt; {
+    <span class="fn">setMessages</span>(<span class="type">prev</span> =&gt; [...<span class="type">prev</span>, {
+      id: Date.now(), text: <span class="type">input</span>, sender: <span class="str">'me'</span>, time: <span class="str">'now'</span>
+    }]);
+    <span class="fn">setInput</span>(<span class="str">''</span>);
+  };
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      <span class="cmt">{/* Only the NEW message renders — old ones are skipped */}</span>
+      {<span class="type">messages</span>.map(<span class="type">msg</span> =&gt; (
+        &lt;<span class="fn">MessageBubble</span> key={<span class="type">msg</span>.id} {...<span class="type">msg</span>} /&gt;
+      ))}
+      &lt;<span class="type">input</span> value={<span class="type">input</span>} onChange={<span class="type">e</span> =&gt; <span class="fn">setInput</span>(<span class="type">e</span>.target.value)} /&gt;
+      &lt;<span class="type">button</span> onClick={<span class="fn">sendMessage</span>}&gt;Send&lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="remember">
+          <strong>Result:</strong> In a chat with 500 messages, typing and sending a new message only renders 1 new bubble instead of re-rendering all 500. Huge performance win.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="error-boundary"><span>2. Error Boundaries</span></div>
+
+    <div class="card">
+      <div class="card-title">What is an Error Boundary?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          An <strong>Error Boundary</strong> is a React class component that catches JavaScript errors in its child component tree and displays a fallback UI.
+        </div>
+        <div class="remember">
+          <strong>Error Boundaries in Functional Components:</strong> Modern React apps are usually built with functional components, but functional components cannot act as Error Boundaries because React does not provide a Hook for catching rendering errors.
+        </div>
+        <p>To handle rendering errors in functional-component projects, you usually choose one of two approaches: a reusable class-based Error Boundary, or the <code>react-error-boundary</code> package.</p>
+        <h3>1. Class-based Error Boundary</h3>
+        <p>This is the most common approach. Create one reusable Error Boundary class and wrap any functional component tree with it.</p>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">App.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> <span class="type">ErrorBoundary</span> <span class="kw">from</span> <span class="str">'./ErrorBoundary'</span>;
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="fn">ErrorBoundary</span>&gt;
+      &lt;<span class="fn">Dashboard</span> /&gt;
+    &lt;/<span class="fn">ErrorBoundary</span>&gt;
+  );
+}</code></pre>
+        </div>
+        <h3>2. <code>react-error-boundary</code> Package</h3>
+        <p>Many modern projects use <code>react-error-boundary</code> because it gives functional components a simple API while still using a class-based boundary internally.</p>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">App.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> { <span class="fn">ErrorBoundary</span> } <span class="kw">from</span> <span class="str">'react-error-boundary'</span>;
+
+<span class="kw">function</span> <span class="fn">ErrorFallback</span>({ <span class="type">error</span>, <span class="type">resetErrorBoundary</span> }) {
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">p</span>&gt;Something went wrong: {<span class="type">error</span>.message}&lt;/<span class="type">p</span>&gt;
+      &lt;<span class="type">button</span> onClick={<span class="type">resetErrorBoundary</span>}&gt;Try again&lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="fn">ErrorBoundary</span> <span class="type">FallbackComponent</span>={<span class="fn">ErrorFallback</span>}&gt;
+      &lt;<span class="fn">Dashboard</span> /&gt;
+    &lt;/<span class="fn">ErrorBoundary</span>&gt;
+  );
+}</code></pre>
+        </div>
+        <div class="remember">
+          <strong>🛒 Real-world example — Product Cards:</strong> On a product listing page, if one <code>ProductCard</code> crashes (e.g., missing image URL causes a render error), the Error Boundary catches it and shows "Unable to load this product" for that card only — the rest of the page keeps working normally instead of the entire app going blank.
+        </div>
+        <p>Error boundaries do not catch errors inside event handlers, async code, or server-side rendering. They are meant to protect the UI from rendering crashes.</p>
+
+        <h3>Real-World Example — Product Grid with Fallback</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">ProductErrorBoundary.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> React <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">class</span> <span class="fn">ProductErrorBoundary</span> <span class="kw">extends</span> <span class="fn">React.Component</span> {
+  <span class="kw">constructor</span>(<span class="type">props</span>) {
+    <span class="kw">super</span>(<span class="type">props</span>);
+    <span class="kw">this</span>.state = { <span class="type">hasError</span>: <span class="num">false</span>, <span class="type">error</span>: <span class="num">null</span> };
+  }
+
+  <span class="kw">static</span> <span class="fn">getDerivedStateFromError</span>(<span class="type">error</span>) {
+    <span class="kw">return</span> { <span class="type">hasError</span>: <span class="num">true</span>, <span class="type">error</span> };
+  }
+
+  <span class="fn">componentDidCatch</span>(<span class="type">error</span>, <span class="type">info</span>) {
+    <span class="cmt">// Send to error tracking (Sentry, LogRocket, etc.)</span>
+    <span class="fn">logErrorToService</span>(<span class="type">error</span>, <span class="type">info</span>.componentStack);
+  }
+
+  <span class="fn">render</span>() {
+    <span class="kw">if</span> (<span class="kw">this</span>.state.hasError) {
+      <span class="kw">return</span> (
+        &lt;<span class="type">div</span> className=<span class="str">"error-card"</span>&gt;
+          &lt;<span class="type">p</span>&gt;⚠️ Unable to load this product&lt;/<span class="type">p</span>&gt;
+          &lt;<span class="type">button</span> onClick={() =&gt; <span class="kw">this</span>.setState({ hasError: <span class="num">false</span> })}&gt;
+            Retry
+          &lt;/<span class="type">button</span>&gt;
+        &lt;/<span class="type">div</span>&gt;
+      );
+    }
+    <span class="kw">return</span> <span class="kw">this</span>.props.children;
+  }
+}
+
+<span class="cmt">// Usage — wrap each product card individually</span>
+<span class="kw">function</span> <span class="fn">ProductGrid</span>({ <span class="type">products</span> }) {
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span> className=<span class="str">"grid"</span>&gt;
+      {<span class="type">products</span>.map(<span class="type">p</span> =&gt; (
+        <span class="cmt">{/* If one card crashes, only that card shows fallback */}</span>
+        &lt;<span class="fn">ProductErrorBoundary</span> key={<span class="type">p</span>.id}&gt;
+          &lt;<span class="fn">ProductCard</span> {...<span class="type">p</span>} /&gt;
+        &lt;/<span class="fn">ProductErrorBoundary</span>&gt;
+      ))}
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="warning">
+          <strong>Remember:</strong> Error boundaries must be class components. Wrap individual items (not the whole list) so one crash doesn't take down the entire page.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="hoc"><span>3. Higher-Order Component (HOC)</span></div>
+
+    <div class="card">
+      <div class="card-title">What is an HOC?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          A <strong>Higher-Order Component (HOC)</strong> is a function that takes a component and returns a new component with added behavior.
+        </div>
+        <div class="remember">
+          <strong>🔐 Real-world example:</strong> Reuse authentication, authorization, analytics, and permission logic across many pages. Instead of adding <code>if (!user) redirect('/login')</code> in every page component, wrap them with <code>withAuth(DashboardPage)</code> — one HOC handles auth check for all protected routes.
+        </div>
+        <p>HOCs are used to reuse component logic. They are a pattern, not a React API. Common examples include authentication wrappers, loading state wrappers, and analytics wrappers.</p>
+
+        <h3>Real-World Example — Auth Protection HOC</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">withAuth.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> { <span class="fn">Navigate</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+<span class="kw">import</span> { <span class="fn">useAuth</span> } <span class="kw">from</span> <span class="str">'./hooks/useAuth'</span>;
+
+<span class="cmt">// HOC that protects any page — reuse across entire app</span>
+<span class="kw">function</span> <span class="fn">withAuth</span>(<span class="type">WrappedComponent</span>, <span class="type">requiredRole</span>) {
+  <span class="kw">return</span> <span class="kw">function</span> <span class="fn">ProtectedComponent</span>(<span class="type">props</span>) {
+    <span class="kw">const</span> { <span class="type">user</span>, <span class="type">isLoading</span> } = <span class="fn">useAuth</span>();
+
+    <span class="kw">if</span> (<span class="type">isLoading</span>) <span class="kw">return</span> &lt;<span class="type">p</span>&gt;Loading...&lt;/<span class="type">p</span>&gt;;
+    <span class="kw">if</span> (!<span class="type">user</span>) <span class="kw">return</span> &lt;<span class="fn">Navigate</span> to=<span class="str">"/login"</span> /&gt;;
+    <span class="kw">if</span> (<span class="type">requiredRole</span> &amp;&amp; <span class="type">user</span>.role !== <span class="type">requiredRole</span>) {
+      <span class="kw">return</span> &lt;<span class="fn">Navigate</span> to=<span class="str">"/unauthorized"</span> /&gt;;
+    }
+
+    <span class="kw">return</span> &lt;<span class="type">WrappedComponent</span> {...<span class="type">props</span>} <span class="type">user</span>={<span class="type">user</span>} /&gt;;
+  };
+}
+
+<span class="cmt">// Usage — wrap any page in one line</span>
+<span class="kw">const</span> <span class="fn">Dashboard</span> = <span class="fn">withAuth</span>(<span class="fn">DashboardPage</span>);           <span class="cmt">// any logged-in user</span>
+<span class="kw">const</span> <span class="fn">AdminPanel</span> = <span class="fn">withAuth</span>(<span class="fn">AdminPage</span>, <span class="str">'admin'</span>);  <span class="cmt">// admin only</span>
+<span class="kw">const</span> <span class="fn">Settings</span>   = <span class="fn">withAuth</span>(<span class="fn">SettingsPage</span>);          <span class="cmt">// any logged-in user</span></code></pre>
+        </div>
+
+        <div class="remember">
+          <strong>Tip:</strong> In modern React, many HOC use cases can also be solved with custom hooks, but HOCs are still common in older codebases and useful for route-level protection.
+        </div>
+
+        <h3>Real-World Example — Loading State HOC</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">1) UserList.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> React <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">function</span> <span class="fn">UserList</span>({ <span class="type">users</span> }) {
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      {<span class="type">users</span>.map((<span class="type">user</span>) =&gt; (
+        &lt;<span class="type">p</span> key={<span class="type">user</span>.id}&gt;{<span class="type">user</span>.id} - {<span class="type">user</span>.name}&lt;/<span class="type">p</span>&gt;
+      ))}
+    &lt;/<span class="type">div</span>&gt;
+  );
+}
+
+<span class="kw">export default</span> <span class="fn">UserList</span>;</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">2) withLoading.js</span>
+          </div>
+          <pre><code><span class="kw">import</span> React <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">function</span> <span class="fn">withLoading</span>(<span class="type">Component</span>) {
+  <span class="kw">return</span> <span class="kw">function</span> <span class="fn">WrappedComponent</span>({ <span class="type">isLoading</span>, ...<span class="type">props</span> }) {
+    <span class="kw">if</span> (<span class="type">isLoading</span>) {
+      <span class="kw">return</span> &lt;<span class="type">h2</span>&gt;Loading...&lt;/<span class="type">h2</span>&gt;;
+    }
+    <span class="kw">return</span> &lt;<span class="type">Component</span> {...<span class="type">props</span>} /&gt;;
+  };
+}
+
+<span class="kw">export default</span> <span class="fn">withLoading</span>;</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">3) UserListWithLoading.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> React <span class="kw">from</span> <span class="str">"react"</span>;
+<span class="kw">import</span> <span class="fn">UserList</span> <span class="kw">from</span> <span class="str">"./UserList"</span>;
+<span class="kw">import</span> <span class="fn">withLoading</span> <span class="kw">from</span> <span class="str">"./withLoading"</span>;
+
+<span class="kw">const</span> <span class="fn">UserListWithLoading</span> = <span class="fn">withLoading</span>(<span class="fn">UserList</span>);
+
+<span class="kw">export default</span> <span class="fn">UserListWithLoading</span>;</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">4) App.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> React, { <span class="fn">useState</span>, <span class="fn">useEffect</span> } <span class="kw">from</span> <span class="str">"react"</span>;
+<span class="kw">import</span> <span class="fn">UserListWithLoading</span> <span class="kw">from</span> <span class="str">"./UserListWithLoading"</span>;
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">const</span> [<span class="type">users</span>, <span class="fn">setUsers</span>] = <span class="fn">useState</span>([]);
+  <span class="kw">const</span> [<span class="type">isLoading</span>, <span class="fn">setIsLoading</span>] = <span class="fn">useState</span>(<span class="num">true</span>);
+
+  <span class="fn">useEffect</span>(() =&gt; {
+    <span class="fn">setTimeout</span>(() =&gt; {
+      <span class="fn">setUsers</span>([
+        { id: <span class="num">1</span>, name: <span class="str">"John"</span> },
+        { id: <span class="num">2</span>, name: <span class="str">"Emma"</span> },
+        { id: <span class="num">3</span>, name: <span class="str">"Alex"</span> }
+      ]);
+      <span class="fn">setIsLoading</span>(<span class="num">false</span>);
+    }, <span class="num">2000</span>);
+  }, []);
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="fn">UserListWithLoading</span> <span class="type">isLoading</span>={<span class="type">isLoading</span>} <span class="type">users</span>={<span class="type">users</span>} /&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}
+
+<span class="kw">export default</span> <span class="fn">App</span>;</code></pre>
+        </div>
+
+        <div class="remember">
+          <strong>Simple Explanation:</strong>
+          <ul>
+            <li><code>UserList</code> → UI component that shows users</li>
+            <li><code>withLoading</code> → HOC that adds loading behavior</li>
+            <li><code>UserListWithLoading</code> → enhanced component</li>
+            <li><code>App</code> → passes data and loading state</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="custom-hooks"><span>4. Custom Hooks</span></div>
+
+    <div class="card">
+      <div class="card-title">Custom Hooks — Brief Explanation</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>Custom Hooks</strong> are functions that start with <code>use</code> and bundle reusable stateful logic. They can call other hooks and return values directly, so multiple components can reuse the same logic without HOCs or wrapper components.
+        </div>
+        <div class="remember">
+          <strong>🔄 Real-world example:</strong> Reuse common logic such as API calls (<code>useFetch</code>), authentication (<code>useAuth</code>), online status (<code>useOnlineStatus</code>), local storage (<code>useLocalStorage</code>), and theme handling (<code>useTheme</code>) — write once, use in any component without duplicating code.
+        </div>
+        <p>Common examples are <code>useFetch</code>, <code>useLocalStorage</code>, <code>useDebounce</code>, and <code>useAuth</code>. Each component gets its own isolated hook state.</p>
+
+        <h3>Real-World Example — useFetch (API calls)</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">hooks/useFetch.js</span>
+          </div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useState</span>, <span class="fn">useEffect</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="cmt">// Reusable hook for any API call across the app</span>
+<span class="kw">function</span> <span class="fn">useFetch</span>(<span class="type">url</span>) {
+  <span class="kw">const</span> [<span class="type">data</span>, <span class="fn">setData</span>] = <span class="fn">useState</span>(<span class="num">null</span>);
+  <span class="kw">const</span> [<span class="type">loading</span>, <span class="fn">setLoading</span>] = <span class="fn">useState</span>(<span class="num">true</span>);
+  <span class="kw">const</span> [<span class="type">error</span>, <span class="fn">setError</span>] = <span class="fn">useState</span>(<span class="num">null</span>);
+
+  <span class="fn">useEffect</span>(() =&gt; {
+    <span class="kw">const</span> <span class="type">controller</span> = <span class="kw">new</span> <span class="fn">AbortController</span>();
+    <span class="fn">setLoading</span>(<span class="num">true</span>);
+
+    <span class="fn">fetch</span>(<span class="type">url</span>, { signal: <span class="type">controller</span>.signal })
+      .then(<span class="type">res</span> =&gt; <span class="type">res</span>.json())
+      .then(<span class="type">json</span> =&gt; { <span class="fn">setData</span>(<span class="type">json</span>); <span class="fn">setLoading</span>(<span class="num">false</span>); })
+      .catch(<span class="type">err</span> =&gt; {
+        <span class="kw">if</span> (<span class="type">err</span>.name !== <span class="str">'AbortError'</span>) <span class="fn">setError</span>(<span class="type">err</span>);
+        <span class="fn">setLoading</span>(<span class="num">false</span>);
+      });
+
+    <span class="kw">return</span> () =&gt; <span class="type">controller</span>.abort(); <span class="cmt">// cleanup on unmount</span>
+  }, [<span class="type">url</span>]);
+
+  <span class="kw">return</span> { <span class="type">data</span>, <span class="type">loading</span>, <span class="type">error</span> };
+}
+
+<span class="cmt">// Usage in any component — Products, Users, Orders, etc.</span>
+<span class="kw">function</span> <span class="fn">ProductList</span>() {
+  <span class="kw">const</span> { <span class="type">data</span>, <span class="type">loading</span>, <span class="type">error</span> } = <span class="fn">useFetch</span>(<span class="str">'/api/products'</span>);
+  <span class="kw">if</span> (<span class="type">loading</span>) <span class="kw">return</span> &lt;<span class="type">p</span>&gt;Loading...&lt;/<span class="type">p</span>&gt;;
+  <span class="kw">if</span> (<span class="type">error</span>) <span class="kw">return</span> &lt;<span class="type">p</span>&gt;Error: {<span class="type">error</span>.message}&lt;/<span class="type">p</span>&gt;;
+  <span class="kw">return</span> <span class="type">data</span>.map(<span class="type">p</span> =&gt; &lt;<span class="fn">ProductCard</span> key={<span class="type">p</span>.id} {...<span class="type">p</span>} /&gt;);
+}
+
+<span class="kw">function</span> <span class="fn">UserProfile</span>({ <span class="type">userId</span> }) {
+  <span class="kw">const</span> { <span class="type">data</span>: <span class="type">user</span> } = <span class="fn">useFetch</span>(<span class="str">`/api/users/${userId}`</span>);
+  <span class="kw">return</span> <span class="type">user</span> &amp;&amp; &lt;<span class="type">h1</span>&gt;{<span class="type">user</span>.name}&lt;/<span class="type">h1</span>&gt;;
+}</code></pre>
+        </div>
+
+        <h3>More Real-World Custom Hooks</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">hooks/useLocalStorage.js + useOnlineStatus.js</span>
+          </div>
+          <pre><code><span class="cmt">// 1. useLocalStorage — persist theme, preferences, tokens</span>
+<span class="kw">function</span> <span class="fn">useLocalStorage</span>(<span class="type">key</span>, <span class="type">initialValue</span>) {
+  <span class="kw">const</span> [<span class="type">value</span>, <span class="fn">setValue</span>] = <span class="fn">useState</span>(() =&gt; {
+    <span class="kw">const</span> <span class="type">stored</span> = localStorage.getItem(<span class="type">key</span>);
+    <span class="kw">return</span> <span class="type">stored</span> ? JSON.parse(<span class="type">stored</span>) : <span class="type">initialValue</span>;
+  });
+
+  <span class="fn">useEffect</span>(() =&gt; {
+    localStorage.setItem(<span class="type">key</span>, JSON.stringify(<span class="type">value</span>));
+  }, [<span class="type">key</span>, <span class="type">value</span>]);
+
+  <span class="kw">return</span> [<span class="type">value</span>, <span class="fn">setValue</span>];
+}
+
+<span class="cmt">// Usage: const [theme, setTheme] = useLocalStorage('theme', 'dark');</span>
+
+<span class="cmt">// 2. useOnlineStatus — show offline banner</span>
+<span class="kw">function</span> <span class="fn">useOnlineStatus</span>() {
+  <span class="kw">const</span> [<span class="type">isOnline</span>, <span class="fn">setIsOnline</span>] = <span class="fn">useState</span>(navigator.onLine);
+
+  <span class="fn">useEffect</span>(() =&gt; {
+    <span class="kw">const</span> <span class="fn">goOnline</span> = () =&gt; <span class="fn">setIsOnline</span>(<span class="num">true</span>);
+    <span class="kw">const</span> <span class="fn">goOffline</span> = () =&gt; <span class="fn">setIsOnline</span>(<span class="num">false</span>);
+    window.addEventListener(<span class="str">'online'</span>, <span class="fn">goOnline</span>);
+    window.addEventListener(<span class="str">'offline'</span>, <span class="fn">goOffline</span>);
+    <span class="kw">return</span> () =&gt; {
+      window.removeEventListener(<span class="str">'online'</span>, <span class="fn">goOnline</span>);
+      window.removeEventListener(<span class="str">'offline'</span>, <span class="fn">goOffline</span>);
+    };
+  }, []);
+
+  <span class="kw">return</span> <span class="type">isOnline</span>;
+}
+
+<span class="cmt">// Usage: const isOnline = useOnlineStatus();</span>
+<span class="cmt">//        {!isOnline && &lt;Banner&gt;You are offline&lt;/Banner&gt;}</span></code></pre>
+        </div>
+
+        <div class="remember">
+          <strong>Remember:</strong> Custom Hooks share logic, not state. Two components using the same hook get independent state copies. Write the hook once → use in Products, Users, Orders, Settings — anywhere.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="qa"><span>Interview Q&A</span></div>
+
+    <div class="card">
+      <div class="card-title">Interview Q&A — Optimization & Patterns</div>
+      <div class="card-content card-content-QA">
+        <div class="q-block">Q: What is React.memo and when should you use it?</div>
+        <div class="a-block"><strong>A:</strong> React.memo is a performance optimization that memoizes a functional component. It skips re-rendering when props are shallowly equal. Use it for expensive components or components that often receive the same props.</div>
+
+        <div class="q-block">Q: What is an Error Boundary in React?</div>
+        <div class="a-block"><strong>A:</strong> An Error Boundary is a class component that catches rendering errors in its child tree and shows a fallback UI instead of crashing the app. It does not catch errors in event handlers, async code, or server-side rendering.</div>
+
+        <div class="q-block">Q: What is a Higher-Order Component (HOC)?</div>
+        <div class="a-block"><strong>A:</strong> A Higher-Order Component is a function that takes a component and returns a new enhanced component. It is used to reuse logic such as authentication, loading states, or permissions.</div>
+
+        <div class="q-block">Q: What is the difference between React.memo and HOC?</div>
+        <div class="a-block"><strong>A:</strong> React.memo is specifically for memoizing functional components to avoid unnecessary re-renders. HOC is a broader pattern for enhancing a component by wrapping it with extra behavior.</div>
+
+        <div class="q-block">Q: What is the difference between a Higher-Order Component (HOC) and a Custom Hook?</div>
+        <div class="a-block"><strong>A:</strong> A HOC wraps a component and returns an enhanced component, so it is useful when you want to add behavior at the component level such as loading states, auth, or analytics. A Custom Hook extracts reusable logic into a function that starts with <code>use</code>, so it is better for sharing stateful logic like fetching data, local storage, theme handling, or online status without adding wrapper components.</div>
+
+        <div class="q-block">Q: What are Custom Hooks?</div>
+        <div class="a-block"><strong>A:</strong> Custom Hooks are reusable functions that start with <code>use</code> and contain shared hook logic like fetching data, storing values, or debouncing input. They make components cleaner and easier to reuse.</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

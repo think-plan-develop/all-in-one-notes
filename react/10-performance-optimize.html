@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>React Performance Optimization - Complete Guide</title>
+  <link rel="stylesheet" href="common.css" />
+</head>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header">
+      <h1>⚡ React Performance Optimization</h1>
+      <p>React.memo, useMemo, useCallback, Lazy Loading, Suspense, Code Splitting & Image Optimization</p>
+      <div class="toc">
+        <a href="#overview" class="pill-indigo" onclick="document.getElementById('overview').scrollIntoView({behavior:'smooth'});return false;">Overview</a>
+        <a href="#react-memo" class="pill-teal" onclick="document.getElementById('react-memo').scrollIntoView({behavior:'smooth'});return false;">React.memo</a>
+        <a href="#usememo" class="pill-indigo" onclick="document.getElementById('usememo').scrollIntoView({behavior:'smooth'});return false;">useMemo</a>
+        <a href="#usecallback" class="pill-red" onclick="document.getElementById('usecallback').scrollIntoView({behavior:'smooth'});return false;">useCallback</a>
+        <a href="#lazy-loading" class="pill-teal" onclick="document.getElementById('lazy-loading').scrollIntoView({behavior:'smooth'});return false;">Lazy Loading</a>
+        <a href="#suspense" class="pill-indigo" onclick="document.getElementById('suspense').scrollIntoView({behavior:'smooth'});return false;">Suspense</a>
+        <a href="#code-splitting" class="pill-red" onclick="document.getElementById('code-splitting').scrollIntoView({behavior:'smooth'});return false;">Code Splitting</a>
+        <a href="#image-optimization" class="pill-teal" onclick="document.getElementById('image-optimization').scrollIntoView({behavior:'smooth'});return false;">Image Optimization</a>
+        <a href="#interview" class="pill-indigo" onclick="document.getElementById('interview').scrollIntoView({behavior:'smooth'});return false;">Interview Q&A</a>
+      </div>
+    </div>
+
+    <!-- ==================== OVERVIEW ==================== -->
+    <div class="section-divider" id="overview"><span>Performance Overview</span></div>
+
+    <div class="card">
+      <div class="card-title">Why Performance Optimization Matters</div>
+      <div class="card-content">
+        <div class="short-answer">
+          React re-renders components whenever state or props change. In large apps, <strong>unnecessary re-renders</strong> cause lag, stuttering, and poor UX. Performance optimization prevents wasted renders, reduces bundle size, and ensures smooth 60fps interactions.
+        </div>
+
+        <h3>Common Performance Problems</h3>
+        <table>
+          <tr><th>Problem</th><th>Cause</th><th>Solution</th></tr>
+          <tr><td>Child re-renders on every parent render</td><td>New object/function refs each render</td><td>React.memo + useCallback</td></tr>
+          <tr><td>Expensive computation runs every render</td><td>Heavy calculation in render body</td><td>useMemo</td></tr>
+          <tr><td>Large initial bundle (slow page load)</td><td>All code loaded upfront</td><td>Code Splitting + Lazy Loading</td></tr>
+          <tr><td>Blank screen while loading</td><td>No fallback UI</td><td>Suspense</td></tr>
+          <tr><td>Slow image loading / layout shift</td><td>Unoptimized images</td><td>Image optimization techniques</td></tr>
+        </table>
+
+        <div class="diagram">React Render Cycle:
+                                                          
+  State/Props Change                                      
+        │                                                 
+        ▼                                                 
+  ┌─────────────┐    Props same?     ┌─────────────────┐  
+  │ Parent      │───── YES ─────────▶│ React.memo SKIP │  
+  │ Re-renders  │                    └─────────────────┘  
+  │             │───── NO ──────┐                         
+  └─────────────┘               ▼                         
+                         ┌─────────────┐                  
+                         │ Child       │                  
+                         │ Re-renders  │                  
+                         └─────────────┘                  
+                                                          
+  useMemo  → Cache computed VALUES                        
+  useCallback → Cache FUNCTIONS                           
+  React.memo → Cache entire COMPONENT                     </div>
+
+        <div class="note">
+          <strong>📝 Rule of Thumb:</strong> Don't optimize prematurely. First build it correctly, then measure with React DevTools Profiler, then optimize the actual bottlenecks. Premature optimization adds complexity without real benefit.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== REACT.MEMO ==================== -->
+    <div class="section-divider" id="react-memo"><span>React.memo</span></div>
+
+    <div class="card">
+      <div class="card-title">React.memo — Prevent Unnecessary Re-renders</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>React.memo()</strong> is a Higher Order Component (HOC) that wraps a component and <strong>skips re-rendering</strong> if its props haven't changed. It does a <strong>shallow comparison</strong> of previous and next props.
+        </div>
+
+        <div class="hook-syntax">const MemoizedComponent = React.memo(MyComponent);</div>
+
+        <h3>Basic Usage</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">ExpensiveList.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> { <span class="fn">memo</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="cmt">// ❌ Without memo — re-renders EVERY time parent renders</span>
+<span class="kw">function</span> <span class="fn">ProductCard</span>({ <span class="type">name</span>, <span class="type">price</span>, <span class="type">image</span> }) {
+  console.<span class="fn">log</span>(<span class="str">'ProductCard rendered:'</span>, <span class="type">name</span>);
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span> className=<span class="str">"card"</span>&gt;
+      &lt;<span class="type">img</span> <span class="type">src</span>={<span class="type">image</span>} <span class="type">alt</span>={<span class="type">name</span>} /&gt;
+      &lt;<span class="type">h3</span>&gt;{<span class="type">name</span>}&lt;/<span class="type">h3</span>&gt;
+      &lt;<span class="type">p</span>&gt;₹{<span class="type">price</span>}&lt;/<span class="type">p</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}
+
+<span class="cmt">// ✅ With memo — only re-renders if name, price, or image changes</span>
+<span class="kw">const</span> <span class="fn">MemoizedProductCard</span> = <span class="fn">memo</span>(<span class="fn">ProductCard</span>);
+
+<span class="cmt">// Parent component</span>
+<span class="kw">function</span> <span class="fn">ProductList</span>() {
+  <span class="kw">const</span> [<span class="type">searchTerm</span>, <span class="fn">setSearchTerm</span>] = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> <span class="type">products</span> = <span class="fn">useProducts</span>();
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">input</span> <span class="type">value</span>={<span class="type">searchTerm</span>} <span class="fn">onChange</span>={<span class="type">e</span> =&gt; <span class="fn">setSearchTerm</span>(<span class="type">e</span>.target.value)} /&gt;
+      {<span class="cmt">/* Each card WON'T re-render when searchTerm changes */</span>}
+      {<span class="type">products</span>.<span class="fn">map</span>(<span class="type">p</span> =&gt; (
+        &lt;<span class="fn">MemoizedProductCard</span> <span class="type">key</span>={<span class="type">p</span>.id} <span class="type">name</span>={<span class="type">p</span>.name} <span class="type">price</span>={<span class="type">p</span>.price} <span class="type">image</span>={<span class="type">p</span>.img} /&gt;
+      ))}
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>Custom Comparison Function</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">CustomComparison.jsx</span>
+          </div>
+          <pre><code><span class="cmt">// Custom areEqual function for deep/partial comparison</span>
+<span class="kw">const</span> <span class="fn">UserCard</span> = <span class="fn">memo</span>(
+  <span class="kw">function</span> <span class="fn">UserCard</span>({ <span class="type">user</span>, <span class="type">onSelect</span> }) {
+    <span class="kw">return</span> &lt;<span class="type">div</span> <span class="fn">onClick</span>={() =&gt; <span class="fn">onSelect</span>(<span class="type">user</span>.id)}&gt;{<span class="type">user</span>.name}&lt;/<span class="type">div</span>&gt;;
+  },
+  <span class="cmt">// Second argument: custom comparison</span>
+  (<span class="type">prevProps</span>, <span class="type">nextProps</span>) =&gt; {
+    <span class="cmt">// Return TRUE = DON'T re-render (props are "equal")</span>
+    <span class="cmt">// Return FALSE = DO re-render (props changed)</span>
+    <span class="kw">return</span> <span class="type">prevProps</span>.user.id === <span class="type">nextProps</span>.user.id
+        && <span class="type">prevProps</span>.user.name === <span class="type">nextProps</span>.user.name;
+  }
+);</code></pre>
+        </div>
+
+        <h3>When React.memo Breaks (Common Pitfall)</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">MemoBreaks.jsx</span>
+          </div>
+          <pre><code><span class="kw">function</span> <span class="fn">Parent</span>() {
+  <span class="kw">const</span> [<span class="type">count</span>, <span class="fn">setCount</span>] = <span class="fn">useState</span>(<span class="num">0</span>);
+
+  <span class="cmt">// ❌ New object reference every render → memo useless!</span>
+  <span class="kw">const</span> <span class="type">style</span> = { <span class="type">color</span>: <span class="str">'red'</span> };
+  
+  <span class="cmt">// ❌ New function reference every render → memo useless!</span>
+  <span class="kw">const</span> <span class="fn">handleClick</span> = () =&gt; console.<span class="fn">log</span>(<span class="str">'clicked'</span>);
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">button</span> <span class="fn">onClick</span>={() =&gt; <span class="fn">setCount</span>(<span class="type">count</span> + <span class="num">1</span>)}&gt;Count: {<span class="type">count</span>}&lt;/<span class="type">button</span>&gt;
+      {<span class="cmt">/* ❌ MemoChild re-renders because style/onClick are NEW refs */</span>}
+      &lt;<span class="fn">MemoChild</span> <span class="type">style</span>={<span class="type">style</span>} <span class="type">onClick</span>={<span class="fn">handleClick</span>} /&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}
+
+<span class="cmt">// ✅ FIX: Use useMemo for objects, useCallback for functions</span>
+<span class="kw">function</span> <span class="fn">ParentFixed</span>() {
+  <span class="kw">const</span> [<span class="type">count</span>, <span class="fn">setCount</span>] = <span class="fn">useState</span>(<span class="num">0</span>);
+  <span class="kw">const</span> <span class="type">style</span> = <span class="fn">useMemo</span>(() =&gt; ({ <span class="type">color</span>: <span class="str">'red'</span> }), []);
+  <span class="kw">const</span> <span class="fn">handleClick</span> = <span class="fn">useCallback</span>(() =&gt; console.<span class="fn">log</span>(<span class="str">'clicked'</span>), []);
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">button</span> <span class="fn">onClick</span>={() =&gt; <span class="fn">setCount</span>(<span class="type">count</span> + <span class="num">1</span>)}&gt;Count: {<span class="type">count</span>}&lt;/<span class="type">button</span>&gt;
+      {<span class="cmt">/* ✅ MemoChild skips re-render — same refs */</span>}
+      &lt;<span class="fn">MemoChild</span> <span class="type">style</span>={<span class="type">style</span>} <span class="type">onClick</span>={<span class="fn">handleClick</span>} /&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="warning">
+          <strong>⚠️ React.memo is useless if you pass:</strong><br>
+          • Inline objects: <code>style={{ color: 'red' }}</code> — new ref each render<br>
+          • Inline functions: <code>onClick={() => doSomething()}</code> — new ref each render<br>
+          • Spread props: <code>{...props}</code> — new object<br>
+          <strong>Fix:</strong> Combine memo with <code>useMemo</code> (objects) and <code>useCallback</code> (functions).
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== useMemo ==================== -->
+    <div class="section-divider" id="usememo"><span>useMemo</span></div>
+
+    <div class="card">
+      <div class="card-title">useMemo — Cache Expensive Computations</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>useMemo()</strong> caches the <strong>result of a computation</strong> and only recalculates when its dependencies change. Use it for expensive calculations (filtering, sorting large arrays, complex math) that don't need to run every render.
+        </div>
+
+        <div class="hook-syntax">const cachedValue = useMemo(() => computeExpensiveValue(a, b), [a, b]);</div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">FilteredProducts.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useMemo</span>, <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">function</span> <span class="fn">ProductList</span>({ <span class="type">products</span> }) {
+  <span class="kw">const</span> [<span class="type">search</span>, <span class="fn">setSearch</span>] = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [<span class="type">sortBy</span>, <span class="fn">setSortBy</span>] = <span class="fn">useState</span>(<span class="str">'name'</span>);
+  <span class="kw">const</span> [<span class="type">theme</span>, <span class="fn">setTheme</span>] = <span class="fn">useState</span>(<span class="str">'light'</span>); <span class="cmt">// unrelated state</span>
+
+  <span class="cmt">// ❌ Without useMemo — runs EVERY render (even theme change!)</span>
+  <span class="cmt">// const filtered = products.filter(...).sort(...);</span>
+
+  <span class="cmt">// ✅ With useMemo — only recalculates when search/sortBy/products change</span>
+  <span class="kw">const</span> <span class="type">filteredProducts</span> = <span class="fn">useMemo</span>(() =&gt; {
+    console.<span class="fn">log</span>(<span class="str">'Filtering 10,000 products...'</span>); <span class="cmt">// only runs when deps change</span>
+    <span class="kw">return</span> <span class="type">products</span>
+      .<span class="fn">filter</span>(<span class="type">p</span> =&gt; <span class="type">p</span>.name.<span class="fn">toLowerCase</span>().<span class="fn">includes</span>(<span class="type">search</span>.<span class="fn">toLowerCase</span>()))
+      .<span class="fn">sort</span>((<span class="type">a</span>, <span class="type">b</span>) =&gt; {
+        <span class="kw">if</span> (<span class="type">sortBy</span> === <span class="str">'name'</span>) <span class="kw">return</span> <span class="type">a</span>.name.<span class="fn">localeCompare</span>(<span class="type">b</span>.name);
+        <span class="kw">if</span> (<span class="type">sortBy</span> === <span class="str">'price'</span>) <span class="kw">return</span> <span class="type">a</span>.price - <span class="type">b</span>.price;
+        <span class="kw">return</span> <span class="num">0</span>;
+      });
+  }, [<span class="type">products</span>, <span class="type">search</span>, <span class="type">sortBy</span>]); <span class="cmt">// Dependencies</span>
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">input</span> <span class="type">value</span>={<span class="type">search</span>} <span class="fn">onChange</span>={<span class="type">e</span> =&gt; <span class="fn">setSearch</span>(<span class="type">e</span>.target.value)} /&gt;
+      &lt;<span class="type">button</span> <span class="fn">onClick</span>={() =&gt; <span class="fn">setTheme</span>(<span class="type">theme</span> === <span class="str">'light'</span> ? <span class="str">'dark'</span> : <span class="str">'light'</span>)}&gt;Toggle&lt;/<span class="type">button</span>&gt;
+      {<span class="type">filteredProducts</span>.<span class="fn">map</span>(<span class="type">p</span> =&gt; &lt;<span class="fn">ProductCard</span> <span class="type">key</span>={<span class="type">p</span>.id} {...<span class="type">p</span>} /&gt;)}
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>When to Use useMemo</h3>
+        <table>
+          <tr><th>✅ Use When</th><th>❌ Don't Use When</th></tr>
+          <tr><td>Filtering/sorting large arrays (1000+ items)</td><td>Simple calculations (a + b)</td></tr>
+          <tr><td>Complex mathematical computations</td><td>Creating simple strings or numbers</td></tr>
+          <tr><td>Creating derived state from expensive transforms</td><td>The component rarely re-renders anyway</td></tr>
+          <tr><td>Stabilizing object/array refs for React.memo children</td><td>All dependencies change every render</td></tr>
+          <tr><td>Expensive regex or data parsing</td><td>Premature optimization (no measured problem)</td></tr>
+        </table>
+
+        <div class="remember">
+          <strong>💡 Remember:</strong> useMemo caches <strong>values</strong>, useCallback caches <strong>functions</strong>. They both use the same dependency array pattern. <code>useCallback(fn, deps)</code> is identical to <code>useMemo(() => fn, deps)</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== useCallback ==================== -->
+    <div class="section-divider" id="usecallback"><span>useCallback</span></div>
+
+    <div class="card">
+      <div class="card-title">useCallback — Cache Function References</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>useCallback()</strong> returns a <strong>memoized version of a function</strong> that only changes when its dependencies change. Its primary purpose is to prevent child components (wrapped in React.memo) from re-rendering due to new function references.
+        </div>
+
+        <div class="hook-syntax">const memoizedFn = useCallback(() => { doSomething(a, b); }, [a, b]);</div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">TodoApp.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useState</span>, <span class="fn">useCallback</span>, <span class="fn">memo</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="cmt">// Memoized child — skips re-render if props unchanged</span>
+<span class="kw">const</span> <span class="fn">TodoItem</span> = <span class="fn">memo</span>(<span class="kw">function</span> <span class="fn">TodoItem</span>({ <span class="type">todo</span>, <span class="type">onToggle</span>, <span class="type">onDelete</span> }) {
+  console.<span class="fn">log</span>(<span class="str">'Rendering:'</span>, <span class="type">todo</span>.text);
+  <span class="kw">return</span> (
+    &lt;<span class="type">li</span>&gt;
+      &lt;<span class="type">input</span> <span class="type">type</span>=<span class="str">"checkbox"</span> <span class="type">checked</span>={<span class="type">todo</span>.done} <span class="fn">onChange</span>={() =&gt; <span class="fn">onToggle</span>(<span class="type">todo</span>.id)} /&gt;
+      &lt;<span class="type">span</span>&gt;{<span class="type">todo</span>.text}&lt;/<span class="type">span</span>&gt;
+      &lt;<span class="type">button</span> <span class="fn">onClick</span>={() =&gt; <span class="fn">onDelete</span>(<span class="type">todo</span>.id)}&gt;🗑️&lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">li</span>&gt;
+  );
+});
+
+<span class="kw">function</span> <span class="fn">TodoApp</span>() {
+  <span class="kw">const</span> [<span class="type">todos</span>, <span class="fn">setTodos</span>] = <span class="fn">useState</span>([]);
+  <span class="kw">const</span> [<span class="type">input</span>, <span class="fn">setInput</span>] = <span class="fn">useState</span>(<span class="str">''</span>);
+
+  <span class="cmt">// ✅ Stable function reference — TodoItem won't re-render unnecessarily</span>
+  <span class="kw">const</span> <span class="fn">handleToggle</span> = <span class="fn">useCallback</span>((<span class="type">id</span>) =&gt; {
+    <span class="fn">setTodos</span>(<span class="type">prev</span> =&gt; <span class="type">prev</span>.<span class="fn">map</span>(<span class="type">t</span> =&gt;
+      <span class="type">t</span>.id === <span class="type">id</span> ? { ...<span class="type">t</span>, <span class="type">done</span>: !<span class="type">t</span>.done } : <span class="type">t</span>
+    ));
+  }, []); <span class="cmt">// No deps — uses functional updater</span>
+
+  <span class="kw">const</span> <span class="fn">handleDelete</span> = <span class="fn">useCallback</span>((<span class="type">id</span>) =&gt; {
+    <span class="fn">setTodos</span>(<span class="type">prev</span> =&gt; <span class="type">prev</span>.<span class="fn">filter</span>(<span class="type">t</span> =&gt; <span class="type">t</span>.id !== <span class="type">id</span>));
+  }, []);
+
+  <span class="kw">const</span> <span class="fn">handleAdd</span> = <span class="fn">useCallback</span>(() =&gt; {
+    <span class="kw">if</span> (!<span class="type">input</span>.<span class="fn">trim</span>()) <span class="kw">return</span>;
+    <span class="fn">setTodos</span>(<span class="type">prev</span> =&gt; [...<span class="type">prev</span>, { <span class="type">id</span>: Date.<span class="fn">now</span>(), <span class="type">text</span>: <span class="type">input</span>, <span class="type">done</span>: <span class="num">false</span> }]);
+    <span class="fn">setInput</span>(<span class="str">''</span>);
+  }, [<span class="type">input</span>]); <span class="cmt">// depends on input value</span>
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">input</span> <span class="type">value</span>={<span class="type">input</span>} <span class="fn">onChange</span>={<span class="type">e</span> =&gt; <span class="fn">setInput</span>(<span class="type">e</span>.target.value)} /&gt;
+      &lt;<span class="type">button</span> <span class="fn">onClick</span>={<span class="fn">handleAdd</span>}&gt;Add&lt;/<span class="type">button</span>&gt;
+      &lt;<span class="type">ul</span>&gt;
+        {<span class="type">todos</span>.<span class="fn">map</span>(<span class="type">todo</span> =&gt; (
+          &lt;<span class="fn">TodoItem</span>
+            <span class="type">key</span>={<span class="type">todo</span>.id}
+            <span class="type">todo</span>={<span class="type">todo</span>}
+            <span class="type">onToggle</span>={<span class="fn">handleToggle</span>}
+            <span class="type">onDelete</span>={<span class="fn">handleDelete</span>}
+          /&gt;
+        ))}
+      &lt;/<span class="type">ul</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>useMemo vs useCallback</h3>
+        <table>
+          <tr><th>Feature</th><th>useMemo</th><th>useCallback</th></tr>
+          <tr><td><strong>Caches</strong></td><td>A computed value</td><td>A function reference</td></tr>
+          <tr><td><strong>Returns</strong></td><td>The result of the function</td><td>The function itself</td></tr>
+          <tr><td><strong>Purpose</strong></td><td>Skip expensive calculations</td><td>Stabilize function refs for memo'd children</td></tr>
+          <tr><td><strong>Equivalent</strong></td><td>—</td><td><code>useMemo(() => fn, deps)</code></td></tr>
+          <tr><td><strong>Example use</strong></td><td>Sorting 10K items</td><td>onClick handler passed to memo'd child</td></tr>
+        </table>
+
+        <div class="tip">
+          <strong>💡 Tip:</strong> <code>useCallback</code> is only useful when the function is passed to a child wrapped in <code>React.memo</code> or used as a dependency in another hook. If you're not doing either, useCallback adds complexity for zero benefit.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== LAZY LOADING ==================== -->
+    <div class="section-divider" id="lazy-loading"><span>Lazy Loading</span></div>
+
+    <div class="card">
+      <div class="card-title">React.lazy() — Load Components On Demand</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>React.lazy()</strong> lets you define a component that is loaded <strong>dynamically</strong> — its code is fetched only when it's first rendered. This reduces the initial bundle size by splitting code into smaller chunks that load on demand.
+        </div>
+
+        <div class="hook-syntax">const LazyComponent = React.lazy(() => import('./HeavyComponent'));</div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">App.jsx — Lazy Loading Pages</span>
+          </div>
+          <pre><code><span class="kw">import</span> { <span class="fn">lazy</span>, <span class="fn">Suspense</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { <span class="fn">Routes</span>, <span class="fn">Route</span> } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+
+<span class="cmt">// These components load ONLY when their route is visited</span>
+<span class="kw">const</span> <span class="fn">Home</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/Home'</span>));
+<span class="kw">const</span> <span class="fn">Dashboard</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/Dashboard'</span>));
+<span class="kw">const</span> <span class="fn">Analytics</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/Analytics'</span>));
+<span class="kw">const</span> <span class="fn">Settings</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/Settings'</span>));
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="fn">Suspense</span> <span class="type">fallback</span>={&lt;<span class="fn">LoadingSpinner</span> /&gt;}&gt;
+      &lt;<span class="fn">Routes</span>&gt;
+        &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/"</span> <span class="type">element</span>={&lt;<span class="fn">Home</span> /&gt;} /&gt;
+        &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/dashboard"</span> <span class="type">element</span>={&lt;<span class="fn">Dashboard</span> /&gt;} /&gt;
+        &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/analytics"</span> <span class="type">element</span>={&lt;<span class="fn">Analytics</span> /&gt;} /&gt;
+        &lt;<span class="fn">Route</span> <span class="type">path</span>=<span class="str">"/settings"</span> <span class="type">element</span>={&lt;<span class="fn">Settings</span> /&gt;} /&gt;
+      &lt;/<span class="fn">Routes</span>&gt;
+    &lt;/<span class="fn">Suspense</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>Before vs After Lazy Loading</h3>
+        <div class="diagram">BEFORE (no lazy loading):
+┌─────────────────────────────────────────────┐
+│  bundle.js — 2.4 MB (everything)            │
+│  • Home, Dashboard, Analytics, Settings     │
+│  • All loaded on FIRST page visit           │
+│  • User waits 3-5 seconds on slow network   │
+└─────────────────────────────────────────────┘
+
+AFTER (with lazy loading):
+┌──────────────────────┐   ← Loaded immediately (400 KB)
+│  main.js (core only) │
+└──────────────────────┘
+┌───────────┐ ┌──────────────┐ ┌────────────┐
+│ home.js   │ │ dashboard.js │ │ analytics  │  ← Loaded on demand
+│ (80 KB)   │ │ (200 KB)     │ │ (150 KB)   │
+└───────────┘ └──────────────┘ └────────────┘</div>
+
+        <div class="note">
+          <strong>📝 Requirements:</strong> <code>React.lazy()</code> only works with <strong>default exports</strong>. If your component uses named exports, create a re-export file: <code>export { MyComponent as default } from './MyComponent'</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SUSPENSE ==================== -->
+    <div class="section-divider" id="suspense"><span>Suspense</span></div>
+
+    <div class="card">
+      <div class="card-title">Suspense — Loading Fallback UI</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>&lt;Suspense&gt;</strong> wraps lazy-loaded components and displays a <strong>fallback UI</strong> (spinner, skeleton, placeholder) while the component's code is being loaded. Without Suspense, lazy components throw an error.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">SuspenseExamples.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> { <span class="fn">lazy</span>, <span class="fn">Suspense</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">const</span> <span class="fn">HeavyChart</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./HeavyChart'</span>));
+<span class="kw">const</span> <span class="fn">DataTable</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./DataTable'</span>));
+
+<span class="cmt">// ─── Example 1: Single Suspense for whole page ───</span>
+<span class="kw">function</span> <span class="fn">DashboardPage</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="fn">Suspense</span> <span class="type">fallback</span>={&lt;<span class="fn">PageSkeleton</span> /&gt;}&gt;
+      &lt;<span class="fn">HeavyChart</span> /&gt;
+      &lt;<span class="fn">DataTable</span> /&gt;
+    &lt;/<span class="fn">Suspense</span>&gt;
+  );
+}
+
+<span class="cmt">// ─── Example 2: Granular Suspense boundaries ───</span>
+<span class="kw">function</span> <span class="fn">DashboardPageGranular</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">h1</span>&gt;Dashboard&lt;/<span class="type">h1</span>&gt;
+      
+      {<span class="cmt">/* Chart loads independently */</span>}
+      &lt;<span class="fn">Suspense</span> <span class="type">fallback</span>={&lt;<span class="fn">ChartSkeleton</span> /&gt;}&gt;
+        &lt;<span class="fn">HeavyChart</span> /&gt;
+      &lt;/<span class="fn">Suspense</span>&gt;
+
+      {<span class="cmt">/* Table loads independently */</span>}
+      &lt;<span class="fn">Suspense</span> <span class="type">fallback</span>={&lt;<span class="fn">TableSkeleton</span> /&gt;}&gt;
+        &lt;<span class="fn">DataTable</span> /&gt;
+      &lt;/<span class="fn">Suspense</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}
+
+<span class="cmt">// ─── Example 3: Loading spinner component ───</span>
+<span class="kw">function</span> <span class="fn">LoadingSpinner</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span> className=<span class="str">"spinner-container"</span>&gt;
+      &lt;<span class="type">div</span> className=<span class="str">"spinner"</span> /&gt;
+      &lt;<span class="type">p</span>&gt;Loading...&lt;/<span class="type">p</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>Suspense Placement Strategy</h3>
+        <table>
+          <tr><th>Strategy</th><th>Where to Place</th><th>User Experience</th></tr>
+          <tr><td><strong>App-level</strong></td><td>Wrap entire <code>&lt;Routes&gt;</code></td><td>Full-page spinner on route change</td></tr>
+          <tr><td><strong>Route-level</strong></td><td>Wrap each lazy route</td><td>Page-specific loading</td></tr>
+          <tr><td><strong>Component-level</strong></td><td>Wrap individual lazy components</td><td>Granular — rest of page shows immediately</td></tr>
+        </table>
+
+        <div class="tip">
+          <strong>💡 Best Practice:</strong> Use <strong>skeleton screens</strong> instead of spinners. They reduce perceived load time because users see the page structure immediately. Use multiple Suspense boundaries for granular loading — the header and sidebar show instantly while heavy content loads.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CODE SPLITTING ==================== -->
+    <div class="section-divider" id="code-splitting"><span>Code Splitting</span></div>
+
+    <div class="card">
+      <div class="card-title">Code Splitting — Smaller Bundles, Faster Loads</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>Code Splitting</strong> breaks your app into smaller JavaScript chunks that load on demand. Instead of shipping one massive bundle, the browser downloads only what's needed for the current page. Achieved via <code>React.lazy()</code> + <code>dynamic import()</code>.
+        </div>
+
+        <h3>Code Splitting Strategies</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">Strategy 1: Route-based Splitting</span>
+          </div>
+          <pre><code><span class="cmt">// Most common — split by ROUTE (page-level)</span>
+<span class="kw">const</span> <span class="fn">Home</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/Home'</span>));
+<span class="kw">const</span> <span class="fn">Shop</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/Shop'</span>));
+<span class="kw">const</span> <span class="fn">Admin</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/Admin'</span>));
+
+<span class="cmt">// Each page = separate chunk file
+// → home.chunk.js, shop.chunk.js, admin.chunk.js</span></code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">Strategy 2: Component-based Splitting</span>
+          </div>
+          <pre><code><span class="cmt">// Split heavy components (charts, editors, PDF viewers)</span>
+<span class="kw">const</span> <span class="fn">RichTextEditor</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./components/RichTextEditor'</span>));
+<span class="kw">const</span> <span class="fn">PdfViewer</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./components/PdfViewer'</span>));
+<span class="kw">const</span> <span class="fn">MapWidget</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./components/MapWidget'</span>));
+
+<span class="kw">function</span> <span class="fn">DocumentPage</span>({ <span class="type">showEditor</span> }) {
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">h1</span>&gt;Document&lt;/<span class="type">h1</span>&gt;
+      {<span class="type">showEditor</span> && (
+        &lt;<span class="fn">Suspense</span> <span class="type">fallback</span>={&lt;<span class="type">p</span>&gt;Loading editor...&lt;/<span class="type">p</span>&gt;}&gt;
+          &lt;<span class="fn">RichTextEditor</span> /&gt;
+        &lt;/<span class="fn">Suspense</span>&gt;
+      )}
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">Strategy 3: Conditional / Feature-based Splitting</span>
+          </div>
+          <pre><code><span class="cmt">// Load features only when user needs them</span>
+<span class="kw">function</span> <span class="fn">Dashboard</span>() {
+  <span class="kw">const</span> [<span class="type">showReport</span>, <span class="fn">setShowReport</span>] = <span class="fn">useState</span>(<span class="num">false</span>);
+
+  <span class="kw">const</span> <span class="fn">handleGenerateReport</span> = <span class="kw">async</span> () =&gt; {
+    <span class="cmt">// Dynamic import on user action</span>
+    <span class="kw">const</span> { <span class="fn">generatePDF</span> } = <span class="kw">await</span> <span class="kw">import</span>(<span class="str">'./utils/pdfGenerator'</span>);
+    <span class="kw">const</span> <span class="type">pdf</span> = <span class="fn">generatePDF</span>(<span class="type">data</span>);
+    <span class="fn">downloadFile</span>(<span class="type">pdf</span>);
+  };
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">button</span> <span class="fn">onClick</span>={<span class="fn">handleGenerateReport</span>}&gt;Generate PDF Report&lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>Vite/Webpack Bundle Analysis</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">Terminal — Analyze Bundle Size</span>
+          </div>
+          <pre><code><span class="cmt"># Vite — visualize bundle</span>
+npm install -D rollup-plugin-visualizer
+<span class="cmt"># Add to vite.config.ts, then:</span>
+npm run build  <span class="cmt"># generates stats.html</span>
+
+<span class="cmt"># Webpack (CRA) — analyze bundle</span>
+npx source-map-explorer build/static/js/*.js
+
+<span class="cmt"># Check output chunks</span>
+npm run build
+<span class="cmt"># Look for chunk sizes in dist/assets/</span></code></pre>
+        </div>
+
+        <div class="diagram">Bundle splitting output (Vite build):
+
+dist/assets/
+├── index-abc123.js        →  85 KB  (core: React, Router, shared)
+├── Home-def456.js         →  12 KB  (Home page)
+├── Dashboard-ghi789.js   → 145 KB  (Dashboard + charts)
+├── Settings-jkl012.js    →  28 KB  (Settings page)
+├── vendor-mno345.js      → 210 KB  (node_modules shared)
+└── style-pqr678.css      →  15 KB  (all styles)
+
+Total: 495 KB → User downloads only 85 + 210 + 12 = 307 KB initially!</div>
+
+        <div class="remember">
+          <strong>💡 Remember:</strong> Code splitting is <strong>free performance</strong>. Every route-based split means faster initial load. The golden rule: if a user might never visit a page, don't include it in the initial bundle.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== IMAGE OPTIMIZATION ==================== -->
+    <div class="section-divider" id="image-optimization"><span>Image Optimization</span></div>
+
+    <div class="card">
+      <div class="card-title">Image Optimization in React</div>
+      <div class="card-content">
+        <div class="short-answer">
+          Images are often the <strong>largest assets</strong> on a page (60-70% of total page weight). Optimizing images means: using modern formats (WebP/AVIF), lazy loading offscreen images, responsive sizes, and proper compression — resulting in dramatically faster page loads.
+        </div>
+
+        <h3>1. Lazy Loading Images (Native)</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">LazyImage.jsx</span>
+          </div>
+          <pre><code><span class="cmt">// ✅ Native browser lazy loading — simplest approach</span>
+<span class="kw">function</span> <span class="fn">ProductCard</span>({ <span class="type">product</span> }) {
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span> className=<span class="str">"product-card"</span>&gt;
+      &lt;<span class="type">img</span>
+        <span class="type">src</span>={<span class="type">product</span>.image}
+        <span class="type">alt</span>={<span class="type">product</span>.name}
+        <span class="type">loading</span>=<span class="str">"lazy"</span>           <span class="cmt">{/* ← Browser handles lazy load */}</span>
+        <span class="type">width</span>={<span class="num">300</span>}
+        <span class="type">height</span>={<span class="num">200</span>}            <span class="cmt">{/* ← Prevents layout shift (CLS) */}</span>
+        <span class="type">decoding</span>=<span class="str">"async"</span>        <span class="cmt">{/* ← Non-blocking decode */}</span>
+      /&gt;
+      &lt;<span class="type">h3</span>&gt;{<span class="type">product</span>.name}&lt;/<span class="type">h3</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}
+
+<span class="cmt">// ⚠️ DON'T lazy load above-the-fold images (hero, logo)
+// Use loading="eager" (default) for critical images</span></code></pre>
+        </div>
+
+        <h3>2. Responsive Images with srcSet</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">ResponsiveImage.jsx</span>
+          </div>
+          <pre><code><span class="cmt">// Serve different sizes based on viewport/device</span>
+<span class="kw">function</span> <span class="fn">HeroBanner</span>() {
+  <span class="kw">return</span> (
+    &lt;<span class="type">picture</span>&gt;
+      {<span class="cmt">/* Modern format for modern browsers */</span>}
+      &lt;<span class="type">source</span>
+        <span class="type">type</span>=<span class="str">"image/avif"</span>
+        <span class="type">srcSet</span>=<span class="str">"hero-400.avif 400w, hero-800.avif 800w, hero-1200.avif 1200w"</span>
+        <span class="type">sizes</span>=<span class="str">"(max-width: 600px) 400px, (max-width: 1024px) 800px, 1200px"</span>
+      /&gt;
+      {<span class="cmt">/* WebP fallback */</span>}
+      &lt;<span class="type">source</span>
+        <span class="type">type</span>=<span class="str">"image/webp"</span>
+        <span class="type">srcSet</span>=<span class="str">"hero-400.webp 400w, hero-800.webp 800w, hero-1200.webp 1200w"</span>
+        <span class="type">sizes</span>=<span class="str">"(max-width: 600px) 400px, (max-width: 1024px) 800px, 1200px"</span>
+      /&gt;
+      {<span class="cmt">/* JPEG fallback for old browsers */</span>}
+      &lt;<span class="type">img</span>
+        <span class="type">src</span>=<span class="str">"hero-800.jpg"</span>
+        <span class="type">alt</span>=<span class="str">"Hero banner"</span>
+        <span class="type">width</span>={<span class="num">1200</span>}
+        <span class="type">height</span>={<span class="num">600</span>}
+        <span class="type">loading</span>=<span class="str">"eager"</span>  <span class="cmt">{/* Hero = above fold, load immediately */}</span>
+      /&gt;
+    &lt;/<span class="type">picture</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>3. Intersection Observer (Custom Lazy Load)</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">useLazyImage.js — Custom Hook</span>
+          </div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useState</span>, <span class="fn">useEffect</span>, <span class="fn">useRef</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">function</span> <span class="fn">useLazyImage</span>(<span class="type">src</span>, <span class="type">placeholder</span> = <span class="str">''</span>) {
+  <span class="kw">const</span> [<span class="type">imageSrc</span>, <span class="fn">setImageSrc</span>] = <span class="fn">useState</span>(<span class="type">placeholder</span>);
+  <span class="kw">const</span> [<span class="type">isLoaded</span>, <span class="fn">setIsLoaded</span>] = <span class="fn">useState</span>(<span class="num">false</span>);
+  <span class="kw">const</span> <span class="type">imgRef</span> = <span class="fn">useRef</span>(<span class="num">null</span>);
+
+  <span class="fn">useEffect</span>(() =&gt; {
+    <span class="kw">const</span> <span class="type">observer</span> = <span class="kw">new</span> <span class="fn">IntersectionObserver</span>(
+      ([<span class="type">entry</span>]) =&gt; {
+        <span class="kw">if</span> (<span class="type">entry</span>.isIntersecting) {
+          <span class="cmt">// Image is in viewport — start loading</span>
+          <span class="kw">const</span> <span class="type">img</span> = <span class="kw">new</span> <span class="fn">Image</span>();
+          <span class="type">img</span>.src = <span class="type">src</span>;
+          <span class="type">img</span>.<span class="fn">onload</span> = () =&gt; {
+            <span class="fn">setImageSrc</span>(<span class="type">src</span>);
+            <span class="fn">setIsLoaded</span>(<span class="num">true</span>);
+          };
+          <span class="type">observer</span>.<span class="fn">disconnect</span>();
+        }
+      },
+      { <span class="type">rootMargin</span>: <span class="str">'200px'</span> } <span class="cmt">// Start loading 200px before visible</span>
+    );
+
+    <span class="kw">if</span> (<span class="type">imgRef</span>.current) <span class="type">observer</span>.<span class="fn">observe</span>(<span class="type">imgRef</span>.current);
+    <span class="kw">return</span> () =&gt; <span class="type">observer</span>.<span class="fn">disconnect</span>();
+  }, [<span class="type">src</span>]);
+
+  <span class="kw">return</span> { <span class="type">imgRef</span>, <span class="type">imageSrc</span>, <span class="type">isLoaded</span> };
+}
+
+<span class="cmt">// Usage:</span>
+<span class="kw">function</span> <span class="fn">LazyImage</span>({ <span class="type">src</span>, <span class="type">alt</span>, <span class="type">placeholder</span> }) {
+  <span class="kw">const</span> { <span class="type">imgRef</span>, <span class="type">imageSrc</span>, <span class="type">isLoaded</span> } = <span class="fn">useLazyImage</span>(<span class="type">src</span>, <span class="type">placeholder</span>);
+  <span class="kw">return</span> (
+    &lt;<span class="type">img</span>
+      <span class="type">ref</span>={<span class="type">imgRef</span>}
+      <span class="type">src</span>={<span class="type">imageSrc</span>}
+      <span class="type">alt</span>={<span class="type">alt</span>}
+      style={{ <span class="type">opacity</span>: <span class="type">isLoaded</span> ? <span class="num">1</span> : <span class="num">0.5</span>, <span class="type">transition</span>: <span class="str">'opacity 0.3s'</span> }}
+    /&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>4. Image Formats Comparison</h3>
+        <table>
+          <tr><th>Format</th><th>Size (vs JPEG)</th><th>Quality</th><th>Browser Support</th><th>Best For</th></tr>
+          <tr><td><strong>JPEG</strong></td><td>Baseline (100%)</td><td>Good</td><td>All</td><td>Photos, complex images</td></tr>
+          <tr><td><strong>PNG</strong></td><td>2-3x larger</td><td>Lossless</td><td>All</td><td>Transparency, icons, screenshots</td></tr>
+          <tr><td><strong>WebP</strong></td><td>25-35% smaller</td><td>Excellent</td><td>96%+ browsers</td><td>All images (best default)</td></tr>
+          <tr><td><strong>AVIF</strong></td><td>50% smaller</td><td>Excellent</td><td>~90% browsers</td><td>Photos (best compression)</td></tr>
+          <tr><td><strong>SVG</strong></td><td>Tiny (vector)</td><td>Infinite scale</td><td>All</td><td>Icons, logos, illustrations</td></tr>
+        </table>
+
+        <h3>5. Preventing Layout Shift (CLS)</h3>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">PreventCLS.jsx</span>
+          </div>
+          <pre><code><span class="cmt">// ❌ BAD — No dimensions → layout jumps when image loads</span>
+&lt;<span class="type">img</span> <span class="type">src</span>=<span class="str">"photo.jpg"</span> <span class="type">alt</span>=<span class="str">"Product"</span> /&gt;
+
+<span class="cmt">// ✅ GOOD — Fixed dimensions → space reserved</span>
+&lt;<span class="type">img</span> <span class="type">src</span>=<span class="str">"photo.jpg"</span> <span class="type">alt</span>=<span class="str">"Product"</span> <span class="type">width</span>={<span class="num">400</span>} <span class="type">height</span>={<span class="num">300</span>} /&gt;
+
+<span class="cmt">// ✅ GOOD — CSS aspect ratio container</span>
+&lt;<span class="type">div</span> style={{ <span class="type">aspectRatio</span>: <span class="str">'16/9'</span>, <span class="type">overflow</span>: <span class="str">'hidden'</span> }}&gt;
+  &lt;<span class="type">img</span> <span class="type">src</span>=<span class="str">"photo.jpg"</span> style={{ <span class="type">width</span>: <span class="str">'100%'</span>, <span class="type">height</span>: <span class="str">'100%'</span>, <span class="type">objectFit</span>: <span class="str">'cover'</span> }} /&gt;
+&lt;/<span class="type">div</span>&gt;
+
+<span class="cmt">// ✅ GOOD — Blur-up placeholder (like Medium/Instagram)</span>
+<span class="kw">function</span> <span class="fn">BlurImage</span>({ <span class="type">src</span>, <span class="type">blurSrc</span>, <span class="type">alt</span> }) {
+  <span class="kw">const</span> [<span class="type">loaded</span>, <span class="fn">setLoaded</span>] = <span class="fn">useState</span>(<span class="num">false</span>);
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span> style={{ <span class="type">position</span>: <span class="str">'relative'</span> }}&gt;
+      &lt;<span class="type">img</span>
+        <span class="type">src</span>={<span class="type">blurSrc</span>}  <span class="cmt">{/* tiny 20px blurred placeholder */}</span>
+        style={{ <span class="type">filter</span>: <span class="type">loaded</span> ? <span class="str">'none'</span> : <span class="str">'blur(20px)'</span>, <span class="type">transition</span>: <span class="str">'filter 0.5s'</span> }}
+      /&gt;
+      &lt;<span class="type">img</span>
+        <span class="type">src</span>={<span class="type">src</span>}
+        <span class="type">alt</span>={<span class="type">alt</span>}
+        <span class="fn">onLoad</span>={() =&gt; <span class="fn">setLoaded</span>(<span class="num">true</span>)}
+        style={{ <span class="type">position</span>: <span class="str">'absolute'</span>, <span class="type">top</span>: <span class="num">0</span>, <span class="type">opacity</span>: <span class="type">loaded</span> ? <span class="num">1</span> : <span class="num">0</span> }}
+      /&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h3>6. Image Optimization Checklist</h3>
+        <div class="remember">
+          <strong>✅ Production Image Checklist:</strong><br>
+          • Use <strong>WebP/AVIF</strong> with JPEG fallback via <code>&lt;picture&gt;</code><br>
+          • Always set <strong>width/height</strong> or <code>aspect-ratio</code> (prevent CLS)<br>
+          • <strong>Lazy load</strong> below-the-fold images (<code>loading="lazy"</code>)<br>
+          • <strong>Eager load</strong> above-the-fold (hero, logo, LCP image)<br>
+          • Use <strong>srcSet</strong> for responsive sizes (don't serve 2000px on mobile)<br>
+          • <strong>Compress</strong> images (TinyPNG, Squoosh, Sharp)<br>
+          • Use <strong>CDN</strong> with auto-format/resize (Cloudinary, imgix, Vercel Image)<br>
+          • Use <strong>SVG</strong> for icons/logos (infinitely scalable, tiny size)<br>
+          • Add <code>decoding="async"</code> for non-critical images<br>
+          • <strong>Preload</strong> critical images: <code>&lt;link rel="preload" as="image" href="hero.webp"&gt;</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== REAL PROJECT EXAMPLE ==================== -->
+    <div class="section-divider"><span>Real Project Example</span></div>
+
+    <div class="card">
+      <div class="card-title">Real Project: Optimized E-Commerce Product Grid</div>
+      <div class="card-content">
+        <p>Combining all performance techniques: memo, useCallback, lazy loading, virtualization, and image optimization for a product listing with 1000+ items.</p>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">OptimizedProductGrid.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useState</span>, <span class="fn">useMemo</span>, <span class="fn">useCallback</span>, <span class="fn">memo</span>, <span class="fn">lazy</span>, <span class="fn">Suspense</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="cmt">// Lazy-load the detail modal (heavy: images, reviews, charts)</span>
+<span class="kw">const</span> <span class="fn">ProductDetailModal</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./ProductDetailModal'</span>));
+
+<span class="cmt">// ─── Memoized Product Card ───</span>
+<span class="kw">const</span> <span class="fn">ProductCard</span> = <span class="fn">memo</span>(<span class="kw">function</span> <span class="fn">ProductCard</span>({ <span class="type">product</span>, <span class="type">onAddToCart</span>, <span class="type">onViewDetail</span> }) {
+  console.<span class="fn">log</span>(<span class="str">'Render:'</span>, <span class="type">product</span>.name); <span class="cmt">// only logs when THIS card's data changes</span>
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span> className=<span class="str">"product-card"</span>&gt;
+      &lt;<span class="type">img</span>
+        <span class="type">src</span>={<span class="type">product</span>.thumbnail}
+        <span class="type">alt</span>={<span class="type">product</span>.name}
+        <span class="type">loading</span>=<span class="str">"lazy"</span>
+        <span class="type">width</span>={<span class="num">280</span>}
+        <span class="type">height</span>={<span class="num">280</span>}
+        <span class="type">decoding</span>=<span class="str">"async"</span>
+      /&gt;
+      &lt;<span class="type">h3</span>&gt;{<span class="type">product</span>.name}&lt;/<span class="type">h3</span>&gt;
+      &lt;<span class="type">p</span>&gt;₹{<span class="type">product</span>.price.<span class="fn">toLocaleString</span>()}&lt;/<span class="type">p</span>&gt;
+      &lt;<span class="type">button</span> <span class="fn">onClick</span>={() =&gt; <span class="fn">onAddToCart</span>(<span class="type">product</span>.id)}&gt;Add to Cart&lt;/<span class="type">button</span>&gt;
+      &lt;<span class="type">button</span> <span class="fn">onClick</span>={() =&gt; <span class="fn">onViewDetail</span>(<span class="type">product</span>.id)}&gt;View&lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+});
+
+<span class="cmt">// ─── Main Grid Component ───</span>
+<span class="kw">function</span> <span class="fn">ProductGrid</span>({ <span class="type">products</span> }) {
+  <span class="kw">const</span> [<span class="type">search</span>, <span class="fn">setSearch</span>] = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [<span class="type">sortBy</span>, <span class="fn">setSortBy</span>] = <span class="fn">useState</span>(<span class="str">'relevance'</span>);
+  <span class="kw">const</span> [<span class="type">selectedId</span>, <span class="fn">setSelectedId</span>] = <span class="fn">useState</span>(<span class="num">null</span>);
+
+  <span class="cmt">// ✅ useMemo: expensive filter+sort on 1000+ products</span>
+  <span class="kw">const</span> <span class="type">filteredProducts</span> = <span class="fn">useMemo</span>(() =&gt; {
+    <span class="kw">let</span> <span class="type">result</span> = <span class="type">products</span>.<span class="fn">filter</span>(<span class="type">p</span> =&gt;
+      <span class="type">p</span>.name.<span class="fn">toLowerCase</span>().<span class="fn">includes</span>(<span class="type">search</span>.<span class="fn">toLowerCase</span>())
+    );
+    <span class="kw">if</span> (<span class="type">sortBy</span> === <span class="str">'price-asc'</span>) <span class="type">result</span>.<span class="fn">sort</span>((<span class="type">a</span>,<span class="type">b</span>) =&gt; <span class="type">a</span>.price - <span class="type">b</span>.price);
+    <span class="kw">if</span> (<span class="type">sortBy</span> === <span class="str">'price-desc'</span>) <span class="type">result</span>.<span class="fn">sort</span>((<span class="type">a</span>,<span class="type">b</span>) =&gt; <span class="type">b</span>.price - <span class="type">a</span>.price);
+    <span class="kw">if</span> (<span class="type">sortBy</span> === <span class="str">'rating'</span>) <span class="type">result</span>.<span class="fn">sort</span>((<span class="type">a</span>,<span class="type">b</span>) =&gt; <span class="type">b</span>.rating - <span class="type">a</span>.rating);
+    <span class="kw">return</span> <span class="type">result</span>;
+  }, [<span class="type">products</span>, <span class="type">search</span>, <span class="type">sortBy</span>]);
+
+  <span class="cmt">// ✅ useCallback: stable references for memo'd children</span>
+  <span class="kw">const</span> <span class="fn">handleAddToCart</span> = <span class="fn">useCallback</span>((<span class="type">productId</span>) =&gt; {
+    <span class="fn">dispatch</span>({ <span class="type">type</span>: <span class="str">'ADD_TO_CART'</span>, <span class="type">payload</span>: <span class="type">productId</span> });
+  }, []);
+
+  <span class="kw">const</span> <span class="fn">handleViewDetail</span> = <span class="fn">useCallback</span>((<span class="type">id</span>) =&gt; {
+    <span class="fn">setSelectedId</span>(<span class="type">id</span>);
+  }, []);
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">input</span>
+        <span class="type">placeholder</span>=<span class="str">"Search products..."</span>
+        <span class="type">value</span>={<span class="type">search</span>}
+        <span class="fn">onChange</span>={<span class="type">e</span> =&gt; <span class="fn">setSearch</span>(<span class="type">e</span>.target.value)}
+      /&gt;
+      &lt;<span class="type">select</span> <span class="type">value</span>={<span class="type">sortBy</span>} <span class="fn">onChange</span>={<span class="type">e</span> =&gt; <span class="fn">setSortBy</span>(<span class="type">e</span>.target.value)}&gt;
+        &lt;<span class="type">option</span> <span class="type">value</span>=<span class="str">"relevance"</span>&gt;Relevance&lt;/<span class="type">option</span>&gt;
+        &lt;<span class="type">option</span> <span class="type">value</span>=<span class="str">"price-asc"</span>&gt;Price: Low to High&lt;/<span class="type">option</span>&gt;
+        &lt;<span class="type">option</span> <span class="type">value</span>=<span class="str">"price-desc"</span>&gt;Price: High to Low&lt;/<span class="type">option</span>&gt;
+        &lt;<span class="type">option</span> <span class="type">value</span>=<span class="str">"rating"</span>&gt;Top Rated&lt;/<span class="type">option</span>&gt;
+      &lt;/<span class="type">select</span>&gt;
+
+      &lt;<span class="type">div</span> className=<span class="str">"grid"</span>&gt;
+        {<span class="type">filteredProducts</span>.<span class="fn">map</span>(<span class="type">product</span> =&gt; (
+          &lt;<span class="fn">ProductCard</span>
+            <span class="type">key</span>={<span class="type">product</span>.id}
+            <span class="type">product</span>={<span class="type">product</span>}
+            <span class="type">onAddToCart</span>={<span class="fn">handleAddToCart</span>}
+            <span class="type">onViewDetail</span>={<span class="fn">handleViewDetail</span>}
+          /&gt;
+        ))}
+      &lt;/<span class="type">div</span>&gt;
+
+      {<span class="cmt">/* Lazy-loaded modal — only fetches JS when user clicks "View" */</span>}
+      {<span class="type">selectedId</span> && (
+        &lt;<span class="fn">Suspense</span> <span class="type">fallback</span>={&lt;<span class="fn">ModalSkeleton</span> /&gt;}&gt;
+          &lt;<span class="fn">ProductDetailModal</span>
+            <span class="type">productId</span>={<span class="type">selectedId</span>}
+            <span class="type">onClose</span>={() =&gt; <span class="fn">setSelectedId</span>(<span class="num">null</span>)}
+          /&gt;
+        &lt;/<span class="fn">Suspense</span>&gt;
+      )}
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="interview"><span>Interview Q&A</span></div>
+
+    <div class="card">
+      <div class="card-title">Performance Interview Questions</div>
+      <div class="card-content">
+        <div class="q-block">Q: What is React.memo and when should you use it?</div>
+        <div class="a-block"><strong>A:</strong> <code>React.memo()</code> is a HOC that memoizes a component — it skips re-rendering if props haven't changed (shallow comparison). Use it for: (1) Components that receive the same props frequently, (2) Components that are expensive to render (large lists, complex UI), (3) Components that re-render often due to parent updates. Don't use it for components that almost always receive new props.</div>
+
+        <div class="q-block">Q: What's the difference between useMemo and useCallback?</div>
+        <div class="a-block"><strong>A:</strong> <code>useMemo</code> caches a <strong>computed value</strong> (runs the function and stores the result). <code>useCallback</code> caches the <strong>function itself</strong> (stores the function reference without executing it). <code>useCallback(fn, deps)</code> is equivalent to <code>useMemo(() => fn, deps)</code>. Use useMemo for expensive calculations, useCallback for stabilizing function references passed to memo'd children.</div>
+
+        <div class="q-block">Q: Why does passing inline functions break React.memo?</div>
+        <div class="a-block"><strong>A:</strong> Because <code>() => doSomething()</code> creates a <strong>new function reference</strong> on every render. React.memo does shallow comparison — different reference = different prop = re-render. Fix: wrap the function with <code>useCallback</code> to maintain a stable reference across renders.</div>
+
+        <div class="q-block">Q: What is code splitting and how does React implement it?</div>
+        <div class="a-block"><strong>A:</strong> Code splitting breaks a large bundle into smaller chunks loaded on demand. React implements it via <code>React.lazy()</code> + <code>dynamic import()</code>. When a lazy component is first rendered, its chunk is fetched from the server. Combined with <code>&lt;Suspense&gt;</code> for loading states. The bundler (Webpack/Vite) automatically creates separate files for each <code>import()</code> call.</div>
+
+        <div class="q-block">Q: What is the purpose of Suspense in React?</div>
+        <div class="a-block"><strong>A:</strong> <code>&lt;Suspense&gt;</code> provides a <strong>fallback UI</strong> while waiting for lazy-loaded components (or data in React 18+). It catches the "suspending" state and displays a placeholder (spinner/skeleton) until the async content is ready. Without Suspense, lazy components throw an error. You can have multiple Suspense boundaries for granular loading.</div>
+
+        <div class="q-block">Q: How do you prevent layout shift (CLS) with images?</div>
+        <div class="a-block"><strong>A:</strong> Always specify <code>width</code> and <code>height</code> attributes on images (or use CSS <code>aspect-ratio</code>). This reserves space before the image loads, preventing content from jumping. Also use blur-up placeholders (tiny base64 preview) or skeleton containers with fixed dimensions. This directly improves Core Web Vitals CLS score.</div>
+
+        <div class="q-block">Q: What are the best image formats for web and when to use each?</div>
+        <div class="a-block"><strong>A:</strong> <strong>WebP:</strong> best default for all images (25-35% smaller than JPEG, 96% browser support). <strong>AVIF:</strong> best compression for photos (50% smaller, ~90% support). <strong>SVG:</strong> for icons/logos (vector, infinitely scalable, tiny size). <strong>PNG:</strong> only when transparency is needed and WebP isn't supported. Use <code>&lt;picture&gt;</code> with AVIF source → WebP source → JPEG fallback.</div>
+
+        <div class="q-block">Q: When should you NOT use useMemo/useCallback?</div>
+        <div class="a-block"><strong>A:</strong> Don't use them for: (1) Simple/cheap calculations (a + b, string concat), (2) Values that change every render (all deps change), (3) Components that don't pass functions to memo'd children, (4) Premature optimization without measuring first. They have overhead (storing previous values, comparing deps). Only optimize when you've measured a real performance problem with React DevTools Profiler.</div>
+
+        <div class="q-block">Q: How do you measure React performance?</div>
+        <div class="a-block"><strong>A:</strong> (1) <strong>React DevTools Profiler:</strong> records renders, shows which components re-rendered and why. (2) <strong>Chrome DevTools Performance tab:</strong> flame chart of JS execution. (3) <strong>Lighthouse:</strong> Core Web Vitals (LCP, FID, CLS). (4) <strong>why-did-you-render:</strong> library that logs unnecessary re-renders. (5) <strong>Bundle analyzer:</strong> visualize chunk sizes. Always measure before and after optimizing.</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

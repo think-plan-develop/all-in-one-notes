@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>React Interview Questions & Answers — Part 2</title>
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="container theme-softblue">
+
+  <div class="header">
+    <h1>React Interview Q&A — Part 2 <span class="badge">8 Questions</span></h1>
+    <p>Practical patterns: state architecture, routing, performance, data fetching, and component design.</p>
+    <div class="toc">
+      <a href="#q1">Lifting State Up</a>
+      <a href="#q2">Auth & Protected Routes</a>
+      <a href="#q3">Lazy Loading</a>
+      <a href="#q4">Context vs Redux Toolkit</a>
+      <a href="#q5">Data-Fetching Hook</a>
+      <a href="#q6">Infinite Scroll / Pagination</a>
+      <a href="#q7">Debounce Search</a>
+      <a href="#q8">Accessible Modal</a>
+    </div>
+  </div>
+
+  <div class="card" id="q1">
+    <div class="card-title">⬆️ Lifting State Up</div>
+    <div class="card-content card-content-QA">
+      <h4>Explain lifting state up with a practical example.</h4>
+      <p>Lifting state up means moving shared state to the closest common ancestor of the components that need it, instead of duplicating it in each child. For example, if a TemperatureInput in Celsius and one in Fahrenheit both need to stay in sync, you move the temperature value into their shared parent component. The parent holds the state and passes it down as props, along with an onChange handler each child calls to update it. This way both inputs read from a single source of truth and stay consistent, rather than each maintaining its own disconnected copy of the value.</p>
+    </div>
+  </div>
+
+  <div class="card" id="q2">
+    <div class="card-title">🔐 Auth & Protected Routes</div>
+    <div class="card-content card-content-QA">
+      <h4>How do you implement authentication and protected routes?</h4>
+      <p>Typically you store auth state (user info, token) in a context or global store, populated after login and persisted in memory or storage. A ProtectedRoute wrapper component checks that auth state — usually via a hook like useAuth() — and either renders the requested route or redirects to a login page (commonly using Navigate from react-router along with the current location so the user can be sent back after logging in). Tokens are attached to API requests via an interceptor, and routes are also validated on the backend since client-side checks alone can be bypassed. Refresh tokens and expiry handling are added for longer sessions.</p>
+    </div>
+  </div>
+
+  <div class="card" id="q3">
+    <div class="card-title">🐢 Lazy Loading</div>
+    <div class="card-content card-content-QA">
+      <h4>How does lazy loading improve performance?</h4>
+      <p>Lazy loading defers fetching and rendering resources — components, images, or routes — until they're actually needed, rather than loading everything upfront. This shrinks the initial JavaScript bundle, so the browser has less to parse and execute before the page becomes interactive, improving metrics like Time to Interactive and First Contentful Paint. For images, lazy loading avoids downloading off-screen assets until the user scrolls near them, saving bandwidth. In React specifically, combining React.lazy with route-based code-splitting means users only download the code for the page they're actually visiting.</p>
+    </div>
+  </div>
+
+  <div class="card" id="q4">
+    <div class="card-title">⚖️ Context API vs Redux Toolkit</div>
+    <div class="card-content card-content-QA">
+      <h4>How do Context API and Redux Toolkit differ, and when would you choose each?</h4>
+      <p>Context API is built into React and is best for low-frequency, relatively simple shared state like theme, locale, or auth info — it has no built-in mechanism for avoiding unnecessary re-renders of all consumers when the value changes, and no dev tools or middleware system. Redux Toolkit provides a structured store with reducers, actions, and slices, built-in immutability handling via Immer, middleware support (like for async logic via thunks), and powerful dev tools for time-travel debugging. It's a better fit for large applications with complex, frequently-updating state shared across many disconnected parts of the tree. A common rule of thumb: reach for Context for simple, rarely-changing global values, and Redux Toolkit when state logic, debugging needs, or update frequency grow complex.</p>
+    </div>
+  </div>
+
+  <div class="card" id="q5">
+    <div class="card-title">🪝 Reusable Data-Fetching Hook</div>
+    <div class="card-content card-content-QA">
+      <h4>Design a reusable data-fetching hook with loading, error, and caching states.</h4>
+      <p>A useFetch(url) hook would manage three pieces of state: data, loading, and error, using useState, and trigger the request inside a useEffect that re-runs when the url changes. Caching can be implemented with a simple in-memory Map (or a ref) keyed by URL, so repeated calls to the same endpoint return cached data instantly instead of re-fetching. To avoid race conditions from rapid url changes, an AbortController or a "cancelled" flag inside the effect cleanup ensures stale responses don't overwrite newer state. The hook returns { data, loading, error, refetch } so components can trigger manual refreshes, and more advanced versions add stale-while-revalidate behavior, similar to libraries like React Query or SWR.</p>
+      <div class="code-block">
+        <div class="code-bar">
+          <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+          <span class="filename">useFetch.js</span>
+        </div>
+        <pre><code><span class="kw">function</span> <span class="fn">useFetch</span>(url) {
+  <span class="kw">const</span> [data, setData] = useState(<span class="kw">null</span>);
+  <span class="kw">const</span> [loading, setLoading] = useState(<span class="kw">true</span>);
+  <span class="kw">const</span> [error, setError] = useState(<span class="kw">null</span>);
+  <span class="kw">const</span> cache = useRef(<span class="kw">new</span> Map());
+
+  useEffect(() => {
+    <span class="kw">let</span> cancelled = <span class="kw">false</span>;
+    <span class="kw">if</span> (cache.current.has(url)) {
+      setData(cache.current.get(url));
+      setLoading(<span class="kw">false</span>);
+      <span class="kw">return</span>;
+    }
+    setLoading(<span class="kw">true</span>);
+    fetch(url)
+      .then(res => res.json())
+      .then(json => {
+        <span class="kw">if</span> (!cancelled) {
+          cache.current.set(url, json);
+          setData(json);
+        }
+      })
+      .catch(err => !cancelled && setError(err))
+      .finally(() => !cancelled && setLoading(<span class="kw">false</span>));
+    <span class="kw">return</span> () => { cancelled = <span class="kw">true</span>; };
+  }, [url]);
+
+  <span class="kw">return</span> { data, loading, error };
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="q6">
+    <div class="card-title">📜 Infinite Scroll / Pagination</div>
+    <div class="card-content card-content-QA">
+      <h4>How would you implement infinite scroll or pagination in React?</h4>
+      <p>For pagination, you keep a page/offset value in state, fetch a page of results when it changes, and render "Next/Previous" controls that update that state. For infinite scroll, you typically use the IntersectionObserver API to watch a sentinel element at the bottom of the list; when it becomes visible, you fetch the next page and append the results to existing state instead of replacing it. Loading and "end of list" flags prevent duplicate fetches and let you show appropriate UI. For large lists, this is often paired with virtualization (e.g. react-window) so only visible items are actually rendered to the DOM, keeping performance smooth even with thousands of items.</p>
+    </div>
+  </div>
+
+  <div class="card" id="q7">
+    <div class="card-title">⏱️ Debounce Search Input</div>
+    <div class="card-content card-content-QA">
+      <h4>How would you debounce a search input in React?</h4>
+      <p>You keep the raw input value in state for immediate UI feedback, but delay the actual side effect (like an API call) using a debounced version of that value. A common pattern is a useDebounce(value, delay) hook that stores the value in its own state and updates it inside a useEffect with setTimeout, clearing the previous timeout whenever the input changes again before the delay elapses. The component then triggers its fetch effect off the debounced value rather than the raw input, so a network request only fires once the user pauses typing for the specified delay, cutting down on unnecessary requests.</p>
+    </div>
+  </div>
+
+  <div class="card" id="q8">
+    <div class="card-title">🪟 Accessible Modal Component</div>
+    <div class="card-content card-content-QA">
+      <h4>Design a modal/dialog component that's accessible and reusable.</h4>
+      <p>A reusable Modal accepts isOpen, onClose, and children props, and is rendered via a portal (createPortal) into a dedicated DOM node outside the main app tree, so it isn't constrained by parent overflow or z-index. For accessibility, it should use role="dialog" and aria-modal="true", trap focus within the modal while open (moving focus to it on open and returning focus to the trigger element on close), close on Escape key press, and close on backdrop click while still allowing clicks inside the content to not propagate. A live region or aria-labelledby pointing at the modal's title helps screen readers announce it properly, and body scroll should be locked while the modal is open to prevent background scrolling.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
