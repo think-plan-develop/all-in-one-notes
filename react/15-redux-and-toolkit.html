@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redux Toolkit - Complete Guide</title>
+  <link rel="stylesheet" href="common.css" />
+</head>
+<style>
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+
+  .container {
+    --accent-dark:  #5b21b6;
+    --accent:       #7c3aed;
+    --accent-light: #8b5cf6;
+    --content-bg:   #f5f3ff;
+    --heading:      #5b21b6;
+    --shadow-rgb:   124,58,237;
+    --qa-h4-a: #ddd6fe; --qa-h4-b: #c4b5fd;
+    --qa-p-a:  #f5f3ff; --qa-p-b:  #ede9fe;
+  }
+
+  /* ═══════════════════ HEADER ═══════════════════ */
+  .header {
+    background: linear-gradient(120deg, var(--accent-dark), var(--accent-light));
+    border-radius: 20px;
+    padding: 46px 40px;
+    margin-bottom: 44px;
+    box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 220px; height: 220px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .header h1 { color: #fff; font-size: 36px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #ede9ff; font-size: 16.5px; margin-bottom: 26px; max-width: 640px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a {
+    text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700;
+    transition: all 0.2s ease; cursor: pointer;
+    background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28);
+    letter-spacing: 0.2px;
+  }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* ═══════════════════ KEY TERMS SUMMARY ═══════════════════ */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; color: #1a1a1a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-violet { background: linear-gradient(135deg,#faf5ff,#f3e8ff); color: #6b21a8; }
+  .summary-violet .summary-text strong { color: #7e22ce; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; }
+  .summary-pink   .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; }
+  .summary-amber  .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; }
+  .summary-green  .summary-text strong { color: #059669; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* ═══════════════════ SECTION DIVIDER ═══════════════════ */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; color: #1a1a1a; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* ═══════════════════ CARDS ═══════════════════ */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h3 { font-size: 18.5px; margin: 22px 0 10px; font-weight: 800; color: var(--heading); padding-left: 12px; border-left: 4px solid var(--accent); }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+
+  /* ── short-answer ── */
+  .short-answer {
+    position: relative;
+    background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%);
+    border: 1px solid rgba(var(--shadow-rgb), 0.16);
+    border-left: 4px solid var(--accent);
+    border-radius: 14px;
+    padding: 20px 24px 22px;
+    margin-bottom: 24px;
+    font-size: 17px;
+    line-height: 1.75;
+    font-weight: 500;
+    color: #293244;
+    box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1);
+  }
+  .short-answer::before {
+    content: "QUICK ANSWER";
+    display: block; width: fit-content;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff;
+    background: linear-gradient(120deg, var(--accent), var(--accent-light));
+    padding: 5px 13px; border-radius: 20px; margin-bottom: 13px;
+    box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35);
+  }
+  .short-answer strong { color: var(--heading); }
+  .short-answer code {
+    background: rgba(var(--shadow-rgb), 0.1); color: var(--heading);
+    padding: 2px 7px; border-radius: 5px; font-size: 14.5px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+  }
+
+  /* ── code block ── */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .code-bar .dot-red { background: #ff5f57; }
+  .code-bar .dot-grey { background: #febc2e; }
+  .code-bar .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14.5px; font-family: 'Fira Code', 'Consolas', monospace; line-height: 1.65; }
+  .kw  { color: #c792ea; font-weight: 600; }
+  .str { color: #c3e88d; }
+  .fn  { color: #82aaff; }
+  .type { color: #f07178; }
+  .cmt { color: #7a7a7a; font-style: italic; }
+  .num { color: #f78c6c; }
+
+  /* ── diagram / ascii flow ── */
+  .diagram {
+    background: #0f172a; color: #94a3b8; font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 13.5px; line-height: 1.85; padding: 22px 26px; border-radius: 10px; margin: 16px 0;
+    white-space: pre; overflow-x: auto; border: 1px solid #1e293b; text-align: center;
+  }
+
+  /* ── callout boxes ── */
+  .tip, .note, .warning, .remember {
+    border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+  }
+  .tip      { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note     { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning  { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  /* ── pros/cons ── */
+  .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 12px; }
+  .pros { background: linear-gradient(135deg,#dcfce7,#bbf7d0); border-radius: 12px; padding: 18px; }
+  .cons { background: linear-gradient(135deg,#fee2e2,#fecaca); border-radius: 12px; padding: 18px; }
+  .pros h5 { color: #166534; margin-bottom: 10px; font-weight: 800; font-size: 15.5px; }
+  .cons h5 { color: #991b1b; margin-bottom: 10px; font-weight: 800; font-size: 15.5px; }
+  .pros li, .cons li { font-size: 14px; line-height: 1.75; color: #333; margin-left: 18px; }
+  @media (max-width: 640px) { .pros-cons { grid-template-columns: 1fr; } }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 16px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; }
+  table tr:nth-child(even) { background: #f8fafc; }
+  table code { background: rgba(124,58,237,0.08); color: #5b21b6; padding: 2px 6px; border-radius: 5px; font-size: 13.5px; }
+
+  @media (max-width: 768px) {
+    .header h1 { font-size: 27px; }
+    .toc a { padding: 6px 12px; font-size: 12px; }
+    .card-content { padding: 20px; }
+  }
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header">
+      <h1>🧰 Redux Toolkit — Complete Guide</h1>
+      <p>State management with Redux Toolkit — store, slices, dispatch, selectors, project structure, and how Redux Thunk works behind the scenes.</p>
+      <div class="toc">
+        <a onclick="document.getElementById('what-is-redux').scrollIntoView({behavior:'smooth'});return false;">What is Redux?</a>
+        <a onclick="document.getElementById('why-rtk').scrollIntoView({behavior:'smooth'});return false;">Why RTK?</a>
+        <a onclick="document.getElementById('setup').scrollIntoView({behavior:'smooth'});return false;">Setup Steps</a>
+        <a onclick="document.getElementById('hooks').scrollIntoView({behavior:'smooth'});return false;">Hooks</a>
+        <a onclick="document.getElementById('thunk').scrollIntoView({behavior:'smooth'});return false;">Redux Thunk</a>
+        <a onclick="document.getElementById('summary').scrollIntoView({behavior:'smooth'});return false;">Summary</a>
+      </div>
+    </div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🧩 Redux at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-violet">
+          <div class="summary-icon">🏬</div>
+          <div class="summary-text"><strong>Store:</strong> Holds the application's entire global state in one place.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">⚡</div>
+          <div class="summary-text"><strong>Actions:</strong> Plain objects describing what happened.</div>
+        </div>
+        <div class="summary-item summary-amber">
+          <div class="summary-icon">📤</div>
+          <div class="summary-text"><strong>Dispatch:</strong> Sends an action to the store to trigger an update.</div>
+        </div>
+        <div class="summary-item summary-green">
+          <div class="summary-icon">🔀</div>
+          <div class="summary-text"><strong>Reducers:</strong> Calculate the next state from current state + action.</div>
+        </div>
+        <div class="summary-item summary-violet">
+          <div class="summary-icon">🔍</div>
+          <div class="summary-text"><strong>Selectors:</strong> Read specific pieces of data out of the store.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🧰</div>
+          <div class="summary-text"><strong>RTK:</strong> The official, boilerplate-free way to write Redux.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== WHAT IS REDUX ==================== -->
+    <div class="section-divider" id="what-is-redux"><span>📦 What is Redux?</span></div>
+
+    <div class="card">
+      <div class="card-title">Redux — Centralized State Management</div>
+      <div class="card-content">
+        <div class="short-answer">
+          Redux is a <strong>state management library</strong> used to store <strong>global/shared state</strong> in one central place called the <strong>Store</strong>. Instead of passing data through multiple components using props, any component can directly read or update the Store.
+        </div>
+        <p>Redux is most beneficial in <strong>medium-to-large applications</strong> where many components need access to the same state — avoiding deep prop drilling across the component tree.</p>
+      </div>
+    </div>
+
+    <!-- ==================== WHY RTK ==================== -->
+    <div class="section-divider" id="why-rtk"><span>🧰 Why Redux Toolkit (RTK)?</span></div>
+
+    <div class="card">
+      <div class="card-title">RTK — The Official, Recommended Way</div>
+      <div class="card-content">
+        <p>Traditional Redux required writing lots of boilerplate code: Action Types, Action Creators, Reducers, Store Configuration, and Switch Statements. <strong>Redux Toolkit</strong> automatically handles most of this, making the code shorter, cleaner, and easier to maintain.</p>
+
+        <h4>❌ Traditional Redux</h4>
+        <p>Around 50–100 lines just to create one feature.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">cartReducer.js</span></div>
+          <pre><code><span class="kw">const</span> <span class="type">ADD_ITEM</span> = <span class="str">"ADD_ITEM"</span>;
+
+<span class="kw">function</span> <span class="fn">addItem</span>(<span class="type">product</span>) {
+    <span class="kw">return</span> {
+        <span class="type">type</span>: <span class="type">ADD_ITEM</span>,
+        <span class="type">payload</span>: <span class="type">product</span>
+    };
+}
+
+<span class="kw">function</span> <span class="fn">reducer</span>(<span class="type">state</span>, <span class="type">action</span>) {
+    <span class="kw">switch</span>(<span class="type">action</span>.type) {
+        <span class="kw">case</span> <span class="type">ADD_ITEM</span>:
+            ...
+    }
+}</code></pre>
+        </div>
+
+        <h4>✅ Redux Toolkit</h4>
+        <p>Everything is created in one place.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">cartSlice.js</span></div>
+          <pre><code><span class="kw">const</span> <span class="type">cartSlice</span> = <span class="fn">createSlice</span>({
+    <span class="type">name</span>: <span class="str">"cart"</span>,
+    <span class="type">initialState</span>,
+    <span class="type">reducers</span>: {
+        <span class="fn">addItem</span>(<span class="type">state</span>, <span class="type">action</span>) {
+            <span class="type">state</span>.items.<span class="fn">push</span>(<span class="type">action</span>.payload);
+        }
+    }
+});</code></pre>
+        </div>
+        <p>Much simpler.</p>
+
+        <h4>🎁 Benefits of Redux Toolkit</h4>
+        <ul style="margin: 10px 0 18px 22px;">
+          <li style="font-size:15.5px;line-height:1.85;color:#333;margin-bottom:6px;">Less boilerplate code</li>
+          <li style="font-size:15.5px;line-height:1.85;color:#333;margin-bottom:6px;">Automatically creates Actions</li>
+          <li style="font-size:15.5px;line-height:1.85;color:#333;margin-bottom:6px;">Easier Store configuration</li>
+          <li style="font-size:15.5px;line-height:1.85;color:#333;margin-bottom:6px;">Built-in Immer (write mutable-looking code safely)</li>
+          <li style="font-size:15.5px;line-height:1.85;color:#333;margin-bottom:6px;">Officially recommended by the Redux team</li>
+          <li style="font-size:15.5px;line-height:1.85;color:#333;margin-bottom:6px;">Better developer experience</li>
+        </ul>
+
+        <div class="remember">
+          <strong>💡 Rule of Thumb:</strong> In modern React projects, you should always prefer Redux Toolkit over traditional Redux.
+        </div>
+
+        <h4>🔄 Redux Flow</h4>
+        <div class="diagram">User Clicks Button
+        │
+        ▼
+dispatch(action)
+        │
+        ▼
+Reducer (Slice)
+        │
+        ▼
+Redux Store Updates
+        │
+        ▼
+useSelector()
+        │
+        ▼
+Component Re-renders</div>
+      </div>
+    </div>
+
+    <!-- ==================== SETUP STEPS ==================== -->
+    <div class="section-divider" id="setup"><span>🛠️ Setting Up Redux Toolkit</span></div>
+
+    <div class="card">
+      <div class="card-title">Step 1: Install Redux Toolkit</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code><span class="fn">npm</span> install @reduxjs/toolkit react-redux</code></pre>
+        </div>
+        <table>
+          <tr><th>Package</th><th>Purpose</th></tr>
+          <tr><td><code>@reduxjs/toolkit</code></td><td>Redux Toolkit itself</td></tr>
+          <tr><td><code>react-redux</code></td><td>Connects Redux with React</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Step 2: Create a Slice</div>
+      <div class="card-content">
+        <p>A Slice contains: <strong>State</strong>, <strong>Reducers</strong>, and <strong>Actions</strong>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">features/cart/cartSlice.js</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">createSlice</span> } <span class="kw">from</span> <span class="str">"@reduxjs/toolkit"</span>;
+
+<span class="kw">const</span> <span class="type">initialState</span> = {
+    <span class="type">items</span>: []
+};
+
+<span class="kw">const</span> <span class="type">cartSlice</span> = <span class="fn">createSlice</span>({
+    <span class="type">name</span>: <span class="str">"cart"</span>,
+    <span class="type">initialState</span>,
+
+    <span class="type">reducers</span>: {
+        <span class="fn">addItem</span>(<span class="type">state</span>, <span class="type">action</span>) {
+            <span class="type">state</span>.items.<span class="fn">push</span>(<span class="type">action</span>.payload);
+        },
+
+        <span class="fn">removeItem</span>(<span class="type">state</span>, <span class="type">action</span>) {
+            <span class="type">state</span>.items = <span class="type">state</span>.items.<span class="fn">filter</span>(
+                <span class="type">item</span> =&gt; <span class="type">item</span>.id !== <span class="type">action</span>.payload
+            );
+        }
+    }
+});
+
+<span class="kw">export</span> <span class="kw">const</span> { <span class="type">addItem</span>, <span class="type">removeItem</span> } = <span class="type">cartSlice</span>.actions;
+
+<span class="kw">export</span> <span class="kw">default</span> <span class="type">cartSlice</span>.reducer;</code></pre>
+        </div>
+        <div class="note">
+          <strong>📝 What happened here?</strong> <code>createSlice()</code> creates the reducer and automatically creates <code>addItem()</code> and <code>removeItem()</code> action creators. No <code>switch</code> statement is needed, and no action types need to be written manually.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Step 3: Create the Store</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/store.js</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">configureStore</span> } <span class="kw">from</span> <span class="str">"@reduxjs/toolkit"</span>;
+<span class="kw">import</span> <span class="type">cartReducer</span> <span class="kw">from</span> <span class="str">"../features/cart/cartSlice"</span>;
+
+<span class="kw">export</span> <span class="kw">const</span> <span class="type">store</span> = <span class="fn">configureStore</span>({
+    <span class="type">reducer</span>: {
+        <span class="type">cart</span>: <span class="type">cartReducer</span>
+    }
+});</code></pre>
+        </div>
+        <h4>📦 Result</h4>
+        <p>The Redux Store now looks like:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">store shape</span></div>
+          <pre><code>{
+    <span class="type">cart</span>: {
+        <span class="type">items</span>: []
+    }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Step 4: Connect Redux to React</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">main.jsx</span></div>
+          <pre><code><span class="kw">import</span> <span class="type">ReactDOM</span> <span class="kw">from</span> <span class="str">"react-dom/client"</span>;
+<span class="kw">import</span> { <span class="fn">Provider</span> } <span class="kw">from</span> <span class="str">"react-redux"</span>;
+<span class="kw">import</span> { <span class="type">store</span> } <span class="kw">from</span> <span class="str">"./app/store"</span>;
+<span class="kw">import</span> <span class="type">App</span> <span class="kw">from</span> <span class="str">"./App"</span>;
+
+<span class="type">ReactDOM</span>.<span class="fn">createRoot</span>(document.<span class="fn">getElementById</span>(<span class="str">"root"</span>)).<span class="fn">render</span>(
+    &lt;<span class="fn">Provider</span> <span class="type">store</span>={<span class="type">store</span>}&gt;
+        &lt;<span class="fn">App</span> /&gt;
+    &lt;/<span class="fn">Provider</span>&gt;
+);</code></pre>
+        </div>
+        <p>Now every component can access the Redux Store.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Step 5: Update State using useDispatch()</div>
+      <div class="card-content">
+        <p>Suppose the user clicks <strong>Add To Cart</strong>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Product.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useDispatch</span> } <span class="kw">from</span> <span class="str">"react-redux"</span>;
+<span class="kw">import</span> { <span class="type">addItem</span> } <span class="kw">from</span> <span class="str">"../features/cart/cartSlice"</span>;
+
+<span class="kw">function</span> <span class="fn">Product</span>() {
+
+    <span class="kw">const</span> <span class="type">dispatch</span> = <span class="fn">useDispatch</span>();
+
+    <span class="kw">const</span> <span class="type">product</span> = {
+        <span class="type">id</span>: <span class="num">1</span>,
+        <span class="type">name</span>: <span class="str">"Laptop"</span>
+    };
+
+    <span class="kw">return</span> (
+        &lt;<span class="type">button</span>
+            <span class="fn">onClick</span>={() =&gt; <span class="fn">dispatch</span>(<span class="fn">addItem</span>(<span class="type">product</span>))}
+        &gt;
+            Add To Cart
+        &lt;/<span class="type">button</span>&gt;
+    );
+}</code></pre>
+        </div>
+        <div class="diagram">Button Click
+   │
+   ▼
+dispatch(addItem(product))
+   │
+   ▼
+Reducer executes
+   │
+   ▼
+state.items.push(product)
+   │
+   ▼
+Store updates</div>
+        <p>Store becomes:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">store shape</span></div>
+          <pre><code>{
+    <span class="type">cart</span>: {
+        <span class="type">items</span>: [
+            {
+                <span class="type">id</span>: <span class="num">1</span>,
+                <span class="type">name</span>: <span class="str">"Laptop"</span>
+            }
+        ]
+    }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Step 6: Read State using useSelector()</div>
+      <div class="card-content">
+        <p>Navbar wants to display the cart count.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Navbar.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useSelector</span> } <span class="kw">from</span> <span class="str">"react-redux"</span>;
+
+<span class="kw">function</span> <span class="fn">Navbar</span>() {
+
+    <span class="kw">const</span> <span class="type">items</span> = <span class="fn">useSelector</span>(
+        <span class="type">state</span> =&gt; <span class="type">state</span>.cart.items
+    );
+
+    <span class="kw">return</span> (
+        &lt;<span class="type">h2</span>&gt;
+            Cart ({<span class="type">items</span>.length})
+        &lt;/<span class="type">h2</span>&gt;
+    );
+}</code></pre>
+        </div>
+        <p>Initially: <code>Cart (0)</code> — after clicking Add To Cart: <code>Cart (1)</code>. No props are required.</p>
+
+        <h4>🔁 Complete Redux Toolkit Flow</h4>
+        <div class="diagram">User Clicks Add To Cart
+          │
+          ▼
+dispatch(addItem(product))
+          │
+          ▼
+cartSlice Reducer
+          │
+          ▼
+Redux Store Updated
+          │
+          ▼
+useSelector()
+          │
+          ▼
+Navbar Re-renders</div>
+
+        <h4>🗂️ Project Structure</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/</span></div>
+          <pre><code>src
+│
+├── <span class="fn">app</span>
+│   └── store.js
+│
+├── <span class="fn">features</span>
+│   └── <span class="fn">cart</span>
+│       └── cartSlice.js
+│
+├── <span class="fn">components</span>
+│   ├── Product.jsx
+│   └── Navbar.jsx
+│
+├── App.jsx
+└── main.jsx</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== HOOKS ==================== -->
+    <div class="section-divider" id="hooks"><span>🪝 Most Used Redux Hooks</span></div>
+
+    <div class="card">
+      <div class="card-title">useDispatch() & useSelector()</div>
+      <div class="card-content">
+        <h4>📤 useDispatch()</h4>
+        <p>Used to update the Redux Store.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.js</span></div>
+          <pre><code><span class="kw">const</span> <span class="type">dispatch</span> = <span class="fn">useDispatch</span>();
+
+<span class="fn">dispatch</span>(<span class="fn">addItem</span>(<span class="type">product</span>));</code></pre>
+        </div>
+
+        <h4>🔍 useSelector()</h4>
+        <p>Used to read data from the Redux Store.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.js</span></div>
+          <pre><code><span class="kw">const</span> <span class="type">cartItems</span> = <span class="fn">useSelector</span>(
+    <span class="type">state</span> =&gt; <span class="type">state</span>.cart.items
+);</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== REDUX THUNK ==================== -->
+    <div class="section-divider" id="thunk"><span>⏳ Redux Thunk (Behind the Scenes)</span></div>
+
+    <div class="card">
+      <div class="card-title">How Redux Toolkit Handles Async Operations</div>
+      <div class="card-content">
+        <div class="short-answer">
+          Redux reducers can only perform <strong>synchronous</strong> state updates, so they <strong>cannot make API calls, use <code>setTimeout</code>, or perform any asynchronous operations</strong>. To handle async tasks, Redux uses <strong>Redux Thunk</strong>, a <strong>middleware</strong> placed between <code>dispatch()</code> and the reducer.
+        </div>
+
+        <p>When using <strong>Redux Toolkit</strong>, you <strong>do not need to install or configure <code>redux-thunk</code> separately</strong> because <code>configureStore()</code> automatically adds it as one of its default middleware.</p>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">store.js</span></div>
+          <pre><code><span class="kw">const</span> <span class="type">store</span> = <span class="fn">configureStore</span>({
+    <span class="type">reducer</span>: {
+        <span class="type">products</span>: <span class="type">productReducer</span>
+    }
+});</code></pre>
+        </div>
+
+        <p>Internally, Redux Toolkit creates the store similar to this:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">internal-behavior.js</span></div>
+          <pre><code><span class="fn">configureStore</span>({
+    <span class="type">reducer</span>,
+    <span class="type">middleware</span>: (<span class="type">getDefaultMiddleware</span>) =&gt;
+        <span class="fn">getDefaultMiddleware</span>() <span class="cmt">// Includes Redux Thunk</span>
+});</code></pre>
+        </div>
+
+        <div class="note">
+          <strong>📝 Note:</strong> Redux Thunk is already active, even though you never import or configure it yourself.
+        </div>
+
+        <p>When you dispatch an asynchronous action (usually created using <strong><code>createAsyncThunk()</code></strong>), Redux Thunk intercepts it, executes the async code (such as an API call), waits for the response, and then dispatches normal Redux actions like <strong><code>pending</code></strong>, <strong><code>fulfilled</code></strong>, or <strong><code>rejected</code></strong> to the reducer.</p>
+
+        <div class="diagram">Component
+    │
+dispatch(fetchProducts())
+    │
+Redux Thunk Middleware
+    │
+API Call
+    │
+Success / Failure
+    │
+dispatch(fulfilled/rejected)
+    │
+Reducer
+    │
+Redux Store Updated</div>
+
+        <div class="remember">
+          <strong>💡 Key Point:</strong> You write asynchronous logic using <code>createAsyncThunk()</code>, but it works because <strong>Redux Thunk is already included inside Redux Toolkit</strong>. In traditional Redux, you had to install <code>redux-thunk</code> manually and configure it with <code>applyMiddleware(thunk)</code>, whereas Redux Toolkit handles that setup automatically behind the scenes.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SUMMARY ==================== -->
+    <div class="section-divider" id="summary"><span>📋 Summary</span></div>
+
+    <div class="card">
+      <div class="card-title">Key Concepts Recap</div>
+      <div class="card-content">
+        <table>
+          <tr><th>Concept</th><th>Purpose</th></tr>
+          <tr><td><strong>Redux</strong></td><td>Library for managing global state</td></tr>
+          <tr><td><strong>Redux Toolkit (RTK)</strong></td><td>Official, simplified way to write Redux with less boilerplate</td></tr>
+          <tr><td><strong>Store</strong></td><td>Holds the application's global state</td></tr>
+          <tr><td><strong>Slice</strong></td><td>Contains state, reducers, and auto-generated actions</td></tr>
+          <tr><td><code>configureStore()</code></td><td>Creates the Redux Store</td></tr>
+          <tr><td><strong>Provider</strong></td><td>Makes the Store available to all React components</td></tr>
+          <tr><td><code>useDispatch()</code></td><td>Sends actions to update the Store</td></tr>
+          <tr><td><code>useSelector()</code></td><td>Reads data from the Store</td></tr>
+          <tr><td><code>createSlice()</code></td><td>Creates reducers and action creators automatically</td></tr>
+        </table>
+
+        <div class="tip">
+          <strong>🎯 Interview Tip:</strong> In modern React applications, when someone says "Redux," they almost always mean <strong>Redux Toolkit (RTK)</strong>. Traditional Redux is still important to understand conceptually, but new projects are expected to use RTK.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>s

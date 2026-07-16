@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Re-render Prevention in React</title>
+<style>
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+    --qa-h4-a: #bfdbfe; --qa-h4-b: #93c5fd;
+    --qa-p-a:  #eff6ff; --qa-p-b:  #dbeafe;
+  }
+
+  /* ═══════════════════ HEADER ═══════════════════ */
+  .header {
+    background: linear-gradient(120deg, var(--accent-dark), var(--accent-light));
+    border-radius: 20px;
+    padding: 46px 40px;
+    margin-bottom: 44px;
+    box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 220px; height: 220px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .header h1 { color: #fff; font-size: 36px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 640px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a {
+    text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700;
+    transition: all 0.2s ease; cursor: pointer;
+    background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28);
+    letter-spacing: 0.2px;
+  }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* ═══════════════════ KEY TERMS SUMMARY ═══════════════════ */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; color: #1a1a1a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; }
+  .summary-blue   .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; }
+  .summary-pink   .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; }
+  .summary-amber  .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; }
+  .summary-green  .summary-text strong { color: #059669; }
+  .summary-violet { background: linear-gradient(135deg,#faf5ff,#f3e8ff); color: #6b21a8; }
+  .summary-violet .summary-text strong { color: #7e22ce; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* ═══════════════════ SECTION DIVIDER ═══════════════════ */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; color: #1a1a1a; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* ═══════════════════ CARDS ═══════════════════ */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+  .card-content ul { margin: 8px 0 8px 22px; }
+  .card-content li { font-size: 15.5px; line-height: 1.9; font-weight: 500; color: #333; }
+
+  /* ── short-answer ── */
+  .short-answer {
+    position: relative;
+    background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%);
+    border: 1px solid rgba(var(--shadow-rgb), 0.16);
+    border-left: 4px solid var(--accent);
+    border-radius: 14px;
+    padding: 20px 24px 22px;
+    margin-bottom: 24px;
+    font-size: 17px;
+    line-height: 1.75;
+    font-weight: 500;
+    color: #293244;
+    box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1);
+  }
+  .short-answer::before {
+    content: "QUICK ANSWER";
+    display: block; width: fit-content;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff;
+    background: linear-gradient(120deg, var(--accent), var(--accent-light));
+    padding: 5px 13px; border-radius: 20px; margin-bottom: 13px;
+    box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35);
+  }
+  .short-answer strong { color: var(--heading); }
+  .short-answer code {
+    background: rgba(var(--shadow-rgb), 0.1); color: var(--heading);
+    padding: 2px 7px; border-radius: 5px; font-size: 14.5px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+  }
+
+  /* ── code block ── */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .code-bar .dot-red { background: #ff5f57; }
+  .code-bar .dot-grey { background: #febc2e; }
+  .code-bar .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14.5px; font-family: 'Fira Code', 'Consolas', monospace; line-height: 1.65; }
+  .kw  { color: #c792ea; font-weight: 600; }
+  .str { color: #c3e88d; }
+  .fn  { color: #82aaff; }
+  .type { color: #f07178; }
+  .cmt { color: #7a7a7a; font-style: italic; }
+  .num { color: #f78c6c; }
+
+  /* ── callout boxes ── */
+  .tip, .note, .warning, .remember {
+    border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+  }
+  .tip      { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note     { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning  { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 16px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; }
+  table tr:nth-child(even) { background: #f8fafc; }
+  table code { background: rgba(37,99,235,0.08); color: #1e3a8a; padding: 2px 6px; border-radius: 5px; font-size: 13.5px; }
+
+  .flow { background:#0f172a; border-radius:12px; padding:18px 22px; margin:16px 0; text-align:center; color:#93c5fd; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:2.1; box-shadow:0 8px 20px rgba(0,0,0,0.15); }
+  .flow .arrow { color:#64748b; }
+  .flow-inline { display:inline-block; margin:6px 0; padding:8px 16px; }
+
+  @media (max-width: 768px) {
+    .header h1 { font-size: 27px; }
+    .toc a { padding: 6px 12px; font-size: 12px; }
+    .card-content { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ═══════════ HEADER ═══════════ -->
+  <div class="header">
+    <h1>Re-render Prevention in React 🎯</h1>
+    <p>
+      Rendering optimization means cutting unnecessary component renders, expensive calculations,
+      and DOM updates so your React app stays fast and responsive.
+    </p>
+    <div class="toc">
+      <a href="#why">Why Components Re-render</a>
+      <a href="#memo">React.memo</a>
+      <a href="#usememo">useMemo</a>
+      <a href="#usecallback">useCallback</a>
+      <a href="#state">State</a>
+      <a href="#inline">Inline Values</a>
+      <a href="#context">Context</a>
+      <a href="#lists">Large Lists</a>
+      <a href="#events">Debounce & Throttle</a>
+      <a href="#effects">Effects</a>
+    </div>
+  </div>
+
+  <!-- ═══════════ QUICK SUMMARY ═══════════ -->
+  <div class="intro-summary">
+    <div class="intro-summary-title">🔑 Key Concepts at a Glance</div>
+    <div class="summary-grid">
+      <div class="summary-item summary-blue">
+        <div class="summary-icon">🧬</div>
+        <div class="summary-text"><strong>React.memo:</strong> Skips re-rendering a component when its props haven't changed.</div>
+      </div>
+      <div class="summary-item summary-pink">
+        <div class="summary-icon">🧮</div>
+        <div class="summary-text"><strong>useMemo:</strong> Caches expensive calculation results between renders.</div>
+      </div>
+      <div class="summary-item summary-amber">
+        <div class="summary-icon">🔗</div>
+        <div class="summary-text"><strong>useCallback:</strong> Keeps function references stable across renders.</div>
+      </div>
+      <div class="summary-item summary-green">
+        <div class="summary-icon">📦</div>
+        <div class="summary-text"><strong>Small State:</strong> Split state so unrelated updates don't ripple everywhere.</div>
+      </div>
+      <div class="summary-item summary-violet">
+        <div class="summary-icon">🚫</div>
+        <div class="summary-text"><strong>Inline Values:</strong> Avoid inline objects, arrays, and functions in JSX props.</div>
+      </div>
+      <div class="summary-item summary-blue">
+        <div class="summary-icon">⏱️</div>
+        <div class="summary-text"><strong>Debounce/Throttle:</strong> Limit how often frequent events trigger updates.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ HOW TO PREVENT RE-RENDERS INTRO ═══════════ -->
+  <div class="short-answer">
+    <strong>How to prevent re-renders in React:</strong> First understand what triggers them —
+    state changes, prop changes, parent re-renders, or context updates. Then wrap pure child
+    components in <code>React.memo()</code>, cache expensive calculations with
+    <code>useMemo()</code>, and stabilize function references with <code>useCallback()</code>.
+    Keep state small and close to where it's used, avoid inline objects/arrays/functions in JSX,
+    split large contexts, and virtualize or paginate long lists so only what's visible renders.
+  </div>
+
+  <!-- ═══════════ SECTION: WHY RE-RENDER ═══════════ -->
+  <div class="section-divider" id="why"><span>❓ 1. Understand Why Components Re-render</span></div>
+  <div class="card">
+    <div class="card-title">🔬 What Triggers a Render</div>
+    <div class="card-content">
+      <p>Before optimizing, identify what triggers a re-render. A component re-renders when:</p>
+      <ul>
+        <li>State changes</li>
+        <li>Props change</li>
+        <li>Parent component re-renders</li>
+        <li>Context value changes</li>
+        <li>Key changes</li>
+        <li>Force update is called</li>
+      </ul>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Parent.jsx</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">Parent</span>() {
+    <span class="kw">const</span> [count, setCount] = <span class="fn">useState</span>(<span class="num">0</span>);
+
+    <span class="kw">return</span> (
+        &lt;&gt;
+            &lt;Child /&gt;
+            &lt;button onClick={() => setCount(count + 1)}&gt;
+                Increment
+            &lt;/button&gt;
+        &lt;/&gt;
+    );
+}</code></pre>
+      </div>
+      <div class="note">📌 Whenever <code>count</code> changes, <code>Parent</code> re-renders, and by default <code>Child</code> also re-renders — even though nothing about <code>Child</code> actually changed.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: REACT.MEMO ═══════════ -->
+  <div class="section-divider" id="memo"><span>🧬 2. Use React.memo()</span></div>
+  <div class="card">
+    <div class="card-title">🛡️ Skip Renders When Props Are Unchanged</div>
+    <div class="card-content">
+      <p>Prevent child components from re-rendering when their props haven't changed.</p>
+
+      <h4>Without Optimization</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Parent.jsx</span></div>
+        <pre><code>&lt;Child /&gt;</code></pre>
+      </div>
+      <div class="warning">❌ Every parent render causes <code>Child</code> to render.</div>
+
+      <h4>With Optimization</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Child.jsx</span></div>
+        <pre><code><span class="kw">const</span> Child = React.<span class="fn">memo</span>(<span class="kw">function</span> <span class="fn">Child</span>() {
+    console.<span class="fn">log</span>(<span class="str">"Rendered"</span>);
+    <span class="kw">return</span> &lt;h2&gt;Child&lt;/h2&gt;;
+});</code></pre>
+      </div>
+      <div class="remember">✅ React compares previous and new props using shallow comparison. If props are unchanged, React skips rendering.</div>
+
+      <h4>Best For</h4>
+      <ul>
+        <li>Product Cards</li>
+        <li>Sidebar</li>
+        <li>Dashboard Widgets</li>
+        <li>User Profile</li>
+        <li>Navigation</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: USEMEMO ═══════════ -->
+  <div class="section-divider" id="usememo"><span>🧮 3. Memoize Expensive Calculations with useMemo()</span></div>
+  <div class="card">
+    <div class="card-title">💰 Don't Recalculate on Every Render</div>
+    <div class="card-content">
+      <p>Expensive calculations should not execute on every render.</p>
+
+      <h4>Without useMemo</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Products.jsx</span></div>
+        <pre><code><span class="kw">const</span> sortedProducts = products.<span class="fn">sort</span>(sortFunction);</code></pre>
+      </div>
+      <div class="warning">❌ Runs every render.</div>
+
+      <h4>Optimized</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Products.jsx</span></div>
+        <pre><code><span class="kw">const</span> sortedProducts = <span class="fn">useMemo</span>(() => {
+    <span class="kw">return</span> products.<span class="fn">sort</span>(sortFunction);
+}, [products]);</code></pre>
+      </div>
+      <div class="remember">✅ Calculation runs only when <code>products</code> changes.</div>
+
+      <h4>Real Examples</h4>
+      <ul>
+        <li>Product filtering</li>
+        <li>Product sorting</li>
+        <li>Dashboard analytics</li>
+        <li>Student progress</li>
+        <li>Financial reports</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: USECALLBACK ═══════════ -->
+  <div class="section-divider" id="usecallback"><span>🔗 4. Memoize Functions with useCallback()</span></div>
+  <div class="card">
+    <div class="card-title">🪢 Keep Function References Stable</div>
+    <div class="card-content">
+      <p>Functions are recreated on every render, which breaks memoization for children.</p>
+
+      <h4>Without useCallback</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Parent.jsx</span></div>
+        <pre><code>&lt;Child onClick={() => addToCart(id)} /&gt;</code></pre>
+      </div>
+      <div class="warning">❌ New function every render.</div>
+
+      <h4>Optimized</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Parent.jsx</span></div>
+        <pre><code><span class="kw">const</span> handleAddToCart = <span class="fn">useCallback</span>(() => {
+    <span class="fn">addToCart</span>(id);
+}, [id]);
+
+&lt;Child onClick={handleAddToCart} /&gt;</code></pre>
+      </div>
+      <div class="remember">✅ Same function reference is reused until dependencies change. Especially useful when child components use <code>React.memo</code>.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: COMBINE ═══════════ -->
+  <div class="section-divider"><span>🧩 5. Combine React.memo + useMemo + useCallback</span></div>
+  <div class="card">
+    <div class="card-title">🌳 Work Together Across the Tree</div>
+    <div class="card-content">
+      <p>These hooks work together to prevent unnecessary rendering throughout the component tree.</p>
+      <div class="flow">Parent <span class="arrow">↓</span><br>Products (memo) <span class="arrow">↓</span><br>ProductCard (memo) <span class="arrow">↓</span><br>Button (memo)</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: KEEP STATE SMALL ═══════════ -->
+  <div class="section-divider" id="state"><span>📦 6–7. Keep State Small & Close to Where It's Used</span></div>
+  <div class="card">
+    <div class="card-title">🎯 Localize and Split State</div>
+    <div class="card-content">
+      <h4>Keep State Small</h4>
+      <div class="warning">
+        ❌ Bad:
+        <div class="code-block" style="margin-top:8px;">
+          <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div></div>
+          <pre><code><span class="kw">const</span> [state, setState] = <span class="fn">useState</span>({
+    products: [],
+    cart: [],
+    profile: {},
+    theme: <span class="str">""</span>
+});</code></pre>
+        </div>
+        Updating one property creates a new object and can affect all consumers.
+      </div>
+      <div class="remember">
+        ✅ Better:
+        <div class="code-block" style="margin-top:8px;">
+          <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div></div>
+          <pre><code><span class="kw">const</span> [products, setProducts] = <span class="fn">useState</span>([]);
+<span class="kw">const</span> [cart, setCart] = <span class="fn">useState</span>([]);
+<span class="kw">const</span> [theme, setTheme] = <span class="fn">useState</span>(<span class="str">"light"</span>);</code></pre>
+        </div>
+        Only the relevant state changes.
+      </div>
+
+      <h4>Keep State Close to Where It's Used</h4>
+      <div class="warning">❌ Bad: <span class="flow flow-inline">App <span class="arrow">↓</span> Products <span class="arrow">↓</span> ProductCard <span class="arrow">↓</span> Wishlist Button</span> — Wishlist state in <code>App</code> causes many components to re-render.</div>
+      <div class="remember">✅ Better: <span class="flow flow-inline" style="color:#a7f3d0;">ProductCard <span class="arrow" style="color:#4b5563;">↓</span> Wishlist Button <span class="arrow" style="color:#4b5563;">↓</span> wishlist state</span> — Only <code>WishlistButton</code> re-renders.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: AVOID INLINE VALUES ═══════════ -->
+  <div class="section-divider" id="inline"><span>🚫 8–10. Avoid Inline Objects, Arrays & Functions</span></div>
+  <div class="card">
+    <div class="card-title">🧊 Stop Creating New References Every Render</div>
+    <div class="card-content">
+      <h4>Avoid Inline Objects</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Card.jsx</span></div>
+        <pre><code><span class="cmt">// ❌ Bad — new object every render</span>
+&lt;Card style={{ color: <span class="str">"red"</span> }} /&gt;
+
+<span class="cmt">// ✅ Better</span>
+<span class="kw">const</span> cardStyle = { color: <span class="str">"red"</span> };
+&lt;Card style={cardStyle} /&gt;</code></pre>
+      </div>
+
+      <h4>Avoid Inline Arrays</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">List.jsx</span></div>
+        <pre><code><span class="cmt">// ❌ Bad — new array every render</span>
+&lt;List items={[1,2,3]} /&gt;
+
+<span class="cmt">// ✅ Better</span>
+<span class="kw">const</span> items = <span class="fn">useMemo</span>(() => [1,2,3], []);</code></pre>
+      </div>
+
+      <h4>Avoid Inline Functions</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Button.jsx</span></div>
+        <pre><code><span class="cmt">// ❌ Bad — new function every render</span>
+&lt;Button onClick={() => save()} /&gt;
+
+<span class="cmt">// ✅ Better</span>
+<span class="kw">const</span> handleSave = <span class="fn">useCallback</span>(() => {
+    <span class="fn">save</span>();
+}, []);
+&lt;Button onClick={handleSave} /&gt;</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: CONTEXT ═══════════ -->
+  <div class="section-divider" id="context"><span>🎛️ 11. Optimize Context</span></div>
+  <div class="card">
+    <div class="card-title">✂️ Split Contexts, Memoize Values</div>
+    <div class="card-content">
+      <div class="warning">❌ Bad: <span class="flow flow-inline">Global Context <span class="arrow">↓</span> Every Component Re-renders</span></div>
+      <div class="remember">✅ Better: split into <strong>Theme Context</strong>, <strong>User Context</strong>, <strong>Cart Context</strong>, and <strong>Auth Context</strong> so updates only affect relevant components.</div>
+      <p>Also memoize the provider value:</p>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">ThemeProvider.jsx</span></div>
+        <pre><code><span class="kw">const</span> value = <span class="fn">useMemo</span>(() => ({
+    theme,
+    toggleTheme
+}), [theme]);</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: LARGE LISTS + LAZY LOAD ═══════════ -->
+  <div class="section-divider" id="lists"><span>📜 12–13. Large Lists & Lazy Loaded Components</span></div>
+  <div class="card">
+    <div class="card-title">🧱 Render Only What's Needed</div>
+    <div class="card-content">
+      <h4>Render Large Lists Efficiently</h4>
+      <p>Instead of rendering thousands of items at once with <code>products.map(...)</code>, use:</p>
+      <ul>
+        <li>Pagination</li>
+        <li>Infinite Scroll</li>
+        <li>Virtualization (<code>react-window</code>)</li>
+        <li>Lazy Loading</li>
+      </ul>
+      <div class="note">📌 Only visible items are rendered.</div>
+
+      <h4>Lazy Load Components</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">App.jsx</span></div>
+        <pre><code><span class="cmt">// Instead of loading every page initially</span>
+<span class="kw">import</span> Dashboard <span class="kw">from</span> <span class="str">"./Dashboard"</span>;
+
+<span class="cmt">// Use</span>
+<span class="kw">const</span> Dashboard = React.<span class="fn">lazy</span>(() => <span class="fn">import</span>(<span class="str">"./Dashboard"</span>));
+
+&lt;Suspense fallback={&lt;Loading /&gt;}&gt;
+    &lt;Dashboard /&gt;
+&lt;/Suspense&gt;</code></pre>
+      </div>
+      <div class="tip">💡 Only downloads the component when needed.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: DEBOUNCE + THROTTLE ═══════════ -->
+  <div class="section-divider" id="events"><span>⏱️ 14–15. Debounce & Throttle Frequent Events</span></div>
+  <div class="card">
+    <div class="card-title">🐢 Slow Down Rapid-Fire Updates</div>
+    <div class="card-content">
+      <h4>Debounce Frequent User Input</h4>
+      <div class="warning">❌ Without debounce: <span class="flow flow-inline">Typing <span class="arrow">↓</span> API <span class="arrow">↓</span> API <span class="arrow">↓</span> API <span class="arrow">↓</span> API</span></div>
+      <div class="remember">✅ With debounce: <span class="flow flow-inline" style="color:#a7f3d0;">Typing <span class="arrow" style="color:#4b5563;">↓</span> Wait 300ms <span class="arrow" style="color:#4b5563;">↓</span> Single API Request</span></div>
+      <p>Useful for: Search, Auto-complete, Filters.</p>
+
+      <h4>Throttle Frequent Events</h4>
+      <p>Useful for: Scroll, Resize, Mouse Move.</p>
+      <div class="note">📌 Instead of executing hundreds of times per second: <span class="flow flow-inline">Scroll <span class="arrow">↓</span> Every 200ms <span class="arrow">↓</span> Update UI</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: EFFECTS ═══════════ -->
+  <div class="section-divider" id="effects"><span>🧷 16–17. Prevent Unnecessary API Calls & Fix Dependencies</span></div>
+  <div class="card">
+    <div class="card-title">✅ Correct useEffect Usage</div>
+    <div class="card-content">
+      <h4>Prevent Unnecessary API Calls</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Products.jsx</span></div>
+        <pre><code><span class="cmt">// ❌ Bad — runs after every render</span>
+<span class="fn">useEffect</span>(() => {
+    <span class="fn">fetchProducts</span>();
+});
+
+<span class="cmt">// ✅ Better — runs only once on mount</span>
+<span class="fn">useEffect</span>(() => {
+    <span class="fn">fetchProducts</span>();
+}, []);</code></pre>
+      </div>
+
+      <h4>Correct Dependency Arrays</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Calculator.jsx</span></div>
+        <pre><code><span class="cmt">// ❌ Bad — calculate() depends on changing values, may use stale data</span>
+<span class="fn">useEffect</span>(() => {
+    <span class="fn">calculate</span>();
+}, []);
+
+<span class="cmt">// ✅ Good — always include all required dependencies</span>
+<span class="fn">useEffect</span>(() => {
+    <span class="fn">calculate</span>();
+}, [products]);</code></pre>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>React Unit Testing - Complete Guide</title>
+  <!-- Google Fonts: JetBrains Mono & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="common.css" />
+</head>
+<style>
+  * { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+  }
+  
+  body { 
+    background: #0b0f19; /* Ultimate deep space dark */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    color: #e2e8f0; 
+    line-height: 1.5;
+  }
+  
+  .container { 
+    width: 92%; 
+    max-width: 1180px; 
+    margin: 60px auto; 
+  }
+
+  .container {
+    --accent-dark:   #0f766e;
+    --accent:        #0d9488;
+    --accent-light:  #14b8a6;
+    --content-bg:    #111827; /* Dark container background */
+    --card-bg:       #1e293b; /* Premium slate box background */
+    --heading:       #2dd4bf;
+    --shadow-rgb:    0, 0, 0;
+  }
+
+  /* ═══════════════════ HEADER ═══════════════════ */
+  .header {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border: 1px solid rgba(45, 212, 191, 0.2);
+    border-radius: 20px;
+    padding: 46px 40px;
+    margin-bottom: 44px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 220px; height: 220px; border-radius: 50%;
+    background: rgba(45, 212, 191, 0.05);
+  }
+  .header h1 { color: #fff; font-size: 36px; margin-bottom: 12px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #94a3b8; font-size: 16.5px; margin-bottom: 26px; max-width: 660px; line-height: 1.6; position: relative; }
+  
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a {
+    text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700;
+    transition: all 0.2s ease; cursor: pointer;
+    background: rgba(255, 255, 255, 0.05); color: #cbd5e1; border: 1px solid rgba(255, 255, 255, 0.1);
+    letter-spacing: 0.2px;
+  }
+  .toc a:hover { background: var(--accent); color: #fff; border-color: var(--accent-light); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3); }
+
+  /* ═══════════════════ KEY TERMS SUMMARY ═══════════════════ */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 14px; padding: 18px; border: 1px solid rgba(255, 255, 255, 0.05); background: #1e293b; }
+  .summary-icon { flex-shrink: 0; width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(0,0,0,0.2); }
+  .summary-text { font-size: 14.5px; line-height: 1.5; font-weight: 500; }
+  .summary-text strong { font-weight: 700; margin-right: 4px; display: inline-block; }
+  
+  .summary-teal   { color: #e2e8f0; border-left: 4px solid #0d9488; } .summary-teal strong { color: #2dd4bf; }
+  .summary-pink   { color: #e2e8f0; border-left: 4px solid #db2777; } .summary-pink strong { color: #f472b6; }
+  .summary-amber  { color: #e2e8f0; border-left: 4px solid #d97706; } .summary-amber strong { color: #fbbf24; }
+  .summary-blue   { color: #e2e8f0; border-left: 4px solid #2563eb; } .summary-blue strong { color: #60a5fa; }
+
+  /* ═══════════════════ SECTION DIVIDER ═══════════════════ */
+  .section-divider { margin: 60px 0 30px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(255,255,255,0.1); }
+  .section-divider span { background: #0b0f19; padding: 0 20px 0 0; position: relative; font-size: 22px; font-weight: 800; color: #fff; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* ═══════════════════ CARDS ═══════════════════ */
+  .card { border-radius: 16px; margin-bottom: 30px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06); background: var(--card-bg); }
+  .card-title { color: #fff; font-size: 19.5px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: #1e293b; border-bottom: 1px solid rgba(255,255,255,0.08); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #94a3b8; font-size: 16px; line-height: 1.7; margin-bottom: 16px; }
+  .card-content h4 { font-size: 17px; margin-bottom: 12px; margin-top: 24px; font-weight: 700; color: var(--heading); display: flex; align-items: center; gap: 8px; }
+
+  /* ── short-answer ── */
+  .short-answer {
+    position: relative;
+    background: #1e293b;
+    border: 1px solid rgba(45, 212, 191, 0.15);
+    border-left: 4px solid var(--accent-light);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 26px;
+    font-size: 16px;
+    line-height: 1.7;
+    color: #cbd5e1;
+  }
+  .short-answer::before {
+    content: "QUICK ANSWER";
+    display: block; width: fit-content;
+    font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #115e59;
+    background: var(--accent-light);
+    padding: 3px 10px; border-radius: 6px; margin-bottom: 14px;
+  }
+  .short-answer code {
+    background: rgba(45, 212, 191, 0.15); color: #2dd4bf;
+    padding: 2px 6px; border-radius: 4px; font-size: 14px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── CODE BLOCK CONFIG (IMPROVED IDE FOCUS) ── */
+  .code-block { background: #090d16; border-radius: 14px; overflow: hidden; margin: 20px 0; box-shadow: 0 12px 30px rgba(0,0,0,0.4); border: 1px solid #1e293b; }
+  .code-bar { background: #0f172a; padding: 12px 18px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #1e293b; }
+  .code-bar .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .code-bar .dot-red { background: #ff5f56; }
+  .code-bar .dot-grey { background: #ffbd2e; }
+  .code-bar .dot-green { background: #27c93f; }
+  .code-bar .filename { color: #64748b; font-size: 13px; margin-left: 10px; font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+  
+  .code-block pre { padding: 24px; overflow-x: auto; line-height: 1.8; }
+  .code-block code { color: #cbd5e1; font-size: 14.5px; font-family: 'JetBrains Mono', monospace; font-variant-ligatures: normal; }
+  
+  /* Syntax Tokens */
+  .kw    { color: #ff79c6; font-weight: 600; }      /* Keywords - Soft Fuchsia */
+  .str   { color: #50fa7b; }                        /* Strings - Neon Mint Green */
+  .fn    { color: #8be9fd; }                        /* Core Methods/Globals - Sky Blue */
+  .type  { color: #ffb86c; font-weight: 600; }      /* Main Component/Constructors - Pastel Gold */
+  .num   { color: #bd93f9; }                        /* Numbers & RegEx - Purple Vibe */
+  .prop  { color: #f1fa8c; }                        /* Object Fields / Attributes - Cream Yellow */
+
+  /* DIFFERENT MULTI-COLORED COMMENT TRACKS */
+  .cmt-setup  { color: #6272a4; font-style: italic; font-weight: 500; } /* Setup Structural Bars (Cool Grey Slate) */
+  .cmt-flow   { color: #ff5555; font-style: italic; }                   /* Action Steps & Processes (Alert Salmon) */
+  .cmt-assert { color: #50fa7b; font-weight: 500; opacity: 0.85; }      /* Verification checkpoints (Checkmark Teal) */
+  .cmt-inline { color: #94a3b8; font-style: italic; opacity: 0.65; }    /* Standard Inline Reminders (Muted Slate) */
+
+  /* ── callout boxes ── */
+  .remember {
+    border-radius: 12px; padding: 20px; margin: 24px 0; font-size: 15.5px; line-height: 1.7;
+    background: #1e293b; border-left: 4px solid #3b82f6; color: #e2e8f0;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  }
+  .remember strong { color: #60a5fa; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid #1e293b; }
+  table th { background: #1e293b; color: #2dd4bf; font-size: 15px; font-weight: 700; padding: 16px 20px; text-align: left; border-bottom: 2px solid #0f172a; }
+  table td { padding: 14px 20px; font-size: 14.5px; border-bottom: 1px solid #1e293b; color: #cbd5e1; background: #111827; }
+  table tr:nth-child(even) td { background: #161f30; }
+  table code { background: rgba(45, 212, 191, 0.1); color: #2dd4bf; padding: 3px 6px; border-radius: 5px; font-size: 13.5px; font-family: 'JetBrains Mono', monospace; }
+
+  @media (max-width: 768px) {
+    .header h1 { font-size: 27px; }
+    .toc a { padding: 6px 12px; font-size: 12px; }
+    .card-content { padding: 20px; }
+    .code-block pre { padding: 16px; font-size: 13px; }
+  }
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header">
+      <h1>🧪 React Unit Testing — Complete Guide</h1>
+      <p>A realistic Jest + React Testing Library test file covering rendering, mocked APIs, mocked Router and Redux, user events, async assertions, and test commands.</p>
+      <div class="toc">
+        <a onclick="document.getElementById('full-test').scrollIntoView({behavior:'smooth'});return false;">Full Test File</a>
+        <a onclick="document.getElementById('assertions').scrollIntoView({behavior:'smooth'});return false;">Common Assertions</a>
+        <a onclick="document.getElementById('mock-api').scrollIntoView({behavior:'smooth'});return false;">Mock API</a>
+        <a onclick="document.getElementById('mock-fetch').scrollIntoView({behavior:'smooth'});return false;">Mock Fetch</a>
+        <a onclick="document.getElementById('mock-axios').scrollIntoView({behavior:'smooth'});return false;">Mock Axios</a>
+        <a onclick="document.getElementById('mock-router').scrollIntoView({behavior:'smooth'});return false;">Mock Router</a>
+        <a onclick="document.getElementById('commands').scrollIntoView({behavior:'smooth'});return false;">Test Commands</a>
+      </div>
+    </div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🧩 Testing at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🖼️</div>
+          <div class="summary-text"><strong>render():</strong> Mounts the component into a virtual DOM for testing.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">👆</div>
+          <div class="summary-text"><strong>userEvent:</strong> Simulates real user actions like typing and clicking.</div>
+        </div>
+        <div class="summary-item summary-amber">
+          <div class="summary-icon">🎭</div>
+          <div class="summary-text"><strong>jest.mock():</strong> Replaces modules (API, router, axios) with test doubles.</div>
+        </div>
+        <div class="summary-item summary-blue">
+          <div class="summary-icon">⏳</div>
+          <div class="summary-text"><strong>waitFor():</strong> Waits for async UI updates before asserting.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== FULL TEST FILE ==================== -->
+    <div class="section-divider" id="full-test"><span>📄 Complete React Unit Test Example</span></div>
+
+    <div class="card">
+      <div class="card-content">
+        <div class="short-answer">
+          This single test file combines the most commonly asked interview concepts: <strong>rendering</strong>, <strong>mocking an API</strong>, <strong>mocking React Router</strong> (<code>useNavigate</code>), <strong>mocking Redux</strong> (Provider), <strong>user events</strong>, <strong>assertions</strong>, and <strong>async testing</strong> — with a comment on every important line.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Login.test.jsx</span></div>
+          <pre><code><span class="cmt-setup">// ---------------------------------------------------------</span>
+<span class="cmt-setup">// Import Testing Library Config Elements</span>
+<span class="cmt-setup">// ---------------------------------------------------------</span>
+
+<span class="kw">import</span> { <span class="fn">render</span>, <span class="fn">screen</span>, <span class="fn">waitFor</span> } <span class="kw">from</span> <span class="str">"@testing-library/react"</span>; <span class="cmt-inline">// Render component, query DOM, wait for updates</span>
+<span class="kw">import</span> <span class="fn">userEvent</span> <span class="kw">from</span> <span class="str">"@testing-library/user-event"</span>;              <span class="cmt-inline">// Simulate real user actions (click, type)</span>
+<span class="kw">import</span> <span class="type">Login</span> <span class="kw">from</span> <span class="str">"../Login"</span>;                                     <span class="cmt-inline">// Component under test</span>
+
+<span class="cmt-setup">// ---------------------------------------------------------</span>
+<span class="cmt-setup">// React Router Environment Mocking</span>
+<span class="cmt-setup">// ---------------------------------------------------------</span>
+
+<span class="kw">import</span> { <span class="fn">MemoryRouter</span> } <span class="kw">from</span> <span class="str">"react-router-dom"</span>;                  <span class="cmt-inline">// Router used only for testing</span>
+<span class="kw">const</span> <span class="type">mockNavigate</span> = jest.<span class="fn">fn</span>();                                   <span class="cmt-inline">// Mock function to verify navigation</span>
+
+<span class="cmt-inline">// Replace only useNavigate with mock handler</span>
+jest.<span class="fn">mock</span>(<span class="str">"react-router-dom"</span>, () =&gt; ({
+  ...jest.<span class="fn">requireActual</span>(<span class="str">"react-router-dom"</span>),                      <span class="cmt-inline">// Keep all original router functionality</span>
+  <span class="prop">useNavigate</span>: () =&gt; <span class="type">mockNavigate</span>,                                <span class="cmt-inline">// Replace useNavigate() hook tracking</span>
+}));
+
+<span class="cmt-setup">// ---------------------------------------------------------</span>
+<span class="cmt-setup">// Redux Global Store Connection</span>
+<span class="cmt-setup">// ---------------------------------------------------------</span>
+
+<span class="kw">import</span> { <span class="fn">Provider</span> } <span class="kw">from</span> <span class="str">"react-redux"</span>;
+<span class="kw">import</span> { <span class="type">store</span> } <span class="kw">from</span> <span class="str">"../redux/store"</span>;                           <span class="cmt-inline">// Real or mock store pipeline</span>
+
+<span class="cmt-setup">// ---------------------------------------------------------</span>
+<span class="cmt-setup">// API Architecture Mocking Setup</span>
+<span class="cmt-setup">// ---------------------------------------------------------</span>
+
+<span class="kw">import</span> { <span class="fn">loginUser</span> } <span class="kw">from</span> <span class="str">"../services/api"</span>;
+
+<span class="cmt-inline">// Replace actual structural API network with a mock double</span>
+jest.<span class="fn">mock</span>(<span class="str">"../services/api"</span>, () =&gt; ({
+  <span class="prop">loginUser</span>: jest.<span class="fn">fn</span>(),
+}));
+
+<span class="cmt-setup">// ---------------------------------------------------------</span>
+<span class="cmt-setup">// Core Jest Execution Lifecycle Engine</span>
+<span class="cmt-setup">// ---------------------------------------------------------</span>
+
+<span class="fn">describe</span>(<span class="str">"Login Component"</span>, () =&gt; {
+
+  <span class="fn">beforeEach</span>(() =&gt; {
+    jest.<span class="fn">clearAllMocks</span>();                                         <span class="cmt-inline">// Clear mock history before every test cycle</span>
+  });
+
+  <span class="fn">test</span>(<span class="str">"should login successfully"</span>, <span class="kw">async</span> () =&gt; {
+
+    <span class="cmt-flow">// STEP 1: Arrange (Prepare Mocked Responses and Data Structures)</span>
+    <span class="type">loginUser</span>.<span class="fn">mockResolvedValue</span>({
+      <span class="prop">data</span>: {
+        <span class="prop">token</span>: <span class="str">"123456"</span>,
+        <span class="prop">user</span>: {
+          <span class="prop">name</span>: <span class="str">"Shivam"</span>
+        }
+      }
+    });
+
+    <span class="cmt-flow">// STEP 2: Render Component Tree with Wrapped Testing Providers</span>
+    <span class="fn">render</span>(
+      &lt;<span class="fn">Provider</span> <span class="prop">store</span>={<span class="type">store</span>}&gt;                                 {<span class="cmt-inline">/* Connect Redux Container */</span>}
+        &lt;<span class="fn">MemoryRouter</span>&gt;                                          {<span class="cmt-inline">/* Connect Router Sandbox */</span>}
+          &lt;<span class="type">Login</span> /&gt;
+        &lt;/<span class="fn">MemoryRouter</span>&gt;
+      &lt;/<span class="fn">Provider</span>&gt;
+    );
+
+    <span class="cmt-flow">// STEP 3: Query DOM Nodes and Active Viewport Controls</span>
+    <span class="kw">const</span> <span class="type">emailInput</span> = <span class="fn">screen</span>.<span class="fn">getByPlaceholderText</span>(<span class="str">"Enter Email"</span>);
+    <span class="kw">const</span> <span class="type">passwordInput</span> = <span class="fn">screen</span>.<span class="fn">getByPlaceholderText</span>(<span class="str">"Enter Password"</span>);
+    <span class="kw">const</span> <span class="type">loginButton</span> = <span class="fn">screen</span>.<span class="fn">getByRole</span>(<span class="str">"button"</span>, { <span class="prop">name</span>: <span class="num">/login/i</span> });
+
+    <span class="cmt-flow">// STEP 4: Execute Interactive User Micro-Events via Promises</span>
+    <span class="kw">await</span> <span class="fn">userEvent</span>.<span class="fn">type</span>(<span class="type">emailInput</span>, <span class="str">"admin@gmail.com"</span>);
+    <span class="kw">await</span> <span class="fn">userEvent</span>.<span class="fn">type</span>(<span class="type">passwordInput</span>, <span class="str">"123456"</span>);
+
+    <span class="cmt-assert">// CHECKPOINT A: Verify State-Driven Input Node Value Updates</span>
+    <span class="fn">expect</span>(<span class="type">emailInput</span>).<span class="fn">toHaveValue</span>(<span class="str">"admin@gmail.com"</span>);
+    <span class="fn">expect</span>(<span class="type">passwordInput</span>).<span class="fn">toHaveValue</span>(<span class="str">"123456"</span>);
+
+    <span class="cmt-flow">// STEP 5: Dispatch Form Submit Trigger Event</span>
+    <span class="kw">await</span> <span class="fn">userEvent</span>.<span class="fn">click</span>(<span class="type">loginButton</span>);
+
+    <span class="cmt-assert">// CHECKPOINT B: Verify Core API Metrics and Request Interceptions</span>
+    <span class="fn">expect</span>(<span class="type">loginUser</span>).<span class="fn">toHaveBeenCalledTimes</span>(<span class="num">1</span>);
+    <span class="fn">expect</span>(<span class="type">loginUser</span>).<span class="fn">toHaveBeenCalledWith</span>({
+      <span class="prop">email</span>: <span class="str">"admin@gmail.com"</span>,
+      <span class="prop">password</span>: <span class="str">"123456"</span>,
+    });
+
+    <span class="cmt-assert">// CHECKPOINT C: Await Dynamic DOM Reconciliation Updates</span>
+    <span class="kw">await</span> <span class="fn">waitFor</span>(() =&gt; {
+      <span class="fn">expect</span>(<span class="fn">screen</span>.<span class="fn">getByText</span>(<span class="str">"Welcome Shivam"</span>)).<span class="fn">toBeInTheDocument</span>();
+    });
+
+    <span class="cmt-assert">// CHECKPOINT D: Track App-Level Navigation Redirect Interception</span>
+    <span class="fn">expect</span>(<span class="type">mockNavigate</span>).<span class="fn">toHaveBeenCalledWith</span>(<span class="str">"/dashboard"</span>);
+
+  });
+
+});</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== COMMON ASSERTIONS ==================== -->
+    <div class="section-divider" id="assertions"><span>✅ Common Assertions</span></div>
+
+    <div class="card">
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">assertions.js</span></div>
+          <pre><code><span class="fn">expect</span>(<span class="type">element</span>).<span class="fn">toBeInTheDocument</span>();      <span class="cmt-assert">// Element matching criteria exists inside root document DOM tree</span>
+
+<span class="fn">expect</span>(<span class="type">element</span>).<span class="fn">toBeVisible</span>();            <span class="cmt-assert">// Element display states render visually clear text details to user viewport</span>
+
+<span class="fn">expect</span>(<span class="type">element</span>).<span class="fn">toHaveTextContent</span>(<span class="str">"Login"</span>); <span class="cmt-assert">// Outer/Inner layout inner-string maps match safely</span>
+
+<span class="fn">expect</span>(<span class="type">input</span>).<span class="fn">toHaveValue</span>(<span class="str">"admin"</span>);       <span class="cmt-assert">// Current controlled state component storage holds text array matching</span>
+
+<span class="fn">expect</span>(<span class="type">button</span>).<span class="fn">toBeDisabled</span>();            <span class="cmt-assert">// Interaction flag parameters block submission behaviors</span>
+
+<span class="fn">expect</span>(<span class="type">button</span>).<span class="fn">toBeEnabled</span>();             <span class="cmt-assert">// Interaction node properties permit trigger executions</span>
+
+<span class="fn">expect</span>(<span class="type">checkbox</span>).<span class="fn">toBeChecked</span>();           <span class="cmt-assert">// Checked conditional evaluation is true</span>
+
+<span class="fn">expect</span>(<span class="type">mockFn</span>).<span class="fn">toHaveBeenCalled</span>();        <span class="cmt-assert">// Execution tracking system logged call execution success hooks</span>
+
+<span class="fn">expect</span>(<span class="type">mockFn</span>).<span class="fn">toHaveBeenCalledTimes</span>(<span class="num">2</span>);  <span class="cmt-assert">// Execution target met standard stack iteration amount limits</span>
+
+<span class="fn">expect</span>(<span class="type">mockFn</span>).<span class="fn">toHaveBeenCalledWith</span>(<span class="type">data</span>);<span class="cmt-assert">// Invocation parameter values match structural snapshots perfectly</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MOCK API PATTERNS ==================== -->
+    <div class="section-divider" id="mock-api"><span>🎭 Mock API Patterns</span></div>
+
+    <div class="card">
+      <div class="card-content">
+        <h4>✅ Success Response</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">success-mock.js</span></div>
+          <pre><code><span class="type">loginUser</span>.<span class="fn">mockResolvedValue</span>({
+  <span class="prop">data</span>: {
+    <span class="prop">token</span>: <span class="str">"123"</span>,
+  },
+}); <span class="cmt-flow">// Simulates a successful Promise layout engine response callback</span></code></pre>
+        </div>
+
+        <h4>❌ Error Response</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">error-mock.js</span></div>
+          <pre><code><span class="type">loginUser</span>.<span class="fn">mockRejectedValue</span>(
+  <span class="kw">new</span> <span class="fn">Error</span>(<span class="str">"Invalid Credentials"</span>)
+); <span class="cmt-flow">// Force-fails target Promise pipelines to evaluate catch block resilience patterns</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MOCK FETCH ==================== -->
+    <div class="section-divider" id="mock-fetch"><span>🌐 Mock Fetch</span></div>
+
+    <div class="card">
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">fetch-mock.js</span></div>
+          <pre><code><span class="type">global</span>.fetch = jest.<span class="fn">fn</span>(); <span class="cmt-setup">// Swap global execution window native browser queries out</span>
+
+fetch.<span class="fn">mockResolvedValue</span>({
+  <span class="prop">json</span>: <span class="kw">async</span> () =&gt; ({
+    <span class="prop">name</span>: <span class="str">"Shivam"</span>,
+  }),
+}); <span class="cmt-flow">// Mimics nested resolution tracking sequences cleanly</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MOCK AXIOS ==================== -->
+    <div class="section-divider" id="mock-axios"><span>📡 Mock Axios</span></div>
+
+    <div class="card">
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">axios-mock.js</span></div>
+          <pre><code><span class="kw">import</span> <span class="fn">axios</span> <span class="kw">from</span> <span class="str">"axios"</span>;
+
+jest.<span class="fn">mock</span>(<span class="str">"axios"</span>); <span class="cmt-setup">// Swap dynamic node module layer mappings out globally</span>
+
+axios.get.<span class="fn">mockResolvedValue</span>({
+  <span class="prop">data</span>: [{ <span class="prop">id</span>: <span class="num">1</span>, <span class="prop">name</span>: <span class="str">"React"</span> }],
+}); <span class="cmt-flow">// Resolves internal data containers perfectly inside virtualized environments</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MOCK ROUTER ==================== -->
+    <div class="section-divider" id="mock-router"><span>🧭 React Router Mock</span></div>
+
+    <div class="card">
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">router-mock.js</span></div>
+          <pre><code><span class="kw">const</span> <span class="type">mockNavigate</span> = jest.<span class="fn">fn</span>(); <span class="cmt-setup">// Create structural listener proxy tracking parameters</span>
+
+jest.<span class="fn">mock</span>(<span class="str">"react-router-dom"</span>, () =&gt; ({
+  ...jest.<span class="fn">requireActual</span>(<span class="str">"react-router-dom"</span>), <span class="cmt-inline">// Import remaining library elements raw</span>
+  <span class="prop">useNavigate</span>: () =&gt; <span class="type">mockNavigate</span>,           <span class="cmt-inline">// Substitute context routing targets with custom tracking engine</span>
+}));
+
+<span class="fn">expect</span>(<span class="type">mockNavigate</span>).<span class="fn">toHaveBeenCalledWith</span>(<span class="str">"/home"</span>); <span class="cmt-assert">// Match transition navigation arrays instantly</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TEST COMMANDS ==================== -->
+    <div class="section-divider" id="commands"><span>⚙️ Test Commands</span></div>
+
+    <div class="card">
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">package.json</span></div>
+          <pre><code>{
+  <span class="str">"scripts"</span>: {
+    <span class="str">"test"</span>: <span class="str">"jest"</span>,                  <span class="cmt-setup">// Run full test automation pipelines once</span>
+    <span class="str">"test:watch"</span>: <span class="str">"jest --watch"</span>,    <span class="cmt-setup">// Track source code arrays; auto trigger rerun procedures on updates</span>
+    <span class="str">"test:coverage"</span>: <span class="str">"jest --coverage"</span> <span class="cmt-setup">// Calculate metric coverage percent parameters instantly</span>
+  }
+}</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code><span class="fn">npm</span> test               <span class="cmt-inline"># Run static suites instantly</span>
+
+<span class="fn">npm</span> run test:watch     <span class="cmt-inline"># Keep process thread active inside dev window consoles</span>
+
+<span class="fn">npm</span> run test:coverage  <span class="cmt-inline"># Spit out clean percentage metrics for lines and files</span></code></pre>
+        </div>
+
+        <div class="remember">
+          <strong>💡 Interview Tip:</strong> This example covers around 90% of the React unit testing code you'll encounter in interviews for 3–6 years of experience — rendering, mocking APIs, mocking routing, Redux integration, user interactions, async behavior, assertions, and Jest execution.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

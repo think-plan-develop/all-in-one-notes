@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>useMemo - Complete Guide</title>
+  <link rel="stylesheet" href="common.css" />
+</head>
+<style>
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+    --qa-h4-a: #bfdbfe; --qa-h4-b: #93c5fd;
+    --qa-p-a:  #eff6ff; --qa-p-b:  #dbeafe;
+  }
+
+  /* ═══════════════════ HEADER ═══════════════════ */
+  .header {
+    background: linear-gradient(120deg, var(--accent-dark), var(--accent-light));
+    border-radius: 20px;
+    padding: 46px 40px;
+    margin-bottom: 44px;
+    box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 220px; height: 220px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .header h1 { color: #fff; font-size: 36px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 640px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a {
+    text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700;
+    transition: all 0.2s ease; cursor: pointer;
+    background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28);
+    letter-spacing: 0.2px;
+  }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* ═══════════════════ KEY TERMS SUMMARY ═══════════════════ */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; color: #1a1a1a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; }
+  .summary-blue   .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; }
+  .summary-pink   .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; }
+  .summary-amber  .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; }
+  .summary-green  .summary-text strong { color: #059669; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* ═══════════════════ SECTION DIVIDER ═══════════════════ */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; color: #1a1a1a; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* ═══════════════════ CARDS ═══════════════════ */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h3 { font-size: 18.5px; margin: 22px 0 10px; font-weight: 800; color: var(--heading); padding-left: 12px; border-left: 4px solid var(--accent); }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+
+  /* ── short-answer ── */
+  .short-answer {
+    position: relative;
+    background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%);
+    border: 1px solid rgba(var(--shadow-rgb), 0.16);
+    border-left: 4px solid var(--accent);
+    border-radius: 14px;
+    padding: 20px 24px 22px;
+    margin-bottom: 24px;
+    font-size: 17px;
+    line-height: 1.75;
+    font-weight: 500;
+    color: #293244;
+    box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1);
+  }
+  .short-answer::before {
+    content: "QUICK ANSWER";
+    display: block; width: fit-content;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff;
+    background: linear-gradient(120deg, var(--accent), var(--accent-light));
+    padding: 5px 13px; border-radius: 20px; margin-bottom: 13px;
+    box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35);
+  }
+  .short-answer strong { color: var(--heading); }
+  .short-answer code {
+    background: rgba(var(--shadow-rgb), 0.1); color: var(--heading);
+    padding: 2px 7px; border-radius: 5px; font-size: 14.5px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+  }
+
+  /* ── hook syntax strip ── */
+  .hook-syntax {
+    background: #0f172a; color: #e2e8f0; font-family: 'Fira Code','Consolas',monospace;
+    font-size: 15px; padding: 14px 20px; border-radius: 10px; margin: 6px 0 18px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.18); overflow-x: auto; white-space: pre;
+    border-left: 4px solid var(--accent-light);
+  }
+
+  /* ── code block ── */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .code-bar .dot-red { background: #ff5f57; }
+  .code-bar .dot-grey { background: #febc2e; }
+  .code-bar .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14.5px; font-family: 'Fira Code', 'Consolas', monospace; line-height: 1.65; }
+  .kw  { color: #c792ea; font-weight: 600; }
+  .str { color: #c3e88d; }
+  .fn  { color: #82aaff; }
+  .type { color: #f07178; }
+  .cmt { color: #7a7a7a; font-style: italic; }
+  .num { color: #f78c6c; }
+
+  /* ── callout boxes ── */
+  .tip, .note, .warning, .remember {
+    border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+  }
+  .tip      { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note     { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning  { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 16px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; }
+  table tr:nth-child(even) { background: #f8fafc; }
+
+  @media (max-width: 768px) {
+    .header h1 { font-size: 27px; }
+    .toc a { padding: 6px 12px; font-size: 12px; }
+    .card-content { padding: 20px; }
+  }
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header">
+      <h1>🧠 useMemo — Complete Guide</h1>
+      <p>Memoizing expensive computations in React — syntax, real-world e-commerce and admin-panel examples, and interview-ready explanations.</p>
+      <div class="toc">
+        <a onclick="document.getElementById('usememo').scrollIntoView({behavior:'smooth'});return false;">useMemo</a>
+        <a onclick="document.getElementById('example1').scrollIntoView({behavior:'smooth'});return false;">Product Filtering</a>
+        <a onclick="document.getElementById('example2').scrollIntoView({behavior:'smooth'});return false;">DataGrid Filtering</a>
+      </div>
+    </div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🧩 useMemo at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-blue">
+          <div class="summary-icon">💾</div>
+          <div class="summary-text"><strong>Caches:</strong> The result of an expensive computation between renders.</div>
+        </div>
+        <div class="summary-item summary-amber">
+          <div class="summary-icon">🔁</div>
+          <div class="summary-text"><strong>Recomputes:</strong> Only when one of its dependencies actually changes.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">⚖️</div>
+          <div class="summary-text"><strong>Returns:</strong> A memoized value — not a function (that's useCallback).</div>
+        </div>
+        <div class="summary-item summary-green">
+          <div class="summary-icon">🎯</div>
+          <div class="summary-text"><strong>Use when:</strong> Computation is genuinely expensive and deps change rarely.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== useMemo ==================== -->
+    <div class="section-divider" id="usememo"><span>🧠 useMemo</span></div>
+
+    <div class="card">
+      <div class="card-title">useMemo — Memoize Expensive Computations</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>useMemo</strong> caches (memoizes) the result of an expensive calculation and only recomputes it when its dependencies change. It returns a <strong>value</strong>.
+        </div>
+
+        <div class="hook-syntax"><span class="kw">const</span> <span class="type">memoizedValue</span> = <span class="fn">useMemo</span>(() =&gt; <span class="fn">computeExpensive</span>(<span class="type">a</span>, <span class="type">b</span>), [<span class="type">a</span>, <span class="type">b</span>]);</div>
+
+        <div class="tip">
+          <strong>💡 Tip:</strong> Don't overuse useMemo! Only use it when: (1) Computation is actually expensive, (2) Dependencies change rarely compared to renders. Premature memoization adds complexity for no performance gain.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== Example 1 ==================== -->
+    <div class="section-divider" id="example1"><span>🛒 Real-World Example 1</span></div>
+
+    <div class="card">
+      <div class="card-title">Product Filtering & Sorting (E-commerce)</div>
+      <div class="card-content">
+        <h4>📋 Scenario</h4>
+        <p>An e-commerce website displays 10,000+ products. Users can search products, filter by category, filter by price, and sort by price or rating. Every time the parent component re-renders (e.g., opening a sidebar or toggling dark mode), filtering and sorting all products again is expensive.</p>
+
+        <h4>❌ Without useMemo</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">ProductList.jsx</span>
+          </div>
+          <pre><code><span class="kw">const</span> <span class="type">filteredProducts</span> = <span class="type">products</span>
+  .<span class="fn">filter</span>(<span class="type">product</span> =&gt;
+    <span class="type">product</span>.name.<span class="fn">toLowerCase</span>().<span class="fn">includes</span>(<span class="type">search</span>.<span class="fn">toLowerCase</span>())
+  )
+  .<span class="fn">sort</span>((<span class="type">a</span>, <span class="type">b</span>) =&gt; <span class="type">a</span>.price - <span class="type">b</span>.price);
+
+<span class="cmt">// This runs on every render.</span></code></pre>
+        </div>
+
+        <h4>✅ With useMemo</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">ProductList.jsx</span>
+          </div>
+          <pre><code><span class="kw">const</span> <span class="type">filteredProducts</span> = <span class="fn">useMemo</span>(() =&gt; {
+  <span class="kw">return</span> <span class="type">products</span>
+    .<span class="fn">filter</span>(<span class="type">product</span> =&gt;
+      <span class="type">product</span>.name.<span class="fn">toLowerCase</span>().<span class="fn">includes</span>(<span class="type">search</span>.<span class="fn">toLowerCase</span>())
+    )
+    .<span class="fn">sort</span>((<span class="type">a</span>, <span class="type">b</span>) =&gt; <span class="type">a</span>.price - <span class="type">b</span>.price);
+}, [<span class="type">products</span>, <span class="type">search</span>]);</code></pre>
+        </div>
+
+        <div class="remember">
+          <strong>💡 Interview Answer:</strong> In my e-commerce project, I used <code>useMemo</code> to memoize filtered and sorted products. This prevented recalculating thousands of products whenever unrelated state changed.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== Example 2 ==================== -->
+    <div class="section-divider" id="example2"><span>🗂️ Real-World Example 2</span></div>
+
+    <div class="card">
+      <div class="card-title">DataGrid Filtering (Admin Panel)</div>
+      <div class="card-content">
+        <h4>📋 Scenario</h4>
+        <p>A DataGrid contains 50,000 employees. It needs a search box, a department filter, and a status filter. Recomputing the filtered list on every render (e.g., when the admin toggles a sidebar or opens a modal) would be slow.</p>
+
+        <h4>❌ Without useMemo</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">EmployeeGrid.jsx</span>
+          </div>
+          <pre><code><span class="kw">const</span> <span class="type">filteredEmployees</span> = <span class="type">employees</span>.<span class="fn">filter</span>(<span class="type">emp</span> =&gt; {
+  <span class="kw">const</span> <span class="type">matchesSearch</span> = <span class="type">emp</span>.name.<span class="fn">toLowerCase</span>().<span class="fn">includes</span>(<span class="type">search</span>.<span class="fn">toLowerCase</span>());
+  <span class="kw">const</span> <span class="type">matchesDept</span> = <span class="type">department</span> === <span class="str">'All'</span> || <span class="type">emp</span>.department === <span class="type">department</span>;
+  <span class="kw">const</span> <span class="type">matchesStatus</span> = <span class="type">status</span> === <span class="str">'All'</span> || <span class="type">emp</span>.status === <span class="type">status</span>;
+  <span class="kw">return</span> <span class="type">matchesSearch</span> &amp;&amp; <span class="type">matchesDept</span> &amp;&amp; <span class="type">matchesStatus</span>;
+});
+
+<span class="cmt">// Runs on every render — even unrelated ones (e.g. sidebar toggle)</span></code></pre>
+        </div>
+
+        <h4>✅ With useMemo</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">EmployeeGrid.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useState</span>, <span class="fn">useMemo</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">function</span> <span class="fn">EmployeeGrid</span>({ <span class="type">employees</span> }) {
+  <span class="kw">const</span> [<span class="type">search</span>, <span class="fn">setSearch</span>] = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [<span class="type">department</span>, <span class="fn">setDepartment</span>] = <span class="fn">useState</span>(<span class="str">'All'</span>);
+  <span class="kw">const</span> [<span class="type">status</span>, <span class="fn">setStatus</span>] = <span class="fn">useState</span>(<span class="str">'All'</span>);
+
+  <span class="cmt">// ✅ Only recalculates when employees, search, department or status change</span>
+  <span class="kw">const</span> <span class="type">filteredEmployees</span> = <span class="fn">useMemo</span>(() =&gt; {
+    <span class="kw">return</span> <span class="type">employees</span>.<span class="fn">filter</span>(<span class="type">emp</span> =&gt; {
+      <span class="kw">const</span> <span class="type">matchesSearch</span> = <span class="type">emp</span>.name.<span class="fn">toLowerCase</span>().<span class="fn">includes</span>(<span class="type">search</span>.<span class="fn">toLowerCase</span>());
+      <span class="kw">const</span> <span class="type">matchesDept</span> = <span class="type">department</span> === <span class="str">'All'</span> || <span class="type">emp</span>.department === <span class="type">department</span>;
+      <span class="kw">const</span> <span class="type">matchesStatus</span> = <span class="type">status</span> === <span class="str">'All'</span> || <span class="type">emp</span>.status === <span class="type">status</span>;
+      <span class="kw">return</span> <span class="type">matchesSearch</span> &amp;&amp; <span class="type">matchesDept</span> &amp;&amp; <span class="type">matchesStatus</span>;
+    });
+  }, [<span class="type">employees</span>, <span class="type">search</span>, <span class="type">department</span>, <span class="type">status</span>]);
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">input</span> <span class="type">value</span>={<span class="type">search</span>} <span class="fn">onChange</span>={<span class="type">e</span> =&gt; <span class="fn">setSearch</span>(<span class="type">e</span>.target.value)}
+             <span class="type">placeholder</span>=<span class="str">"Search employees..."</span> /&gt;
+      {<span class="type">filteredEmployees</span>.<span class="fn">map</span>(<span class="type">emp</span> =&gt; &lt;<span class="type">p</span> <span class="type">key</span>={<span class="type">emp</span>.id}&gt;{<span class="type">emp</span>.name}&lt;/<span class="type">p</span>&gt;)}
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="remember">
+          <strong>💡 Interview Answer:</strong> On a 50,000-row DataGrid, I used <code>useMemo</code> to memoize the filtered list based on search, department, and status. This kept filtering fast and avoided recomputation when unrelated UI state changed.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

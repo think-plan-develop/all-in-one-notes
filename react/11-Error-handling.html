@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>How to Handle Errors in React</title>
+<style>
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+    --qa-h4-a: #bfdbfe; --qa-h4-b: #93c5fd;
+    --qa-p-a:  #eff6ff; --qa-p-b:  #dbeafe;
+  }
+
+  /* ═══════════════════ HEADER ═══════════════════ */
+  .header {
+    background: linear-gradient(120deg, var(--accent-dark), var(--accent-light));
+    border-radius: 20px;
+    padding: 46px 40px;
+    margin-bottom: 44px;
+    box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 220px; height: 220px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .header h1 { color: #fff; font-size: 36px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 640px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a {
+    text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700;
+    transition: all 0.2s ease; cursor: pointer;
+    background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28);
+    letter-spacing: 0.2px;
+  }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* ═══════════════════ KEY TERMS SUMMARY ═══════════════════ */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; color: #1a1a1a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; }
+  .summary-blue   .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; }
+  .summary-pink   .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; }
+  .summary-amber  .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; }
+  .summary-green  .summary-text strong { color: #059669; }
+  .summary-violet { background: linear-gradient(135deg,#faf5ff,#f3e8ff); color: #6b21a8; }
+  .summary-violet .summary-text strong { color: #7e22ce; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* ═══════════════════ SECTION DIVIDER ═══════════════════ */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; color: #1a1a1a; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* ═══════════════════ CARDS ═══════════════════ */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+
+  /* ── short-answer ── */
+  .short-answer {
+    position: relative;
+    background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%);
+    border: 1px solid rgba(var(--shadow-rgb), 0.16);
+    border-left: 4px solid var(--accent);
+    border-radius: 14px;
+    padding: 20px 24px 22px;
+    margin-bottom: 24px;
+    font-size: 17px;
+    line-height: 1.75;
+    font-weight: 500;
+    color: #293244;
+    box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1);
+  }
+  .short-answer::before {
+    content: "QUICK ANSWER";
+    display: block; width: fit-content;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff;
+    background: linear-gradient(120deg, var(--accent), var(--accent-light));
+    padding: 5px 13px; border-radius: 20px; margin-bottom: 13px;
+    box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35);
+  }
+  .short-answer strong { color: var(--heading); }
+  .short-answer code {
+    background: rgba(var(--shadow-rgb), 0.1); color: var(--heading);
+    padding: 2px 7px; border-radius: 5px; font-size: 14.5px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+  }
+
+  /* ── code block ── */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .code-bar .dot-red { background: #ff5f57; }
+  .code-bar .dot-grey { background: #febc2e; }
+  .code-bar .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14.5px; font-family: 'Fira Code', 'Consolas', monospace; line-height: 1.65; }
+  .kw  { color: #c792ea; font-weight: 600; }
+  .str { color: #c3e88d; }
+  .fn  { color: #82aaff; }
+  .type { color: #f07178; }
+  .cmt { color: #7a7a7a; font-style: italic; }
+  .num { color: #f78c6c; }
+
+  /* ── callout boxes ── */
+  .tip, .note, .warning, .remember {
+    border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+  }
+  .tip      { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note     { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning  { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 16px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; }
+  table tr:nth-child(even) { background: #f8fafc; }
+  table code { background: rgba(37,99,235,0.08); color: #1e3a8a; padding: 2px 6px; border-radius: 5px; font-size: 13.5px; }
+
+  @media (max-width: 768px) {
+    .header h1 { font-size: 27px; }
+    .toc a { padding: 6px 12px; font-size: 12px; }
+    .card-content { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ═══════════ HEADER ═══════════ -->
+  <div class="header">
+    <h1>React Error Handling ⚛️</h1>
+    <p>
+      A complete guide to catching, displaying, and recovering from errors in React — from
+      everyday API calls to full-blown rendering crashes.
+    </p>
+    <div class="toc">
+      <a href="#types">Error Types</a>
+      <a href="#api">API Errors</a>
+      <a href="#event">Event Handlers</a>
+      <a href="#async">Async / Promises</a>
+      <a href="#render">Rendering Errors</a>
+      <a href="#lazy">Lazy Loading</a>
+      <a href="#lib">react-error-boundary</a>
+      <a href="#best">Best Practices</a>
+    </div>
+  </div>
+
+  <!-- ═══════════ QUICK SUMMARY ═══════════ -->
+  <div class="intro-summary">
+    <div class="intro-summary-title">🔑 Key Concepts at a Glance</div>
+    <div class="summary-grid">
+      <div class="summary-item summary-blue">
+        <div class="summary-icon">🌐</div>
+        <div class="summary-text"><strong>API Errors:</strong> Caught using try...catch around fetch calls.</div>
+      </div>
+      <div class="summary-item summary-pink">
+        <div class="summary-icon">🖱️</div>
+        <div class="summary-text"><strong>Event Errors:</strong> Never caught by Error Boundaries — use try...catch.</div>
+      </div>
+      <div class="summary-item summary-amber">
+        <div class="summary-icon">⏳</div>
+        <div class="summary-text"><strong>Async Errors:</strong> Handle with async/await try...catch or .catch().</div>
+      </div>
+      <div class="summary-item summary-green">
+        <div class="summary-icon">🎨</div>
+        <div class="summary-text"><strong>Rendering Errors:</strong> Require an Error Boundary (class or library).</div>
+      </div>
+      <div class="summary-item summary-violet">
+        <div class="summary-icon">📦</div>
+        <div class="summary-text"><strong>Lazy Loading:</strong> Wrap in Suspense + Error Boundary together.</div>
+      </div>
+      <div class="summary-item summary-blue">
+        <div class="summary-icon">🧩</div>
+        <div class="summary-text"><strong>react-error-boundary:</strong> Functional-friendly Error Boundary API.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ HOW TO HANDLE ERRORS IN REACT ═══════════ -->
+  <div class="short-answer">
+    <strong>How to handle errors in React:</strong> Wrap API and async calls in <code>try...catch</code>
+    so failed requests update state instead of crashing the app. Do the same inside event handlers,
+    since Error Boundaries never catch those. Validate form input with simple state checks before
+    it reaches the UI. Use optional chaining (<code>?.</code>) or conditional checks to avoid
+    accessing properties on null/undefined data. For actual rendering errors, wrap the component
+    tree in an Error Boundary using the <code>react-error-boundary</code> library.
+  </div>
+
+  <!-- ═══════════ SECTION: ERROR TYPES ═══════════ -->
+  <div class="section-divider" id="types"><span>📋 Error Types & How to Handle Them</span></div>
+  <div class="card">
+    <div class="card-title">🧭 Overview Table</div>
+    <div class="card-content">
+      <div class="short-answer">
+        Most errors — API, async, event, and form errors — can be handled directly inside
+        functional components with <code>try...catch</code> and state checks. Rendering errors are
+        the one exception: catch those with an Error Boundary from the
+        <code>react-error-boundary</code> library.
+      </div>
+      <table>
+        <tr><th>Error Type</th><th>How to Handle</th></tr>
+        <tr><td>API Errors</td><td><code>try...catch</code></td></tr>
+        <tr><td>Async Errors</td><td><code>try...catch</code> / <code>.catch()</code></td></tr>
+        <tr><td>Event Handler Errors</td><td><code>try...catch</code></td></tr>
+        <tr><td>Form Validation</td><td>State Validation</td></tr>
+        <tr><td>Rendering Errors</td><td>Error Boundary (Class or Library)</td></tr>
+        <tr><td>Lazy Loading Errors</td><td>Error Boundary</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: API ERRORS ═══════════ -->
+  <div class="section-divider" id="api"><span>🌐 Handling API Errors</span></div>
+  <div class="card">
+    <div class="card-title">📡 Fetch with try...catch</div>
+    <div class="card-content">
+      <p>One of the most common cases — wrap the fetch call and update state instead of letting the app crash.</p>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Users.jsx</span></div>
+        <pre><code><span class="kw">import</span> { useEffect, useState } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">function</span> <span class="fn">Users</span>() {
+    <span class="kw">const</span> [users, setUsers] = <span class="fn">useState</span>([]);
+    <span class="kw">const</span> [error, setError] = <span class="fn">useState</span>(<span class="str">""</span>);
+
+    <span class="fn">useEffect</span>(() => {
+        <span class="kw">async function</span> <span class="fn">fetchUsers</span>() {
+            <span class="kw">try</span> {
+                <span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"/api/users"</span>);
+
+                <span class="kw">if</span> (!response.ok) {
+                    <span class="kw">throw new</span> <span class="type">Error</span>(<span class="str">"Unable to fetch users"</span>);
+                }
+
+                <span class="kw">const</span> data = <span class="kw">await</span> response.<span class="fn">json</span>();
+                <span class="fn">setUsers</span>(data);
+            } <span class="kw">catch</span> (err) {
+                <span class="fn">setError</span>(err.message);
+            }
+        }
+        <span class="fn">fetchUsers</span>();
+    }, []);
+
+    <span class="kw">if</span> (error) <span class="kw">return</span> &lt;h2&gt;{error}&lt;/h2&gt;;
+
+    <span class="kw">return</span> (
+        &lt;&gt;
+            {users.<span class="fn">map</span>(user => &lt;p key={user.id}&gt;{user.name}&lt;/p&gt;)}
+        &lt;/&gt;
+    );
+}</code></pre>
+      </div>
+      <div class="note">💡 <strong>Output:</strong> "Unable to fetch users" is shown instead of crashing the UI.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: EVENT HANDLERS ═══════════ -->
+  <div class="section-divider" id="event"><span>🖱️ Event Handler Errors</span></div>
+  <div class="card">
+    <div class="card-title">⚡ Not Caught by Error Boundaries</div>
+    <div class="card-content">
+      <div class="warning">⚠️ Errors thrown inside click handlers (or any event handler) are <strong>not</strong> caught by Error Boundaries. Always wrap them in <code>try...catch</code>.</div>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Payment.jsx</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">Payment</span>() {
+    <span class="kw">const</span> handlePayment = () => {
+        <span class="kw">try</span> {
+            <span class="fn">processPayment</span>();
+        } <span class="kw">catch</span> (error) {
+            <span class="fn">alert</span>(<span class="str">"Payment Failed"</span>);
+        }
+    };
+
+    <span class="kw">return</span> (
+        &lt;button onClick={handlePayment}&gt;
+            Pay Now
+        &lt;/button&gt;
+    );
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: ASYNC / PROMISES ═══════════ -->
+  <div class="section-divider" id="async"><span>⏳ Async & Promise Errors</span></div>
+  <div class="card">
+    <div class="card-title">🔄 async/await and .catch()</div>
+    <div class="card-content">
+      <h4>Async / Await</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">loadProducts.js</span></div>
+        <pre><code><span class="kw">async function</span> <span class="fn">loadProducts</span>() {
+    <span class="kw">try</span> {
+        <span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"/api/products"</span>);
+        <span class="kw">const</span> data = <span class="kw">await</span> response.<span class="fn">json</span>();
+        console.<span class="fn">log</span>(data);
+    } <span class="kw">catch</span> (error) {
+        console.<span class="fn">log</span>(error.message);
+    }
+}</code></pre>
+      </div>
+      <h4>Promise Chains</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">promise.js</span></div>
+        <pre><code><span class="fn">fetch</span>(<span class="str">"/api/products"</span>)
+    .<span class="fn">then</span>(res => res.<span class="fn">json</span>())
+    .<span class="fn">then</span>(data => console.<span class="fn">log</span>(data))
+    .<span class="fn">catch</span>(error => {
+        console.<span class="fn">log</span>(error.message);
+    });</code></pre>
+      </div>
+
+      <h4>Loading + Error Together</h4>
+      <p>A common real-world pattern combines loading, error, and success states in one component.</p>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Products.jsx</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">Products</span>() {
+    <span class="kw">const</span> [products, setProducts] = <span class="fn">useState</span>([]);
+    <span class="kw">const</span> [loading, setLoading] = <span class="fn">useState</span>(<span class="kw">true</span>);
+    <span class="kw">const</span> [error, setError] = <span class="fn">useState</span>(<span class="str">""</span>);
+
+    <span class="fn">useEffect</span>(() => {
+        <span class="kw">async function</span> <span class="fn">fetchProducts</span>() {
+            <span class="kw">try</span> {
+                <span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"/api/products"</span>);
+                <span class="kw">if</span> (!response.ok) <span class="kw">throw new</span> <span class="type">Error</span>(<span class="str">"Failed to fetch products"</span>);
+                <span class="kw">const</span> data = <span class="kw">await</span> response.<span class="fn">json</span>();
+                <span class="fn">setProducts</span>(data);
+            } <span class="kw">catch</span> (err) {
+                <span class="fn">setError</span>(err.message);
+            } <span class="kw">finally</span> {
+                <span class="fn">setLoading</span>(<span class="kw">false</span>);
+            }
+        }
+        <span class="fn">fetchProducts</span>();
+    }, []);
+
+    <span class="kw">if</span> (loading) <span class="kw">return</span> &lt;h2&gt;Loading...&lt;/h2&gt;;
+    <span class="kw">if</span> (error) <span class="kw">return</span> &lt;h2&gt;{error}&lt;/h2&gt;;
+
+    <span class="kw">return</span> &lt;&gt;{products.<span class="fn">map</span>(p => &lt;p key={p.id}&gt;{p.name}&lt;/p&gt;)}&lt;/&gt;;
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: FORM VALIDATION + SAFE RENDERING ═══════════ -->
+  <div class="section-divider"><span>📝 Form Validation & Safe Rendering</span></div>
+  <div class="card">
+    <div class="card-title">✅ Validate Before It Breaks</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Login.jsx</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">Login</span>() {
+    <span class="kw">const</span> [email, setEmail] = <span class="fn">useState</span>(<span class="str">""</span>);
+    <span class="kw">const</span> [error, setError] = <span class="fn">useState</span>(<span class="str">""</span>);
+
+    <span class="kw">const</span> handleSubmit = () => {
+        <span class="kw">if</span> (!email.<span class="fn">includes</span>(<span class="str">"@"</span>)) {
+            <span class="fn">setError</span>(<span class="str">"Invalid Email"</span>);
+            <span class="kw">return</span>;
+        }
+        <span class="fn">setError</span>(<span class="str">""</span>);
+    };
+
+    <span class="kw">return</span> (
+        &lt;&gt;
+            &lt;input value={email} onChange={(e) => setEmail(e.target.value)} /&gt;
+            &lt;button onClick={handleSubmit}&gt;Login&lt;/button&gt;
+            {error &amp;&amp; &lt;p&gt;{error}&lt;/p&gt;}
+        &lt;/&gt;
+    );
+}</code></pre>
+      </div>
+
+      <h4>Prevent Rendering Errors</h4>
+      <p>Never access nested properties directly on data that might not exist yet.</p>
+      <div class="warning">❌ Bad: <code style="background:rgba(159,18,57,0.1);">&lt;h2&gt;{user.name}&lt;/h2&gt;</code> — throws if <code>user</code> is null.</div>
+      <div class="remember">✅ Good: <code style="background:rgba(6,95,70,0.1);">&lt;h2&gt;{user?.name}&lt;/h2&gt;</code> or <code style="background:rgba(6,95,70,0.1);">{user &amp;&amp; &lt;h2&gt;{user.name}&lt;/h2&gt;}</code></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: RENDERING ERRORS ═══════════ -->
+  <div class="section-divider" id="render"><span>🎨 Rendering Errors Need an Error Boundary</span></div>
+  <div class="card">
+    <div class="card-title">🚧 Catching Errors That Happen During Render</div>
+    <div class="card-content">
+      <div class="short-answer">
+        Rendering errors are different from API, async, or event errors — they can crash the whole
+        component tree if left uncaught. The fix is to wrap the tree in an Error Boundary using the
+        <code>react-error-boundary</code> library, which gives functional components a clean,
+        hook-friendly way to catch and recover from these errors.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: LAZY LOADING ═══════════ -->
+  <div class="section-divider" id="lazy"><span>📦 Error Handling with React.lazy()</span></div>
+  <div class="card">
+    <div class="card-title">🐢 Suspense + Error Boundary</div>
+    <div class="card-content">
+      <p>Suspense shows a loading UI while a lazy component downloads. If it fails to load or throws while rendering, the Error Boundary catches it.</p>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">App.jsx</span></div>
+        <pre><code><span class="kw">import</span> { lazy, Suspense } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">const</span> Dashboard = <span class="fn">lazy</span>(() => <span class="fn">import</span>(<span class="str">"./Dashboard"</span>));
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+    <span class="kw">return</span> (
+        &lt;ErrorBoundary&gt;
+            &lt;Suspense fallback={&lt;h2&gt;Loading...&lt;/h2&gt;}&gt;
+                &lt;Dashboard /&gt;
+            &lt;/Suspense&gt;
+        &lt;/ErrorBoundary&gt;
+    );
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: react-error-boundary ═══════════ -->
+  <div class="section-divider" id="lib"><span>🧩 react-error-boundary (Recommended)</span></div>
+  <div class="card">
+    <div class="card-title">📦 Functional-Friendly Error Boundary API</div>
+    <div class="card-content">
+      <p>Install the package:</p>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">terminal</span></div>
+        <pre><code>npm install react-error-boundary</code></pre>
+      </div>
+
+      <h4>Fallback Component</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">ErrorFallback.jsx</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">ErrorFallback</span>({ error, resetErrorBoundary }) {
+    <span class="kw">return</span> (
+        &lt;div&gt;
+            &lt;h2&gt;Something went wrong.&lt;/h2&gt;
+            &lt;p&gt;{error.message}&lt;/p&gt;
+            &lt;button onClick={resetErrorBoundary}&gt;Try Again&lt;/button&gt;
+        &lt;/div&gt;
+    );
+}</code></pre>
+      </div>
+
+      <h4>Wrap Your Component</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">App.jsx</span></div>
+        <pre><code><span class="kw">import</span> { ErrorBoundary } <span class="kw">from</span> <span class="str">"react-error-boundary"</span>;
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+    <span class="kw">return</span> (
+        &lt;ErrorBoundary FallbackComponent={ErrorFallback}&gt;
+            &lt;Dashboard /&gt;
+        &lt;/ErrorBoundary&gt;
+    );
+}</code></pre>
+      </div>
+
+      <h4>useErrorBoundary Hook</h4>
+      <p>Forward asynchronous or event-handler errors to the nearest Error Boundary manually.</p>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Product.jsx</span></div>
+        <pre><code><span class="kw">import</span> { useErrorBoundary } <span class="kw">from</span> <span class="str">"react-error-boundary"</span>;
+
+<span class="kw">function</span> <span class="fn">Product</span>() {
+    <span class="kw">const</span> { showBoundary } = <span class="fn">useErrorBoundary</span>();
+
+    <span class="kw">const</span> loadData = <span class="kw">async</span> () => {
+        <span class="kw">try</span> {
+            <span class="kw">await</span> <span class="fn">fetchProducts</span>();
+        } <span class="kw">catch</span> (error) {
+            <span class="fn">showBoundary</span>(error);
+        }
+    };
+
+    <span class="kw">return</span> &lt;button onClick={loadData}&gt;Load Products&lt;/button&gt;;
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: BEST PRACTICES ═══════════ -->
+  <div class="section-divider" id="best"><span>✅ Best Practices</span></div>
+  <div class="card">
+    <div class="card-title">🏆 Keep Your App From Crashing</div>
+    <div class="card-content">
+      <div class="tip">🌐 Handle API requests with <code>try...catch</code>.</div>
+      <div class="tip">🖱️ Wrap event handler logic in <code>try...catch</code> when failures are possible.</div>
+      <div class="tip">🚦 Show loading, success, and error states separately.</div>
+      <div class="tip">🛡️ Use optional chaining (<code>?.</code>) or conditional rendering to avoid runtime errors from null/undefined.</div>
+      <div class="tip">📝 Validate user input before processing it.</div>
+      <div class="tip">🧩 Use <code>react-error-boundary</code> for a functional-friendly Error Boundary API.</div>
+      <div class="tip">📊 Log errors to monitoring services (Sentry, LogRocket) instead of only showing them to users.</div>
+
+      <div class="remember" style="margin-top:22px;">
+        🎯 <strong>Key takeaway:</strong> Functional components can handle API, async, and event
+        errors directly with <code style="background:rgba(6,95,70,0.1);">try...catch</code> — but
+        rendering errors still need an Error Boundary, which
+        <code style="background:rgba(6,95,70,0.1);">react-error-boundary</code> makes easy to add
+        without leaving functional components.
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

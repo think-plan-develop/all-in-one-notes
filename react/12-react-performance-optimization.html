@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>How to Optimize a React Application</title>
+<style>
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+    --qa-h4-a: #bfdbfe; --qa-h4-b: #93c5fd;
+    --qa-p-a:  #eff6ff; --qa-p-b:  #dbeafe;
+  }
+
+  /* ═══════════════════ HEADER ═══════════════════ */
+  .header {
+    background: linear-gradient(120deg, var(--accent-dark), var(--accent-light));
+    border-radius: 20px;
+    padding: 46px 40px;
+    margin-bottom: 44px;
+    box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 220px; height: 220px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .header h1 { color: #fff; font-size: 36px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 640px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a {
+    text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700;
+    transition: all 0.2s ease; cursor: pointer;
+    background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28);
+    letter-spacing: 0.2px;
+  }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* ═══════════════════ KEY TERMS SUMMARY ═══════════════════ */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; color: #1a1a1a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; }
+  .summary-blue   .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; }
+  .summary-pink   .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; }
+  .summary-amber  .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; }
+  .summary-green  .summary-text strong { color: #059669; }
+  .summary-violet { background: linear-gradient(135deg,#faf5ff,#f3e8ff); color: #6b21a8; }
+  .summary-violet .summary-text strong { color: #7e22ce; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* ═══════════════════ SECTION DIVIDER ═══════════════════ */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; color: #1a1a1a; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* ═══════════════════ CARDS ═══════════════════ */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+  .card-content ul { margin: 8px 0 8px 22px; }
+  .card-content li { font-size: 15.5px; line-height: 1.9; font-weight: 500; color: #333; }
+
+  /* ── short-answer ── */
+  .short-answer {
+    position: relative;
+    background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%);
+    border: 1px solid rgba(var(--shadow-rgb), 0.16);
+    border-left: 4px solid var(--accent);
+    border-radius: 14px;
+    padding: 20px 24px 22px;
+    margin-bottom: 24px;
+    font-size: 17px;
+    line-height: 1.75;
+    font-weight: 500;
+    color: #293244;
+    box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1);
+  }
+  .short-answer::before {
+    content: "QUICK ANSWER";
+    display: block; width: fit-content;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff;
+    background: linear-gradient(120deg, var(--accent), var(--accent-light));
+    padding: 5px 13px; border-radius: 20px; margin-bottom: 13px;
+    box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35);
+  }
+  .short-answer strong { color: var(--heading); }
+  .short-answer code {
+    background: rgba(var(--shadow-rgb), 0.1); color: var(--heading);
+    padding: 2px 7px; border-radius: 5px; font-size: 14.5px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+  }
+
+  /* ── code block ── */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .code-bar .dot-red { background: #ff5f57; }
+  .code-bar .dot-grey { background: #febc2e; }
+  .code-bar .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14.5px; font-family: 'Fira Code', 'Consolas', monospace; line-height: 1.65; }
+  .kw  { color: #c792ea; font-weight: 600; }
+  .str { color: #c3e88d; }
+  .fn  { color: #82aaff; }
+  .type { color: #f07178; }
+  .cmt { color: #7a7a7a; font-style: italic; }
+  .num { color: #f78c6c; }
+
+  /* ── callout boxes ── */
+  .tip, .note, .warning, .remember {
+    border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+  }
+  .tip      { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note     { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning  { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 16px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; }
+  table tr:nth-child(even) { background: #f8fafc; }
+  table code { background: rgba(37,99,235,0.08); color: #1e3a8a; padding: 2px 6px; border-radius: 5px; font-size: 13.5px; }
+
+  .flow { background:#0f172a; border-radius:12px; padding:18px 22px; margin:16px 0; text-align:center; color:#93c5fd; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:2.1; box-shadow:0 8px 20px rgba(0,0,0,0.15); }
+  .flow .arrow { color:#64748b; }
+
+  @media (max-width: 768px) {
+    .header h1 { font-size: 27px; }
+    .toc a { padding: 6px 12px; font-size: 12px; }
+    .card-content { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ═══════════ HEADER ═══════════ -->
+  <div class="header">
+    <h1>React Performance Optimization ⚡</h1>
+    <p>
+      A practical guide to finding what's actually slow in a React app and fixing it — instead
+      of reaching for <code style="background:rgba(255,255,255,0.15);color:#fff;padding:2px 6px;border-radius:5px;">React.memo</code>
+      or <code style="background:rgba(255,255,255,0.15);color:#fff;padding:2px 6px;border-radius:5px;">useMemo</code> first.
+    </p>
+    <div class="toc">
+      <a href="#identify">Identify Bottleneck</a>
+      <a href="#rerenders">Re-renders</a>
+      <a href="#state">State</a>
+      <a href="#lists">Large Lists</a>
+      <a href="#api">API Calls</a>
+      <a href="#bundle">Bundle Size</a>
+      <a href="#context">Context</a>
+      <a href="#example">Real Example</a>
+      <a href="#checklist">Checklist</a>
+    </div>
+  </div>
+
+  <!-- ═══════════ QUICK SUMMARY ═══════════ -->
+  <div class="intro-summary">
+    <div class="intro-summary-title">🔑 Key Concepts at a Glance</div>
+    <div class="summary-grid">
+      <div class="summary-item summary-blue">
+        <div class="summary-icon">🔁</div>
+        <div class="summary-text"><strong>Re-renders:</strong> Use React.memo, useMemo, and useCallback to keep props stable.</div>
+      </div>
+      <div class="summary-item summary-pink">
+        <div class="summary-icon">🧠</div>
+        <div class="summary-text"><strong>State:</strong> Keep state local and split unrelated pieces apart.</div>
+      </div>
+      <div class="summary-item summary-amber">
+        <div class="summary-icon">📜</div>
+        <div class="summary-text"><strong>Large Lists:</strong> Virtualize, paginate, or infinite-scroll instead of rendering everything.</div>
+      </div>
+      <div class="summary-item summary-green">
+        <div class="summary-icon">🌐</div>
+        <div class="summary-text"><strong>API Calls:</strong> Cache with React Query/SWR and fix useEffect dependency arrays.</div>
+      </div>
+      <div class="summary-item summary-violet">
+        <div class="summary-icon">📦</div>
+        <div class="summary-text"><strong>Bundle Size:</strong> Code-split with React.lazy() and remove unused libraries.</div>
+      </div>
+      <div class="summary-item summary-blue">
+        <div class="summary-icon">🧩</div>
+        <div class="summary-text"><strong>Context:</strong> Split large contexts and memoize their values.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ HOW TO OPTIMIZE INTRO ═══════════ -->
+  <div class="short-answer">
+    <strong>How to optimize a React app:</strong> Don't guess — profile first with React DevTools
+    Profiler, the Chrome Performance tab, or Lighthouse to find the actual bottleneck. Memoize
+    components and callbacks to stop unnecessary re-renders, keep state as local as possible, and
+    cache expensive calculations with <code>useMemo</code>. Virtualize or paginate large lists,
+    cache API responses, code-split with <code>React.lazy()</code>, and always measure again on a
+    production build after each change.
+  </div>
+
+  <!-- ═══════════ SECTION: IDENTIFY BOTTLENECK ═══════════ -->
+  <div class="section-divider" id="identify"><span>🔍 1. Identify the Performance Problem</span></div>
+  <div class="card">
+    <div class="card-title">🕵️ Find the Real Cause Before Optimizing</div>
+    <div class="card-content">
+      <p>Before optimizing, determine what is actually causing the slowdown.</p>
+      <h4>Possible Reasons</h4>
+      <ul>
+        <li>Unnecessary component re-renders</li>
+        <li>Large API responses</li>
+        <li>Expensive calculations</li>
+        <li>Rendering thousands of items</li>
+        <li>Large JavaScript bundle</li>
+        <li>Multiple unnecessary API calls</li>
+        <li>Images not optimized</li>
+        <li>Memory leaks</li>
+        <li>Heavy third-party libraries</li>
+      </ul>
+      <div class="note">🛠️ <strong>Use:</strong> React DevTools Profiler, Chrome Performance Tab, and Lighthouse to measure before touching any code.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: RE-RENDERS ═══════════ -->
+  <div class="section-divider" id="rerenders"><span>🔁 2. Find Unnecessary Re-renders</span></div>
+  <div class="card">
+    <div class="card-title">🎯 Stop Components From Rendering Repeatedly</div>
+    <div class="card-content">
+      <p>If components are rendering repeatedly without data changes, optimize rendering.</p>
+      <h4>Solution</h4>
+      <ul>
+        <li>Use <code>React.memo()</code></li>
+        <li>Use <code>useCallback()</code></li>
+        <li>Use <code>useMemo()</code></li>
+        <li>Keep props stable</li>
+      </ul>
+      <div class="flow">Parent Re-render <span class="arrow">↓</span><br>Child Re-render <span class="arrow">↓</span><br>Product Card Re-render <span class="arrow">↓</span><br>Button Re-render</div>
+      <p>Optimize using memoization to prevent unnecessary child renders.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: STATE ═══════════ -->
+  <div class="section-divider" id="state"><span>🧠 3. Optimize State Management</span></div>
+  <div class="card">
+    <div class="card-title">📦 Keep State Local and Minimal</div>
+    <div class="card-content">
+      <p>Large global state causes many components to update at once.</p>
+      <h4>Instead</h4>
+      <ul>
+        <li>Keep state local whenever possible</li>
+        <li>Split unrelated state</li>
+        <li>Avoid duplicate state</li>
+        <li>Store only necessary data</li>
+      </ul>
+      <div class="warning">❌ Bad: <span class="flow" style="display:inline-block;margin:6px 0;padding:8px 16px;">App <span class="arrow">↓</span> Entire Application Re-renders</span></div>
+      <div class="remember">✅ Good: <span class="flow" style="display:inline-block;margin:6px 0;padding:8px 16px;background:#0f172a;color:#a7f3d0;">Product Page <span class="arrow" style="color:#4b5563;">↓</span> Product Card <span class="arrow" style="color:#4b5563;">↓</span> Cart Button</span></div>
+      <p>Only the affected component updates.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: CALCULATIONS + FUNCTIONS ═══════════ -->
+  <div class="section-divider"><span>⚙️ 4–5. Calculations & Function Recreation</span></div>
+  <div class="card">
+    <div class="card-title">🧮 Cache Expensive Work</div>
+    <div class="card-content">
+      <h4>Reduce Expensive Calculations</h4>
+      <p>Heavy operations like filtering products, sorting data, dashboard analytics, or report generation can block rendering.</p>
+      <div class="tip">💡 Solution: Use <code>useMemo()</code> to cache calculated results.</div>
+
+      <h4>Prevent Function Recreation</h4>
+      <p>Every render creates new function references, which breaks memoization for children.</p>
+      <div class="tip">💡 Solution: Use <code>useCallback()</code> for functions passed to child components — useful for Add to Cart, Wishlist, Payment Button, and Search Handler.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: LARGE LISTS ═══════════ -->
+  <div class="section-divider" id="lists"><span>📜 6. Render Large Lists Efficiently</span></div>
+  <div class="card">
+    <div class="card-title">📊 Don't Render Everything at Once</div>
+    <div class="card-content">
+      <p>Rendering thousands of items at once is expensive.</p>
+      <h4>Instead Use</h4>
+      <ul>
+        <li>Pagination</li>
+        <li>Infinite Scroll</li>
+        <li>Virtualization (<code>react-window</code>)</li>
+        <li>Lazy Loading</li>
+      </ul>
+      <div class="note">📌 Only visible items are rendered — everything else stays out of the DOM until needed.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: API CALLS ═══════════ -->
+  <div class="section-divider" id="api"><span>🌐 7. Optimize API Calls</span></div>
+  <div class="card">
+    <div class="card-title">📡 Fetch Smarter, Not Harder</div>
+    <div class="card-content">
+      <h4>Common Issues</h4>
+      <ul>
+        <li>Duplicate requests</li>
+        <li>Fetching unnecessary data</li>
+        <li>Calling APIs on every render</li>
+      </ul>
+      <h4>Solution</h4>
+      <ul>
+        <li>Fetch only required fields</li>
+        <li>Cache responses (React Query / SWR)</li>
+        <li>Use proper dependency arrays in <code>useEffect</code></li>
+        <li>Cancel requests on component unmount when needed</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: IMAGES ═══════════ -->
+  <div class="section-divider"><span>🖼️ 8. Optimize Images</span></div>
+  <div class="card">
+    <div class="card-title">📷 Images Are Often the Biggest Cost</div>
+    <div class="card-content">
+      <p>Large images significantly slow applications.</p>
+      <h4>Best Practices</h4>
+      <ul>
+        <li>Compress images</li>
+        <li>Use WebP or AVIF</li>
+        <li>Lazy load images</li>
+        <li>Use responsive image sizes</li>
+        <li>Cache static assets</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: BUNDLE SIZE ═══════════ -->
+  <div class="section-divider" id="bundle"><span>📦 9. Reduce Bundle Size</span></div>
+  <div class="card">
+    <div class="card-title">✂️ Load Only What's Needed</div>
+    <div class="card-content">
+      <p>Large JavaScript bundles increase initial load time.</p>
+      <h4>Solution</h4>
+      <ul>
+        <li>Code Splitting</li>
+        <li><code>React.lazy()</code></li>
+        <li><code>Suspense</code></li>
+        <li>Dynamic imports</li>
+        <li>Remove unused libraries</li>
+        <li>Tree Shaking</li>
+      </ul>
+      <div class="tip">💡 Load code only when it's needed instead of all at once on first paint.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: CONTEXT ═══════════ -->
+  <div class="section-divider" id="context"><span>🧩 10. Optimize Context</span></div>
+  <div class="card">
+    <div class="card-title">🎛️ Split Contexts to Limit Re-renders</div>
+    <div class="card-content">
+      <p>A single large context causes all consumers to re-render whenever any value inside it changes.</p>
+      <h4>Better Approach</h4>
+      <p>Split contexts by concern:</p>
+      <ul>
+        <li>Auth Context</li>
+        <li>Theme Context</li>
+        <li>Cart Context</li>
+        <li>User Context</li>
+      </ul>
+      <div class="tip">💡 Memoize context values to avoid unnecessary updates flowing down to consumers.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: FORMS + EFFECTS + EVENTS ═══════════ -->
+  <div class="section-divider"><span>📝 11–13. Forms, Effects & Events</span></div>
+  <div class="card">
+    <div class="card-title">🎚️ Fine-Tune Interaction-Heavy Areas</div>
+    <div class="card-content">
+      <h4>Optimize Forms</h4>
+      <ul>
+        <li>Split form into smaller components</li>
+        <li>Use controlled inputs only where necessary</li>
+        <li>Consider React Hook Form for complex forms</li>
+        <li>Validate fields efficiently</li>
+      </ul>
+
+      <h4>Reduce Unnecessary Effects</h4>
+      <p>Poorly written <code>useEffect</code> hooks can cause repeated work. Avoid missing dependency arrays, updating state unnecessarily inside effects, and re-fetching identical data.</p>
+
+      <h4>Optimize Event Handling</h4>
+      <p>Events like <code>scroll</code>, <code>resize</code>, and <code>mousemove</code> fire very frequently.</p>
+      <ul>
+        <li>Debounce search inputs</li>
+        <li>Throttle scroll and resize handlers</li>
+        <li>Remove event listeners during cleanup</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: LAZY LOAD + MEMORY LEAKS + LIBS + BUILD ═══════════ -->
+  <div class="section-divider"><span>🧹 14–17. Lazy Loading, Leaks, Libraries & Builds</span></div>
+  <div class="card">
+    <div class="card-title">🧰 Cleanup & Loading Strategy</div>
+    <div class="card-content">
+      <h4>Lazy Load Components</h4>
+      <p>Don't load every component during the initial page load — load Dashboard, Reports, Charts, Reviews, and Settings only when users navigate to those sections.</p>
+
+      <h4>Remove Memory Leaks</h4>
+      <p>Common causes: uncleared timers, active intervals, unremoved event listeners, unclosed WebSocket connections, and pending async operations after unmount.</p>
+      <div class="warning">⚠️ Always clean up resources inside <code>useEffect</code>'s return function.</div>
+
+      <h4>Optimize Third-Party Libraries</h4>
+      <ul>
+        <li>Remove unused packages</li>
+        <li>Import only required modules</li>
+        <li>Prefer lightweight alternatives when possible</li>
+      </ul>
+
+      <h4>Use Production Build</h4>
+      <p>Development builds include extra checks and debugging features. Always measure performance using the <strong>production build</strong>, which is optimized and minified.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: MONITORING ═══════════ -->
+  <div class="section-divider"><span>📈 18. Monitor Performance Continuously</span></div>
+  <div class="card">
+    <div class="card-title">📊 Optimization Never Really Ends</div>
+    <div class="card-content">
+      <p>Regularly monitor:</p>
+      <ul>
+        <li>Render time</li>
+        <li>API response time</li>
+        <li>Bundle size</li>
+        <li>Core Web Vitals</li>
+        <li>Memory usage</li>
+        <li>User interactions</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: REAL-WORLD EXAMPLE ═══════════ -->
+  <div class="section-divider" id="example"><span>🛒 Real-World Example (E-commerce)</span></div>
+  <div class="card">
+    <div class="card-title">🏪 Fixing a Slow Products Page</div>
+    <div class="card-content">
+      <p>Suppose the <strong>Products</strong> page loads slowly.</p>
+
+      <h4>Problems</h4>
+      <ul>
+        <li>5,000 products rendered at once</li>
+        <li>Product list sorted on every render</li>
+        <li>Every <code>ProductCard</code> re-renders when the cart changes</li>
+        <li>Search sends an API request on every keystroke</li>
+        <li>Reviews load immediately even when not viewed</li>
+      </ul>
+
+      <h4>Optimizations</h4>
+      <ul>
+        <li>Virtualize the product list</li>
+        <li>Cache sorting with <code>useMemo()</code></li>
+        <li>Wrap <code>ProductCard</code> with <code>React.memo()</code></li>
+        <li>Memoize callbacks with <code>useCallback()</code></li>
+        <li>Debounce the search input</li>
+        <li>Lazy load the Reviews section</li>
+        <li>Paginate or use infinite scrolling for large datasets</li>
+      </ul>
+
+      <div class="remember">
+        🎯 <strong>Result:</strong> Faster initial page load, fewer component re-renders, reduced
+        CPU usage, lower memory consumption, smoother scrolling and interactions, and a better
+        overall user experience.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SECTION: CHECKLIST ═══════════ -->
+  <div class="section-divider" id="checklist"><span>✅ React Performance Optimization Checklist</span></div>
+  <div class="card">
+    <div class="card-title">📋 Problem → Solution Reference</div>
+    <div class="card-content">
+      <table>
+        <tr><th>Problem</th><th>Solution</th></tr>
+        <tr><td>Unnecessary re-renders</td><td><code>React.memo</code>, <code>useMemo</code>, <code>useCallback</code></td></tr>
+        <tr><td>Large state updates</td><td>Keep state local and minimal</td></tr>
+        <tr><td>Heavy calculations</td><td><code>useMemo</code></td></tr>
+        <tr><td>Large lists</td><td>Virtualization, Pagination, Infinite Scroll</td></tr>
+        <tr><td>Frequent API requests</td><td>Debounce, Cache, Proper <code>useEffect</code></td></tr>
+        <tr><td>Large bundle size</td><td>Code Splitting, Lazy Loading, Tree Shaking</td></tr>
+        <tr><td>Slow images</td><td>Compression, Lazy Loading, WebP/AVIF</td></tr>
+        <tr><td>Context re-renders</td><td>Split Contexts, Memoize Values</td></tr>
+        <tr><td>Frequent events</td><td>Debouncing, Throttling</td></tr>
+        <tr><td>Memory leaks</td><td>Cleanup in <code>useEffect</code></td></tr>
+        <tr><td>Slow startup</td><td>Production build, Bundle optimization</td></tr>
+        <tr><td>Unknown bottlenecks</td><td>React Profiler, Chrome DevTools, Lighthouse</td></tr>
+      </table>
+
+      <div class="remember" style="margin-top:22px;">
+        🎯 <strong>Rule of thumb:</strong> Measure → Identify the bottleneck → Apply the
+        appropriate optimization → Measure again. Avoid premature optimization — focus on the
+        parts of the application that actually impact user experience.
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
