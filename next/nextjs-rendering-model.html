@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Next.js Rendering Models Reference</title>
+  <style>
+    * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+    }
+    
+    body { 
+      background: #f8fafc; /* Crisp Slate Light */
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+      color: #334155; 
+      line-height: 1.5;
+    }
+    
+    .container { 
+      width: 92%; 
+      max-width: 1180px; 
+      margin: 60px auto; 
+    }
+
+    .container {
+      --accent-dark:   #4338ca; /* Indigo 700 */
+      --accent:        #4f46e5; /* Indigo 600 */
+      --accent-light:  #818cf8; /* Indigo 400 */
+      --content-bg:    #ffffff; /* Pure White */
+      --card-bg:       #f1f5f9; /* Light Slate */
+      --heading:       #4f46e5; /* Vibrant Indigo */
+      --shadow-rgb:    15, 23, 42;
+    }
+
+    /* ═══════════════════ HEADER ═══════════════════ */
+    .header {
+      background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 100%);
+      border: 1px solid rgba(79, 70, 229, 0.2);
+      border-radius: 20px;
+      padding: 46px 40px;
+      margin-bottom: 44px;
+      box-shadow: 0 10px 30px rgba(79, 70, 229, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+    .header::after {
+      content: '';
+      position: absolute; top: -60px; right: -60px;
+      width: 220px; height: 220px; border-radius: 50%;
+      background: rgba(79, 70, 229, 0.05);
+    }
+    .header h1 { color: #1e293b; font-size: 36px; margin-bottom: 12px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+    .header p { color: #64748b; font-size: 16.5px; margin-bottom: 26px; max-width: 660px; line-height: 1.6; position: relative; }
+    
+    .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+    .toc a {
+      text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700;
+      transition: all 0.2s ease; cursor: pointer;
+      background: #ffffff; color: #475569; border: 1px solid #e2e8f0;
+      letter-spacing: 0.2px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .toc a:hover { background: var(--accent); color: #fff; border-color: var(--accent-light); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2); }
+
+    /* ═══════════════════ KEY TERMS SUMMARY ═══════════════════ */
+    .intro-summary { margin: 0 0 46px; }
+    .intro-summary-title { font-size: 21px; font-weight: 800; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+    .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 14px; padding: 18px; border: 1px solid #e2e8f0; background: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .summary-icon { flex-shrink: 0; width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #f1f5f9; }
+    .summary-text { font-size: 14.5px; line-height: 1.5; font-weight: 500; color: #475569; }
+    .summary-text strong { font-weight: 700; margin-right: 4px; display: inline-block; }
+    
+    .summary-teal   { border-left: 4px solid #10b981; } .summary-teal strong { color: #10b981; }
+    .summary-pink   { border-left: 4px solid #db2777; } .summary-pink strong { color: #db2777; }
+    .summary-amber  { border-left: 4px solid #f59e0b; } .summary-amber strong { color: #f59e0b; }
+    .summary-blue   { border-left: 4px solid #3b82f6; } .summary-blue strong { color: #3b82f6; }
+
+    /* ═══════════════════ SECTION DIVIDER ═══════════════════ */
+    .section-divider { margin: 60px 0 30px; position: relative; }
+    .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #e2e8f0; }
+    .section-divider span { background: #f8fafc; padding: 0 20px 0 0; position: relative; font-size: 22px; font-weight: 800; color: #1e293b; display: inline-flex; align-items: center; gap: 8px; }
+
+    /* ═══════════════════ CARDS ═══════════════════ */
+    .card { border-radius: 16px; margin-bottom: 30px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; background: var(--card-bg); }
+    .card-title { color: #1e293b; font-size: 19.5px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; letter-spacing: -0.2px; }
+    .card-content { padding: 28px; background: var(--content-bg); }
+    .card-content p { color: #475569; font-size: 16px; line-height: 1.7; margin-bottom: 16px; }
+    .card-content h4 { font-size: 17px; margin-bottom: 12px; margin-top: 24px; font-weight: 700; color: var(--heading); display: flex; align-items: center; gap: 8px; }
+
+    /* ── short-answer ── */
+    .short-answer {
+      position: relative;
+      background: #f8fafc;
+      border: 1px solid rgba(79, 70, 229, 0.15);
+      border-left: 4px solid var(--accent);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 26px;
+      font-size: 16px;
+      line-height: 1.7;
+      color: #334155;
+    }
+    .short-answer::before {
+      content: "RENDERING RULE";
+      display: block; width: fit-content;
+      font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #ffffff;
+      background: var(--accent);
+      padding: 3px 10px; border-radius: 6px; margin-bottom: 14px;
+    }
+    .short-answer code {
+      background: rgba(79, 70, 229, 0.08); color: #4f46e5;
+      padding: 2px 6px; border-radius: 4px; font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── CODE BLOCK CONFIG (RICH DARK THEME) ── */
+    .code-block { 
+      background: #0f172a; /* Deep Slate Blue Dark */
+      border-radius: 14px; 
+      overflow: hidden; 
+      margin: 20px 0; 
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
+      border: 1px solid rgba(255, 255, 255, 0.08); 
+    }
+    .code-bar { 
+      background: #1e293b; /* Sleek Darker Slate Header */
+      padding: 12px 18px; 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
+    }
+    .code-bar .dot { width: 11px; height: 11px; border-radius: 50%; }
+    .code-bar .dot-red { background: #ff5f56; }
+    .code-bar .dot-grey { background: #ffbd2e; }
+    .code-bar .dot-green { background: #27c93f; }
+    .code-bar .filename { 
+      color: #94a3b8; /* Cool Muted Text */
+      font-size: 13px; 
+      margin-left: 10px; 
+      font-family: 'JetBrains Mono', monospace; 
+      font-weight: 500; 
+    }
+    
+    .code-block pre { padding: 24px; overflow-x: auto; line-height: 1.8; }
+    .code-block code { 
+      color: #e2e8f0; /* Off-White Base Code */
+      font-size: 14.5px; 
+      font-family: 'JetBrains Mono', monospace; 
+      font-variant-ligatures: normal; 
+    }
+    
+    /* Dark Syntax Tokens */
+    .kw    { color: #c084fc; font-weight: 600; }      /* Keywords - Bright Purple */
+    .str   { color: #34d399; }                        /* Strings - Emerald Green */
+    .fn    { color: #38bdf8; }                        /* Core Methods/Globals - Sky Blue */
+    .type  { color: #fbbf24; font-weight: 600; }      /* Component/Constructors - Warm Amber */
+    .num   { color: #fb923c; }                        /* Numbers - Vibrant Orange */
+    .prop  { color: #cbd5e1; }                        /* Object Fields - Muted Off-White */
+
+    /* Comment Tracks */
+    .cmt-setup  { color: #64748b; font-style: italic; font-weight: 500; } /* Structure (Muted Slate) */
+    .cmt-flow   { color: #f87171; font-style: italic; }                   /* Alert Action (Soft Red) */
+    .cmt-assert { color: #38bdf8; font-weight: 500; }                     /* Checkpoints (Electric Blue) */
+    .cmt-inline { color: #64748b; font-style: italic; opacity: 0.85; }    /* Standard Inline */
+
+    /* ── callout boxes ── */
+    .remember {
+      border-radius: 12px; padding: 20px; margin: 24px 0; font-size: 15.5px; line-height: 1.7;
+      background: #f1f5f9; border-left: 4px solid #3b82f6; color: #334155;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    }
+    .remember strong { color: #2563eb; }
+
+    /* List Items Styling */
+    .card-content ul { margin-left: 20px; margin-bottom: 20px; }
+    .card-content li { font-size: 15.5px; color: #475569; margin-bottom: 6px; line-height: 1.6; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; }
+    table th { background: #f1f5f9; color: #1e293b; font-size: 15px; font-weight: 700; padding: 16px 20px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+    table td { padding: 14px 20px; font-size: 14.5px; border-bottom: 1px solid #e2e8f0; color: #475569; background: #ffffff; }
+    table tr:nth-child(even) td { background: #f8fafc; }
+    table code { background: rgba(79, 70, 229, 0.06); color: #4f46e5; padding: 3px 6px; border-radius: 5px; font-size: 13.5px; font-family: 'JetBrains Mono', monospace; }
+
+    @media (max-width: 768px) {
+      .header h1 { font-size: 27px; }
+      .toc a { padding: 6px 12px; font-size: 12px; }
+      .card-content { padding: 20px; }
+      .code-block pre { padding: 16px; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- HEADER -->
+    <header class="header">
+      <h1>Next.js Rendering Model Reference</h1>
+      <p>Master the powerful rendering strategies of the Next.js App Router. Learn when and how to leverage Server Components, Client Components, SSR, SSG, ISR, CSR, Streaming, and PPR.</p>
+      <nav class="toc">
+        <a href="#server-vs-client">1. Server vs Client Components</a>
+        <a href="#rendering-strategies">2. Rendering Strategies</a>
+        <a href="#streaming-suspense">3. Streaming with Suspense</a>
+        <a href="#partial-prerendering">4. Partial Pre-rendering (PPR)</a>
+        <a href="#interview-summary">5. Interview Cheat Sheet</a>
+      </nav>
+    </header>
+
+    <!-- KEY TERMS SUMMARY -->
+    <section class="intro-summary">
+      <h2 class="intro-summary-title">⚡ Core Rendering Concepts</h2>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🖥️</div>
+          <div class="summary-text"><strong>Server-First</strong> Components render on the server by default, delivering minimal client-side JS bundles.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">⚡</div>
+          <div class="summary-text"><strong>Dynamic Opt-In</strong> Use <code>"use client"</code> selectively to inject interactive behaviors and hooks.</div>
+        </div>
+        <div class="summary-item summary-amber">
+          <div class="summary-icon">⏱️</div>
+          <div class="summary-text"><strong>Hybrid Strategy</strong> Combine static (SSG/ISR) and dynamic (SSR) loads on a single path.</div>
+        </div>
+        <div class="summary-item summary-blue">
+          <div class="summary-icon">🌊</div>
+          <div class="summary-text"><strong>Streaming</strong> Deliver UI chunks progressively with React Suspense fallbacks.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1 -->
+    <div class="section-divider" id="server-vs-client">
+      <span>🖥️ 1. Server Components vs Client Components</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Server Components (Default) & Client Components ("use client")</div>
+      <div class="card-content">
+        <div class="short-answer">
+          By default, all components in the <code>app/</code> folder are React Server Components. Add the <code>"use client"</code> directive at the very top of a file to opt-in to Client-side execution.
+        </div>
+
+        <h4>Server Components Characteristics</h4>
+        <ul>
+          <li>Runs exclusively on the server (no browser context access like <code>window</code> or <code>localStorage</code>).</li>
+          <li>Can directly fetch data asynchronously inside the component using <code>async/await</code>.</li>
+          <li>Generates zero client-side JavaScript, resulting in lighter page load footprints and better SEO.</li>
+          <li>Cannot use interactive hooks like <code>useState</code> or <code>useEffect</code>.</li>
+        </ul>
+
+        <h4>Default Server Component Example</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/products/page.js</span>
+          </div>
+          <pre><code><span class="kw">export default async function</span> <span class="type">Products</span>() {
+  <span class="cmt-setup">// This fetch happens entirely on the server during request execution</span>
+  <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"https://dummyjson.com/products"</span>);
+  <span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">h1</span>&gt;Products&lt;/<span class="type">h1</span>&gt;
+      {data.products.<span class="fn">map</span>((item) => (
+        &lt;<span class="type">p</span> <span class="prop">key</span>={item.id}&gt;{item.title}&lt;/<span class="type">p</span>&gt;
+      ))}
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h4>Client Components Characteristics</h4>
+        <ul>
+          <li>Runs in the browser environment (after hydration) but is pre-rendered on the server first.</li>
+          <li>Full support for state hooks, lifecycle hooks, and local event listeners.</li>
+          <li>Increases client-side bundle size due to carrying hydrated interactivity code.</li>
+        </ul>
+
+        <h4>Client Component Example</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/components/Counter.jsx</span>
+          </div>
+          <pre><code><span class="str">"use client"</span>;
+
+<span class="kw">import</span> { <span class="type">useState</span> } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">export default function</span> <span class="type">Counter</span>() {
+  <span class="kw">const</span> [count, setCount] = <span class="type">useState</span>(<span class="num">0</span>);
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">h2</span>&gt;{count}&lt;/<span class="type">h2</span>&gt;
+      &lt;<span class="type">button</span> <span class="prop">onClick</span>={() => <span class="fn">setCount</span>(count + <span class="num">1</span>)}&gt;
+        Increment
+      &lt;/<span class="type">button</span>&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h4>Mixing Server and Client Components</h4>
+        <p>A Server Component can render and import Client Components seamlessly, acting as a dynamic parent container shell.</p>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/page.js (Server Component Container)</span>
+          </div>
+          <pre><code><span class="kw">import</span> <span class="type">Counter</span> <span class="kw">from</span> <span class="str">"./Counter"</span>;
+
+<span class="kw">export default function</span> <span class="type">Home</span>() {
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">h1</span>&gt;Home Page&lt;/<span class="type">h1</span>&gt;
+      <span class="cmt-setup">{/* Server component directly passes control to dynamic interactive boundaries */}</span>
+      &lt;<span class="type">Counter</span> /&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2 -->
+    <div class="section-divider" id="rendering-strategies">
+      <span>🚀 2. Rendering Strategies (SSR, SSG, ISR, CSR)</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Dynamic Rendering & Static Site Strategies</div>
+      <div class="card-content">
+        
+        <!-- A. SSR -->
+        <h4>A. SSR (Server-Side Rendering / Dynamic Rendering)</h4>
+        <p>The page compiles HTML on demand for every incoming client request. Perfect for live data sources, user profiles, or dashboard interfaces.</p>
+        
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">SSR Route Implementation</span>
+          </div>
+          <pre><code><span class="kw">export const</span> dynamic = <span class="str">"force-dynamic"</span>;
+
+<span class="kw">export default async function</span> <span class="type">Users</span>() {
+  <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"https://dummyjson.com/users"</span>, {
+    cache: <span class="str">"no-store"</span>, <span class="cmt-setup">// Instructs engine to bypass standard cache layers</span>
+  });
+  <span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      {data.users.<span class="fn">map</span>(user => (
+        &lt;<span class="type">p</span> <span class="prop">key</span>={user.id}&gt;{user.firstName}&lt;/<span class="type">p</span>&gt;
+      ))}
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <!-- B. SSG -->
+        <h4>B. SSG (Static Site Generation)</h4>
+        <p>HTML is built once at deploy time. If standard data calls are fetch-cacheable, Next.js generates static assets by default. Excellent for documentation, blogs, or product marketing landing sites.</p>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">SSG Route Implementation</span>
+          </div>
+          <pre><code><span class="kw">export default async function</span> <span class="type">Blog</span>() {
+  <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"https://dummyjson.com/posts"</span>); <span class="cmt-setup">// Cached by default</span>
+  <span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      {data.posts.<span class="fn">map</span>(post => (
+        &lt;<span class="type">p</span> <span class="prop">key</span>={post.id}&gt;{post.title}&lt;/<span class="type">p</span>&gt;
+      ))}
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <!-- C. ISR -->
+        <h4>C. ISR (Incremental Static Regeneration)</h4>
+        <p>The static page rebuilds incrementally in the background after a set period of seconds when a new visit hits the server.</p>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">ISR Route Implementation</span>
+          </div>
+          <pre><code><span class="kw">export const</span> revalidate = <span class="num">60</span>; <span class="cmt-setup">// Re-evaluates target data cache after 60 seconds max</span>
+
+<span class="kw">export default async function</span> <span class="type">StoreFront</span>() {
+  <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"https://dummyjson.com/products"</span>);
+  <span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      {data.products.<span class="fn">map</span>(product => (
+        &lt;<span class="type">p</span> <span class="prop">key</span>={product.id}&gt;{product.title}&lt;/<span class="type">p</span>&gt;
+      ))}
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <!-- D. CSR -->
+        <h4>D. CSR (Client-Side Rendering)</h4>
+        <p>A blank shell page is served immediately. The client's browser downloads, compiles JavaScript files, and performs API fetching queries post-hydration.</p>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">CSR Route Implementation</span>
+          </div>
+          <pre><code><span class="str">"use client"</span>;
+
+<span class="kw">import</span> { <span class="type">useEffect</span>, <span class="type">useState</span> } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">export default function</span> <span class="type">ClientDashboard</span>() {
+  <span class="kw">const</span> [products, setProducts] = <span class="type">useState</span>([]);
+
+  <span class="type">useEffect</span>(() => {
+    <span class="fn">fetch</span>(<span class="str">"https://dummyjson.com/products"</span>)
+      .<span class="fn">then</span>(res => res.<span class="fn">json</span>())
+      .<span class="fn">then</span>(data => <span class="fn">setProducts</span>(data.products));
+  }, []);
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      {products.<span class="fn">map</span>(product => (
+        &lt;<span class="type">p</span> <span class="prop">key</span>={product.id}&gt;{product.title}&lt;/<span class="type">p</span>&gt;
+      ))}
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h4>Rendering Configuration Strategy Lookup</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Configuration Setting</th>
+              <th>Matched Strategy Result</th>
+              <th>Target Fetch Behavior</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Default setup / fetch caches</td>
+              <td><code>SSG</code></td>
+              <td>Static generation during workspace build time</td>
+            </tr>
+            <tr>
+              <td><code>{ cache: "no-store" }</code></td>
+              <td><code>SSR</code></td>
+              <td>Performs fresh network load on every visit</td>
+            </tr>
+            <tr>
+              <td><code>export const revalidate = 60</code></td>
+              <td><code>ISR</code></td>
+              <td>Regenerates cache boundaries after specified seconds</td>
+            </tr>
+            <tr>
+              <td><code>"use client"</code> + <code>useEffect()</code></td>
+              <td><code>CSR</code></td>
+              <td>Loads base shell and queries APIs directly in browser</td>
+            </tr>
+            <tr>
+              <td><code>export const dynamic = "force-dynamic"</code></td>
+              <td><code>SSR</code></td>
+              <td>Forces path routing to render per client request</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SECTION 3 -->
+    <div class="section-divider" id="streaming-suspense">
+      <span>🌊 3. Streaming SSR with &lt;Suspense&gt;</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Progressive HTML Delivery and Component Loading States</div>
+      <div class="card-content">
+        <div class="short-answer">
+          Streaming permits Next.js to compile pages into separate chunks. Instantly send down static frames, while resolving dynamic server-side fetches inside loading placeholders.
+        </div>
+
+        <h4>Implementation Blueprint</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/page.js</span>
+          </div>
+          <pre><code><span class="kw">import</span> { <span class="type">Suspense</span> } <span class="kw">from</span> <span class="str">"react"</span>;
+<span class="kw">import</span> <span class="type">ProductList</span> <span class="kw">from</span> <span class="str">"./ProductList"</span>;
+
+<span class="kw">export default function</span> <span class="type">StorePage</span>() {
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">h1</span>&gt;Storefront Catalogue&lt;/<span class="type">h1</span>&gt;
+      <span class="cmt-setup">{/* Renders the fallback block instantly while ProductList loads */}</span>
+      &lt;<span class="type">Suspense</span> <span class="prop">fallback</span>={&lt;<span class="type">p</span>&gt;Loading Products...&lt;/<span class="type">p</span>&gt;}&gt;
+        &lt;<span class="type">ProductList</span> /&gt;
+      &lt;/<span class="type">Suspense</span>&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/ProductList.js</span>
+          </div>
+          <pre><code><span class="kw">export default async function</span> <span class="type">ProductList</span>() {
+  <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"https://dummyjson.com/products"</span>);
+  <span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      {data.products.<span class="fn">map</span>(product => (
+        &lt;<span class="type">p</span> <span class="prop">key</span>={product.id}&gt;{product.title}&lt;/<span class="type">p</span>&gt;
+      ))}
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="remember">
+          <strong>Why use Streaming SSR?</strong> Users see structural layout shells (navigation headers, sidebars) immediately, dramatically improving core Web Vitals like First Contentful Paint (FCP) and Largest Contentful Paint (LCP).
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4 -->
+    <div class="section-divider" id="partial-prerendering">
+      <span>⚡ 4. Partial Pre-rendering (PPR)</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Static Page Shells with Dynamic Streaming Holes</div>
+      <div class="card-content">
+        <p>Partial Pre-rendering (PPR) lets Next.js pre-render static HTML structures while embedding dynamic React Suspense zones that stream personalized user details or dynamic database items on the fly.</p>
+
+        
+
+        <h4>Partial Pre-rendering Setup</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/page.js</span>
+          </div>
+          <pre><code><span class="kw">import</span> { <span class="type">Suspense</span> } <span class="kw">from</span> <span class="str">"react"</span>;
+<span class="kw">import</span> <span class="type">LatestOrders</span> <span class="kw">from</span> <span class="str">"./LatestOrders"</span>;
+
+<span class="kw">export default function</span> <span class="type">Home</span>() {
+  <span class="kw">return</span> (
+    &lt;&gt;
+      <span class="cmt-setup">{/* Static Shell Elements generated at build time */}</span>
+      &lt;<span class="type">header</span>&gt;Navbar&lt;/<span class="type">header</span>&gt;
+      &lt;<span class="type">section</span>&gt;
+        &lt;<span class="type">h1</span>&gt;Welcome Back!&lt;/<span class="type">h1</span>&gt;
+      &lt;/<span class="type">section</span>&gt;
+
+      <span class="cmt-setup">{/* Dynamic order stream placeholder */}</span>
+      &lt;<span class="type">Suspense</span> <span class="prop">fallback</span>={&lt;<span class="type">p</span>&gt;Loading Orders...&lt;/<span class="type">p</span>&gt;}&gt;
+        &lt;<span class="type">LatestOrders</span> /&gt;
+      &lt;/<span class="type">Suspense</span>&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/LatestOrders.js</span>
+          </div>
+          <pre><code><span class="kw">export default async function</span> <span class="type">LatestOrders</span>() {
+  <span class="cmt-setup">// Dynamic database fetch bypasses standard SSG build time</span>
+  <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"https://dummyjson.com/carts"</span>, {
+    cache: <span class="str">"no-store"</span>,
+  });
+  <span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      {data.carts.<span class="fn">map</span>(cart => (
+        &lt;<span class="type">p</span> <span class="prop">key</span>={cart.id}&gt;Order #{cart.id}&lt;/<span class="type">p</span>&gt;
+      ))}
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 5 -->
+    <div class="section-divider" id="interview-summary">
+      <span>🎓 5. Rendering Model Interview Cheat Sheet</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Quick Review Definitions for Next.js Architectural Questions</div>
+      <div class="card-content">
+        <table>
+          <thead>
+            <tr>
+              <th>Architecture Feature</th>
+              <th>How it works</th>
+              <th>Optimal Use Case</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Server Component</strong></td>
+              <td>Default server runtime; zero client bundle JS</td>
+              <td>Direct database queries, static pages, heavy logic libraries</td>
+            </tr>
+            <tr>
+              <td><strong>Client Component</strong></td>
+              <td>Requires <code>"use client"</code>; hydrates in browser</td>
+              <td>Dynamic form states, local click event listeners, browser API use</td>
+            </tr>
+            <tr>
+              <td><strong>SSR</strong></td>
+              <td>Fetches data and generates markup per request</td>
+              <td>Stock price feeds, real-time live tickers, user feed lists</td>
+            </tr>
+            <tr>
+              <td><strong>SSG</strong></td>
+              <td>Creates static static assets at compilation time</td>
+              <td>Static homepage shells, blog directories, standard documentation</td>
+            </tr>
+            <tr>
+              <td><strong>ISR</strong></td>
+              <td>Updates cached static assets background dynamically</td>
+              <td>Product catalogs, high-frequency article listings, pricing tiers</td>
+            </tr>
+            <tr>
+              <td><strong>CSR</strong></td>
+              <td>Hydrates static page and initiates UI data calls on client</td>
+              <td>Interacted Search filters, dashboards behind security wall gates</td>
+            </tr>
+            <tr>
+              <td><strong>Streaming SSR</strong></td>
+              <td>Delivers progressive parts of UI elements via Suspense</td>
+              <td>Long, multi-database query views, massive interactive web platforms</td>
+            </tr>
+            <tr>
+              <td><strong>PPR</strong></td>
+              <td>Merges static template shells with fast streamed dynamic views</td>
+              <td>Ecommerce product paths (constant static info with custom customer info)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

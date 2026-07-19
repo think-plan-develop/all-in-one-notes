@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JavaScript Engine Execution - Complete Interview Notes</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+/* ═══════════ THEME VARIABLES — apply on any element via class ═══════════ */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+/* ═══════════ HEADER ═══════════ */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* ═══════════ KEY TERMS SUMMARY ═══════════ */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size: 16px;
+    line-height: 1.7;
+    font-weight: 600; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* ═══════════ SECTION DIVIDER ═══════════ */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* ═══════════ CARDS ═══════════ */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.card-content p { color:#333; font-size:17px; line-height:1.8; margin-bottom:14px; font-weight:500; }
+.card-content ul, .card-content ol { margin: 0 0 14px 22px; }
+.card-content li { font-size:16px; line-height:1.9; color:#333; font-weight:500; margin-bottom:4px; }
+.card-content h3 { font-size:18px; margin:20px 0 8px; font-weight:800; color:var(--heading); }
+.card-content h4 { font-size:17px; margin-bottom:6px; margin-top:18px; font-weight:800; color:var(--heading); }
+
+.short-answer { position:relative; background:linear-gradient(160deg,#ffffff 0%, var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),0.16); border-left:4px solid var(--accent); border-radius:12px; padding:18px 22px 20px; margin-bottom:22px; font-size:17px; line-height:1.75; font-weight:500; color:#293244; box-shadow:0 6px 18px rgba(var(--shadow-rgb),0.1); }
+.short-answer::before { content:"QUICK ANSWER"; display:block; width:fit-content; font-size:11px; font-weight:800; letter-spacing:.8px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; margin-bottom:12px; box-shadow:0 3px 8px rgba(var(--shadow-rgb),0.35); }
+.short-answer strong { color: var(--heading); }
+.short-answer code { background:rgba(var(--shadow-rgb),0.1); color:var(--heading); padding:2px 6px; border-radius:5px; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+
+/* Q&A blocks (h4/p pairs) */
+.card-content-QA h4 { padding:14px 18px; margin:22px 0 12px; border-radius:12px; font-size:18px; font-weight:700; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; background:linear-gradient(135deg,#bfdbfe,#93c5fd); color:var(--heading); border-left:3px solid var(--accent); }
+.card-content-QA p { padding:14px 18px; margin:0 0 18px; border-radius:12px; font-size:16px; line-height:2.1; font-weight:500; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; background:linear-gradient(135deg,#eff6ff,#dbeafe); color:var(--heading); border-left:3px solid var(--accent); }
+
+/* ═══════════ CODE BLOCK ═══════════ */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* ═══════════ DIAGRAM ═══════════ */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+/* ═══════════ INFO BOXES ═══════════ */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-gray    { background:linear-gradient(135deg,#f1f5f9,#e2e8f0); color:#334155; font-style:italic; font-weight:500; }
+.box-gray code { background:rgba(51,65,85,0.1); color:#1e293b; padding:2px 6px; border-radius:5px; font-style:normal; }
+
+/* ═══════════ TABLE ═══════════ */
+table { width:100%; border-collapse:collapse; margin:15px 0; border-radius:12px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.08); }
+table th { background:linear-gradient(120deg,#6366f1,#8b5cf6); color:#fff; font-size:17px; padding:14px 18px; text-align:left; }
+table td { padding:12px 18px; font-size:15px; font-weight:500; border-bottom:1px solid #eef0f4; color:#334155; }
+table tr:nth-child(even) { background:#f8fafc; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header theme-blue">
+      <h1>🧠 JavaScript Engine Execution</h1>
+      <p>How the JS Engine runs your code — Execution Context, Call Stack, Memory Heap, and the Single-Threaded model</p>
+      <div class="toc">
+        <a href="#what-happens" onclick="document.getElementById('what-happens').scrollIntoView({behavior:'smooth'});return false;">What Happens When JS Runs?</a>
+        <a href="#engine" onclick="document.getElementById('engine').scrollIntoView({behavior:'smooth'});return false;">JS Engine</a>
+        <a href="#ec" onclick="document.getElementById('ec').scrollIntoView({behavior:'smooth'});return false;">Execution Context</a>
+        <a href="#gec" onclick="document.getElementById('gec').scrollIntoView({behavior:'smooth'});return false;">Global EC</a>
+        <a href="#fec" onclick="document.getElementById('fec').scrollIntoView({behavior:'smooth'});return false;">Function EC</a>
+        <a href="#callstack" onclick="document.getElementById('callstack').scrollIntoView({behavior:'smooth'});return false;">Call Stack</a>
+        <a href="#heap" onclick="document.getElementById('heap').scrollIntoView({behavior:'smooth'});return false;">Memory Heap</a>
+        <a href="#singlethread" onclick="document.getElementById('singlethread').scrollIntoView({behavior:'smooth'});return false;">Single-Threaded</a>
+        <a href="#summary" onclick="document.getElementById('summary').scrollIntoView({behavior:'smooth'});return false;">Interview Summary</a>
+      </div>
+    </div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">⚙️</div>
+          <div class="summary-text"><strong>Execution Context:</strong> The environment where JS code is evaluated and executed — holds variables, functions, scope, and <code>this</code>.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">📚</div>
+          <div class="summary-text"><strong>Call Stack:</strong> A LIFO stack that stores execution contexts and manages the order code runs in.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🧱</div>
+          <div class="summary-text"><strong>Memory Heap:</strong> An unstructured memory region where objects, arrays, and functions are actually stored.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🧵</div>
+          <div class="summary-text"><strong>Single-Threaded:</strong> JS has exactly one Call Stack, so only one task executes at a time.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== WHAT HAPPENS WHEN WE RUN A JS PROGRAM ==================== -->
+    <div class="section-divider" id="what-happens"><span>What happens when we run a JavaScript program?</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">The Short Answer</div>
+      <div class="card-content">
+        <div class="info-box box-benefit">
+          <strong>💡 In one line:</strong> The JS Engine creates a <strong>Global Execution Context</strong>, pushes it onto the <strong>Call Stack</strong>, runs your code in two phases (Memory Creation → Code Execution), and creates a brand-new <strong>Function Execution Context</strong> — pushed and popped off the same stack — every time a function is called.
+        </div>
+        <p>Everything else on this page is really just zooming into one of the four moving parts in that sentence: the <strong>Engine</strong>, the <strong>Execution Context</strong>, the <strong>Call Stack</strong>, and the <strong>Memory Heap</strong>.</p>
+      </div>
+    </div>
+
+    <!-- ==================== JS ENGINE ==================== -->
+    <div class="section-divider" id="engine"><span>The JavaScript Engine</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">What is the JavaScript Engine?</div>
+      <div class="card-content">
+        <p>The <strong>JavaScript Engine</strong> is the program that actually executes your JS code. It acts as an orchestrator by:</p>
+        <ul>
+          <li>Creating Execution Contexts</li>
+          <li>Executing JavaScript code</li>
+          <li>Managing the Call Stack</li>
+          <li>Allocating memory</li>
+          <li>Removing execution contexts after execution</li>
+        </ul>
+        <p>When a program starts, the engine builds an environment to run the code using three major components:</p>
+        <ul>
+          <li><strong>Execution Context</strong></li>
+          <li><strong>Call Stack</strong></li>
+          <li><strong>Memory Heap</strong></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ==================== EXECUTION CONTEXT ==================== -->
+    <div class="section-divider" id="ec"><span>Execution Context</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">What is an Execution Context?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          An <strong>Execution Context (EC)</strong> is the environment where JavaScript code is evaluated and executed.
+        </div>
+        <p>It contains:</p>
+        <ul>
+          <li>Variables</li>
+          <li>Functions</li>
+          <li>Scope information</li>
+          <li><code>this</code> keyword</li>
+          <li>References to objects stored in memory</li>
+        </ul>
+        <div class="info-box box-note">Every Execution Context goes through <strong>two phases</strong>: the Memory Creation Phase and the Code Execution Phase.</div>
+      </div>
+    </div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Phase 1 — Memory Creation Phase</div>
+      <div class="card-content">
+        <p>Before executing any code, JavaScript allocates memory:</p>
+        <ul>
+          <li>Memory is allocated for variables and functions</li>
+          <li><code>var</code> variables are initialized with <strong>undefined</strong></li>
+          <li>Function declarations are stored completely in memory</li>
+          <li><code>let</code> and <code>const</code> are allocated but remain in the <strong>Temporal Dead Zone (TDZ)</strong> until initialized</li>
+        </ul>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">example.js</span>
+          </div>
+          <pre><code><span class="fn">console</span>.log(a);
+<span class="kw">var</span> a = <span class="num">10</span>;</code></pre>
+        </div>
+
+        <div class="diagram">Memory Creation:
+  a → undefined
+
+Code Execution:
+  a → 10</div>
+      </div>
+    </div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Phase 2 — Code Execution Phase</div>
+      <div class="card-content">
+        <p>After memory allocation, the engine runs the code line by line:</p>
+        <ul>
+          <li>Code executes line by line</li>
+          <li>Variables receive their actual values</li>
+          <li>Functions are invoked</li>
+          <li>Expressions are evaluated</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ==================== GLOBAL EXECUTION CONTEXT ==================== -->
+    <div class="section-divider" id="gec"><span>Global Execution Context (GEC)</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">What is the GEC?</div>
+      <div class="card-content">
+        <p>Whenever a JavaScript program starts:</p>
+        <ul>
+          <li>The JS engine first creates the <strong>Global Execution Context</strong></li>
+          <li>It is the first execution context created</li>
+          <li>It is pushed onto the Call Stack</li>
+          <li>It stays at the <strong>bottom</strong> of the stack until the entire program finishes</li>
+        </ul>
+        <div class="info-box box-tip">
+          <strong>The GEC contains:</strong> global variables, global functions, the global object (<code>window</code> in browsers, <code>global</code> in Node.js), and <code>this</code> (points to the global object in non-module scripts).
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== FUNCTION EXECUTION CONTEXT ==================== -->
+    <div class="section-divider" id="fec"><span>Function Execution Context (FEC)</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">What is the FEC?</div>
+      <div class="card-content">
+        <p>Whenever a function is called:</p>
+        <ul>
+          <li>A new <strong>Function Execution Context</strong> is created</li>
+          <li>It has its own variables, parameters, scope, and <code>this</code></li>
+          <li>It is pushed onto the Call Stack</li>
+          <li>After execution, it is removed (popped)</li>
+        </ul>
+        <div class="info-box box-warning"><strong>Remember:</strong> Every single function call creates a brand-new Execution Context — even recursive calls to the same function.</div>
+      </div>
+    </div>
+
+    <!-- ==================== CALL STACK ==================== -->
+    <div class="section-divider" id="callstack"><span>Call Stack</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">What is the Call Stack?</div>
+      <div class="card-content">
+        <p>The JS engine has its own <strong>Call Stack</strong>, responsible for:</p>
+        <ul>
+          <li>Creating execution contexts</li>
+          <li>Managing execution order</li>
+          <li>Deleting execution contexts after execution</li>
+        </ul>
+        <div class="info-box box-benefit">It follows the <strong>LIFO (Last In, First Out)</strong> principle. The Call Stack stores <strong>Execution Contexts</strong>, not functions directly, and the engine always executes whichever context is at the <strong>top</strong> of the stack.</div>
+
+        <div class="diagram">            Top
+      -----------------
+      | Function EC   | ← Currently executing
+      -----------------
+      | Function EC   |
+      -----------------
+      | Global EC     | ← Created first
+      -----------------
+           Bottom</div>
+      </div>
+    </div>
+
+    <div class="card theme-blue">
+      <div class="card-title">How the Call Stack Works — Step by Step</div>
+      <div class="card-content">
+        <h3>Step 1 — Program Starts</h3>
+        <p>The engine creates the Global Execution Context and pushes it onto the stack.</p>
+        <div class="diagram">-------------
+| Global EC |
+-------------</div>
+
+        <h3>Step 2 — Function Invocation</h3>
+        <p>Whenever a function is invoked, a new Function Execution Context is pushed on top.</p>
+        <div class="diagram">-------------
+| one() EC  |
+-------------
+| Global EC |
+-------------</div>
+
+        <h3>Step 3 — Nested Function Calls</h3>
+        <p>If another function is called inside the current one, another execution context is pushed.</p>
+        <div class="diagram">-------------
+| two() EC  |
+-------------
+| one() EC  |
+-------------
+| Global EC |
+-------------</div>
+
+        <h3>Step 4 — Function Completion</h3>
+        <p>When the current function finishes, its execution context is popped, and control returns to the previous context.</p>
+        <div class="diagram">-------------
+| one() EC  |
+-------------
+| Global EC |
+-------------</div>
+
+        <h3>Step 5 — Program Ends</h3>
+        <p>After all Function Execution Contexts are removed, only the Global Execution Context remains. When the program finishes, the GEC is removed too.</p>
+      </div>
+    </div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Call Stack Walkthrough Example</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">callstack.js</span>
+          </div>
+          <pre><code><span class="kw">function</span> <span class="fn">one</span>() {
+    two();
+}
+
+<span class="kw">function</span> <span class="fn">two</span>() {
+    three();
+}
+
+<span class="kw">function</span> <span class="fn">three</span>() {
+    <span class="fn">console</span>.log(<span class="str">"Hello"</span>);
+}
+
+one();</code></pre>
+        </div>
+
+        <h3>Initial State</h3>
+        <div class="diagram">-------------
+| Global EC |
+-------------</div>
+
+        <h3>After one()</h3>
+        <div class="diagram">-------------
+| one() EC  |
+-------------
+| Global EC |
+-------------</div>
+
+        <h3>After two()</h3>
+        <div class="diagram">-------------
+| two() EC  |
+-------------
+| one() EC  |
+-------------
+| Global EC |
+-------------</div>
+
+        <h3>After three()</h3>
+        <div class="diagram">-------------
+| three() EC|
+-------------
+| two() EC  |
+-------------
+| one() EC  |
+-------------
+| Global EC |
+-------------</div>
+
+        <h3>After three() finishes</h3>
+        <div class="diagram">-------------
+| two() EC  |
+-------------
+| one() EC  |
+-------------
+| Global EC |
+-------------</div>
+
+        <div class="info-box box-note">Eventually, all Function Execution Contexts are popped, leaving only the Global Execution Context until the program ends.</div>
+      </div>
+    </div>
+
+    <!-- ==================== MEMORY HEAP ==================== -->
+    <div class="section-divider" id="heap"><span>Memory Heap</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">What is the Memory Heap?</div>
+      <div class="card-content">
+        <p>The <strong>Memory Heap</strong> is a large, unstructured memory area where JavaScript stores:</p>
+        <ul>
+          <li>Objects</li>
+          <li>Arrays</li>
+          <li>Functions</li>
+          <li>Classes</li>
+          <li>Large reference-type data</li>
+        </ul>
+        <div class="info-box box-tip">The <strong>Call Stack</strong> stores only <strong>references (memory addresses)</strong> to these objects — not the objects themselves.</div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">heap-example.js</span>
+          </div>
+          <pre><code><span class="kw">const</span> user = {
+    name: <span class="str">"Shivam"</span>
+};</code></pre>
+        </div>
+
+        <div class="diagram">Call Stack
+
+user ------> 0x101
+
+Memory Heap
+
+0x101
+{
+    name: "Shivam"
+}</div>
+      </div>
+    </div>
+
+    <!-- ==================== SINGLE-THREADED ==================== -->
+    <div class="section-divider" id="singlethread"><span>JavaScript is Single-Threaded</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">What Does Single-Threaded Mean?</div>
+      <div class="card-content">
+        <p>JavaScript has only <strong>one Call Stack</strong>. This means:</p>
+        <ul>
+          <li>Only one task executes at a time</li>
+          <li>A long-running function blocks the Call Stack</li>
+          <li>The next task starts only after the current task finishes</li>
+        </ul>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">blocking.js</span>
+          </div>
+          <pre><code><span class="fn">console</span>.log(<span class="str">"Start"</span>);
+
+<span class="kw">while</span>(<span class="kw">true</span>){}
+
+<span class="fn">console</span>.log(<span class="str">"End"</span>);</code></pre>
+        </div>
+
+        <div class="diagram">Output:
+Start</div>
+
+        <div class="info-box box-warning"><code>"End"</code> never executes because the infinite loop blocks the Call Stack forever.</div>
+      </div>
+    </div>
+
+    <!-- ==================== COMPLETE EXECUTION FLOW ==================== -->
+    <div class="section-divider" id="flow"><span>Complete Execution Flow</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Putting It All Together</div>
+      <div class="card-content">
+        <div class="diagram">Program Starts
+      │
+      ▼
+JavaScript Engine Starts
+      │
+      ▼
+Create Global Execution Context
+      │
+      ▼
+Push GEC into Call Stack
+      │
+      ▼
+Memory Creation Phase
+      │
+      ▼
+Code Execution Phase
+      │
+      ▼
+Function Called?
+      │
+     Yes
+      │
+      ▼
+Create Function Execution Context
+      │
+      ▼
+Push into Call Stack
+      │
+      ▼
+Execute Function
+      │
+      ▼
+Function Ends
+      │
+      ▼
+Pop Function Execution Context
+      │
+      ▼
+Return to Previous Execution Context
+      │
+      ▼
+Continue Remaining Code
+      │
+      ▼
+Program Ends
+      │
+      ▼
+Remove Global Execution Context</div>
+      </div>
+    </div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Relationship Between Components</div>
+      <div class="card-content">
+        <div class="diagram">               JavaScript Engine
+                      │
+      ┌───────────────┼────────────────┐
+      │               │                │
+      ▼               ▼                ▼
+Execution Context   Call Stack     Memory Heap
+      │               │                │
+Contains        Stores ECs       Stores Objects,
+Variables,      in LIFO order    Arrays, Functions
+Functions,
+Scope, this</div>
+      </div>
+    </div>
+
+    <!-- ==================== KEY POINTS ==================== -->
+    <div class="section-divider"><span>Key Points to Remember</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Quick Recap Table</div>
+      <div class="card-content">
+        <table>
+          <tr><th>Term</th><th>What It Means</th></tr>
+          <tr><td><strong>Execution Context (EC)</strong></td><td>Environment where JavaScript executes code</td></tr>
+          <tr><td><strong>Global Execution Context (GEC)</strong></td><td>Created once when the program starts; remains until the program ends</td></tr>
+          <tr><td><strong>Function Execution Context (FEC)</strong></td><td>Created every time a function is invoked</td></tr>
+          <tr><td><strong>Memory Creation Phase</strong></td><td>Allocates memory, initializes <code>var</code> with <code>undefined</code>, stores function declarations, places <code>let</code>/<code>const</code> in the TDZ</td></tr>
+          <tr><td><strong>Code Execution Phase</strong></td><td>Executes code line by line and assigns actual values</td></tr>
+          <tr><td><strong>Call Stack</strong></td><td>LIFO stack that stores execution contexts and manages execution order</td></tr>
+          <tr><td><strong>Memory Heap</strong></td><td>Stores objects, arrays, functions, and other reference-type data</td></tr>
+          <tr><td><strong>Single-Threaded</strong></td><td>JavaScript has one Call Stack and executes one task at a time</td></tr>
+        </table>
+        <div class="info-box box-benefit"><strong>💡 Execution Rule:</strong> The JS engine always executes the execution context at the <strong>top</strong> of the Call Stack. After it finishes, that context is popped, and control returns to the previous execution context.</div>
+      </div>
+    </div>
+
+    <!-- ==================== INTERVIEW SUMMARY ==================== -->
+    <div class="section-divider" id="summary"><span>Interview Summary (1 Minute)</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">The 1-Minute Answer</div>
+      <div class="card-content">
+        <div class="info-box box-gray">
+          "When a JavaScript program starts, the JavaScript engine creates the Global Execution Context and pushes it onto the Call Stack. Every Execution Context has two phases: the Memory Creation Phase, where memory is allocated (<code>var</code> gets <code>undefined</code>, function declarations are stored, and <code>let</code>/<code>const</code> remain in the TDZ), and the Code Execution Phase, where code runs line by line. Whenever a function is called, a new Function Execution Context is created and pushed onto the Call Stack. Since the Call Stack follows the LIFO principle, the most recently called function executes first and is removed after completion, returning control to the previous context. The Memory Heap stores objects, arrays, and other reference-type data, while the Call Stack stores references to them. JavaScript is single-threaded, meaning it has only one Call Stack and executes one task at a time."
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider"><span>Interview Q&amp;A — JavaScript Engine Execution</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Interview Q&amp;A</div>
+      <div class="card-content card-content-QA">
+        <h4>Q: What happens when we run a JavaScript program?</h4>
+        <p><strong>A:</strong> The JS engine creates a Global Execution Context and pushes it onto the Call Stack. The context runs through the Memory Creation Phase and then the Code Execution Phase. Every function call creates a new Function Execution Context, which is pushed onto the Call Stack and popped once the function returns.</p>
+
+        <h4>Q: What is an Execution Context?</h4>
+        <p><strong>A:</strong> An Execution Context is the environment in which JavaScript code is evaluated and executed. It holds variables, functions, scope information, and <code>this</code>, and goes through a Memory Creation Phase followed by a Code Execution Phase.</p>
+
+        <h4>Q: What is the difference between the Global Execution Context and a Function Execution Context?</h4>
+        <p><strong>A:</strong> The GEC is created once, when the program starts, and stays at the bottom of the Call Stack until the program ends. A FEC is created fresh every time a function is invoked, and is removed from the stack once that function finishes executing.</p>
+
+        <h4>Q: What is the Call Stack and why does it matter?</h4>
+        <p><strong>A:</strong> The Call Stack is a LIFO data structure that stores execution contexts and controls the order code runs in. It matters because it explains synchronous execution order, why a deeply recursive function can cause a "stack overflow," and why one blocking task freezes the entire program.</p>
+
+        <h4>Q: What's the difference between the Call Stack and the Memory Heap?</h4>
+        <p><strong>A:</strong> The Call Stack manages execution order and stores execution contexts (with references to data). The Memory Heap is where the actual objects, arrays, and functions are stored. Primitive values often live directly on the stack, while reference types are allocated in the heap and accessed via a reference.</p>
+
+        <h4>Q: Why is JavaScript called single-threaded?</h4>
+        <p><strong>A:</strong> Because it has exactly one Call Stack, so it can only execute one piece of code at a time. A long-running synchronous task (like an infinite loop) blocks that single stack and prevents any other code — including UI updates — from running until it finishes.</p>
+
+        <h4>Q: What is the Temporal Dead Zone (TDZ)?</h4>
+        <p><strong>A:</strong> The TDZ is the period between when a <code>let</code>/<code>const</code> variable is hoisted (memory allocated) and when it's actually initialized with a value. Accessing the variable during this window throws a <code>ReferenceError</code>, unlike <code>var</code>, which simply returns <code>undefined</code>.</p>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

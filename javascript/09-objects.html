@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JavaScript Scope, Lexical Scope, Lexical Environment &amp; Scope Chain</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+/* ═══════════ THEME VARIABLES — apply on any element via class ═══════════ */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+/* ═══════════ HEADER ═══════════ */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* ═══════════ KEY TERMS SUMMARY ═══════════ */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* ═══════════ SECTION DIVIDER ═══════════ */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* ═══════════ CARDS ═══════════ */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.card-content p { color:#333; font-size:17px; line-height:1.8; margin-bottom:14px; font-weight:500; }
+.card-content ul, .card-content ol { margin: 0 0 14px 22px; }
+.card-content li { font-size:16px; line-height:1.9; color:#333; font-weight:500; margin-bottom:4px; }
+.card-content h3 { font-size:18px; margin:20px 0 8px; font-weight:800; color:var(--heading); }
+.card-content h4 { font-size:17px; margin-bottom:6px; margin-top:18px; font-weight:800; color:var(--heading); }
+
+.short-answer { position:relative; background:linear-gradient(160deg,#ffffff 0%, var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),0.16); border-left:4px solid var(--accent); border-radius:12px; padding:18px 22px 20px; margin-bottom:22px; font-size:17px; line-height:1.75; font-weight:500; color:#293244; box-shadow:0 6px 18px rgba(var(--shadow-rgb),0.1); }
+.short-answer::before { content:"QUICK ANSWER"; display:block; width:fit-content; font-size:11px; font-weight:800; letter-spacing:.8px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; margin-bottom:12px; box-shadow:0 3px 8px rgba(var(--shadow-rgb),0.35); }
+.short-answer strong { color: var(--heading); }
+.short-answer code { background:rgba(var(--shadow-rgb),0.1); color:var(--heading); padding:2px 6px; border-radius:5px; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+
+/* Q&A blocks (h4/p pairs) */
+.card-content-QA h4 { padding:14px 18px; margin:22px 0 12px; border-radius:12px; font-size:18px; font-weight:700; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; background:linear-gradient(135deg,#bfdbfe,#93c5fd); color:var(--heading); border-left:3px solid var(--accent); }
+.card-content-QA p { padding:14px 18px; margin:0 0 18px; border-radius:12px; font-size:16px; line-height:2.1; font-weight:500; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; background:linear-gradient(135deg,#eff6ff,#dbeafe); color:var(--heading); border-left:3px solid var(--accent); }
+
+/* ═══════════ CODE BLOCK ═══════════ */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* ═══════════ DIAGRAM ═══════════ */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+/* ═══════════ INFO BOXES ═══════════ */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* ═══════════ COLORFUL NUMBERED SUBSECTIONS ═══════════ */
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#f97316; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-5 { --accent-dark:#9d174d; --accent:#db2777; --accent-light:#ec4899; --content-bg:#fdf2f8; --heading:#9d174d; --shadow-rgb:219,39,119; }
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); border-left:5px solid var(--accent); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.box-gray    { background:linear-gradient(135deg,#f1f5f9,#e2e8f0); color:#334155; font-style:italic; font-weight:500; }
+.box-gray code { background:rgba(51,65,85,0.1); color:#1e293b; padding:2px 6px; border-radius:5px; font-style:normal; }
+
+/* ═══════════ TABLE ═══════════ */
+table { width:100%; border-collapse:collapse; margin:15px 0; border-radius:12px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.08); }
+table th { background:linear-gradient(120deg,#6366f1,#8b5cf6); color:#fff; font-size:17px; padding:14px 18px; text-align:left; }
+table td { padding:12px 18px; font-size:15px; font-weight:500; border-bottom:1px solid #eef0f4; color:#334155; }
+table tr:nth-child(even) { background:#f8fafc; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header theme-blue">
+      <h1>📦 JavaScript Objects — Complete Guide</h1>
+      <p>Creation, access, copying, iteration, and interview Q&amp;A — everything about JS objects in one place</p>
+      <div class="toc">
+        <a href="#basics" onclick="document.getElementById('basics').scrollIntoView({behavior:'smooth'});return false;">1–4. Basics</a>
+        <a href="#context" onclick="document.getElementById('context').scrollIntoView({behavior:'smooth'});return false;">5–6. Context &amp; Structure</a>
+        <a href="#copying" onclick="document.getElementById('copying').scrollIntoView({behavior:'smooth'});return false;">7–9. Copying &amp; Merging</a>
+        <a href="#locking" onclick="document.getElementById('locking').scrollIntoView({behavior:'smooth'});return false;">10–12. Copies, Loops &amp; Locking</a>
+        <a href="#serializing" onclick="document.getElementById('serializing').scrollIntoView({behavior:'smooth'});return false;">13–14. Serializing &amp; Templates</a>
+        <a href="#interview" onclick="document.getElementById('interview').scrollIntoView({behavior:'smooth'});return false;">Interview Questions</a>
+        <a href="#quick-reference" onclick="document.getElementById('quick-reference').scrollIntoView({behavior:'smooth'});return false;">Quick Reference</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> Objects store data as key-value pairs. You read/write with dot or bracket notation, copy them shallowly with spread/<code>Object.assign()</code> or deeply with <code>structuredClone()</code>, and lock them down with <code>freeze()</code>/<code>seal()</code>.</div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">📦</div>
+          <div class="summary-text"><strong>Object:</strong> A collection of key-value pairs — keys are strings/symbols, values can be anything, including functions.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🪞</div>
+          <div class="summary-text"><strong>Shallow Copy:</strong> Spread/<code>Object.assign()</code> copy only top-level keys — nested objects stay shared by reference.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🔗</div>
+          <div class="summary-text"><strong>Reference Type:</strong> Objects are assigned/passed by reference, not by value.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🧊</div>
+          <div class="summary-text"><strong>freeze() vs seal():</strong> freeze blocks all edits; seal blocks add/remove but still allows editing existing values.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1-4 BASICS ==================== -->
+    <div class="section-divider" id="basics"><span>1–4. The Basics</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">1</span><h4>Object Creation</h4></div>
+      <div class="card-sub-content">
+        <p>Objects store data as <strong>key-value pairs</strong>. Created using literal syntax <code>{}</code> or the <code>new Object()</code> constructor.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">creation.js</span></div>
+          <pre><code><span class="kw">const</span> user = {
+  name: <span class="str">"Aria"</span>,
+  age: <span class="num">25</span>
+};</code></pre>
+        </div>
+        <div class="info-box box-benefit">✅ Object literals <code>{}</code> are the standard, preferred way to create objects.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">2</span><h4>Property Access</h4></div>
+      <div class="card-sub-content">
+        <p>Read or set object properties using <strong>dot notation</strong> or <strong>bracket notation</strong>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">access.js</span></div>
+          <pre><code>user.name;        <span class="cmt">// "Aria" (dot notation)</span>
+user[<span class="str">"age"</span>];    <span class="cmt">// 25 (bracket notation)</span></code></pre>
+        </div>
+        <div class="info-box box-note">🔎 Use bracket notation when the key is dynamic or not a valid identifier, e.g. <code>user["first-name"]</code>.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">3</span><h4>Add, Update &amp; Delete Properties ⭐⭐⭐</h4></div>
+      <div class="card-sub-content">
+        <p>Properties can be added or updated any time using dot/bracket assignment, and removed using <code>delete</code>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">crud.js</span></div>
+          <pre><code><span class="cmt">// add / update</span>
+user.email = <span class="str">"abc@gmail.com"</span>;
+user[<span class="str">"country"</span>] = <span class="str">"India"</span>;
+
+<span class="cmt">// delete</span>
+<span class="kw">const</span> user2 = { name: <span class="str">"John"</span>, age: <span class="num">25</span> };
+<span class="kw">delete</span> user2.age;
+<span class="fn">console</span>.log(user2); <span class="cmt">// { name: "John" }</span></code></pre>
+        </div>
+        <div class="info-box box-tip">💡 Assigning to a new key adds it; assigning to an existing key updates it. <code>delete</code> removes the key entirely (not just sets it to <code>undefined</code>).</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">4</span><h4>Methods</h4></div>
+      <div class="card-sub-content">
+        <p>A <strong>method</strong> is simply a function stored as an object property.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">methods.js</span></div>
+          <pre><code><span class="kw">const</span> user = {
+  name: <span class="str">"Aria"</span>,
+  greet() {
+    <span class="kw">return</span> <span class="str">`Hi, I'm ${this.name}`</span>;
+  }
+};
+user.greet(); <span class="cmt">// "Hi, I'm Aria"</span></code></pre>
+        </div>
+        <div class="info-box box-tip">💡 Inside a regular method, <code>this</code> refers to the object the method was called on.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 5-6 CONTEXT & STRUCTURE ==================== -->
+    <div class="section-divider" id="context"><span>5–6. Context &amp; Structure</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">5</span><h4>this Keyword</h4></div>
+      <div class="card-sub-content">
+        <p><code>this</code> refers to the object that is currently <strong>calling</strong> the method — not where the function was defined.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">this.js</span></div>
+          <pre><code><span class="kw">const</span> user = {
+  name: <span class="str">"Aria"</span>,
+  greet() { <span class="fn">console</span>.log(<span class="kw">this</span>.name); }
+};
+user.greet(); <span class="cmt">// "Aria" — `this` = user</span></code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ Arrow functions don't have their own <code>this</code> — they inherit it from the surrounding scope, so avoid arrow functions as object methods that need <code>this</code>.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">6</span><h4>Nested Objects</h4></div>
+      <div class="card-sub-content">
+        <p>An object property can itself be <strong>another object</strong>, creating nested structures accessed by chaining.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">nested.js</span></div>
+          <pre><code><span class="kw">const</span> user = {
+  name: <span class="str">"John"</span>,
+  address: {
+    city: <span class="str">"Delhi"</span>,
+    pin: <span class="num">110001</span>
+  }
+};
+user.address.city; <span class="cmt">// "Delhi"</span></code></pre>
+        </div>
+        <div class="info-box box-note">🔎 Deeply nested data is common in real-world APIs (JSON responses). Use <code>?.</code> to access it safely — see the Interview Questions section for optional chaining.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 7-9 COPYING & MERGING ==================== -->
+    <div class="section-divider" id="copying"><span>7–9. Copying &amp; Merging</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">7</span><h4>Object Destructuring (ES6)</h4></div>
+      <div class="card-sub-content">
+        <p>Unpacks object properties into <strong>individual variables</strong> in one line.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">destructuring.js</span></div>
+          <pre><code><span class="kw">const</span> { name, age } = user;
+<span class="fn">console</span>.log(name, age); <span class="cmt">// "Aria" 25</span></code></pre>
+        </div>
+        <div class="info-box box-benefit">✅ Cleaner than writing <code>const name = user.name</code> for every property.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">8</span><h4>Spread Operator (...)</h4></div>
+      <div class="card-sub-content">
+        <p>Copies or merges an object's own properties into a <strong>new object</strong> using <code>...</code>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">spread.js</span></div>
+          <pre><code><span class="kw">const</span> updated = { ...user, age: <span class="num">26</span> };
+<span class="cmt">// { name: "Aria", age: 26 }</span></code></pre>
+        </div>
+        <div class="info-box box-note">🔎 Great for immutable updates — the original <code>user</code> object stays unchanged (but see Shallow Copy, #10).</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">9</span><h4>Object.assign()</h4></div>
+      <div class="card-sub-content">
+        <p>Copies properties from one or more <strong>source objects</strong> into a target object.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">assign.js</span></div>
+          <pre><code><span class="kw">const</span> merged = <span class="type">Object</span>.assign({}, user, { age: <span class="num">30</span> });</code></pre>
+        </div>
+        <div class="info-box box-tip">💡 The older, pre-spread-operator way to merge or clone objects — still useful and widely supported.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 10-12 COPIES, LOOPS & LOCKING ==================== -->
+    <div class="section-divider" id="locking"><span>10–12. Copies, Loops &amp; Locking</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">10</span><h4>Shallow Copy vs Deep Copy ⭐⭐⭐⭐⭐</h4></div>
+      <div class="card-sub-content">
+        <p>Both <code>{ ...obj }</code> and <code>Object.assign()</code> only make a <strong>shallow copy</strong> — nested objects are still shared by reference.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">shallow.js</span></div>
+          <pre><code><span class="kw">const</span> user = {
+  name: <span class="str">"John"</span>,
+  address: { city: <span class="str">"Delhi"</span> }
+};
+
+<span class="kw">const</span> copy = { ...user };
+copy.address.city = <span class="str">"Mumbai"</span>;
+
+<span class="fn">console</span>.log(user.address.city); <span class="cmt">// "Mumbai"</span></code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ <strong>Why:</strong> The spread only copies the top-level keys. <code>address</code> is copied as a <em>reference</em>, so <code>copy.address</code> and <code>user.address</code> point to the same nested object — editing one edits both.</div>
+        <p><strong>Real deep copies:</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">deep.js</span></div>
+          <pre><code><span class="kw">const</span> deep1 = structuredClone(user);
+<span class="kw">const</span> deep2 = <span class="type">JSON</span>.parse(<span class="type">JSON</span>.stringify(user));</code></pre>
+        </div>
+        <div class="info-box box-benefit">✅ <code>structuredClone()</code> is the modern, built-in way to deep-clone — it handles dates, arrays, Maps, etc. <code>JSON.parse(JSON.stringify())</code> is an older trick that works for plain data but drops functions, <code>undefined</code>, and dates (converts them to strings).</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">11</span><h4>Object Iteration ⭐⭐⭐⭐</h4></div>
+      <div class="card-sub-content">
+        <p>There are several ways to loop through or extract data from an object.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">iteration.js</span></div>
+          <pre><code><span class="kw">for</span> (<span class="kw">const</span> key <span class="kw">in</span> user) {
+  <span class="fn">console</span>.log(key, user[key]);
+}
+
+<span class="type">Object</span>.keys(user);    <span class="cmt">// ["name", "age"]</span>
+<span class="type">Object</span>.values(user);  <span class="cmt">// ["Aria", 25]</span>
+<span class="type">Object</span>.entries(user); <span class="cmt">// [["name","Aria"], ["age",25]]</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Method</th><th>Returns</th></tr>
+          <tr><td><code>for...in</code></td><td>Loops over keys directly (including inherited enumerable ones)</td></tr>
+          <tr><td><code>Object.keys()</code></td><td>Array of own property names</td></tr>
+          <tr><td><code>Object.values()</code></td><td>Array of own property values</td></tr>
+          <tr><td><code>Object.entries()</code></td><td>Array of own [key, value] pairs</td></tr>
+        </table>
+        <div class="info-box box-tip">💡 Prefer <code>Object.keys/values/entries</code> over <code>for...in</code> in most cases — they only include the object's own properties, not inherited ones.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">12</span><h4>Freeze vs Seal</h4></div>
+      <div class="card-sub-content">
+        <p><code>Object.freeze()</code> makes an object fully <strong>immutable</strong> (no adding, removing, or editing). <code>Object.seal()</code> prevents adding/removing properties, but <strong>existing properties can still be edited</strong>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">freeze-seal.js</span></div>
+          <pre><code><span class="kw">const</span> config = <span class="type">Object</span>.freeze({ mode: <span class="str">"dark"</span> });
+config.mode = <span class="str">"light"</span>; <span class="cmt">// fails silently</span>
+
+<span class="kw">const</span> user = <span class="type">Object</span>.seal({ name: <span class="str">"Aria"</span> });
+user.name = <span class="str">"Sam"</span>;    <span class="cmt">// works</span>
+user.age = <span class="num">25</span>;        <span class="cmt">// ignored</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Object.freeze()</th><th>Object.seal()</th></tr>
+          <tr><td>No add, remove, <strong>or edit</strong></td><td>No add/remove, but edit is allowed</td></tr>
+        </table>
+        <div class="info-box box-warning">⚠️ Use <code>freeze</code> for constants/config that should never change; use <code>seal</code> when the shape should stay fixed but values can still update.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 13-14 SERIALIZING & TEMPLATES ==================== -->
+    <div class="section-divider" id="serializing"><span>13–14. Serializing &amp; Templates</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-5">
+      <div class="card-sub-title"><span class="card-sub-num">13</span><h4>JSON.stringify() / JSON.parse()</h4></div>
+      <div class="card-sub-content">
+        <p>Convert an object to a JSON <strong>string</strong> (to send/store it), and back to an <strong>object</strong> (to read it).</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">json.js</span></div>
+          <pre><code><span class="kw">const</span> str = <span class="type">JSON</span>.stringify(user);
+<span class="cmt">// '{"name":"John","age":25}'</span>
+
+<span class="kw">const</span> obj = <span class="type">JSON</span>.parse(str);
+<span class="cmt">// { name: "John", age: 25 }</span></code></pre>
+        </div>
+        <div class="info-box box-note">🔎 Used for API payloads, <code>localStorage</code>, and (as seen in #10) a quick deep-clone trick — though it drops functions, <code>undefined</code>, and dates.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-5">
+      <div class="card-sub-title"><span class="card-sub-num">14</span><h4>Constructor Function</h4></div>
+      <div class="card-sub-content">
+        <p>A regular function used with <code>new</code> to create multiple similar objects, acting as a reusable <strong>template</strong>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">constructor.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">User</span>(name, age) {
+  <span class="kw">this</span>.name = name;
+  <span class="kw">this</span>.age = age;
+}
+<span class="kw">const</span> u1 = <span class="kw">new</span> User(<span class="str">"John"</span>, <span class="num">25</span>);</code></pre>
+        </div>
+        <div class="info-box box-tip">💡 <code>new</code> creates an empty object, binds <code>this</code> to it, runs the function body, and returns the object — largely replaced by <code>class</code> syntax today, but still common in older code.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW QUESTIONS ==================== -->
+    <div class="section-divider" id="interview"><span>Interview Questions</span></div>
+
+    <h3 style="margin:0 0 14px;font-size:19px;font-weight:800;color:#1a1a1a;">📗 Basic</h3>
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">1</span><h4>What is an object in JavaScript?</h4></div>
+      <div class="card-sub-content">
+        <p>A data structure that stores related data and behavior as <strong>key-value pairs</strong>. Keys are strings (or symbols) and values can be any type, including functions.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">2</span><h4>How do you create an object?</h4></div>
+      <div class="card-sub-content">
+        <p>Most commonly with an object literal <code>{ key: value }</code>. Also possible via <code>new Object()</code>, a constructor function with <code>new</code>, or <code>Object.create()</code>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">3</span><h4>Difference between dot notation and bracket notation</h4></div>
+      <div class="card-sub-content">
+        <p>Dot notation (<code>user.name</code>) is shorter but requires a fixed, valid identifier. Bracket notation (<code>user["name"]</code>) accepts a string expression, so it works with dynamic keys, variables, or keys with special characters/spaces.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">4</span><h4>What are object methods?</h4></div>
+      <div class="card-sub-content">
+        <p>Functions stored as properties of an object. They define behavior the object can perform, e.g. <code>user.greet()</code>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">5</span><h4>What is this inside an object?</h4></div>
+      <div class="card-sub-content">
+        <p>Inside a regular method, <code>this</code> refers to the object the method was called on — it's determined by <em>how</em> the function is called, not where it's defined. Arrow functions don't get their own <code>this</code>; they use the value from their surrounding scope.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <h3 style="margin:0 0 14px;font-size:19px;font-weight:800;color:#1a1a1a;">📘 Intermediate</h3>
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">1</span><h4>Difference between Object.freeze() and Object.seal()</h4></div>
+      <div class="card-sub-content">
+        <p><code>freeze()</code> blocks adding, removing, <strong>and editing</strong> properties — full immutability. <code>seal()</code> blocks adding/removing properties, but existing properties can still be edited.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">2</span><h4>Difference between Spread Operator and Object.assign()</h4></div>
+      <div class="card-sub-content">
+        <p>Both perform a shallow copy/merge and behave almost identically. The spread operator (<code>{ ...obj }</code>) is newer, more concise syntax; <code>Object.assign(target, ...sources)</code> mutates and returns the target object, which can be useful (or risky) when you deliberately want to modify an existing object.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">3</span><h4>Difference between shallow copy and deep copy</h4></div>
+      <div class="card-sub-content">
+        <p>A shallow copy (spread, <code>Object.assign()</code>) copies only the top-level properties — nested objects are still shared by reference, so changing a nested value in the copy changes the original too. A deep copy (<code>structuredClone()</code>, or <code>JSON.parse(JSON.stringify())</code>) recursively copies nested objects too, so the copy is fully independent.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">4</span><h4>Difference between Object.keys(), Object.values(), and Object.entries()</h4></div>
+      <div class="card-sub-content">
+        <p><code>Object.keys()</code> returns an array of property names, <code>Object.values()</code> returns an array of property values, and <code>Object.entries()</code> returns an array of <code>[key, value]</code> pairs — all cover only the object's own enumerable properties.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <h3 style="margin:0 0 14px;font-size:19px;font-weight:800;color:#1a1a1a;">📕 Advanced</h3>
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">1</span><h4>Difference between Object.create() and object literals</h4></div>
+      <div class="card-sub-content">
+        <p>An object literal <code>{}</code> creates an object whose prototype is automatically <code>Object.prototype</code>. <code>Object.create(proto)</code> lets you explicitly choose the new object's prototype — even <code>null</code>, for an object with no inherited properties at all.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">create.js</span></div>
+          <pre><code><span class="kw">const</span> animal = { speak() { <span class="fn">console</span>.log(<span class="str">"..."</span>); } };
+<span class="kw">const</span> dog = <span class="type">Object</span>.create(animal);
+dog.speak(); <span class="cmt">// inherited from animal</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">2</span><h4>Explain object references with an example</h4></div>
+      <div class="card-sub-content">
+        <p>Objects are assigned and passed <strong>by reference</strong>, not by value — a variable holds a pointer to the object in memory, not the object itself.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">reference.js</span></div>
+          <pre><code><span class="kw">const</span> obj1 = { name: <span class="str">"John"</span> };
+<span class="kw">const</span> obj2 = obj1;
+obj2.name = <span class="str">"Sam"</span>;
+<span class="fn">console</span>.log(obj1.name); <span class="cmt">// "Sam" — same object, two names</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">3</span><h4>Why does {} === {} return false?</h4></div>
+      <div class="card-sub-content">
+        <p>Because <code>===</code> compares objects <strong>by reference</strong>, not by contents. Each <code>{}</code> creates a brand-new object at a different memory location, so even with identical (empty) properties they aren't the same reference.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">comparison.js</span></div>
+          <pre><code>{} === {};              <span class="cmt">// false — different objects</span>
+<span class="kw">const</span> a = {};
+<span class="kw">const</span> b = a;
+a === b;                <span class="cmt">// true — same reference</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">4</span><h4>How does prototype inheritance work?</h4></div>
+      <div class="card-sub-content">
+        <p>Every object has an internal link to a <strong>prototype</strong> object. When a property isn't found directly on an object, JavaScript looks it up on the prototype, then the prototype's prototype, and so on up the <strong>prototype chain</strong>, until it's found or the chain ends at <code>null</code>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">prototype.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">User</span>(name) { <span class="kw">this</span>.name = name; }
+User.prototype.greet = <span class="kw">function</span>() {
+  <span class="kw">return</span> <span class="str">`Hi, ${this.name}`</span>;
+};
+<span class="kw">const</span> u = <span class="kw">new</span> User(<span class="str">"John"</span>);
+u.greet(); <span class="cmt">// found on User.prototype, not on u itself</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">5</span><h4>Explain getters and setters</h4></div>
+      <div class="card-sub-content">
+        <p>Special methods that run automatically when a property is <strong>read</strong> (<code>get</code>) or <strong>written</strong> (<code>set</code>), while still looking like a plain property from the outside — useful for computed values or validating/transforming data on write.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">getset.js</span></div>
+          <pre><code><span class="kw">const</span> user = {
+  firstName: <span class="str">"John"</span>,
+  <span class="kw">get</span> greeting() { <span class="kw">return</span> <span class="str">`Hello, ${this.firstName}`</span>; },
+  <span class="kw">set</span> firstName(val) { <span class="kw">this</span>._firstName = val.trim(); }
+};</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">6</span><h4>Explain computed property names</h4></div>
+      <div class="card-sub-content">
+        <p>Wrapping an expression in <code>[]</code> as a key lets you build a property name <strong>dynamically</strong> from a variable, instead of hardcoding it.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">computed.js</span></div>
+          <pre><code><span class="kw">const</span> key = <span class="str">"age"</span>;
+<span class="kw">const</span> user = { name: <span class="str">"John"</span>, [key]: <span class="num">25</span> };
+<span class="cmt">// { name: "John", age: 25 }</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">7</span><h4>Explain optional chaining</h4></div>
+      <div class="card-sub-content">
+        <p><code>?.</code> safely accesses a nested property, returning <code>undefined</code> instead of throwing a <code>TypeError</code> if a part of the chain is <code>null</code>/<code>undefined</code> — avoiding manual checks like <code>user.address && user.address.city</code>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">optional.js</span></div>
+          <pre><code>user.address.city;         <span class="cmt">// throws if address is undefined</span>
+user.address?.city;        <span class="cmt">// safe — returns undefined</span>
+user.address?.city ?? <span class="str">"Unknown"</span>; <span class="cmt">// with a fallback</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">8</span><h4>Explain hasOwnProperty() vs in</h4></div>
+      <div class="card-sub-content">
+        <p><code>"key" in obj</code> checks both the object's own properties <strong>and</strong> its inherited (prototype chain) properties. <code>obj.hasOwnProperty("key")</code> checks <strong>only</strong> the object's own properties, ignoring inherited ones.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">existence.js</span></div>
+          <pre><code><span class="kw">const</span> user = { name: <span class="str">"John"</span> };
+<span class="str">"toString"</span> <span class="kw">in</span> user;              <span class="cmt">// true (inherited)</span>
+user.hasOwnProperty(<span class="str">"toString"</span>); <span class="cmt">// false (not own)</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">9</span><h4>Explain Object.defineProperty()</h4></div>
+      <div class="card-sub-content">
+        <p>Defines or modifies a single property with fine-grained control over its behavior — <code>value</code>, <code>writable</code> (can it be changed), <code>enumerable</code> (does it show up in loops/<code>Object.keys()</code>), and <code>configurable</code> (can it be deleted/redefined). It's the low-level API that features like getters/setters and <code>freeze</code>/<code>seal</code> are built on.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">defineproperty.js</span></div>
+          <pre><code><span class="kw">const</span> user = {};
+<span class="type">Object</span>.defineProperty(user, <span class="str">"id"</span>, {
+  value: <span class="num">101</span>,
+  writable: <span class="kw">false</span>,
+  enumerable: <span class="kw">false</span>
+});
+user.id;              <span class="cmt">// 101</span>
+<span class="type">Object</span>.keys(user);   <span class="cmt">// [] — hidden from enumeration</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== QUICK REFERENCE ==================== -->
+    <div class="section-divider" id="quick-reference"><span>Quick Reference</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">All 14 Concepts at a Glance</div>
+      <div class="card-content">
+        <table>
+          <tr><th>#</th><th>Concept</th><th>Key Trait</th></tr>
+          <tr><td>1</td><td>Object Creation</td><td>Literal <code>{}</code> or <code>new Object()</code></td></tr>
+          <tr><td>2</td><td>Property Access</td><td>Dot or bracket notation</td></tr>
+          <tr><td>3</td><td>Add/Update/Delete</td><td>Assignment adds/updates; <code>delete</code> removes</td></tr>
+          <tr><td>4</td><td>Methods</td><td>Function stored as a property</td></tr>
+          <tr><td>5</td><td>this Keyword</td><td>Refers to the calling object</td></tr>
+          <tr><td>6</td><td>Nested Objects</td><td>Property value is another object</td></tr>
+          <tr><td>7</td><td>Destructuring</td><td>Unpack properties into variables</td></tr>
+          <tr><td>8</td><td>Spread Operator</td><td>Copy/merge into a new object</td></tr>
+          <tr><td>9</td><td>Object.assign()</td><td>Merge/clone source objects</td></tr>
+          <tr><td>10</td><td>Shallow vs Deep Copy</td><td>Spread copies top level only</td></tr>
+          <tr><td>11</td><td>Object Iteration</td><td>for...in, keys, values, entries</td></tr>
+          <tr><td>12</td><td>Freeze vs Seal</td><td>No-edit vs shape-locked</td></tr>
+          <tr><td>13</td><td>JSON stringify/parse</td><td>Object ⇄ string conversion</td></tr>
+          <tr><td>14</td><td>Constructor Function</td><td>Template used with <code>new</code></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="info-box box-extra">
+      Objects = key-value pairs, accessed via dot or bracket notation · Spread/<code>Object.assign()</code> = shallow copy; <code>structuredClone()</code> = deep copy · <code>freeze()</code> = fully immutable, <code>seal()</code> = shape-locked but editable · Objects are compared and passed <strong>by reference</strong>, never by value.
+    </div>
+
+  </div>
+</body>
+</html>

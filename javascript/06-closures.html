@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JavaScript Scope, Lexical Scope, Lexical Environment &amp; Scope Chain</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+/* ═══════════ THEME VARIABLES — apply on any element via class ═══════════ */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+/* ═══════════ HEADER ═══════════ */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* ═══════════ KEY TERMS SUMMARY ═══════════ */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* ═══════════ SECTION DIVIDER ═══════════ */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* ═══════════ CARDS ═══════════ */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-title .badge { margin-left:auto; background:rgba(255,255,255,0.25); font-size:12px; font-weight:800; padding:4px 12px; border-radius:20px; letter-spacing:.4px; }
+.card-content { padding:26px; background: var(--content-bg); }
+.card-content p { color:#333; font-size:17px; line-height:1.8; margin-bottom:14px; font-weight:500; }
+.card-content ul, .card-content ol { margin: 0 0 14px 22px; }
+.card-content li { font-size:16px; line-height:1.9; color:#333; font-weight:500; margin-bottom:4px; }
+.card-content h3 { font-size:18px; margin:20px 0 8px; font-weight:800; color:var(--heading); }
+.card-content h4 { font-size:17px; margin-bottom:6px; margin-top:18px; font-weight:800; color:var(--heading); }
+
+.short-answer { position:relative; background:linear-gradient(160deg,#ffffff 0%, var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),0.16); border-left:4px solid var(--accent); border-radius:12px; padding:18px 22px 20px; margin-bottom:22px; font-size:17px; line-height:1.75; font-weight:500; color:#293244; box-shadow:0 6px 18px rgba(var(--shadow-rgb),0.1); }
+.short-answer::before { content:"QUICK ANSWER"; display:block; width:fit-content; font-size:11px; font-weight:800; letter-spacing:.8px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; margin-bottom:12px; box-shadow:0 3px 8px rgba(var(--shadow-rgb),0.35); }
+.short-answer strong { color: var(--heading); }
+.short-answer code { background:rgba(var(--shadow-rgb),0.1); color:var(--heading); padding:2px 6px; border-radius:5px; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+
+/* Q&A blocks (h4/p pairs) */
+.card-content-QA h4 { padding:14px 18px; margin:22px 0 12px; border-radius:12px; font-size:18px; font-weight:700; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; background:linear-gradient(135deg,#bfdbfe,#93c5fd); color:var(--heading); border-left:3px solid var(--accent); }
+.card-content-QA p { padding:14px 18px; margin:0 0 18px; border-radius:12px; font-size:16px; line-height:2.1; font-weight:500; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; background:linear-gradient(135deg,#eff6ff,#dbeafe); color:var(--heading); border-left:3px solid var(--accent); }
+
+/* ═══════════ CODE BLOCK ═══════════ */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* ═══════════ DIAGRAM ═══════════ */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+/* ═══════════ INFO BOXES ═══════════ */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-gray    { background:linear-gradient(135deg,#f1f5f9,#e2e8f0); color:#334155; font-style:italic; font-weight:500; }
+.box-gray code { background:rgba(51,65,85,0.1); color:#1e293b; padding:2px 6px; border-radius:5px; font-style:normal; }
+
+/* ═══════════ COLORFUL NUMBERED SUBSECTIONS (card-sub) ═══════════ */
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#f97316; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); border-left:5px solid var(--accent); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-title .badge { margin-left:auto; background:rgba(var(--shadow-rgb),0.14); color:var(--heading); font-size:11px; font-weight:800; padding:4px 12px; border-radius:20px; letter-spacing:.4px; white-space:nowrap; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content ul, .card-sub-content ol { margin:0 0 14px 22px; }
+.card-sub-content li { font-size:16px; line-height:1.9; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child { margin-bottom:0; }
+
+/* ═══════════ TABLE ═══════════ */
+table { width:100%; border-collapse:collapse; margin:15px 0; border-radius:12px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.08); }
+table th { background:linear-gradient(120deg,#6366f1,#8b5cf6); color:#fff; font-size:17px; padding:14px 18px; text-align:left; }
+table td { padding:12px 18px; font-size:15px; font-weight:500; border-bottom:1px solid #eef0f4; color:#334155; }
+table tr:nth-child(even) { background:#f8fafc; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header theme-blue">
+      <h1>🔒 JavaScript Closures — Complete Guide</h1>
+      <p>What a closure actually is, why JS needs them, how the lexical environment is preserved step by step, real-world uses, and the classic interview questions</p>
+      <div class="toc">
+        <a href="#what-is-closure" onclick="document.getElementById('what-is-closure').scrollIntoView({behavior:'smooth'});return false;">What is Closure</a>
+        <a href="#how-it-works" onclick="document.getElementById('how-it-works').scrollIntoView({behavior:'smooth'});return false;">How It Works</a>
+        <a href="#characteristics" onclick="document.getElementById('characteristics').scrollIntoView({behavior:'smooth'});return false;">Characteristics</a>
+        <a href="#real-world-uses" onclick="document.getElementById('real-world-uses').scrollIntoView({behavior:'smooth'});return false;">Real-World Uses</a>
+        <a href="#pros-cons" onclick="document.getElementById('pros-cons').scrollIntoView({behavior:'smooth'});return false;">Pros &amp; Cons</a>
+        <a href="#interview-examples" onclick="document.getElementById('interview-examples').scrollIntoView({behavior:'smooth'});return false;">Interview Examples</a>
+        <a href="#practice" onclick="document.getElementById('practice').scrollIntoView({behavior:'smooth'});return false;">Practice Problems</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> Closure = Function + the scope it was born in. The function keeps using those variables even after that outer scope has technically finished running.</div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🔒</div>
+          <div class="summary-text"><strong>Closure:</strong> A function bundled with the lexical environment where it was created.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🧭</div>
+          <div class="summary-text"><strong>Lexical Scope:</strong> Scope is decided by where functions are written, not where they are called.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🧠</div>
+          <div class="summary-text"><strong>Remembered State:</strong> Captured variables stay alive as long as the closure can still be reached.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🧰</div>
+          <div class="summary-text"><strong>Use Cases:</strong> Data privacy, factories, memoization, once functions, modules, and async callbacks.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== WHAT IS CLOSURE ==================== -->
+    <div class="section-divider" id="what-is-closure"><span>1. What is a Closure?</span></div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">1</span><h4>Definition</h4></div>
+      <div class="card-sub-content">
+        <div class="short-answer">
+          A <strong>closure</strong> is a function bundled together with its <strong>lexical environment</strong>. It's a function that remembers the variables from the scope in which it was created, even after that outer function has finished executing.
+        </div>
+        <p>A closure is the combination of:</p>
+        <ul>
+          <li><strong>Function Code</strong></li>
+          <li><strong>Its Lexical Environment (Lexical Scope)</strong></li>
+        </ul>
+        <p>When a function is returned from another function, or passed around and executed later, JavaScript does <strong>not</strong> discard the variables that function depends on. Instead, it preserves the required lexical environment so the function can keep accessing those variables whenever it's invoked.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">2</span><h4>Key Points to Remember</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li>A closure is <strong>Function + Lexical Environment</strong>.</li>
+          <li>It remembers <strong>variables</strong>, not just their values.</li>
+          <li>The variables are <strong>referenced, not copied</strong>.</li>
+          <li>The preserved lexical environment remains in memory only as long as the closure is <strong>reachable</strong>.</li>
+          <li>Closures are possible because JavaScript uses <strong>lexical scoping</strong>.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">3</span><h4>Why Are Closures Needed?</h4></div>
+      <div class="card-sub-content">
+        <p>Normally, when a function finishes execution, its <strong>Execution Context</strong> is popped off the Call Stack, and its local variables are expected to be cleaned up.</p>
+        <div class="info-box box-benefit">If an inner function still needs those variables, JavaScript keeps them alive in memory instead of destroying them. This preserved lexical environment is exactly what a closure is.</div>
+        <p>Without closures, a returned function would lose access to its outer variables the moment the outer function completed.</p>
+      </div>
+    </div>
+
+    <!-- ==================== HOW IT WORKS ==================== -->
+    <div class="section-divider" id="how-it-works"><span>2. How Closures Work — Step by Step</span></div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">4</span><h4>Example: A Counter That Remembers</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">closure-counter.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">outer</span>() {
+    <span class="kw">let</span> count = <span class="num">0</span>;
+
+    <span class="kw">function</span> <span class="fn">inner</span>() {
+        count++;
+        <span class="fn">console</span>.log(count);
+    }
+
+    <span class="kw">return</span> inner;
+}
+
+<span class="kw">const</span> counter = <span class="fn">outer</span>();
+
+counter(); <span class="cmt">// 1</span>
+counter(); <span class="cmt">// 2</span>
+counter(); <span class="cmt">// 3</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">5</span><h4>Diagram — What the Engine Does Internally</h4></div>
+      <div class="card-sub-content">
+        <div class="diagram">Step 1 — outer() runs
+┌─────────────────────────────┐
+│ outer() Execution Context   │
+│   count = 0                 │
+└─────────────────────────────┘
+
+Step 2 — inner() is created inside outer()
+┌─────────────────────────────┐
+│ outer() Execution Context   │
+│   count = 0                 │
+│                              │
+│   function inner() {        │
+│     [[Environment]] ────────┼──┐  (hidden link back
+│   }                          │  │   to outer's scope)
+└─────────────────────────────┘  │
+                                  ▼
+                         outer's Lexical Environment
+
+Step 3 — outer() returns inner; its stack frame pops
+┌─────────────────────────────┐
+│ outer() EC  ✗ removed from  │
+│ Call Stack                  │      outer's Lexical Environment
+└─────────────────────────────┘      is NOT deleted — it lives on
+                                      the heap because inner still
+                                      references it via [[Environment]]
+
+Step 4 — counter() is called (this IS inner)
+counter()
+   │
+   ▼
+Looks up 'count' via [[Environment]]
+   │
+   ▼
+Finds it on the heap → count = 0 → 1 → console.log(1)
+
+Step 5 — counter() called again
+counter()
+   │
+   ▼
+Same [[Environment]] link → same 'count' variable
+   │
+   ▼
+count = 1 → 2 → console.log(2)</div>
+
+        <div class="info-box box-benefit"><strong>💡 Key idea:</strong> The variable <code>count</code> is <strong>not recreated</strong> on every call. The closure keeps the exact same reference alive across calls — that's why the counter keeps incrementing instead of resetting.</div>
+      </div>
+    </div>
+
+    <!-- ==================== CHARACTERISTICS ==================== -->
+    <div class="section-divider" id="characteristics"><span>3. Important Characteristics</span></div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">6</span><h4>What Makes a Closure Tick</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li>A closure remembers its <strong>lexical environment</strong>, not just the function code.</li>
+          <li>Variables inside a closure are <strong>referenced</strong>, not copied.</li>
+          <li>If a captured variable changes, the closure sees the <strong>updated</strong> value — it's a live link.</li>
+          <li>Multiple closures from the same outer function can either <strong>share</strong> or have <strong>separate</strong> state, depending on how they're created.</li>
+          <li>Closures continue to exist as long as there's at least <strong>one reference</strong> to the inner function.</li>
+          <li>Every function in JavaScript automatically forms a closure with the scope it was created in.</li>
+          <li>Closures work because JavaScript uses <strong>lexical scoping</strong>.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ==================== REAL WORLD USES ==================== -->
+    <div class="section-divider" id="real-world-uses"><span>4. Real-World Uses of Closures</span></div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">7</span><h4>Where Closures Actually Show Up</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Use Case</th><th>What Closures Enable</th><th>Seen In</th></tr>
+          <tr><td><strong>Data Hiding</strong></td><td>Private variables inaccessible from outside</td><td>Bank balances, passwords, API keys, counters</td></tr>
+          <tr><td><strong>Module Pattern</strong></td><td>Expose only public methods, keep internals private</td><td>JS libraries, auth modules, config managers</td></tr>
+          <tr><td><strong>Currying</strong></td><td>Remember previously supplied arguments — <code>multiply(5)(10)</code></td><td>Functional programming, partial application</td></tr>
+          <tr><td><strong>Memoization</strong></td><td>Cache expensive results so they aren't recomputed</td><td>React's <code>useMemo</code>, dynamic programming, API caching</td></tr>
+          <tr><td><strong>once()</strong></td><td>Guarantee a function runs exactly one time</td><td>App init, payment processing, analytics setup</td></tr>
+          <tr><td><strong>Async State</strong></td><td>Preserve variables a callback needs when it runs later</td><td>Promises, API calls, event listeners</td></tr>
+          <tr><td><strong>setTimeout / setInterval</strong></td><td>Keep variables alive until the delayed function fires</td><td>Countdown timers, polling, scheduled tasks</td></tr>
+          <tr><td><strong>Iterators / Generators</strong></td><td>Remember the current position while traversing data</td><td>Pagination, infinite scrolling</td></tr>
+          <tr><td><strong>Event Handlers</strong></td><td>Callback remembers variables from its setup scope</td><td>Click handlers, form validation, DOM events</td></tr>
+          <tr><td><strong>React Hooks</strong></td><td>Access state and variables across renders</td><td><code>useState</code>, <code>useEffect</code>, custom hooks</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== PROS & CONS ==================== -->
+    <div class="section-divider" id="pros-cons"><span>5. Advantages &amp; Disadvantages</span></div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">8</span><h4>Trade-offs</h4></div>
+      <div class="card-sub-content">
+        <div class="pros-cons" style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:10px;">
+          <div class="pros" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);border-radius:10px;padding:15px;">
+            <h5 style="color:#166534;margin-bottom:8px;font-weight:800;">✅ Advantages</h5>
+            <ul style="font-size:14px;line-height:1.7;color:#333;margin-left:18px;">
+              <li>Preserve data even after a function has finished executing</li>
+              <li>Enable private variables and data encapsulation</li>
+              <li>Allow stateful functions without global variables</li>
+              <li>Improve code modularity and reusability</li>
+              <li>Form the foundation of many JS patterns and frameworks</li>
+            </ul>
+          </div>
+          <div class="cons" style="background:linear-gradient(135deg,#fee2e2,#fecaca);border-radius:10px;padding:15px;">
+            <h5 style="color:#991b1b;margin-bottom:8px;font-weight:800;">❌ Disadvantages</h5>
+            <ul style="font-size:14px;line-height:1.7;color:#333;margin-left:18px;">
+              <li>Captured variables remain in memory as long as the closure exists</li>
+              <li>Unnecessary closures can increase memory usage</li>
+              <li>Debugging deeply nested closures can get difficult</li>
+              <li>Retaining large objects inside closures can lead to memory leaks</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== INTERVIEW EXAMPLES ==================== -->
+    <div class="section-divider" id="interview-examples"><span>6. Classic Interview Examples</span></div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">9</span><h4>1. The Counter Factory — Independent State</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">counter-factory.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">createCounter</span>() {
+  <span class="kw">let</span> count = <span class="num">0</span>;
+  <span class="kw">return</span> {
+    increment: () =&gt; ++count,
+    reset: () =&gt; (count = <span class="num">0</span>)
+  };
+}
+
+<span class="kw">const</span> counterA = <span class="fn">createCounter</span>();
+<span class="kw">const</span> counterB = <span class="fn">createCounter</span>();
+
+<span class="fn">counterA</span>.increment(); <span class="fn">counterA</span>.increment();
+<span class="fn">counterB</span>.increment();
+
+<span class="fn">console</span>.log(counterA.increment()); <span class="cmt">// 3</span>
+<span class="fn">console</span>.log(counterB.increment()); <span class="cmt">// 2 — independent closures</span></code></pre>
+        </div>
+        <div class="info-box box-benefit"><strong>Why don't they share state?</strong> Each call to <code>createCounter()</code> creates a brand-new execution context, so each returned object closes over its own separate <code>count</code>.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">10</span><h4>2. Closure Inside a Loop (Most-Asked) ⭐</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">loop-var.js</span></div>
+          <pre><code><span class="kw">for</span> (<span class="kw">var</span> i = <span class="num">1</span>; i &lt;= <span class="num">3</span>; i++) {
+  <span class="fn">setTimeout</span>(() =&gt; <span class="fn">console</span>.log(i), <span class="num">1000</span>);
+}
+<span class="cmt">// Output: 4, 4, 4 — all callbacks share the same "i"</span></code></pre>
+        </div>
+        <div class="info-box box-warning"><strong>Why?</strong> <code>var</code> is function-scoped, so every callback closes over the exact same variable. After the loop ends, <code>i = 4</code>, so every callback prints 4.</div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">loop-fix.js</span></div>
+          <pre><code><span class="cmt">// Fix 1: use let — creates a new binding per iteration</span>
+<span class="kw">for</span> (<span class="kw">let</span> j = <span class="num">1</span>; j &lt;= <span class="num">3</span>; j++) {
+  <span class="fn">setTimeout</span>(() =&gt; <span class="fn">console</span>.log(j), <span class="num">1000</span>);
+}
+<span class="cmt">// 1, 2, 3</span>
+
+<span class="cmt">// Fix 2 (pre-ES6): wrap in an IIFE to capture the value</span>
+<span class="kw">for</span> (<span class="kw">var</span> k = <span class="num">1</span>; k &lt;= <span class="num">3</span>; k++) {
+  (<span class="kw">function</span>(captured) {
+    <span class="fn">setTimeout</span>(() =&gt; <span class="fn">console</span>.log(captured), <span class="num">1000</span>);
+  })(k);
+}
+<span class="cmt">// 1, 2, 3</span></code></pre>
+        </div>
+        <div class="info-box box-note">This is the single most-asked closure question in interviews — it tests whether you understand that <code>var</code> is function-scoped, so all iterations share one variable unless you deliberately create a new scope per iteration.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">11</span><h4>3. once() — A Function That Runs Only One Time</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">once.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">once</span>(fn) {
+  <span class="kw">let</span> called = <span class="kw">false</span>;
+  <span class="kw">let</span> result;
+
+  <span class="kw">return function</span>(...args) {
+    <span class="kw">if</span> (!called) {
+      result = <span class="fn">fn</span>(...args);
+      called = <span class="kw">true</span>;
+    }
+    <span class="kw">return</span> result;
+  };
+}
+
+<span class="kw">const</span> initialize = <span class="fn">once</span>(() =&gt; <span class="fn">console</span>.log(<span class="str">"Initializing..."</span>));
+<span class="fn">initialize</span>(); <span class="cmt">// "Initializing..."</span>
+<span class="fn">initialize</span>(); <span class="cmt">// (nothing — already ran)</span></code></pre>
+        </div>
+        <div class="info-box box-note">The <code>called</code> and <code>result</code> variables persist across calls because the returned function closes over them — that's what makes "run only once" possible without a global flag.</div>
+      </div>
+    </div>
+
+    <!-- ==================== PRACTICE PROBLEMS ==================== -->
+    <div class="section-divider" id="practice"><span>7. Practice Problems</span></div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">12</span><h4>1. Private Variable</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Question:</strong> Create a private variable using closure.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">private-variable.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">createUser</span>(name) {
+  <span class="kw">let</span> password = <span class="str">"123456"</span>;
+  <span class="kw">return</span> {
+    getName() {
+      <span class="kw">return</span> name;
+    },
+    checkPassword(pass) {
+      <span class="kw">return</span> pass === password;
+    }
+  };
+}
+<span class="kw">const</span> user = <span class="fn">createUser</span>(<span class="str">"John"</span>);
+<span class="fn">console</span>.log(user.getName());          <span class="cmt">// John</span>
+<span class="fn">console</span>.log(user.checkPassword(<span class="str">"123456"</span>)); <span class="cmt">// true</span>
+<span class="fn">console</span>.log(user.password);          <span class="cmt">// undefined — password is private</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">13</span><h4>2. Function Factory (Currying-lite)</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Question:</strong> Create reusable multiplication functions.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">function-factory.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">multiply</span>(x) {
+  <span class="kw">return function</span> (y) {
+    <span class="kw">return</span> x * y;
+  };
+}
+<span class="kw">const</span> double = <span class="fn">multiply</span>(<span class="num">2</span>);
+<span class="kw">const</span> triple = <span class="fn">multiply</span>(<span class="num">3</span>);
+<span class="fn">console</span>.log(<span class="fn">double</span>(<span class="num">5</span>)); <span class="cmt">// 10</span>
+<span class="fn">console</span>.log(<span class="fn">triple</span>(<span class="num">5</span>)); <span class="cmt">// 15</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">14</span><h4>3. Module Pattern</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Question:</strong> Build a Calculator module that hides its internal state.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">calculator-module.js</span></div>
+          <pre><code><span class="kw">const</span> Calculator = (<span class="kw">function</span> () {
+  <span class="kw">let</span> result = <span class="num">0</span>;
+  <span class="kw">return</span> {
+    add(value) {
+      result += value;
+    },
+    subtract(value) {
+      result -= value;
+    },
+    getResult() {
+      <span class="kw">return</span> result;
+    }
+  };
+})();
+<span class="fn">Calculator</span>.add(<span class="num">10</span>);
+<span class="fn">Calculator</span>.add(<span class="num">5</span>);
+<span class="fn">Calculator</span>.subtract(<span class="num">2</span>);
+<span class="fn">console</span>.log(<span class="fn">Calculator</span>.getResult()); <span class="cmt">// 13</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">15</span><h4>4. Guess the Output — Shared Closure</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">shared-closure.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">outer</span>() {
+  <span class="kw">let</span> x = <span class="num">10</span>;
+  <span class="kw">return</span> {
+    increment() {
+      x++;
+    },
+    print() {
+      <span class="fn">console</span>.log(x);
+    }
+  };
+}
+<span class="kw">const</span> obj = <span class="fn">outer</span>();
+<span class="fn">obj</span>.print();     <span class="cmt">// 10</span>
+<span class="fn">obj</span>.increment();
+<span class="fn">obj</span>.print();     <span class="cmt">// 11</span></code></pre>
+        </div>
+        <div class="info-box box-benefit">Both methods share the same closure over <code>x</code> — that's how two different methods on the same object can read and update one shared private variable.</div>
+      </div>
+    </div>
+
+    <div class="info-box box-extra">
+      A closure is a function plus a live reference to the scope it was created in · Preserved via a hidden <code>[[Environment]]</code> link, not a copy · Powers private state, memoization, currying, debounce/throttle, and React Hooks · Watch for the <code>var</code>-in-loop trap and closures unintentionally retaining large objects in memory.
+    </div>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JavaScript Scope, Lexical Scope, Lexical Environment &amp; Scope Chain</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+/* ═══════════ THEME VARIABLES — apply on any element via class ═══════════ */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+/* ═══════════ HEADER ═══════════ */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* ═══════════ KEY TERMS SUMMARY ═══════════ */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text {     font-size: 16px;
+    line-height: 1.7;
+    font-weight: 600; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* ═══════════ SECTION DIVIDER ═══════════ */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* ═══════════ CARDS ═══════════ */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.card-content p { color:#333; font-size:17px; line-height:1.8; margin-bottom:14px; font-weight:500; }
+.card-content ul, .card-content ol { margin: 0 0 14px 22px; }
+.card-content li { font-size:16px; line-height:1.9; color:#333; font-weight:500; margin-bottom:4px; }
+.card-content h3 { font-size:18px; margin:20px 0 8px; font-weight:800; color:var(--heading); }
+.card-content h4 { font-size:17px; margin-bottom:6px; margin-top:18px; font-weight:800; color:var(--heading); }
+
+.short-answer { position:relative; background:linear-gradient(160deg,#ffffff 0%, var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),0.16); border-left:4px solid var(--accent); border-radius:12px; padding:18px 22px 20px; margin-bottom:22px; font-size:17px; line-height:1.75; font-weight:500; color:#293244; box-shadow:0 6px 18px rgba(var(--shadow-rgb),0.1); }
+.short-answer::before { content:"QUICK ANSWER"; display:block; width:fit-content; font-size:11px; font-weight:800; letter-spacing:.8px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; margin-bottom:12px; box-shadow:0 3px 8px rgba(var(--shadow-rgb),0.35); }
+.short-answer strong { color: var(--heading); }
+.short-answer code { background:rgba(var(--shadow-rgb),0.1); color:var(--heading); padding:2px 6px; border-radius:5px; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+
+/* Q&A blocks (h4/p pairs) */
+.card-content-QA h4 { padding:14px 18px; margin:22px 0 12px; border-radius:12px; font-size:18px; font-weight:700; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; background:linear-gradient(135deg,#bfdbfe,#93c5fd); color:var(--heading); border-left:3px solid var(--accent); }
+.card-content-QA p { padding:14px 18px; margin:0 0 18px; border-radius:12px; font-size:16px; line-height:2.1; font-weight:500; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; background:linear-gradient(135deg,#eff6ff,#dbeafe); color:var(--heading); border-left:3px solid var(--accent); }
+
+/* ═══════════ CODE BLOCK ═══════════ */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* ═══════════ DIAGRAM ═══════════ */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+/* ═══════════ INFO BOXES ═══════════ */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-gray    { background:linear-gradient(135deg,#f1f5f9,#e2e8f0); color:#334155; font-style:italic; font-weight:500; }
+.box-gray code { background:rgba(51,65,85,0.1); color:#1e293b; padding:2px 6px; border-radius:5px; font-style:normal; }
+
+/* ═══════════ TABLE ═══════════ */
+table { width:100%; border-collapse:collapse; margin:15px 0; border-radius:12px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.08); }
+table th { background:linear-gradient(120deg,#6366f1,#8b5cf6); color:#fff; font-size:17px; padding:14px 18px; text-align:left; }
+table td { padding:12px 18px; font-size:15px; font-weight:500; border-bottom:1px solid #eef0f4; color:#334155; }
+table tr:nth-child(even) { background:#f8fafc; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header theme-blue">
+      <h1>🔗 Scope, Lexical Scope, Lexical Environment &amp; Scope Chain</h1>
+      <p>How JavaScript decides where a variable lives, and how it looks one up when you use it</p>
+      <div class="toc">
+        <a href="#scope" onclick="document.getElementById('scope').scrollIntoView({behavior:'smooth'});return false;">Scope</a>
+        <a href="#global-scope" onclick="document.getElementById('global-scope').scrollIntoView({behavior:'smooth'});return false;">Global Scope</a>
+        <a href="#function-scope" onclick="document.getElementById('function-scope').scrollIntoView({behavior:'smooth'});return false;">Function Scope</a>
+        <a href="#block-scope" onclick="document.getElementById('block-scope').scrollIntoView({behavior:'smooth'});return false;">Block Scope</a>
+        <a href="#lexical-scope" onclick="document.getElementById('lexical-scope').scrollIntoView({behavior:'smooth'});return false;">Lexical Scope</a>
+        <a href="#lexical-env" onclick="document.getElementById('lexical-env').scrollIntoView({behavior:'smooth'});return false;">Lexical Environment</a>
+        <a href="#scope-chain" onclick="document.getElementById('scope-chain').scrollIntoView({behavior:'smooth'});return false;">Scope Chain</a>
+        <a href="#summary" onclick="document.getElementById('summary').scrollIntoView({behavior:'smooth'});return false;">Summary</a>
+      </div>
+    </div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">👁️</div>
+          <div class="summary-text"><strong>Scope:</strong> Defines where a variable can be accessed in your program.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">📍</div>
+          <div class="summary-text"><strong>Lexical Scope:</strong> A function's scope is fixed by where it's <em>written</em>, not where it's called from.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🧱</div>
+          <div class="summary-text"><strong>Lexical Environment:</strong> The internal memory structure — variables plus a reference to the parent environment.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🔎</div>
+          <div class="summary-text"><strong>Scope Chain:</strong> The lookup path the engine walks — current → parent → grandparent → global.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1. SCOPE ==================== -->
+    <div class="section-divider" id="scope"><span>1. Scope</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">What is Scope?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>Scope</strong> defines <strong>where a variable can be accessed</strong> in your program. JavaScript has three kinds: Global, Function, and Block scope.
+        </div>
+        <div class="info-box box-note"><strong>📝 Interview Definition:</strong> Scope defines the visibility and accessibility of variables in different parts of a program.</div>
+      </div>
+    </div>
+
+    <div class="card theme-blue" id="global-scope">
+      <div class="card-title">1.1 Global Scope</div>
+      <div class="card-content">
+        <p>Variables declared outside any function or block belong to the global scope and can be accessed from anywhere in the program.</p>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">global-scope.js</span>
+          </div>
+          <pre><code><span class="kw">let</span> name = <span class="str">"Shivam"</span>;
+
+<span class="kw">function</span> <span class="fn">show</span>() {
+    <span class="fn">console</span>.log(name); <span class="cmt">// Accessible</span>
+}
+
+show();
+<span class="fn">console</span>.log(name); <span class="cmt">// Accessible</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card theme-blue" id="function-scope">
+      <div class="card-title">1.2 Function Scope</div>
+      <div class="card-content">
+        <p>Variables declared with <code>var</code> inside a function are accessible only within that function.</p>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">function-scope.js</span>
+          </div>
+          <pre><code><span class="kw">function</span> <span class="fn">demo</span>() {
+    <span class="kw">var</span> age = <span class="num">25</span>;
+    <span class="fn">console</span>.log(age); <span class="cmt">// ✅</span>
+}
+
+demo();
+<span class="fn">console</span>.log(age); <span class="cmt">// ❌ ReferenceError</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card theme-blue" id="block-scope">
+      <div class="card-title">1.3 Block Scope</div>
+      <div class="card-content">
+        <p>Variables declared with <code>let</code> and <code>const</code> are accessible only inside the block (<code>{}</code>) where they are declared.</p>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">block-scope.js</span>
+          </div>
+          <pre><code>{
+    <span class="kw">let</span> city = <span class="str">"Delhi"</span>;
+    <span class="kw">const</span> country = <span class="str">"India"</span>;
+
+    <span class="fn">console</span>.log(city);     <span class="cmt">// ✅</span>
+    <span class="fn">console</span>.log(country);  <span class="cmt">// ✅</span>
+}
+
+<span class="fn">console</span>.log(city);     <span class="cmt">// ❌</span>
+<span class="fn">console</span>.log(country);  <span class="cmt">// ❌</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Combined Example — All Three Scopes Together</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">combined-scope.js</span>
+          </div>
+          <pre><code><span class="kw">let</span> global = <span class="str">"I am Global"</span>;
+
+<span class="kw">function</span> <span class="fn">demo</span>() {
+    <span class="kw">var</span> functionVar = <span class="str">"Function Scope"</span>;
+
+    <span class="kw">if</span> (<span class="kw">true</span>) {
+        <span class="kw">let</span> blockVar = <span class="str">"Block Scope"</span>;
+
+        <span class="fn">console</span>.log(global);      <span class="cmt">// ✅</span>
+        <span class="fn">console</span>.log(functionVar); <span class="cmt">// ✅</span>
+        <span class="fn">console</span>.log(blockVar);    <span class="cmt">// ✅</span>
+    }
+
+    <span class="fn">console</span>.log(global);      <span class="cmt">// ✅</span>
+    <span class="fn">console</span>.log(functionVar); <span class="cmt">// ✅</span>
+    <span class="fn">console</span>.log(blockVar);    <span class="cmt">// ❌</span>
+}
+
+demo();
+
+<span class="fn">console</span>.log(global);      <span class="cmt">// ✅</span>
+<span class="fn">console</span>.log(functionVar); <span class="cmt">// ❌</span></code></pre>
+        </div>
+        <div class="info-box box-benefit"><strong>💡 Interview Definition:</strong> Scope defines the visibility and accessibility of variables in different parts of a program.</div>
+      </div>
+    </div>
+
+    <!-- ==================== 2. LEXICAL SCOPE ==================== -->
+    <div class="section-divider" id="lexical-scope"><span>2. Lexical Scope (Static Scope)</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">What is Lexical Scope?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>Lexical Scope</strong> means a function's scope is determined by <strong>where it is written (defined)</strong> in the source code — <strong>not</strong> where it is called. JavaScript decides this during code creation.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">lexical-scope.js</span>
+          </div>
+          <pre><code><span class="kw">let</span> a = <span class="num">10</span>;
+
+<span class="kw">function</span> <span class="fn">outer</span>() {
+    <span class="kw">let</span> b = <span class="num">20</span>;
+
+    <span class="kw">function</span> <span class="fn">inner</span>() {
+        <span class="fn">console</span>.log(a); <span class="cmt">// 10</span>
+        <span class="fn">console</span>.log(b); <span class="cmt">// 20</span>
+    }
+
+    inner();
+}
+
+outer();</code></pre>
+        </div>
+
+        <p>Here, <code>inner()</code> is <strong>defined inside</strong> <code>outer()</code>, so it can access:</p>
+        <ul>
+          <li>Its own variables</li>
+          <li>Variables of <code>outer()</code></li>
+          <li>Global variables</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card theme-blue">
+      <div class="card-title">The Classic Gotcha Example</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">gotcha.js</span>
+          </div>
+          <pre><code><span class="kw">let</span> a = <span class="num">10</span>;
+
+<span class="kw">function</span> <span class="fn">first</span>() {
+    <span class="fn">console</span>.log(a);
+}
+
+<span class="kw">function</span> <span class="fn">second</span>() {
+    <span class="kw">let</span> a = <span class="num">20</span>;
+    first();
+}
+
+second();
+<span class="cmt">// Output: 10</span></code></pre>
+        </div>
+        <div class="info-box box-warning"><strong>⚠️ Why?</strong> Although <code>first()</code> is called inside <code>second()</code>, it was <strong>defined in the global scope</strong>. So it only has access to the <strong>global lexical scope</strong>, not <code>second()</code>'s local variables.</div>
+        <div class="info-box box-note"><strong>📝 Interview Definition:</strong> Lexical Scope means JavaScript determines variable accessibility based on where functions are defined, not where they are called.</div>
+      </div>
+    </div>
+
+    <!-- ==================== 3. LEXICAL ENVIRONMENT ==================== -->
+    <div class="section-divider" id="lexical-env"><span>3. Lexical Environment</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">What is a Lexical Environment?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          A <strong>Lexical Environment</strong> is an <strong>internal memory structure</strong> created whenever JavaScript enters the Global Execution Context, a function, or a block (<code>let</code>/<code>const</code>).
+        </div>
+        <p>It contains two parts:</p>
+        <ul>
+          <li><strong>Environment Record</strong> — stores variables and functions</li>
+          <li><strong>Outer Reference</strong> — points to the parent lexical environment</li>
+        </ul>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">lexical-env.js</span>
+          </div>
+          <pre><code><span class="kw">let</span> a = <span class="num">10</span>;
+
+<span class="kw">function</span> <span class="fn">outer</span>() {
+    <span class="kw">let</span> b = <span class="num">20</span>;
+}</code></pre>
+        </div>
+
+        <h3>Global Lexical Environment</h3>
+        <div class="diagram">Global Lexical Environment
+│
+├── a = 10
+├── outer = function
+└── Outer Reference = null</div>
+
+        <h3>When outer() executes</h3>
+        <div class="diagram">Outer Lexical Environment
+│
+├── b = 20
+└── Outer Reference
+        │
+        ▼
+Global Lexical Environment</div>
+
+        <div class="info-box box-note"><strong>📝 Interview Definition:</strong> Lexical Environment is the internal memory structure where JavaScript stores variables and maintains a reference to its parent scope.</div>
+      </div>
+    </div>
+
+    <!-- ==================== 4. SCOPE CHAIN ==================== -->
+    <div class="section-divider" id="scope-chain"><span>4. Scope Chain</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">What is the Scope Chain?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          The <strong>Scope Chain</strong> is the mechanism JavaScript uses to resolve variables. It searches the current Lexical Environment, then the parent, then the grandparent, and so on — until it reaches the Global Lexical Environment or finds the variable.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">scope-chain.js</span>
+          </div>
+          <pre><code><span class="kw">let</span> a = <span class="num">10</span>;
+
+<span class="kw">function</span> <span class="fn">outer</span>() {
+    <span class="kw">let</span> b = <span class="num">20</span>;
+
+    <span class="kw">function</span> <span class="fn">inner</span>() {
+        <span class="kw">let</span> c = <span class="num">30</span>;
+
+        <span class="fn">console</span>.log(a);
+        <span class="fn">console</span>.log(b);
+        <span class="fn">console</span>.log(c);
+    }
+
+    inner();
+}
+
+outer();</code></pre>
+        </div>
+
+        <h3>Variable Lookup — Searching for 'a'</h3>
+        <div class="diagram">Inner Scope
+     │
+     ▼
+Outer Scope
+     │
+     ▼
+Global Scope
+     │
+     ▼
+Found (a = 10)</div>
+
+        <p>JavaScript checks:</p>
+        <ol>
+          <li>Is <code>a</code> in <code>inner()</code>? ❌</li>
+          <li>Is <code>a</code> in <code>outer()</code>? ❌</li>
+          <li>Is <code>a</code> in Global? ✅</li>
+        </ol>
+
+        <div class="info-box box-benefit"><strong>💡 Interview Definition:</strong> Scope Chain is the mechanism JavaScript uses to resolve variables by searching the current scope and then moving through parent scopes until the variable is found or the global scope is reached.</div>
+      </div>
+    </div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Complete Relationship Diagram</div>
+      <div class="card-content">
+        <div class="diagram">                   JavaScript Code
+                          │
+                          ▼
+                  Lexical Scope
+      (Determined by where code is written)
+                          │
+                          ▼
+          JavaScript creates a Lexical Environment
+                          │
+        ┌─────────────────┴─────────────────┐
+        │                                   │
+        ▼                                   ▼
+Environment Record                Outer Reference
+(Variables &amp; Functions)      (Parent Lexical Environment)
+        │                                   │
+        └─────────────────┬─────────────────┘
+                          ▼
+                    Scope Chain
+      (Searches current → parent → global)
+                          │
+                          ▼
+                  Variable Found</div>
+      </div>
+    </div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Memory Diagram — Nested Environments</div>
+      <div class="card-content">
+        <div class="diagram">Global Lexical Environment
+│
+├── a = 10
+├── outer = function
+└── Outer → null
+        │
+        ▼
+Outer Lexical Environment
+│
+├── b = 20
+└── Outer → Global
+        │
+        ▼
+Inner Lexical Environment
+│
+├── c = 30
+└── Outer → Outer</div>
+
+        <h3>When inner() accesses 'a'</h3>
+        <div class="diagram">Inner LE
+   │
+   ▼
+Outer LE
+   │
+   ▼
+Global LE
+   │
+   ▼
+Found a = 10</div>
+      </div>
+    </div>
+
+    <!-- ==================== SUMMARY ==================== -->
+    <div class="section-divider" id="summary"><span>Summary</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Summary Table</div>
+      <div class="card-content">
+        <table>
+          <tr><th>Concept</th><th>Meaning</th><th>Key Point</th></tr>
+          <tr><td><strong>Scope</strong></td><td>Defines where a variable can be accessed.</td><td>Visibility of variables.</td></tr>
+          <tr><td><strong>Global Scope</strong></td><td>Variables declared outside all functions/blocks.</td><td>Accessible everywhere.</td></tr>
+          <tr><td><strong>Function Scope</strong></td><td>Variables declared with <code>var</code> inside a function.</td><td>Accessible only inside that function.</td></tr>
+          <tr><td><strong>Block Scope</strong></td><td>Variables declared with <code>let</code>/<code>const</code> inside <code>{}</code>.</td><td>Accessible only inside the block.</td></tr>
+          <tr><td><strong>Lexical Scope</strong></td><td>Scope is determined by where code is written.</td><td>Based on function definition, not function call.</td></tr>
+          <tr><td><strong>Lexical Environment</strong></td><td>Internal memory structure storing variables and parent reference.</td><td>Created for global, functions, and blocks.</td></tr>
+          <tr><td><strong>Scope Chain</strong></td><td>Lookup mechanism for resolving variables.</td><td>Searches current → parent → global.</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Easy Interview One-Liners</div>
+      <div class="card-content card-content-QA">
+        <h4>Scope</h4>
+        <p>Where a variable can be accessed.</p>
+
+        <h4>Global Scope</h4>
+        <p>Variables declared outside all functions and blocks; accessible everywhere.</p>
+
+        <h4>Function Scope</h4>
+        <p>Variables declared with <code>var</code> inside a function; accessible only within that function.</p>
+
+        <h4>Block Scope</h4>
+        <p>Variables declared with <code>let</code> and <code>const</code> inside <code>{}</code>; accessible only within that block.</p>
+
+        <h4>Lexical Scope</h4>
+        <p>A function's scope is determined by where it is <strong>defined</strong>, not where it is called.</p>
+
+        <h4>Lexical Environment</h4>
+        <p>Internal structure that stores variables and a reference to its parent lexical environment.</p>
+
+        <h4>Scope Chain</h4>
+        <p>The lookup path JavaScript follows through lexical environments to find variables.</p>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

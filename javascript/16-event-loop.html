@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JavaScript Event Loop</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+/* ═══════════ THEME VARIABLES — apply on any element via class ═══════════ */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+/* ═══════════ HEADER ═══════════ */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+.header-image { margin:-24px 0 32px; border-radius:14px; overflow:hidden; background:#fff; box-shadow:0 10px 24px rgba(0,0,0,0.08); border:1px solid rgba(0,0,0,0.05); }
+.header-image img { display:block; width:100%; height:auto; }
+
+/* ═══════════ KEY TERMS SUMMARY ═══════════ */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* ═══════════ SECTION DIVIDER ═══════════ */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* ═══════════ CARDS ═══════════ */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.card-content p { color:#333; font-size:17px; line-height:1.8; margin-bottom:14px; font-weight:500; }
+.card-content ul, .card-content ol { margin: 0 0 14px 22px; }
+.card-content li { font-size:16px; line-height:1.9; color:#333; font-weight:500; margin-bottom:4px; }
+.card-content h3 { font-size:18px; margin:20px 0 8px; font-weight:800; color:var(--heading); }
+.card-content h4 { font-size:17px; margin-bottom:6px; margin-top:18px; font-weight:800; color:var(--heading); }
+
+.short-answer { position:relative; background:linear-gradient(160deg,#ffffff 0%, var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),0.16); border-left:4px solid var(--accent); border-radius:12px; padding:18px 22px 20px; margin-bottom:22px; font-size:17px; line-height:1.75; font-weight:500; color:#293244; box-shadow:0 6px 18px rgba(var(--shadow-rgb),0.1); }
+.short-answer::before { content:"QUICK ANSWER"; display:block; width:fit-content; font-size:11px; font-weight:800; letter-spacing:.8px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; margin-bottom:12px; box-shadow:0 3px 8px rgba(var(--shadow-rgb),0.35); }
+.short-answer strong { color: var(--heading); }
+.short-answer code { background:rgba(var(--shadow-rgb),0.1); color:var(--heading); padding:2px 6px; border-radius:5px; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+
+/* ═══════════ CODE BLOCK ═══════════ */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* ═══════════ DIAGRAM ═══════════ */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+/* ═══════════ INFO BOXES ═══════════ */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* ═══════════ COLORFUL SUBSECTION GROUPS ═══════════ */
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#f97316; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); border-left:5px solid var(--accent); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:18px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.85; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child { margin-bottom:0; }
+.box-gray    { background:linear-gradient(135deg,#f1f5f9,#e2e8f0); color:#334155; font-style:italic; font-weight:500; }
+.box-gray code { background:rgba(51,65,85,0.1); color:#1e293b; padding:2px 6px; border-radius:5px; font-style:normal; }
+
+/* ═══════════ TABLE ═══════════ */
+table { width:100%; border-collapse:collapse; margin:15px 0; border-radius:12px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.08); }
+table th { background:linear-gradient(120deg,#6366f1,#8b5cf6); color:#fff; font-size:17px; padding:14px 18px; text-align:left; }
+table td { padding:12px 18px; font-size:15px; font-weight:500; border-bottom:1px solid #eef0f4; color:#334155; }
+table tr:nth-child(even) { background:#f8fafc; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header theme-blue">
+      <h1>🔁 JavaScript Event Loop</h1>
+      <p>How the Call Stack, Web APIs, Microtask Queue, and Callback Queue work together to give JS non-blocking async behavior</p>
+      <div class="toc">
+        <a href="#definition" onclick="document.getElementById('definition').scrollIntoView({behavior:'smooth'});return false;">Definition</a>
+        <a href="#components" onclick="document.getElementById('components').scrollIntoView({behavior:'smooth'});return false;">Components</a>
+        <a href="#how-it-works" onclick="document.getElementById('how-it-works').scrollIntoView({behavior:'smooth'});return false;">How It Works</a>
+        <a href="#sync-vs-async" onclick="document.getElementById('sync-vs-async').scrollIntoView({behavior:'smooth'});return false;">Sync vs Async</a>
+        <a href="#summary" onclick="document.getElementById('summary').scrollIntoView({behavior:'smooth'});return false;">Interview Summary</a>
+        <a href="#faqs" onclick="document.getElementById('faqs').scrollIntoView({behavior:'smooth'});return false;">FAQs</a>
+        <a href="#predict-output" onclick="document.getElementById('predict-output').scrollIntoView({behavior:'smooth'});return false;">Predict the Output</a>
+      </div>
+    </div>
+
+    <div class="header-image">
+      <img src="event-loop.png" alt="JavaScript event loop diagram" />
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> The Event Loop constantly watches the Call Stack. Once it's empty, it drains the entire Microtask Queue (Promises), then takes exactly one task from the Callback/Macrotask Queue (timers, events) — and repeats forever.</div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">📚</div>
+          <div class="summary-text"><strong>Call Stack:</strong> Where JS actually executes functions — must be empty before any queued task can run.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🌐</div>
+          <div class="summary-text"><strong>Web APIs:</strong> Browser features (timers, fetch, DOM events) that run outside the JS engine.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">⚡</div>
+          <div class="summary-text"><strong>Microtask Queue:</strong> Holds Promise callbacks — always fully drained before the next macrotask.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">⏱️</div>
+          <div class="summary-text"><strong>Callback (Macro) Queue:</strong> Holds setTimeout/setInterval/event callbacks — only one runs per loop cycle.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== DEFINITION ==================== -->
+    <div class="section-divider" id="definition"><span>Definition</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">What is the Event Loop?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          The <strong>Event Loop</strong> is a mechanism that continuously checks the Call Stack, and when the stack becomes empty, it moves tasks from the queues to the Call Stack for execution.
+        </div>
+        <p>JavaScript is <strong>single-threaded</strong>, so it can execute only one task at a time. To handle asynchronous operations such as timers, API calls, and DOM events, the browser uses Web APIs and queues, and the Event Loop coordinates their execution.</p>
+      </div>
+    </div>
+
+    <!-- ==================== COMPONENTS ==================== -->
+    <div class="section-divider" id="components"><span>Components of the Event Loop</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">1</span><h4>Call Stack</h4></div>
+      <div class="card-sub-content">
+        <p>The Call Stack is where JavaScript executes functions.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">call-stack.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">one</span>() {
+  <span class="fn">console</span>.log(<span class="str">"One"</span>);
+}
+
+<span class="kw">function</span> <span class="fn">two</span>() {
+  <span class="fn">console</span>.log(<span class="str">"Two"</span>);
+}
+
+one();
+two();</code></pre>
+        </div>
+        <div class="diagram">Push one()
+Execute one()
+Pop one()
+
+Push two()
+Execute two()
+Pop two()</div>
+        <div class="info-box box-note">The stack must become <strong>empty</strong> before any queued asynchronous task can run.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">2</span><h4>Web APIs</h4></div>
+      <div class="card-sub-content">
+        <p>The browser provides Web APIs such as <code>setTimeout()</code>, <code>setInterval()</code>, <code>fetch()</code>, DOM events (<code>click</code>, <code>scroll</code>), <code>localStorage</code>, and <code>location</code>. These APIs run <strong>outside</strong> the JavaScript engine.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">web-api-example.js</span></div>
+          <pre><code>setTimeout(() =&gt; {
+  <span class="fn">console</span>.log(<span class="str">"Timer finished"</span>);
+}, <span class="num">2000</span>);</code></pre>
+        </div>
+        <div class="info-box box-note">The timer is handled by the <strong>browser</strong>, not by the Call Stack.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">3</span><h4>Callback Queue (Macrotask Queue)</h4></div>
+      <div class="card-sub-content">
+        <p>When Web API tasks complete, their callbacks are placed in the Callback Queue. Examples: <code>setTimeout</code>, <code>setInterval</code>, DOM event handlers, <code>postMessage</code>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">callback-queue.js</span></div>
+          <pre><code>setTimeout(() =&gt; <span class="fn">console</span>.log(<span class="str">"A"</span>), <span class="num">0</span>);
+setTimeout(() =&gt; <span class="fn">console</span>.log(<span class="str">"B"</span>), <span class="num">0</span>);</code></pre>
+        </div>
+        <div class="diagram">Queue order: [ A, B ]</div>
+        <p>These tasks execute <strong>one at a time</strong>, per loop cycle.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">4</span><h4>Microtask Queue</h4></div>
+      <div class="card-sub-content">
+        <p>The Microtask Queue has <strong>higher priority</strong> than the Callback Queue. It stores <code>Promise.then()</code>, <code>Promise.catch()</code>, <code>Promise.finally()</code>, <code>queueMicrotask()</code>, and <code>MutationObserver</code>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">microtask-queue.js</span></div>
+          <pre><code>Promise.resolve().then(() =&gt; {
+  <span class="fn">console</span>.log(<span class="str">"Microtask"</span>);
+});</code></pre>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== HOW IT WORKS ==================== -->
+    <div class="section-divider" id="how-it-works"><span>How the Event Loop Works</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">The Order of Operations</div>
+      <div class="card-content">
+        <ol>
+          <li>Execute all synchronous code from the Call Stack.</li>
+          <li>When async operations complete, place their callbacks into the appropriate queue — Promises → Microtask Queue, Timers/events → Callback Queue.</li>
+          <li>Check whether the Call Stack is empty.</li>
+          <li>Execute <strong>all</strong> microtasks.</li>
+          <li>Execute <strong>one</strong> macrotask from the Callback Queue.</li>
+          <li>Repeat continuously.</li>
+        </ol>
+
+        <table>
+          <tr><th>Queue</th><th>Examples</th><th>Priority</th></tr>
+          <tr><td>Microtask Queue</td><td><code>Promise.then</code>, <code>catch</code>, <code>finally</code></td><td>High</td></tr>
+          <tr><td>Callback Queue</td><td><code>setTimeout</code>, <code>setInterval</code>, DOM events</td><td>Lower</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Walkthrough Example</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">event-loop-example.js</span></div>
+          <pre><code><span class="fn">console</span>.log(<span class="str">"Start"</span>);
+
+setTimeout(() =&gt; {
+  <span class="fn">console</span>.log(<span class="str">"Timeout"</span>);
+}, <span class="num">0</span>);
+
+Promise.resolve().then(() =&gt; {
+  <span class="fn">console</span>.log(<span class="str">"Promise"</span>);
+});
+
+<span class="fn">console</span>.log(<span class="str">"End"</span>);</code></pre>
+        </div>
+
+        <h4>Step 1 — Synchronous Code</h4>
+        <div class="diagram">Output so far:
+Start
+End</div>
+
+        <h4>Step 2 — Promise Callback → Microtask Queue</h4>
+        <div class="diagram">Microtask Queue
+----------------
+Promise callback</div>
+
+        <h4>Step 3 — setTimeout Callback → Callback Queue</h4>
+        <div class="diagram">Callback Queue
+----------------
+Timeout callback</div>
+
+        <h4>Step 4 — Event Loop Execution</h4>
+        <p>Since the Call Stack is empty: execute the Promise callback first, then the Timeout callback.</p>
+
+        <div class="info-box box-benefit"><strong>Final Output:</strong> <code>Start</code> → <code>End</code> → <code>Promise</code> → <code>Timeout</code></div>
+        <div class="info-box box-note"><strong>Why?</strong> Promise callbacks are microtasks, <code>setTimeout</code> callbacks are macrotasks, and the Event Loop always executes all microtasks before the next macrotask.</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SYNC VS ASYNC ==================== -->
+    <div class="section-divider" id="sync-vs-async"><span>Synchronous vs Asynchronous Execution</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">1</span><h4>Synchronous Execution</h4></div>
+      <div class="card-sub-content">
+        <p>Code runs line by line, and each statement waits for the previous one to finish. Everything runs directly on the Call Stack.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">sync.js</span></div>
+          <pre><code><span class="fn">console</span>.log(<span class="str">"A"</span>);
+<span class="fn">console</span>.log(<span class="str">"B"</span>);
+<span class="fn">console</span>.log(<span class="str">"C"</span>);
+<span class="cmt">// Output: A, B, C</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">2</span><h4>Asynchronous Execution</h4></div>
+      <div class="card-sub-content">
+        <p>JavaScript does not wait for long-running operations — they're handed off to Web APIs.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">async.js</span></div>
+          <pre><code><span class="fn">console</span>.log(<span class="str">"Start"</span>);
+
+setTimeout(() =&gt; {
+  <span class="fn">console</span>.log(<span class="str">"Async Task"</span>);
+}, <span class="num">2000</span>);
+
+<span class="fn">console</span>.log(<span class="str">"End"</span>);
+<span class="cmt">// Output: Start, End, Async Task</span></code></pre>
+        </div>
+
+        <div class="diagram">Step 1: Execute synchronous code       → "Start"
+
+Step 2: setTimeout sent to Web API
+  Call Stack                 Web API
+  -----------               ----------------
+  setTimeout(...)     ---->  Timer (2000ms)
+
+Step 3: Continue executing code        → "End"
+
+Step 4: Timer completes → callback placed in Callback Queue
+  Callback Queue
+  ----------------
+  () => console.log("Async Task")
+
+Step 5: Call Stack is empty → Event Loop moves callback to stack
+  → "Async Task"</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">⇄</span><h4>Key Difference</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Synchronous</th><th>Asynchronous</th></tr>
+          <tr><td>Executes line by line</td><td>Does not block execution</td></tr>
+          <tr><td>Waits for each task to finish</td><td>Long tasks run in Web APIs</td></tr>
+          <tr><td>Uses only Call Stack</td><td>Uses Web APIs + Queues + Event Loop</td></tr>
+          <tr><td>Blocking behavior</td><td>Non-blocking behavior</td></tr>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW SUMMARY ==================== -->
+    <div class="section-divider" id="summary"><span>Interview Summary</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">The 1-Minute Answer</div>
+      <div class="card-content">
+        <div class="info-box box-benefit">"Synchronous code executes directly on the Call Stack in order. Asynchronous operations are handled by browser Web APIs, and once completed, their callbacks are placed in the Microtask Queue or Callback Queue. The Event Loop checks the Call Stack, executes all microtasks first, and then executes macrotasks, enabling non-blocking asynchronous behavior in JavaScript."</div>
+      </div>
+    </div>
+
+    <!-- ==================== FAQS (now card-sub, matching the rest of the page) ==================== -->
+    <div class="section-divider" id="faqs"><span>Interview Q&amp;A</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><span class="card-sub-num">1</span><h4>Why does Promise.then() execute before setTimeout(fn, 0)?</h4></div>
+        <div class="card-sub-content"><p><code>.then()</code> callbacks go into the Microtask Queue, which the Event Loop always drains completely before it looks at the Macrotask Queue (where <code>setTimeout</code> callbacks live) — even a 0ms delay doesn't change this priority.</p></div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><span class="card-sub-num">2</span><h4>What happens if both the Microtask Queue and Macrotask Queue contain pending tasks?</h4></div>
+        <div class="card-sub-content"><p>The Event Loop always finishes every microtask first — including any new ones added while draining — before it takes exactly one task from the Macrotask Queue. It then re-checks the Microtask Queue again before touching the next macrotask.</p></div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><span class="card-sub-num">3</span><h4>What happens when the Call Stack never becomes empty?</h4></div>
+        <div class="card-sub-content"><p>The Event Loop can never push anything from either queue onto the stack, so all pending timers, Promise callbacks, and event handlers stay stuck waiting indefinitely. This is what causes a frozen/unresponsive page — an infinite loop or long synchronous task blocks everything else.</p></div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><span class="card-sub-num">4</span><h4>Why is setTimeout(fn, 0) not executed immediately?</h4></div>
+        <div class="card-sub-content"><p>It's still placed in the Macrotask Queue, so it must wait for the current synchronous code and the entire Microtask Queue to finish first. Browsers also enforce a small minimum delay in some cases, but the main reason is simply queue priority, not the 0ms value itself.</p></div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><span class="card-sub-num">5</span><h4>How does the Event Loop prevent the UI from freezing during asynchronous operations?</h4></div>
+        <div class="card-sub-content"><p>Long-running work (network calls, timers) is offloaded to Web APIs running outside the main thread. The main thread only picks up short callback executions when it's free, letting rendering and user input get interleaved between tasks instead of being blocked for the entire duration of the async operation.</p></div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><span class="card-sub-num">6</span><h4>Explain the complete lifecycle of an asynchronous operation from function call to callback execution.</h4></div>
+        <div class="card-sub-content"><p>The function call triggers a Web API (e.g. a timer or network request). The Web API performs the work outside the Call Stack. Once finished, it places the callback into the Microtask or Macrotask Queue depending on the API. The Event Loop waits until the Call Stack is empty, drains all microtasks, then executes the callback (if it's a macrotask, one per cycle) by pushing it onto the Call Stack.</p></div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><span class="card-sub-num">7</span><h4>How does await affect the Event Loop?</h4></div>
+        <div class="card-sub-content"><p><code>await</code> pauses the async function at that point and immediately hands control back to whatever called it, letting synchronous code continue running. The code after <code>await</code> is scheduled to resume as a microtask once the awaited Promise settles — so it runs after current synchronous code, but before any macrotasks.</p></div>
+      </div>
+
+    </div>
+
+    <!-- ==================== PREDICT THE OUTPUT ==================== -->
+    <div class="section-divider" id="predict-output"><span>Predict the Output</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">1</span><h4>Sync + setTimeout()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict1.js</span></div>
+          <pre><code><span class="fn">console</span>.log(<span class="str">"A"</span>);
+setTimeout(() =&gt; <span class="fn">console</span>.log(<span class="str">"B"</span>), <span class="num">0</span>);
+<span class="fn">console</span>.log(<span class="str">"C"</span>);</code></pre>
+        </div>
+        <div class="info-box box-benefit"><strong>Output:</strong> <code>A</code> → <code>C</code> → <code>B</code></div>
+        <p>All synchronous code runs first; the timer callback is a macrotask and waits until the stack is clear.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">2</span><h4>Sync + Promise</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict2.js</span></div>
+          <pre><code><span class="fn">console</span>.log(<span class="str">"A"</span>);
+Promise.resolve().then(() =&gt; <span class="fn">console</span>.log(<span class="str">"B"</span>));
+<span class="fn">console</span>.log(<span class="str">"C"</span>);</code></pre>
+        </div>
+        <div class="info-box box-benefit"><strong>Output:</strong> <code>A</code> → <code>C</code> → <code>B</code></div>
+        <p>Same shape as the setTimeout case: sync code runs first, then the microtask fires once the stack is empty.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">3</span><h4>Nested setTimeout()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict3.js</span></div>
+          <pre><code><span class="fn">console</span>.log(<span class="str">"Start"</span>);
+
+setTimeout(() =&gt; {
+    <span class="fn">console</span>.log(<span class="str">"Timer 1"</span>);
+    setTimeout(() =&gt; <span class="fn">console</span>.log(<span class="str">"Timer 2"</span>), <span class="num">0</span>);
+}, <span class="num">0</span>);
+
+<span class="fn">console</span>.log(<span class="str">"End"</span>);</code></pre>
+        </div>
+        <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>End</code> → <code>Timer 1</code> → <code>Timer 2</code></div>
+        <p>"Timer 2" is only scheduled once "Timer 1" actually runs, so it becomes a brand-new macrotask for the <em>next</em> cycle — it can't run in the same pass.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">4</span><h4>Nested Promise Callbacks</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict4.js</span></div>
+          <pre><code><span class="fn">console</span>.log(<span class="str">"Start"</span>);
+
+Promise.resolve().then(() =&gt; {
+    <span class="fn">console</span>.log(<span class="str">"A"</span>);
+    Promise.resolve().then(() =&gt; <span class="fn">console</span>.log(<span class="str">"B"</span>));
+});
+
+<span class="fn">console</span>.log(<span class="str">"End"</span>);</code></pre>
+        </div>
+        <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>End</code> → <code>A</code> → <code>B</code></div>
+        <p>Unlike nested timers, a microtask created while draining the Microtask Queue still runs in the <em>same</em> drain — the queue isn't considered empty until nothing new is left in it.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">5</span><h4>async/await with Promise</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict5.js</span></div>
+          <pre><code><span class="kw">async</span> <span class="kw">function</span> <span class="fn">foo</span>() {
+    <span class="fn">console</span>.log(<span class="str">"1"</span>);
+    <span class="kw">await</span> Promise.resolve();
+    <span class="fn">console</span>.log(<span class="str">"2"</span>);
+}
+
+<span class="fn">console</span>.log(<span class="str">"Start"</span>);
+foo();
+<span class="fn">console</span>.log(<span class="str">"End"</span>);</code></pre>
+        </div>
+        <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>1</code> → <code>End</code> → <code>2</code></div>
+        <p><code>foo()</code> runs synchronously up to the <code>await</code>, then pauses and returns control to the caller. "End" logs before "2" because the code after <code>await</code> is scheduled as a microtask, which only runs once the current synchronous block finishes.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">6</span><h4>Promise + setTimeout()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict6.js</span></div>
+          <pre><code><span class="fn">console</span>.log(<span class="str">"Start"</span>);
+setTimeout(() =&gt; <span class="fn">console</span>.log(<span class="str">"Timeout"</span>), <span class="num">0</span>);
+Promise.resolve().then(() =&gt; <span class="fn">console</span>.log(<span class="str">"Promise"</span>));
+<span class="fn">console</span>.log(<span class="str">"End"</span>);</code></pre>
+        </div>
+        <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>End</code> → <code>Promise</code> → <code>Timeout</code></div>
+        <p>Regardless of which was scheduled first in the code, the microtask (Promise) always wins over the macrotask (setTimeout).</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">7</span><h4>Promise Inside setTimeout()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict7.js</span></div>
+          <pre><code><span class="fn">console</span>.log(<span class="str">"Start"</span>);
+
+setTimeout(() =&gt; {
+    <span class="fn">console</span>.log(<span class="str">"Timeout start"</span>);
+    Promise.resolve().then(() =&gt; <span class="fn">console</span>.log(<span class="str">"Promise inside timeout"</span>));
+    <span class="fn">console</span>.log(<span class="str">"Timeout end"</span>);
+}, <span class="num">0</span>);</code></pre>
+        </div>
+        <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>Timeout start</code> → <code>Timeout end</code> → <code>Promise inside timeout</code></div>
+        <p>The whole timer callback runs as one synchronous block first (macrotask). The Promise it schedules only becomes eligible to run <em>after</em> that block finishes — as the very next microtask, before any further macrotasks.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">8</span><h4>setTimeout() Inside Promise</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict8.js</span></div>
+          <pre><code><span class="fn">console</span>.log(<span class="str">"Start"</span>);
+
+Promise.resolve().then(() =&gt; {
+    <span class="fn">console</span>.log(<span class="str">"Promise"</span>);
+    setTimeout(() =&gt; <span class="fn">console</span>.log(<span class="str">"Timeout inside promise"</span>), <span class="num">0</span>);
+});
+
+<span class="fn">console</span>.log(<span class="str">"End"</span>);</code></pre>
+        </div>
+        <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>End</code> → <code>Promise</code> → <code>Timeout inside promise</code></div>
+        <p>The Promise callback runs as a microtask before the next macrotask. The <code>setTimeout</code> it schedules is a brand-new macrotask, so it has to wait for the current microtask drain to finish completely.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">9</span><h4>Multiple Timers with Different Delays</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">predict9.js</span></div>
+          <pre><code><span class="fn">console</span>.log(<span class="str">"Start"</span>);
+
+setTimeout(() =&gt; <span class="fn">console</span>.log(<span class="str">"Timer 500ms"</span>), <span class="num">500</span>);
+setTimeout(() =&gt; <span class="fn">console</span>.log(<span class="str">"Timer 100ms"</span>), <span class="num">100</span>);
+setTimeout(() =&gt; <span class="fn">console</span>.log(<span class="str">"Timer 0ms"</span>), <span class="num">0</span>);
+
+<span class="fn">console</span>.log(<span class="str">"End"</span>);</code></pre>
+        </div>
+        <div class="info-box box-benefit"><strong>Output:</strong> <code>Start</code> → <code>End</code> → <code>Timer 0ms</code> → <code>Timer 100ms</code> → <code>Timer 500ms</code></div>
+        <p>Timers don't run in the order they were written — they become eligible in order of their delay expiring. The shortest delay always becomes ready first, regardless of the order it appeared in the code.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <div class="info-box box-extra">
+      The Event Loop = Call Stack + Web APIs + Microtask Queue + Callback Queue, coordinated in a continuous cycle · Microtasks (Promises) always fully drain before the next macrotask (timers/events) · A never-empty Call Stack freezes everything · <code>await</code> pauses sync execution and resumes as a microtask.
+    </div>
+
+  </div>
+</body>
+</html>

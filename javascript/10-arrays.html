@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JavaScript Scope, Lexical Scope, Lexical Environment &amp; Scope Chain</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+/* ═══════════ THEME VARIABLES — apply on any element via class ═══════════ */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+/* ═══════════ HEADER ═══════════ */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* ═══════════ KEY TERMS SUMMARY ═══════════ */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* ═══════════ SECTION DIVIDER ═══════════ */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* ═══════════ CARDS ═══════════ */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.card-content p { color:#333; font-size:17px; line-height:1.8; margin-bottom:14px; font-weight:500; }
+.card-content ul, .card-content ol { margin: 0 0 14px 22px; }
+.card-content li { font-size:16px; line-height:1.9; color:#333; font-weight:500; margin-bottom:4px; }
+.card-content h3 { font-size:18px; margin:20px 0 8px; font-weight:800; color:var(--heading); }
+.card-content h4 { font-size:17px; margin-bottom:6px; margin-top:18px; font-weight:800; color:var(--heading); }
+
+.short-answer { position:relative; background:linear-gradient(160deg,#ffffff 0%, var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),0.16); border-left:4px solid var(--accent); border-radius:12px; padding:18px 22px 20px; margin-bottom:22px; font-size:17px; line-height:1.75; font-weight:500; color:#293244; box-shadow:0 6px 18px rgba(var(--shadow-rgb),0.1); }
+.short-answer::before { content:"QUICK ANSWER"; display:block; width:fit-content; font-size:11px; font-weight:800; letter-spacing:.8px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; margin-bottom:12px; box-shadow:0 3px 8px rgba(var(--shadow-rgb),0.35); }
+.short-answer strong { color: var(--heading); }
+.short-answer code { background:rgba(var(--shadow-rgb),0.1); color:var(--heading); padding:2px 6px; border-radius:5px; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+
+/* Q&A blocks (h4/p pairs) */
+.card-content-QA h4 { padding:14px 18px; margin:22px 0 12px; border-radius:12px; font-size:18px; font-weight:700; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; background:linear-gradient(135deg,#bfdbfe,#93c5fd); color:var(--heading); border-left:3px solid var(--accent); }
+.card-content-QA p { padding:14px 18px; margin:0 0 18px; border-radius:12px; font-size:16px; line-height:2.1; font-weight:500; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; background:linear-gradient(135deg,#eff6ff,#dbeafe); color:var(--heading); border-left:3px solid var(--accent); }
+
+/* ═══════════ CODE BLOCK ═══════════ */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* ═══════════ DIAGRAM ═══════════ */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+/* ═══════════ INFO BOXES ═══════════ */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* ═══════════ COLORFUL NUMBERED SUBSECTIONS ═══════════ */
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#f97316; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-5 { --accent-dark:#9d174d; --accent:#db2777; --accent-light:#ec4899; --content-bg:#fdf2f8; --heading:#9d174d; --shadow-rgb:219,39,119; }
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); border-left:5px solid var(--accent); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.box-gray    { background:linear-gradient(135deg,#f1f5f9,#e2e8f0); color:#334155; font-style:italic; font-weight:500; }
+.box-gray code { background:rgba(51,65,85,0.1); color:#1e293b; padding:2px 6px; border-radius:5px; font-style:normal; }
+
+/* ═══════════ TABLE ═══════════ */
+table { width:100%; border-collapse:collapse; margin:15px 0; border-radius:12px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.08); }
+table th { background:linear-gradient(120deg,#6366f1,#8b5cf6); color:#fff; font-size:17px; padding:14px 18px; text-align:left; }
+table td { padding:12px 18px; font-size:15px; font-weight:500; border-bottom:1px solid #eef0f4; color:#334155; }
+table tr:nth-child(even) { background:#f8fafc; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header theme-blue">
+      <h1>🧮 JavaScript Arrays — Complete Guide</h1>
+      <p>Creation, iteration, transformation methods, copying, and the interview questions that come up again and again</p>
+      <div class="toc">
+        <a href="#basics" onclick="document.getElementById('basics').scrollIntoView({behavior:'smooth'});return false;">1–3. Basics</a>
+        <a href="#iteration" onclick="document.getElementById('iteration').scrollIntoView({behavior:'smooth'});return false;">4. Iteration</a>
+        <a href="#transform-search" onclick="document.getElementById('transform-search').scrollIntoView({behavior:'smooth'});return false;">5–10. Transform &amp; Search</a>
+        <a href="#mutate-combine" onclick="document.getElementById('mutate-combine').scrollIntoView({behavior:'smooth'});return false;">11–14. Mutate &amp; Combine</a>
+        <a href="#modern-copy" onclick="document.getElementById('modern-copy').scrollIntoView({behavior:'smooth'});return false;">15–17. Destructuring &amp; Copying</a>
+        <a href="#interview" onclick="document.getElementById('interview').scrollIntoView({behavior:'smooth'});return false;">Interview Questions</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> Arrays are ordered, resizable collections. Some methods mutate in place (<code>push</code>, <code>splice</code>, <code>sort</code>), others return a brand-new array (<code>map</code>, <code>filter</code>, <code>slice</code>) — knowing which is which prevents subtle bugs.</div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🧮</div>
+          <div class="summary-text"><strong>Array:</strong> An ordered, resizable collection of values, accessed by zero-based index.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🔄</div>
+          <div class="summary-text"><strong>Mutable methods:</strong> push/pop/shift/unshift/splice/sort/reverse — change the original array.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🆕</div>
+          <div class="summary-text"><strong>Immutable methods:</strong> map/filter/reduce/slice/concat — return a new array, original untouched.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🪞</div>
+          <div class="summary-text"><strong>Shallow copy:</strong> <code>[...arr]</code>/<code>slice()</code> only copy the top level — nested arrays stay shared by reference.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1-3 BASICS ==================== -->
+    <div class="section-divider" id="basics"><span>1–3. The Basics</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">1</span><h4>Array Creation</h4></div>
+      <div class="card-sub-content">
+        <p>Arrays can be created with an array literal (the recommended way) or with the <code>Array</code> constructor.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">array-creation.js</span></div>
+          <pre><code><span class="kw">const</span> arr1 = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>];         <span class="cmt">// array literal — recommended</span>
+<span class="kw">const</span> arr2 = <span class="kw">new</span> Array(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>); <span class="cmt">// constructor — works, but has a quirk</span>
+
+<span class="kw">const</span> weird = <span class="kw">new</span> Array(<span class="num">5</span>);      <span class="cmt">// creates an array with length 5, NOT [5]!</span>
+<span class="fn">console</span>.log(weird.length); <span class="cmt">// 5</span>
+<span class="fn">console</span>.log(weird);        <span class="cmt">// [ <5 empty items> ]</span></code></pre>
+        </div>
+        <div class="info-box box-warning">A single numeric argument to <code>new Array()</code> sets the length instead of creating a one-element array — a classic gotcha. Stick to array literals to avoid it entirely.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">2</span><h4>Access &amp; Update Elements</h4></div>
+      <div class="card-sub-content">
+        <p>Elements are accessed by zero-based index. Assigning to an index updates that element directly, since arrays are mutable objects.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">access-update.js</span></div>
+          <pre><code><span class="kw">const</span> fruits = [<span class="str">"apple"</span>, <span class="str">"banana"</span>, <span class="str">"cherry"</span>];
+
+<span class="fn">console</span>.log(fruits[<span class="num">0</span>]); <span class="cmt">// "apple"</span>
+<span class="fn">console</span>.log(fruits[fruits.length - <span class="num">1</span>]); <span class="cmt">// "cherry" — last element</span>
+
+fruits[<span class="num">1</span>] = <span class="str">"blueberry"</span>; <span class="cmt">// update in place</span>
+<span class="fn">console</span>.log(fruits); <span class="cmt">// ["apple", "blueberry", "cherry"]</span>
+
+<span class="fn">console</span>.log(fruits[<span class="num">10</span>]); <span class="cmt">// undefined — out-of-range access, no error</span></code></pre>
+        </div>
+        <div class="info-box box-tip">Even though <code>const fruits</code> can't be reassigned, its contents can still be mutated — <code>const</code> locks the binding, not the array itself.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">3</span><h4>push(), pop(), shift(), unshift()</h4></div>
+      <div class="card-sub-content">
+        <p>These four methods add or remove elements from either end of an array — all of them mutate the original array in place.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">push-pop-shift-unshift.js</span></div>
+          <pre><code><span class="kw">const</span> nums = [<span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>];
+
+nums.push(<span class="num">5</span>);    <span class="cmt">// [2,3,4,5] — adds to the end, returns new length</span>
+nums.pop();     <span class="cmt">// [2,3,4]   — removes from the end, returns removed item</span>
+nums.unshift(<span class="num">1</span>); <span class="cmt">// [1,2,3,4] — adds to the start, returns new length</span>
+nums.shift();   <span class="cmt">// [2,3,4]   — removes from the start, returns removed item</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Method</th><th>Adds/Removes</th><th>Position</th><th>Returns</th></tr>
+          <tr><td><code>push()</code></td><td>Adds</td><td>End</td><td>New length</td></tr>
+          <tr><td><code>pop()</code></td><td>Removes</td><td>End</td><td>Removed element</td></tr>
+          <tr><td><code>unshift()</code></td><td>Adds</td><td>Start</td><td>New length</td></tr>
+          <tr><td><code>shift()</code></td><td>Removes</td><td>Start</td><td>Removed element</td></tr>
+        </table>
+        <div class="info-box box-warning"><code>shift()</code> and <code>unshift()</code> are slower than <code>push()</code>/<code>pop()</code> on large arrays — every remaining element has to be reindexed.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 4 ITERATION ==================== -->
+    <div class="section-divider" id="iteration"><span>4. Iteration</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">4a</span><h4>Classic for</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">classic-for.js</span></div>
+          <pre><code><span class="kw">const</span> colors = [<span class="str">"red"</span>, <span class="str">"green"</span>, <span class="str">"blue"</span>];
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; colors.length; i++) {
+  <span class="fn">console</span>.log(i, colors[i]);
+}</code></pre>
+        </div>
+        <div class="info-box box-tip">Full control — supports <code>break</code>, <code>continue</code>, looping backwards, or skipping indices. The most verbose option, but never wrong.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">4b</span><h4>for...of</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">for-of.js</span></div>
+          <pre><code><span class="kw">for</span> (<span class="kw">const</span> color <span class="kw">of</span> colors) {
+  <span class="fn">console</span>.log(color);
+}</code></pre>
+        </div>
+        <div class="info-box box-note">Cleaner syntax, still supports <code>break</code>/<code>continue</code>. Works on any iterable — arrays, strings, Maps, Sets — not just arrays.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">4c</span><h4>for...in (works, but not recommended for arrays)</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">for-in.js</span></div>
+          <pre><code><span class="kw">for</span> (<span class="kw">const</span> index <span class="kw">in</span> colors) {
+  <span class="fn">console</span>.log(index, colors[index]); <span class="cmt">// index is a STRING: "0", "1", "2"</span>
+}</code></pre>
+        </div>
+        <div class="info-box box-warning"><code>for...in</code> iterates over enumerable property keys, including any custom properties added to the array — not just numeric indices. Prefer <code>for...of</code> or <code>forEach()</code> for arrays.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">4d</span><h4>forEach()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">foreach.js</span></div>
+          <pre><code>colors.forEach((color, index, array) =&gt; {
+  <span class="fn">console</span>.log(index, color);
+});</code></pre>
+        </div>
+        <div class="info-box box-note">Functional style, gives you the element, index, and the full array in the callback. Cannot <code>break</code> or <code>continue</code> — always runs through every element. Returns <code>undefined</code>.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">4e</span><h4>while / do...while</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">while-loop.js</span></div>
+          <pre><code><span class="kw">let</span> i = <span class="num">0</span>;
+<span class="kw">while</span> (i &lt; colors.length) {
+  <span class="fn">console</span>.log(colors[i]);
+  i++;
+}</code></pre>
+        </div>
+        <div class="info-box box-tip">Useful when the number of iterations isn't known upfront — for example, looping until a condition unrelated to the index becomes true.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">4f</span><h4>entries(), keys(), values()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">entries-keys-values.js</span></div>
+          <pre><code><span class="kw">for</span> (<span class="kw">const</span> [index, color] <span class="kw">of</span> colors.entries()) {
+  <span class="fn">console</span>.log(index, color); <span class="cmt">// 0 "red", 1 "green", 2 "blue"</span>
+}</code></pre>
+        </div>
+        <table>
+          <tr><th>Method</th><th>Can break/continue?</th><th>Gives Index?</th><th>Returns a Value?</th></tr>
+          <tr><td>Classic <code>for</code></td><td>Yes</td><td>Yes, directly</td><td>No — just runs code</td></tr>
+          <tr><td><code>for...of</code></td><td>Yes</td><td>Only via <code>.entries()</code></td><td>No — just runs code</td></tr>
+          <tr><td><code>for...in</code></td><td>Yes</td><td>Yes, as a string key</td><td>No — just runs code</td></tr>
+          <tr><td><code>forEach()</code></td><td>No</td><td>Yes, as 2nd callback param</td><td><code>undefined</code></td></tr>
+          <tr><td><code>while</code></td><td>Yes</td><td>Manual (you track it)</td><td>No — just runs code</td></tr>
+        </table>
+        <div class="info-box box-tip"><code>entries()</code> is the cleanest way to get both the index and value with <code>for...of</code>, without falling back to a classic <code>for</code> loop or <code>forEach()</code>.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 5-10 TRANSFORM & SEARCH ==================== -->
+    <div class="section-divider" id="transform-search"><span>5–10. Transform &amp; Search</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">5</span><h4>map() — Transform Every Element</h4></div>
+      <div class="card-sub-content">
+        <p><code>map()</code> runs a function on every element and returns a brand-new array of the same length with the transformed values.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">map.js</span></div>
+          <pre><code><span class="kw">const</span> nums = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>];
+<span class="kw">const</span> doubled = nums.map(n =&gt; n * <span class="num">2</span>);
+
+<span class="fn">console</span>.log(doubled); <span class="cmt">// [2, 4, 6]</span>
+<span class="fn">console</span>.log(nums);    <span class="cmt">// [1, 2, 3] — original untouched</span></code></pre>
+        </div>
+        <div class="info-box box-tip">Use <code>map()</code> whenever you need a new array of the <em>same length</em> with each value transformed — not for side effects like logging (use <code>forEach()</code> for that).</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">6</span><h4>filter() — Keep Only What Matches</h4></div>
+      <div class="card-sub-content">
+        <p><code>filter()</code> returns a new array containing only the elements for which the callback returns <code>true</code>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">filter.js</span></div>
+          <pre><code><span class="kw">const</span> nums = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>];
+<span class="kw">const</span> evens = nums.filter(n =&gt; n % <span class="num">2</span> === <span class="num">0</span>);
+
+<span class="fn">console</span>.log(evens); <span class="cmt">// [2, 4]</span></code></pre>
+        </div>
+        <div class="info-box box-note">If no elements match, <code>filter()</code> returns an empty array — never <code>undefined</code> or <code>null</code>.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">7</span><h4>reduce() — Combine Into One Value</h4></div>
+      <div class="card-sub-content">
+        <p><code>reduce()</code> combines all array elements into a single value — a sum, an object, a string, even another array — by running an accumulator function across the array.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">reduce.js</span></div>
+          <pre><code><span class="kw">const</span> sum = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>].reduce((acc, n) =&gt; acc + n, <span class="num">0</span>);
+<span class="fn">console</span>.log(sum); <span class="cmt">// 6</span>
+
+<span class="kw">const</span> counts = [<span class="str">"a"</span>, <span class="str">"b"</span>, <span class="str">"a"</span>].reduce((acc, letter) =&gt; {
+  acc[letter] = (acc[letter] || <span class="num">0</span>) + <span class="num">1</span>;
+  <span class="kw">return</span> acc;
+}, {});
+<span class="fn">console</span>.log(counts); <span class="cmt">// { a: 2, b: 1 }</span></code></pre>
+        </div>
+        <div class="info-box box-warning">Forgetting the initial value (the second argument) can cause bugs on empty arrays — <code>[].reduce((a,b)=&gt;a+b)</code> throws a <code>TypeError</code> since there's no first element to seed the accumulator.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">8</span><h4>find() &amp; findIndex()</h4></div>
+      <div class="card-sub-content">
+        <p><code>find()</code> returns the first matching element itself; <code>findIndex()</code> returns its position instead.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">find-findindex.js</span></div>
+          <pre><code><span class="kw">const</span> users = [{ id: <span class="num">1</span>, name: <span class="str">"Sam"</span> }, { id: <span class="num">2</span>, name: <span class="str">"Alex"</span> }];
+
+<span class="kw">const</span> user = users.find(u =&gt; u.id === <span class="num">2</span>);
+<span class="kw">const</span> index = users.findIndex(u =&gt; u.id === <span class="num">2</span>);</code></pre>
+        </div>
+        <table>
+          <tr><th>Method</th><th>Returns on No Match</th></tr>
+          <tr><td><code>find()</code></td><td><code>undefined</code></td></tr>
+          <tr><td><code>findIndex()</code></td><td><code>-1</code></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">9</span><h4>some() &amp; every()</h4></div>
+      <div class="card-sub-content">
+        <p><code>some()</code> checks if <em>at least one</em> element passes a test; <code>every()</code> checks if <em>all</em> elements pass.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">some-every.js</span></div>
+          <pre><code><span class="kw">const</span> nums = [<span class="num">2</span>, <span class="num">4</span>, <span class="num">6</span>, <span class="num">7</span>];
+
+nums.some(n =&gt; n % <span class="num">2</span> !== <span class="num">0</span>);  <span class="cmt">// true — 7 is odd</span>
+nums.every(n =&gt; n % <span class="num">2</span> === <span class="num">0</span>); <span class="cmt">// false — 7 breaks it</span></code></pre>
+        </div>
+        <div class="info-box box-note"><code>every()</code> on an empty array always returns <code>true</code> (vacuous truth); <code>some()</code> on an empty array always returns <code>false</code>.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">10</span><h4>includes()</h4></div>
+      <div class="card-sub-content">
+        <p><code>includes()</code> returns a boolean for whether a value exists in the array — more readable than checking <code>indexOf() !== -1</code>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">includes.js</span></div>
+          <pre><code><span class="kw">const</span> nums = [<span class="num">1</span>, <span class="num">2</span>, NaN];
+
+nums.includes(<span class="num">2</span>);   <span class="cmt">// true</span>
+nums.includes(NaN); <span class="cmt">// true — unlike indexOf, includes() detects NaN correctly</span>
+nums.indexOf(NaN);  <span class="cmt">// -1 — indexOf uses strict equality, and NaN !== NaN</span></code></pre>
+        </div>
+        <div class="info-box box-tip"><code>includes()</code> is the modern default for membership checks — reach for <code>indexOf()</code> only when you actually need the position.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 11-14 MUTATE & COMBINE ==================== -->
+    <div class="section-divider" id="mutate-combine"><span>11–14. Mutate &amp; Combine</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">11</span><h4>sort() — Ordering Elements, Carefully</h4></div>
+      <div class="card-sub-content">
+        <p>By default, <code>sort()</code> converts elements to strings and compares them lexicographically — which produces wrong results for numbers.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">sort.js</span></div>
+          <pre><code>[<span class="num">1</span>, <span class="num">20</span>, <span class="num">3</span>].sort();
+<span class="cmt">// [1, 20, 3] — sorted as strings: "1" < "20" < "3"</span>
+
+[<span class="num">1</span>, <span class="num">20</span>, <span class="num">3</span>].sort((a, b) =&gt; a - b);
+<span class="cmt">// [1, 3, 20] — correct numeric sort</span></code></pre>
+        </div>
+        <div class="info-box box-warning"><code>sort()</code> mutates the original array in place and returns the same reference — if you need to preserve the original order, sort a copy: <code>[...arr].sort()</code>.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">12</span><h4>splice() &amp; slice()</h4></div>
+      <div class="card-sub-content">
+        <p>These two are easy to mix up by name, but behave completely differently.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">splice-slice.js</span></div>
+          <pre><code><span class="kw">const</span> arr = [<span class="str">"a"</span>, <span class="str">"b"</span>, <span class="str">"c"</span>, <span class="str">"d"</span>];
+
+<span class="cmt">// slice(start, end) — does NOT modify original, returns a copy</span>
+<span class="kw">const</span> copyPart = arr.slice(<span class="num">1</span>, <span class="num">3</span>); <span class="cmt">// ["b", "c"]</span>
+
+<span class="cmt">// splice(start, deleteCount, ...items) — MUTATES original</span>
+<span class="kw">const</span> removed = arr.splice(<span class="num">1</span>, <span class="num">2</span>, <span class="str">"X"</span>, <span class="str">"Y"</span>);
+<span class="cmt">// removed = ["b", "c"], arr = ["a","X","Y","d"]</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Method</th><th>Modifies Original?</th><th>Returns</th></tr>
+          <tr><td><code>slice()</code></td><td>No</td><td>Copied portion (new array)</td></tr>
+          <tr><td><code>splice()</code></td><td>Yes</td><td>Removed elements (as an array)</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">13</span><h4>concat(), join(), reverse()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">concat-join-reverse.js</span></div>
+          <pre><code><span class="kw">const</span> a = [<span class="num">1</span>, <span class="num">2</span>];
+<span class="kw">const</span> b = [<span class="num">3</span>, <span class="num">4</span>];
+
+<span class="kw">const</span> combined = a.concat(b);   <span class="cmt">// [1,2,3,4] — new array, a & b unchanged</span>
+<span class="kw">const</span> str = [<span class="str">"a"</span>, <span class="str">"b"</span>, <span class="str">"c"</span>].join(<span class="str">"-"</span>); <span class="cmt">// "a-b-c"</span>
+
+<span class="kw">const</span> nums = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>];
+nums.reverse(); <span class="cmt">// [3,2,1] — mutates in place!</span></code></pre>
+        </div>
+        <div class="info-box box-warning"><code>reverse()</code> mutates the original array, unlike <code>concat()</code> and <code>join()</code>. Use <code>[...nums].reverse()</code> if you need to keep the original order intact.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">14</span><h4>flat() &amp; flatMap()</h4></div>
+      <div class="card-sub-content">
+        <p><code>flat()</code> flattens nested arrays by a given depth; <code>flatMap()</code> maps each element and then flattens the result by one level.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">flat-flatmap.js</span></div>
+          <pre><code><span class="kw">const</span> nested = [<span class="num">1</span>, [<span class="num">2</span>, <span class="num">3</span>], [<span class="num">4</span>, [<span class="num">5</span>, <span class="num">6</span>]]];
+
+nested.flat();     <span class="cmt">// [1, 2, 3, 4, [5, 6]] — default depth 1</span>
+nested.flat(Infinity); <span class="cmt">// [1, 2, 3, 4, 5, 6] — fully flattened</span>
+
+[<span class="str">"hello world"</span>, <span class="str">"foo bar"</span>].flatMap(s =&gt; s.split(<span class="str">" "</span>));
+<span class="cmt">// ["hello", "world", "foo", "bar"]</span></code></pre>
+        </div>
+        <div class="info-box box-tip"><code>arr.flatMap(fn)</code> is equivalent to <code>arr.map(fn).flat()</code> but slightly more efficient since it avoids building an intermediate array.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 15-17 DESTRUCTURING & COPYING ==================== -->
+    <div class="section-divider" id="modern-copy"><span>15–17. Destructuring &amp; Copying</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-5">
+      <div class="card-sub-title"><span class="card-sub-num">15</span><h4>Array Destructuring</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">destructuring.js</span></div>
+          <pre><code><span class="kw">const</span> [a, b] = [<span class="num">10</span>, <span class="num">20</span>]; <span class="cmt">// 10 20</span>
+
+<span class="cmt">// skip elements</span>
+<span class="kw">const</span> [, second] = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>]; <span class="cmt">// 2</span>
+
+<span class="cmt">// default values + rest pattern</span>
+<span class="kw">const</span> [first = <span class="num">0</span>, ...rest] = []; <span class="cmt">// 0 []</span>
+
+<span class="cmt">// swapping variables</span>
+<span class="kw">let</span> x = <span class="num">1</span>, y = <span class="num">2</span>;
+[x, y] = [y, x]; <span class="cmt">// 2 1</span></code></pre>
+        </div>
+        <div class="info-box box-note">Destructuring matches by position, not by name — <code>const [a, b] = arr</code> always maps <code>a</code> to index 0 and <code>b</code> to index 1.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-5">
+      <div class="card-sub-title"><span class="card-sub-num">16</span><h4>Spread Operator with Arrays</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">spread.js</span></div>
+          <pre><code><span class="kw">const</span> a = [<span class="num">1</span>, <span class="num">2</span>];
+<span class="kw">const</span> b = [<span class="num">3</span>, <span class="num">4</span>];
+
+<span class="kw">const</span> merged = [...a, ...b];      <span class="cmt">// [1, 2, 3, 4]</span>
+<span class="kw">const</span> copy = [...a];             <span class="cmt">// shallow copy of a</span>
+
+Math.max(...a);              <span class="cmt">// spreads array as individual arguments — 2</span></code></pre>
+        </div>
+        <div class="info-box box-tip">Spread is the modern, more readable alternative to <code>concat()</code> for combining arrays, and to <code>slice()</code> for making a quick shallow copy.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-5">
+      <div class="card-sub-title"><span class="card-sub-num">17</span><h4>Shallow Copy vs Deep Copy</h4></div>
+      <div class="card-sub-content">
+        <p>A shallow copy duplicates only the first level — nested arrays or objects inside still point to the same memory as the original.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">shallow-vs-deep.js</span></div>
+          <pre><code><span class="kw">const</span> arr = [[<span class="num">1</span>, <span class="num">2</span>]];
+<span class="kw">const</span> shallow = [...arr];
+shallow[<span class="num">0</span>][<span class="num">0</span>] = <span class="num">100</span>;
+<span class="fn">console</span>.log(arr); <span class="cmt">// [[100, 2]] — original changed too!</span>
+
+<span class="kw">const</span> deep = structuredClone(arr);
+deep[<span class="num">0</span>][<span class="num">0</span>] = <span class="num">999</span>;
+<span class="fn">console</span>.log(arr); <span class="cmt">// [[100, 2]] — untouched this time</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Copy Type</th><th>How to Make One</th><th>Nested Objects/Arrays</th></tr>
+          <tr><td>Shallow copy</td><td><code>[...arr]</code>, <code>arr.slice()</code>, <code>Array.from(arr)</code></td><td>Shared reference</td></tr>
+          <tr><td>Deep copy</td><td><code>structuredClone(arr)</code>, <code>JSON.parse(JSON.stringify(arr))</code></td><td>Fully independent copies</td></tr>
+        </table>
+        <div class="info-box box-warning">The <code>JSON.parse(JSON.stringify())</code> trick is common but loses functions, <code>undefined</code>, <code>Date</code> objects, and <code>Map</code>/<code>Set</code>. Prefer <code>structuredClone()</code> in modern environments.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW QUESTIONS ==================== -->
+    <div class="section-divider" id="interview"><span>Interview Questions &amp; Answers</span></div>
+
+    <h3 style="margin:0 0 14px;font-size:19px;font-weight:800;color:#1a1a1a;">📗 Basic</h3>
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">1</span><h4>What is an array in JavaScript?</h4></div>
+      <div class="card-sub-content">
+        <p>An ordered collection of values stored in a single variable. Arrays can hold elements of any data type.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">2</span><h4>How do you create an array?</h4></div>
+      <div class="card-sub-content">
+        <p>Using an array literal (recommended) or the <code>Array</code> constructor.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">3</span><h4>Difference between push() and unshift()</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>push()</th><th>unshift()</th></tr>
+          <tr><td>Adds element at the end</td><td>Adds element at the beginning</td></tr>
+          <tr><td>Returns new length</td><td>Returns new length</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">4</span><h4>Difference between pop() and shift()</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>pop()</th><th>shift()</th></tr>
+          <tr><td>Removes last element</td><td>Removes first element</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">5</span><h4>Difference between slice() and splice()</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>slice()</th><th>splice()</th></tr>
+          <tr><td>Doesn't modify original array</td><td>Modifies original array</td></tr>
+          <tr><td>Returns copied portion</td><td>Adds, removes or replaces elements</td></tr>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <h3 style="margin:0 0 14px;font-size:19px;font-weight:800;color:#1a1a1a;">📘 Intermediate</h3>
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">6</span><h4>Difference between map() and forEach()</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>map()</th><th>forEach()</th></tr>
+          <tr><td>Returns a new array</td><td>Returns undefined</td></tr>
+          <tr><td>Used for transformations</td><td>Used for iteration</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">7</span><h4>Difference between filter() and find()</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>filter()</th><th>find()</th></tr>
+          <tr><td>Returns all matching elements</td><td>Returns first matching element</td></tr>
+          <tr><td>Returns array</td><td>Returns object/value or undefined</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">8</span><h4>Difference between find() and findIndex()</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>find()</th><th>findIndex()</th></tr>
+          <tr><td>Returns element</td><td>Returns index</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">9</span><h4>Difference between some() and every()</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>some()</th><th>every()</th></tr>
+          <tr><td>True if one element matches</td><td>True only if all elements match</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">10</span><h4>Difference between includes() and indexOf()</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>includes()</th><th>indexOf()</th></tr>
+          <tr><td>Returns boolean</td><td>Returns index</td></tr>
+          <tr><td>Detects NaN correctly</td><td>Fails on NaN (strict equality)</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">11</span><h4>concat() vs the spread operator</h4></div>
+      <div class="card-sub-content">
+        <p>Both combine arrays. The spread operator (<code>[...a, ...b]</code>) is the modern ES6 syntax; <code>concat()</code> is the older method-based approach.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">12</span><h4>Explain array destructuring</h4></div>
+      <div class="card-sub-content">
+        <p>Array destructuring extracts elements into variables by position: <code>const [a, b] = [10, 20]</code>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">13</span><h4>Difference between shallow copy and deep copy</h4></div>
+      <div class="card-sub-content">
+        <p>A shallow copy copies only the first level, while nested arrays or objects still share references. A deep copy (e.g. <code>structuredClone()</code>) duplicates every nested level too.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <h3 style="margin:0 0 14px;font-size:19px;font-weight:800;color:#1a1a1a;">📕 Advanced</h3>
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">14</span><h4>What does reduce() do?</h4></div>
+      <div class="card-sub-content">
+        <p><code>reduce()</code> combines all array elements into a single value such as a sum, object, or array.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">reduce-example.js</span></div>
+          <pre><code><span class="kw">const</span> sum = [<span class="num">1</span>,<span class="num">2</span>,<span class="num">3</span>].reduce((a,b)=&gt;a+b,<span class="num">0</span>);</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">15</span><h4>Explain flat() and flatMap()</h4></div>
+      <div class="card-sub-content">
+        <p><code>flat()</code> flattens nested arrays. <code>flatMap()</code> performs <code>map()</code> followed by <code>flat(1)</code>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">16</span><h4>Why does sort() sometimes produce unexpected results?</h4></div>
+      <div class="card-sub-content">
+        <p>By default, <code>sort()</code> converts elements to strings and sorts them lexicographically — <code>[1, 20, 3].sort()</code> gives <code>[1, 20, 3]</code> instead of numeric order. Fix with a compare function: <code>.sort((a,b)=&gt;a-b)</code>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">17</span><h4>Mutable vs immutable array methods</h4></div>
+      <div class="card-sub-content">
+        <div class="pros-cons" style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
+          <div class="cons" style="background:linear-gradient(135deg,#fee2e2,#fecaca);border-radius:10px;padding:15px;">
+            <h5 style="color:#991b1b;margin-bottom:8px;font-weight:800;">Mutable (modify original)</h5>
+            <ul style="font-size:14px;line-height:1.7;color:#333;margin-left:18px;">
+              <li><code>push()</code>, <code>pop()</code></li>
+              <li><code>shift()</code>, <code>unshift()</code></li>
+              <li><code>splice()</code></li>
+              <li><code>sort()</code>, <code>reverse()</code></li>
+            </ul>
+          </div>
+          <div class="pros" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);border-radius:10px;padding:15px;">
+            <h5 style="color:#166534;margin-bottom:8px;font-weight:800;">Immutable (return new array)</h5>
+            <ul style="font-size:14px;line-height:1.7;color:#333;margin-left:18px;">
+              <li><code>map()</code>, <code>filter()</code></li>
+              <li><code>reduce()</code>, <code>find()</code></li>
+              <li><code>slice()</code>, <code>concat()</code></li>
+              <li><code>flat()</code>, <code>flatMap()</code></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">18</span><h4>Time complexity of common array methods</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Method</th><th>Time Complexity</th></tr>
+          <tr><td><code>push()</code> / <code>pop()</code></td><td>O(1)</td></tr>
+          <tr><td><code>shift()</code> / <code>unshift()</code></td><td>O(n)</td></tr>
+          <tr><td><code>map()</code> / <code>filter()</code> / <code>reduce()</code> / <code>find()</code> / <code>includes()</code></td><td>O(n)</td></tr>
+          <tr><td><code>sort()</code></td><td>O(n log n)</td></tr>
+          <tr><td><code>slice()</code> / <code>splice()</code></td><td>O(n)</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">19</span><h4>Explain array references</h4></div>
+      <div class="card-sub-content">
+        <p>Arrays are objects, so they are copied by reference.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">array-references.js</span></div>
+          <pre><code><span class="kw">const</span> arr1 = [<span class="num">1</span>,<span class="num">2</span>];
+<span class="kw">const</span> arr2 = arr1;
+arr2.push(<span class="num">3</span>);
+<span class="fn">console</span>.log(arr1); <span class="cmt">// [1,2,3] — same array in memory</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">20</span><h4>Why does [1,2] === [1,2] return false?</h4></div>
+      <div class="card-sub-content">
+        <p>Arrays are compared by reference, not by value. Even though both arrays contain the same values, they are different objects stored at different memory locations.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <div class="info-box box-extra">
+      Prefer array literals over <code>new Array()</code> · <code>map</code>/<code>filter</code>/<code>reduce</code>/<code>slice</code>/<code>concat</code> return new arrays; <code>push</code>/<code>pop</code>/<code>splice</code>/<code>sort</code>/<code>reverse</code> mutate in place · Use <code>[...arr]</code> for a quick shallow copy, <code>structuredClone(arr)</code> for a true deep copy · Arrays are objects, so they're compared and copied by reference, not by value.
+    </div>
+
+  </div>
+</body>
+</html>

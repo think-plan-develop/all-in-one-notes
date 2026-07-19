@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next.js Documentation</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Premium Dark Mode / Ocean Palette */
+            --bg-primary: #030712; /* Very dark slate gray */
+            --bg-secondary: #0b1528; /* Deep ocean dark blue */
+            --sidebar-bg: rgba(11, 21, 40, 0.8);
+            --sidebar-border: rgba(14, 165, 233, 0.15);
+            --text-main: #f8fafc; /* Crisp white-gray */
+            --text-muted: #94a3b8; /* Muted slate gray */
+            --accent: #38bdf8; /* Bright sky/ocean blue */
+            --accent-hover: #0ea5e9;
+            --accent-light: rgba(56, 189, 248, 0.1);
+            --active-gradient: linear-gradient(90deg, rgba(14, 165, 233, 0.15) 0%, rgba(14, 165, 233, 0.05) 100%);
+            --iframe-bg: #090d16;
+        }
+
+        body {
+            display: flex;
+            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        /* Glassmorphic Dark Sidebar */
+        .sidebar {
+            width: 320px;
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-right: 1px solid var(--sidebar-border);
+            display: flex;
+            flex-direction: column;
+            padding: 16px 12px;
+            overflow-y: auto;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Sidebar Scrollbar Styling */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(14, 165, 233, 0.2);
+            border-radius: 3px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(14, 165, 233, 0.4);
+        }
+
+        /* Sidebar Header & Back Button */
+        .sidebar-header {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1.5px solid var(--sidebar-border);
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--accent);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background: var(--accent-light);
+            border-color: var(--accent);
+            transform: translateX(-2px);
+        }
+
+        .sidebar h3 {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 6px;
+        }
+
+        /* Navigation Links with Numbers & Icons */
+        .sidebar-links-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .sidebar a.nav-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            text-decoration: none;
+            color: var(--text-muted);
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-weight: 500;
+            line-height: 1.3;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar a.nav-link .topic-number {
+            font-size: 11px;
+            font-family: monospace;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--accent);
+            padding: 2px 6px;
+            border-radius: 4px;
+            min-width: 24px;
+            text-align: center;
+            border: 1px solid rgba(56, 189, 248, 0.1);
+        }
+
+        .sidebar a.nav-link .icon {
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.8;
+            transition: transform 0.2s ease;
+        }
+
+        .sidebar a.nav-link:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-main);
+            padding-left: 16px;
+        }
+
+        .sidebar a.nav-link:hover .icon {
+            transform: scale(1.15);
+        }
+
+        /* Dynamic Active Style */
+        .sidebar a.nav-link.active {
+            background: var(--active-gradient);
+            color: #ffffff;
+            font-weight: 700;
+            border-left: 4px solid var(--accent);
+            box-shadow: inset 0 1px 2px rgba(56, 189, 248, 0.05);
+            padding-left: 14px;
+        }
+
+        .sidebar a.nav-link.active .topic-number {
+            background: var(--accent);
+            color: #030712;
+            border-color: var(--accent);
+        }
+
+        /* Content Container & Header */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--iframe-bg);
+            position: relative;
+        }
+
+        .content-header {
+            padding: 14px 24px;
+            background: #0b121f;
+            border-bottom: 1.5px solid var(--sidebar-border);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 10;
+        }
+
+        .content-header h3 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: var(--accent);
+            color: #030712;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 4px 10px rgba(56, 189, 248, 0.25);
+            transition: all 0.2s ease;
+        }
+
+        .menu-toggle:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: var(--iframe-bg);
+        }
+
+        /* Responsive Mobile Styles */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                position: absolute;
+                left: 0;
+                top: 60px;
+                height: calc(100vh - 60px);
+                width: 300px;
+                background: #0b121f;
+                z-index: 1000;
+                transform: translateX(-100%);
+                box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+                border-right: 1px solid var(--sidebar-border);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .content {
+                width: 100%;
+                height: calc(100vh - 60px);
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .content-header {
+                padding: 12px 16px;
+                height: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <a href="../index.html" class="back-btn">← Dashboard</a>
+        <h3>▲ Next.js Docs</h3>
+    </div>
+
+    <div class="sidebar-links-container">
+        <a href="nextjs-routing.html" target="contentFrame" class="nav-link active">
+            <span class="topic-number">01</span>
+            <span class="icon">🗺️</span>
+            <span>Routing (App Router)</span>
+        </a>
+        
+        <a href="nextjs-rendering-model.html" target="contentFrame" class="nav-link">
+            <span class="topic-number">02</span>
+            <span class="icon">⚙️</span>
+            <span>Rendering Model</span>
+        </a>
+        
+        <a href="nextjs-data-fetching.html" target="contentFrame" class="nav-link">
+            <span class="topic-number">03</span>
+            <span class="icon">⚡</span>
+            <span>Data Fetching & Caching</span>
+        </a>
+        
+        <a href="nextjs-layouts-templates.html" target="contentFrame" class="nav-link">
+            <span class="topic-number">04</span>
+            <span class="icon">🎛️</span>
+            <span>Layouts, Templates & UI</span>
+        </a>
+        
+        <a href="nextjs-navigation.html" target="contentFrame" class="nav-link">
+            <span class="topic-number">05</span>
+            <span class="icon">🧭</span>
+            <span>Navigation</span>
+        </a>
+        
+        <a href="nextjs-api-routes.html" target="contentFrame" class="nav-link">
+            <span class="topic-number">06</span>
+            <span class="icon">🔌</span>
+            <span>API Routes / Route Handlers</span>
+        </a>
+        
+        <a href="nextjs-middleware.html" target="contentFrame" class="nav-link">
+            <span class="topic-number">07</span>
+            <span class="icon">🛡️</span>
+            <span>Middleware</span>
+        </a>
+        
+        <a href="nextjs-optimization.html" target="contentFrame" class="nav-link">
+            <span class="topic-number">08</span>
+            <span class="icon">🚀</span>
+            <span>Optimization Built-ins</span>
+        </a>
+        
+        <a href="nextjs-metadata-seo.html" target="contentFrame" class="nav-link">
+            <span class="topic-number">09</span>
+            <span class="icon">🔍</span>
+            <span>Metadata & SEO</span>
+        </a>
+        
+        <a href="nextjs-env-config.html" target="contentFrame" class="nav-link">
+            <span class="topic-number">10</span>
+            <span class="icon">🛠️</span>
+            <span>Environment & Config</span>
+        </a>
+        
+        <a href="nextjs-deployment.html" target="contentFrame" class="nav-link">
+            <span class="topic-number">11</span>
+            <span class="icon">☁️</span>
+            <span>Deployment & Runtime</span>
+        </a>
+        
+        <a href="nextjs-authentication.html" target="contentFrame" class="nav-link">
+            <span class="topic-number">12</span>
+            <span class="icon">🔑</span>
+            <span>Authentication Patterns</span>
+        </a>
+        
+        <a href="nextjs-i18n.html" target="contentFrame" class="nav-link">
+            <span class="topic-number">13</span>
+            <span class="icon">🌐</span>
+            <span>Internationalization (i18n)</span>
+        </a>
+        
+        <a href="nextjs-testing-tooling.html" target="contentFrame" class="nav-link">
+            <span class="topic-number">14</span>
+            <span class="icon">🧪</span>
+            <span>Testing & Tooling</span>
+        </a>
+    </div>
+</div>
+
+<div class="content">
+    <div class="content-header">
+        <button class="menu-toggle" id="menuToggle">☰ Menu</button>
+        <h3><span>📚</span> Documentation</h3>
+    </div>
+    <iframe
+        name="contentFrame"
+        src="nextjs-routing.html"
+        id="contentFrame">
+    </iframe>
+</div>
+
+<script>
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+
+    // Toggle sidebar on mobile
+    menuToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sidebar.classList.toggle('active');
+    });
+
+    // Highlight active link and close menu on select (mobile)
+    const sidebarLinks = sidebar.querySelectorAll('a.nav-link');
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            sidebarLinks.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('active');
+            }
+        });
+    });
+
+    // Close sidebar when clicking anywhere outside it on mobile
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 768) {
+            if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+                sidebar.classList.remove('active');
+            }
+        }
+    });
+</script>
+</body>
+</html>

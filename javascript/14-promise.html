@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JavaScript Scope, Lexical Scope, Lexical Environment &amp; Scope Chain</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+/* ═══════════ THEME VARIABLES — apply on any element via class ═══════════ */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+/* ═══════════ HEADER ═══════════ */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* ═══════════ KEY TERMS SUMMARY ═══════════ */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* ═══════════ SECTION DIVIDER ═══════════ */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* ═══════════ CARDS ═══════════ */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.card-content p { color:#333; font-size:17px; line-height:1.8; margin-bottom:14px; font-weight:500; }
+.card-content ul, .card-content ol { margin: 0 0 14px 22px; }
+.card-content li { font-size:16px; line-height:1.9; color:#333; font-weight:500; margin-bottom:4px; }
+.card-content h3 { font-size:18px; margin:20px 0 8px; font-weight:800; color:var(--heading); }
+.card-content h4 { font-size:17px; margin-bottom:6px; margin-top:18px; font-weight:800; color:var(--heading); }
+
+.short-answer { position:relative; background:linear-gradient(160deg,#ffffff 0%, var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),0.16); border-left:4px solid var(--accent); border-radius:12px; padding:18px 22px 20px; margin-bottom:22px; font-size:17px; line-height:1.75; font-weight:500; color:#293244; box-shadow:0 6px 18px rgba(var(--shadow-rgb),0.1); }
+.short-answer::before { content:"QUICK ANSWER"; display:block; width:fit-content; font-size:11px; font-weight:800; letter-spacing:.8px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; margin-bottom:12px; box-shadow:0 3px 8px rgba(var(--shadow-rgb),0.35); }
+.short-answer strong { color: var(--heading); }
+.short-answer code { background:rgba(var(--shadow-rgb),0.1); color:var(--heading); padding:2px 6px; border-radius:5px; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+
+/* Q&A blocks (h4/p pairs) */
+.card-content-QA h4 { padding:14px 18px; margin:22px 0 12px; border-radius:12px; font-size:18px; font-weight:700; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; background:linear-gradient(135deg,#bfdbfe,#93c5fd); color:var(--heading); border-left:3px solid var(--accent); }
+.card-content-QA p { padding:14px 18px; margin:0 0 18px; border-radius:12px; font-size:16px; line-height:2.1; font-weight:500; box-shadow: rgba(255,255,255,.5) 0 0 0 1px inset; background:linear-gradient(135deg,#eff6ff,#dbeafe); color:var(--heading); border-left:3px solid var(--accent); }
+
+/* ═══════════ CODE BLOCK ═══════════ */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* ═══════════ DIAGRAM ═══════════ */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+/* ═══════════ INFO BOXES ═══════════ */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* ═══════════ COLORFUL NUMBERED SUBSECTIONS ═══════════ */
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#f97316; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); border-left:5px solid var(--accent); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.box-gray    { background:linear-gradient(135deg,#f1f5f9,#e2e8f0); color:#334155; font-style:italic; font-weight:500; }
+.box-gray code { background:rgba(51,65,85,0.1); color:#1e293b; padding:2px 6px; border-radius:5px; font-style:normal; }
+
+/* ═══════════ TABLE ═══════════ */
+table { width:100%; border-collapse:collapse; margin:15px 0; border-radius:12px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.08); }
+table th { background:linear-gradient(120deg,#6366f1,#8b5cf6); color:#fff; font-size:17px; padding:14px 18px; text-align:left; }
+table td { padding:12px 18px; font-size:15px; font-weight:500; border-bottom:1px solid #eef0f4; color:#334155; }
+table tr:nth-child(even) { background:#f8fafc; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header theme-blue">
+      <h1>🤝 JavaScript Promises</h1>
+      <p>What a Promise is, how chaining flattens callback hell, and how to choose between all(), allSettled(), race(), and any()</p>
+      <div class="toc">
+        <a href="#promise" onclick="document.getElementById('promise').scrollIntoView({behavior:'smooth'});return false;">Promise</a>
+        <a href="#promise-chaining" onclick="document.getElementById('promise-chaining').scrollIntoView({behavior:'smooth'});return false;">Chaining</a>
+        <a href="#promise-all" onclick="document.getElementById('promise-all').scrollIntoView({behavior:'smooth'});return false;">Promise.all()</a>
+        <a href="#promise-allsettled" onclick="document.getElementById('promise-allsettled').scrollIntoView({behavior:'smooth'});return false;">Promise.allSettled()</a>
+        <a href="#promise-race" onclick="document.getElementById('promise-race').scrollIntoView({behavior:'smooth'});return false;">Promise.race()</a>
+        <a href="#promise-any" onclick="document.getElementById('promise-any').scrollIntoView({behavior:'smooth'});return false;">Promise.any()</a>
+        <a href="#interview-qa" onclick="document.getElementById('interview-qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+        <a href="#scenario-based" onclick="document.getElementById('scenario-based').scrollIntoView({behavior:'smooth'});return false;">Scenario-Based</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> A Promise represents the eventual result of an async operation — pending, then fulfilled or rejected, exactly once. Chaining flattens nested callbacks, and <code>all()</code>/<code>allSettled()</code>/<code>race()</code>/<code>any()</code> each combine multiple Promises in a different way.</div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🤝</div>
+          <div class="summary-text"><strong>Promise:</strong> An object representing a value that isn't available yet, but will be — pending → fulfilled or rejected.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🔗</div>
+          <div class="summary-text"><strong>Chaining:</strong> <code>.then()</code> always returns a new Promise, so steps flatten into a readable sequence.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">⚡</div>
+          <div class="summary-text"><strong>Promise.all():</strong> Waits for every Promise to fulfill; rejects immediately if any one rejects.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🎯</div>
+          <div class="summary-text"><strong>Promise.any():</strong> Resolves on the first success; only rejects if every Promise fails.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PROMISE ==================== -->
+    <div class="section-divider" id="promise"><span>Promise</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">What is a Promise?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          A <strong>Promise</strong> is an object representing the eventual result of an asynchronous operation.
+        </div>
+        <p>It exists in one of three states:</p>
+        <table>
+          <tr><th>State</th><th>Meaning</th></tr>
+          <tr><td><strong>Pending</strong></td><td>Initial state, operation not finished yet</td></tr>
+          <tr><td><strong>Fulfilled</strong></td><td>Operation completed successfully, has a value</td></tr>
+          <tr><td><strong>Rejected</strong></td><td>Operation failed, has a reason (error)</td></tr>
+        </table>
+        <p>A Promise moves from pending to <em>either</em> fulfilled or rejected exactly once — it can never change state again. You attach handlers with <code>.then()</code> for success and <code>.catch()</code> for failure.</p>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">promise.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">getUser</span>(id) {
+  <span class="kw">return new</span> Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; {
+      <span class="kw">if</span> (id &lt;= <span class="num">0</span>) {
+        <span class="kw">return</span> reject(<span class="kw">new</span> Error(<span class="str">"Invalid id"</span>));
+      }
+      resolve({ id, name: <span class="str">"Aisha"</span> });
+    }, <span class="num">1000</span>);
+  });
+}
+
+<span class="fn">getUser</span>(<span class="num">1</span>)
+  .then(user =&gt; <span class="fn">console</span>.log(<span class="str">"Got:"</span>, user.name))
+  .catch(err =&gt; <span class="fn">console</span>.error(<span class="str">"Failed:"</span>, err.message));</code></pre>
+        </div>
+
+        <div class="info-box box-benefit"><strong>✅ Benefit:</strong> Promises are chainable, composable, and let you handle every error in one place with a single <code>.catch()</code>, instead of checking <code>err</code> at every nested level.</div>
+      </div>
+    </div>
+
+    <!-- ==================== CHAINING ==================== -->
+    <div class="section-divider" id="promise-chaining"><span>Promise Chaining</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Flattening Nested Async Steps</div>
+      <div class="card-content">
+        <p>Because <code>.then()</code> always returns a <strong>new Promise</strong>, you can chain multiple asynchronous steps in a flat, readable sequence instead of nesting them. If you return a value from <code>.then()</code>, it gets wrapped in a resolved Promise; if you return another Promise, the chain waits for it to settle before moving to the next <code>.then()</code>.</p>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">chaining.js</span></div>
+          <pre><code><span class="fn">getUser</span>(<span class="num">1</span>)
+  .then(user =&gt; <span class="fn">getPosts</span>(user.id))
+  .then(posts =&gt; <span class="fn">getComments</span>(posts[<span class="num">0</span>].id))
+  .then(comments =&gt; <span class="fn">getLikes</span>(comments[<span class="num">0</span>].id))
+  .then(likes =&gt; <span class="fn">console</span>.log(<span class="str">"Likes:"</span>, likes))
+  .catch(err =&gt; <span class="fn">console</span>.error(<span class="str">"Something failed:"</span>, err.message));
+  <span class="cmt">// one catch handles an error from ANY step above</span></code></pre>
+        </div>
+
+        <div class="info-box box-tip"><strong>💡 Tip:</strong> Notice the structure is completely flat — no pyramid, one error handler, and each step's output flows cleanly into the next.</div>
+      </div>
+    </div>
+
+    <!-- ==================== PROMISE.ALL ==================== -->
+    <div class="section-divider" id="promise-all"><span>Promise.all()</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">⚡ Promise.all()</div>
+      <div class="card-content">
+        <p><code>Promise.all()</code> takes an array (or iterable) of Promises and runs them <strong>concurrently</strong>. It resolves with an array of all results, in the same order, once <em>every</em> Promise has fulfilled. If <strong>any single one</strong> rejects, <code>Promise.all()</code> immediately rejects with that error — the other results are discarded, even if they would have succeeded.</p>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">promise-all.js</span></div>
+          <pre><code><span class="kw">const</span> userP = <span class="fn">getUser</span>(<span class="num">1</span>);
+<span class="kw">const</span> postsP = <span class="fn">getPosts</span>(<span class="num">1</span>);
+<span class="kw">const</span> settingsP = <span class="fn">getSettings</span>(<span class="num">1</span>);
+
+Promise.all([userP, postsP, settingsP])
+  .then(([user, posts, settings]) =&gt; {
+    <span class="fn">console</span>.log(user, posts, settings);
+    <span class="cmt">// all 3 finished, total time = slowest one, not the sum</span>
+  })
+  .catch(err =&gt; {
+    <span class="fn">console</span>.error(<span class="str">"One of them failed:"</span>, err.message);
+  });</code></pre>
+        </div>
+
+        <div class="info-box box-note"><strong>📌 Note:</strong> Use <code>Promise.all()</code> when you need <em>all</em> results and can't proceed if even one fails (e.g. loading required data before rendering a page).</div>
+      </div>
+    </div>
+
+    <!-- ==================== PROMISE.ALLSETTLED ==================== -->
+    <div class="section-divider" id="promise-allsettled"><span>Promise.allSettled()</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">📋 Promise.allSettled()</div>
+      <div class="card-content">
+        <p><code>Promise.allSettled()</code> also runs Promises concurrently, but unlike <code>Promise.all()</code>, it <strong>never short-circuits</strong>. It waits for every Promise to settle (fulfilled or rejected) and returns an array of status objects, each shaped as <code>{ status, value }</code> or <code>{ status, reason }</code>.</p>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">promise-allsettled.js</span></div>
+          <pre><code><span class="kw">const</span> uploads = [<span class="fn">uploadFile</span>(<span class="str">"a.png"</span>), <span class="fn">uploadFile</span>(<span class="str">"b.png"</span>), <span class="fn">uploadFile</span>(<span class="str">"broken.png"</span>)];
+
+Promise.allSettled(uploads).then(results =&gt; {
+  results.forEach((result, i) =&gt; {
+    <span class="kw">if</span> (result.status === <span class="str">"fulfilled"</span>) {
+      <span class="fn">console</span>.log(<span class="str">`File ${i} uploaded:`</span>, result.value);
+    } <span class="kw">else</span> {
+      <span class="fn">console</span>.log(<span class="str">`File ${i} failed:`</span>, result.reason.message);
+    }
+  });
+});</code></pre>
+        </div>
+
+        <div class="info-box box-tip"><strong>💡 Tip:</strong> Use <code>allSettled()</code> when partial success is acceptable — e.g. bulk uploads, sending analytics, notifying multiple services — and you want a full report instead of one failure killing everything.</div>
+      </div>
+    </div>
+
+    <!-- ==================== PROMISE.RACE ==================== -->
+    <div class="section-divider" id="promise-race"><span>Promise.race()</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">🏁 Promise.race()</div>
+      <div class="card-content">
+        <p><code>Promise.race()</code> settles as soon as <strong>the first</strong> Promise in the array settles — whether it fulfills or rejects. The rest keep running in the background, but their outcomes are ignored by the race itself.</p>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">promise-race.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">timeout</span>(ms) {
+  <span class="kw">return new</span> Promise((_, reject) =&gt;
+    setTimeout(() =&gt; reject(<span class="kw">new</span> Error(<span class="str">"Request timed out"</span>)), ms)
+  );
+}
+
+Promise.race([<span class="fn">fetchData</span>(), <span class="fn">timeout</span>(<span class="num">5000</span>)])
+  .then(data =&gt; <span class="fn">console</span>.log(<span class="str">"Got data:"</span>, data))
+  .catch(err =&gt; <span class="fn">console</span>.error(err.message));
+  <span class="cmt">// whichever settles first (data or timeout) wins the race</span></code></pre>
+        </div>
+
+        <div class="info-box box-note"><strong>📌 Note:</strong> This "race against a timeout" is the single most common real-world use of <code>Promise.race()</code>.</div>
+      </div>
+    </div>
+
+    <!-- ==================== PROMISE.ANY ==================== -->
+    <div class="section-divider" id="promise-any"><span>Promise.any()</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">🎯 Promise.any()</div>
+      <div class="card-content">
+        <p><code>Promise.any()</code> resolves as soon as <strong>the first Promise fulfills</strong> — rejections along the way are ignored. It only rejects if <em>all</em> the Promises reject, in which case it throws an <code>AggregateError</code> containing every individual error.</p>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">promise-any.js</span></div>
+          <pre><code>Promise.any([
+  fetch(<span class="str">"https://mirror1.example.com/data"</span>),
+  fetch(<span class="str">"https://mirror2.example.com/data"</span>),
+  fetch(<span class="str">"https://mirror3.example.com/data"</span>)
+])
+  .then(response =&gt; <span class="fn">console</span>.log(<span class="str">"First success from:"</span>, response.url))
+  .catch(aggregateError =&gt; {
+    <span class="fn">console</span>.error(<span class="str">"All mirrors failed:"</span>);
+    aggregateError.errors.forEach(e =&gt; <span class="fn">console</span>.error(<span class="str">" -"</span>, e.message));
+  });</code></pre>
+        </div>
+
+        <div class="info-box box-extra">🧭 <strong>any() vs race():</strong> <code>race()</code> settles on whichever finishes first, success or failure. <code>any()</code> specifically waits for the first <em>success</em>, and ignores failures unless everything fails.</div>
+      </div>
+    </div>
+
+    <div class="card theme-blue">
+      <div class="card-title">Comparison of the Four Combinators</div>
+      <div class="card-content">
+        <table>
+          <tr><th>Method</th><th>Settles when</th><th>Rejects when</th></tr>
+          <tr><td><code>Promise.all()</code></td><td>All fulfill</td><td>Any one rejects (immediately)</td></tr>
+          <tr><td><code>Promise.allSettled()</code></td><td>All settle (any outcome)</td><td>Never rejects</td></tr>
+          <tr><td><code>Promise.race()</code></td><td>First one settles</td><td>If the first to settle is a rejection</td></tr>
+          <tr><td><code>Promise.any()</code></td><td>First one fulfills</td><td>Only if all reject (AggregateError)</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="interview-qa"><span>Interview Questions</span></div>
+
+    <h3 style="margin:0 0 14px;font-size:19px;font-weight:800;color:#1a1a1a;">Promise Basics</h3>
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">1</span><h4>What is a Promise?</h4></div>
+      <div class="card-sub-content">
+        <p>A Promise is an object that represents a value which isn't available yet but will be at some point — either successfully (fulfilled) or with a failure (rejected). It provides <code>.then()</code>, <code>.catch()</code>, and <code>.finally()</code> to attach handlers for those outcomes.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">2</span><h4>What are the three states of a Promise?</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Pending</strong> (initial, not yet settled), <strong>Fulfilled</strong> (operation succeeded, has a value), and <strong>Rejected</strong> (operation failed, has a reason). A Promise can only transition from pending to one of the other two, and only once — it's immutable after that.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">3</span><h4>How do you convert callback-based code into Promise-based code?</h4></div>
+      <div class="card-sub-content">
+        <p>Wrap the callback-based call inside a <code>new Promise((resolve, reject) => {...})</code>, and call <code>resolve()</code> on success or <code>reject()</code> on error inside the original callback — this is often called "promisifying."</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">promisify.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">readFilePromise</span>(path) {
+  <span class="kw">return new</span> Promise((resolve, reject) =&gt; {
+    fs.readFile(path, <span class="str">"utf8"</span>, (err, data) =&gt; {
+      <span class="kw">if</span> (err) reject(err);
+      <span class="kw">else</span> resolve(data);
+    });
+  });
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <h3 style="margin:0 0 14px;font-size:19px;font-weight:800;color:#1a1a1a;">Promise Methods</h3>
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">1</span><h4>What is Promise.all()? When should you use it?</h4></div>
+      <div class="card-sub-content">
+        <p>It runs Promises concurrently and resolves with an array of all their values once <em>every</em> one fulfills; it rejects immediately if <em>any</em> one rejects. Use it when you need every result and can't proceed with only partial data — e.g. loading all the data required to render a page.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">2</span><h4>What is Promise.allSettled()? When should you use it?</h4></div>
+      <div class="card-sub-content">
+        <p>It runs Promises concurrently and always waits for all of them to settle, returning a status object for each (<code>fulfilled</code>/<code>value</code> or <code>rejected</code>/<code>reason</code>) — it never short-circuits. Use it when partial failure is acceptable and you want a full report, e.g. bulk uploads or notifying several independent services.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">3</span><h4>What is Promise.race()? When should you use it?</h4></div>
+      <div class="card-sub-content">
+        <p>It settles as soon as the <em>first</em> Promise settles, whether that's a fulfillment or a rejection. Use it for "whichever finishes first wins" scenarios, most commonly implementing timeouts by racing a real request against a rejecting timer.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">4</span><h4>What is Promise.any()? When should you use it?</h4></div>
+      <div class="card-sub-content">
+        <p>It resolves as soon as the first Promise <em>fulfills</em>, ignoring rejections along the way; it only rejects (with an <code>AggregateError</code>) if every Promise rejects. Use it when you have multiple redundant sources and just need one success, e.g. trying several CDN mirrors.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== SCENARIO BASED ==================== -->
+    <div class="section-divider" id="scenario-based"><span>Scenario-Based</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">1</span><h4>Data from Users, Products, and Orders APIs needed before rendering</h4></div>
+      <div class="card-sub-content">
+        <p><code>Promise.all()</code> — the page can't render meaningfully without all three, so it makes sense to fail fast if any one of them fails, rather than rendering an incomplete page.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">2</span><h4>Five independent API calls — execute simultaneously to reduce response time</h4></div>
+      <div class="card-sub-content">
+        <p>Fire all five calls first without awaiting each one individually, put the resulting Promises in an array, and await them together with <code>Promise.all()</code> — total time becomes the slowest call instead of the sum of all five.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">3</span><h4>One API failure should stop the entire process</h4></div>
+      <div class="card-sub-content">
+        <p><code>Promise.all()</code> — it rejects as soon as any single Promise rejects, which naturally stops the whole process.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">4</span><h4>Display whatever data is available even if some APIs fail</h4></div>
+      <div class="card-sub-content">
+        <p><code>Promise.allSettled()</code> — it never short-circuits, so you can render the successful results and show a fallback/error state for the failed ones.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">5</span><h4>Need the fastest response from multiple mirror servers</h4></div>
+      <div class="card-sub-content">
+        <p><code>Promise.race()</code> — it settles with whichever mirror responds first, success or failure.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">6</span><h4>Need the first successful response from multiple backup servers</h4></div>
+      <div class="card-sub-content">
+        <p><code>Promise.any()</code> — it ignores individual failures and resolves as soon as the first server succeeds, only rejecting if all of them fail.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">7</span><h4>Implement a 5-second timeout for an API request using Promise.race()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">race-timeout.js</span></div>
+          <pre><code><span class="kw">const</span> timeout = <span class="kw">new</span> Promise((_, reject) =&gt;
+  setTimeout(() =&gt; reject(<span class="kw">new</span> Error(<span class="str">"Request timed out"</span>)), <span class="num">5000</span>)
+);
+
+Promise.race([<span class="fn">fetchData</span>(), timeout])
+  .then(data =&gt; <span class="fn">console</span>.log(<span class="str">"Data:"</span>, data))
+  .catch(err =&gt; <span class="fn">console</span>.error(err.message));  <span class="cmt">// fires if request &gt; 5s</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <div class="info-box box-extra">
+      A Promise = pending → fulfilled or rejected, exactly once · Chaining flattens nested callbacks into one readable, single-catch sequence · <code>all()</code> = need everything, fail fast · <code>allSettled()</code> = accept partial failure · <code>race()</code> = first to settle, any outcome · <code>any()</code> = first success only.
+    </div>
+
+  </div>
+</body>
+</html>

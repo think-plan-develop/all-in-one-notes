@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Fetching & Caching Reference</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f8fafc; font-family: 'Inter', sans-serif; color: #334155; line-height: 1.5; }
+    .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+    :root { 
+      --accent: #4f46e5; --content-bg: #ffffff; --card-bg: #f1f5f9; 
+      --heading: #4f46e5;
+    }
+
+    /* Header & Divider */
+    .header { background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 100%); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: 20px; padding: 46px 40px; margin-bottom: 44px; box-shadow: 0 10px 30px rgba(79, 70, 229, 0.08); }
+    .header h1 { color: #1e293b; font-size: 36px; margin-bottom: 12px; font-weight: 800; }
+    .header p { color: #64748b; font-size: 16.5px; }
+    
+    .section-divider { margin: 60px 0 30px; position: relative; }
+    .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #e2e8f0; }
+    .section-divider span { background: #f8fafc; padding: 0 20px 0 0; position: relative; font-size: 22px; font-weight: 800; color: #1e293b; display: inline-flex; align-items: center; gap: 8px; }
+
+    /* Cards & Code */
+    .card { border-radius: 16px; margin-bottom: 30px; border: 1px solid #e2e8f0; background: var(--card-bg); overflow: hidden; }
+    .card-title { color: #1e293b; font-size: 19.5px; font-weight: 700; padding: 18px 26px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; }
+    .card-content { padding: 28px; background: var(--content-bg); }
+    
+    .code-block { background: #0f172a; border-radius: 14px; overflow: hidden; margin: 20px 0; border: 1px solid rgba(255, 255, 255, 0.08); }
+    .code-bar { background: #1e293b; padding: 12px 18px; display: flex; align-items: center; gap: 6px; }
+    .dot { width: 11px; height: 11px; border-radius: 50%; }
+    .dot-red { background: #ff5f56; } .dot-grey { background: #ffbd2e; } .dot-green { background: #27c93f; }
+    .filename { color: #94a3b8; font-size: 13px; margin-left: 10px; font-family: 'JetBrains Mono', monospace; }
+    .code-block pre { padding: 24px; overflow-x: auto; line-height: 1.8; }
+    .code-block code { color: #e2e8f0; font-size: 14.5px; font-family: 'JetBrains Mono', monospace; }
+
+    /* Syntax Tokens */
+    .kw { color: #c084fc; } .str { color: #34d399; } .fn { color: #38bdf8; } .type { color: #fbbf24; }
+    .cmt { color: #64748b; font-style: italic; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #e2e8f0; }
+    th { background: #f1f5f9; padding: 16px; text-align: left; font-weight: 700; }
+    td { padding: 14px; border-bottom: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header class="header">
+    <h1>Data Fetching & Caching Reference</h1>
+    <p>Mastering the App Router's native data lifecycle: from async server components to fine-grained cache revalidation.</p>
+  </header>
+
+  <div class="section-divider"><span>1. Async Server Components</span></div>
+  <div class="card">
+    <div class="card-title">Direct Fetching in Server Components</div>
+    <div class="card-content">
+      <p>By declaring a component as <code>async</code>, you can perform data fetches directly at the component level, eliminating the need for <code>useEffect</code> or complex loading states.</p>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/products/page.js</span></div>
+        <pre><code><span class="kw">export default async function</span> <span class="type">ProductsPage</span>() {
+  <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"https://dummyjson.com/products"</span>);
+  <span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">h1</span>&gt;Products&lt;/<span class="type">h1</span>&gt;
+      {data.products.<span class="fn">map</span>(p => &lt;<span class="type">p</span> <span class="prop">key</span>={p.id}&gt;{p.title}&lt;/<span class="type">p</span>&gt;)}
+    &lt;/&gt;
+  );
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>2. Caching Strategies</span></div>
+  <div class="card">
+    <div class="card-title">Configuring Fetch Behavior</div>
+    <div class="card-content">
+      <table>
+        <tr><th>Option</th><th>Strategy</th><th>Use Case</th></tr>
+        <tr><td><code>force-cache</code></td><td>Default; cache forever</td><td>Blogs, Documentation</td></tr>
+        <tr><td><code>no-store</code></td><td>Dynamic; no cache</td><td>Dashboards, Live Data</td></tr>
+        <tr><td><code>next: { revalidate: 60 }</code></td><td>ISR; timed refresh</td><td>Ecommerce, News</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>3. Server Actions & Revalidation</span></div>
+  <div class="card">
+    <div class="card-title">Mutating Data Without API Routes</div>
+    <div class="card-content">
+      <p>Server Actions allow you to define mutation logic (Create, Update, Delete) directly in the server environment.</p>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">actions.js</span></div>
+        <pre><code><span class="str">"use server"</span>;
+<span class="kw">import</span> { revalidatePath } <span class="kw">from</span> <span class="str">"next/cache"</span>;
+
+<span class="kw">export async function</span> <span class="fn">addProduct</span>(formData) {
+  <span class="cmt">// await db.insert(...)</span>
+  <span class="fn">revalidatePath</span>(<span class="str">"/products"</span>); <span class="cmt">// Clear cache for the specific route</span>
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>4. revalidateTag() vs revalidatePath()</span></div>
+  <div class="card">
+    <div class="card-title">Granular Cache Control</div>
+    <div class="card-content">
+      <p>While <code>revalidatePath</code> targets a route, <code>revalidateTag</code> targets any data marked with a specific tag across the entire application.</p>
+      <div class="code-block">
+        <div class="code-bar"><span class="filename">fetch() with tags</span></div>
+        <pre><code><span class="fn">fetch</span>(url, { next: { tags: [<span class="str">"products"</span>] } });</code></pre>
+      </div>
+      <p>Calling <code>revalidateTag("products")</code> will update every page in your app that displays product data, regardless of the route.</p>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

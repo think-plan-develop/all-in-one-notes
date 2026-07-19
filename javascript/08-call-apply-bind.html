@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>call(), apply(), and bind() in JavaScript</title>
+<link rel="stylesheet" href="../react/index1.css">
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1><code>call()</code>, <code>apply()</code>, and <code>bind()</code> in JavaScript</h1>
+    <p>These three methods are available on every function because every function inherits them from <code>Function.prototype</code>. Their main purpose is to control what <code>this</code> refers to when a function is executed.</p>
+    <div class="toc">
+      <a href="#why">Why Needed?</a>
+      <a href="#call">call()</a>
+      <a href="#apply">apply()</a>
+      <a href="#bind">bind()</a>
+      <a href="#difference">Differences</a>
+      <a href="#when">When to Use</a>
+      <a href="#output">Output Questions</a>
+      <a href="#summary">Interview Summary</a>
+    </div>
+  </div>
+
+  <div class="intro-summary">
+    <div class="summary-title">Quick Overview &amp; Syntax</div>
+    <div class="summary-grid">
+      <div class="summary-item summary-blue">
+        <div class="summary-icon">📞</div>
+        <div class="summary-text">
+          <strong>call():</strong> Executes immediately and passes arguments one by one.<br>
+          <code>fn.call(thisArg, arg1, arg2, ...)</code>
+        </div>
+      </div>
+      <div class="summary-item summary-pink">
+        <div class="summary-icon">📋</div>
+        <div class="summary-text">
+          <strong>apply():</strong> Executes immediately and passes arguments as an array.<br>
+          <code>fn.apply(thisArg, [arg1, arg2])</code>
+        </div>
+      </div>
+      <div class="summary-item summary-amber">
+        <div class="summary-icon">🔗</div>
+        <div class="summary-text">
+          <strong>bind():</strong> Returns a new function with <code>this</code> (and optionally some arguments) already fixed for later execution.<br>
+          <code>const newFn = fn.bind(thisArg, arg1, arg2)</code>
+        </div>
+      </div>
+      <div class="summary-item summary-green">
+        <div class="summary-icon">🎯</div>
+        <div class="summary-text"><strong>Shared Purpose:</strong> All three control what <code>this</code> refers to when a function executes.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="why"><span>🤔 Why Do We Need Them?</span></div>
+  <div class="card">
+    <div class="card-title">🎯 Controlling <code>this</code></div>
+    <div class="card-content">
+      <p>Normally, <code>this</code> depends on <strong>how a function is called</strong>, not where it is written.</p>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">app.js</span></div>
+        <pre><code><span class="kw">const</span> user = {
+    name: <span class="str">"Shivam"</span>,
+    <span class="fn">greet</span>() {
+        <span class="fn">console</span>.log(<span class="kw">this</span>.name);
+    }
+};
+
+user.<span class="fn">greet</span>(); <span class="cmt">// Shivam</span></code></pre>
+      </div>
+      <p>But what if we want to use <code>greet()</code> for another object? That's where <strong>call</strong>, <strong>apply</strong>, and <strong>bind</strong> are used.</p>
+    </div>
+  </div>
+
+  <div class="section-divider" id="call"><span>1️⃣ call()</span></div>
+  <div class="card">
+    <div class="card-title">📞 call()</div>
+    <div class="card-content">
+      <div class="short-answer"><code>call()</code> immediately invokes the function and lets you specify what <strong><code>this</code></strong> should be.</div>
+
+      <h3>Syntax</h3>
+      <div class="hook-syntax">function.call(thisArg, arg1, arg2, arg3...)</div>
+
+      <h3>Example</h3>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">app.js</span></div>
+        <pre><code><span class="kw">const</span> person1 = {
+    name: <span class="str">"Shivam"</span>
+};
+
+<span class="kw">const</span> person2 = {
+    name: <span class="str">"Rahul"</span>
+};
+
+<span class="kw">function</span> <span class="fn">greet</span>(city, country) {
+    <span class="fn">console</span>.log(<span class="kw">this</span>.name, city, country);
+}
+
+greet.<span class="fn">call</span>(person1, <span class="str">"Delhi"</span>, <span class="str">"India"</span>);
+
+greet.<span class="fn">call</span>(person2, <span class="str">"Mumbai"</span>, <span class="str">"India"</span>);</code></pre>
+      </div>
+      <h4>Output</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">console</span></div>
+        <pre><code>Shivam Delhi India
+
+Rahul Mumbai India</code></pre>
+      </div>
+
+      <h3>Behind the Scene</h3>
+      <p>Normally:</p>
+      <div class="hook-syntax">this = window (or undefined in strict mode)</div>
+      <p>Using:</p>
+      <div class="hook-syntax">call(person1)</div>
+      <p>temporarily changes:</p>
+      <div class="hook-syntax">this = person1</div>
+      <div class="note">This only applies for that single function execution.</div>
+
+      <h3>Real Project Example</h3>
+      <p>Suppose a reusable logging function is shared across modules.</p>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">logger.js</span></div>
+        <pre><code><span class="kw">function</span> <span class="fn">logAction</span>(action) {
+    <span class="fn">console</span>.log(<span class="str">`${this.username} performed ${action}`</span>);
+}
+
+<span class="kw">const</span> admin = {
+    username: <span class="str">"Admin"</span>
+};
+
+<span class="kw">const</span> customer = {
+    username: <span class="str">"Customer"</span>
+};
+
+logAction.<span class="fn">call</span>(admin, <span class="str">"Delete User"</span>);
+logAction.<span class="fn">call</span>(customer, <span class="str">"Place Order"</span>);</code></pre>
+      </div>
+      <div class="tip">💡 Instead of duplicating the function for every object, the same function is reused.</div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="apply"><span>2️⃣ apply()</span></div>
+  <div class="card">
+    <div class="card-title">📋 apply()</div>
+    <div class="card-content">
+      <div class="short-answer"><code>apply()</code> is almost identical to <code>call()</code>. The only difference is <strong>arguments are passed as an array.</strong></div>
+
+      <h3>Syntax</h3>
+      <div class="hook-syntax">function.apply(thisArg, [arg1, arg2])</div>
+
+      <h3>Example</h3>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">app.js</span></div>
+        <pre><code><span class="kw">const</span> person = {
+    name: <span class="str">"Shivam"</span>
+};
+
+<span class="kw">function</span> <span class="fn">greet</span>(city, country) {
+    <span class="fn">console</span>.log(<span class="kw">this</span>.name, city, country);
+}
+
+greet.<span class="fn">apply</span>(person, [<span class="str">"Delhi"</span>, <span class="str">"India"</span>]);</code></pre>
+      </div>
+      <h4>Output</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">console</span></div>
+        <pre><code>Shivam Delhi India</code></pre>
+      </div>
+
+      <h3>Why apply()?</h3>
+      <p>Useful when arguments already exist in an array.</p>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">app.js</span></div>
+        <pre><code><span class="kw">const</span> numbers = [<span class="num">10</span>, <span class="num">50</span>, <span class="num">30</span>, <span class="num">90</span>];
+
+<span class="fn">console</span>.log(Math.max.<span class="fn">apply</span>(<span class="kw">null</span>, numbers));</code></pre>
+      </div>
+      <h4>Output</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">console</span></div>
+        <pre><code><span class="num">90</span></code></pre>
+      </div>
+      <div class="note">Today, this is usually written as: <code>Math.max(...numbers)</code></div>
+
+      <h3>Real Project Example</h3>
+      <p>Suppose an API returns filter values as an array.</p>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">search.js</span></div>
+        <pre><code><span class="kw">const</span> filters = [<span class="str">"Laptop"</span>, <span class="str">"Electronics"</span>];
+
+searchProducts.<span class="fn">apply</span>(productService, filters);</code></pre>
+      </div>
+      <div class="tip">💡 Instead of extracting each array element manually, <code>apply()</code> forwards the array as function arguments.</div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="bind"><span>3️⃣ bind()</span></div>
+  <div class="card">
+    <div class="card-title">🔗 bind()</div>
+    <div class="card-content">
+      <div class="short-answer"><code>bind()</code> <strong>does not execute the function immediately.</strong> It returns a <strong>new function</strong> with <code>this</code> permanently bound.</div>
+
+      <h3>Syntax</h3>
+      <div class="hook-syntax">const newFunction = function.bind(thisArg, arg1, arg2);</div>
+
+      <h3>Example</h3>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">app.js</span></div>
+        <pre><code><span class="kw">const</span> person = {
+    name: <span class="str">"Shivam"</span>
+};
+
+<span class="kw">function</span> <span class="fn">greet</span>(city) {
+    <span class="fn">console</span>.log(<span class="kw">this</span>.name, city);
+}
+
+<span class="kw">const</span> fn = greet.<span class="fn">bind</span>(person);
+
+<span class="fn">fn</span>(<span class="str">"Delhi"</span>);</code></pre>
+      </div>
+      <h4>Output</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">console</span></div>
+        <pre><code>Shivam Delhi</code></pre>
+      </div>
+      <div class="note">Notice <code>bind()</code> returns a function. Nothing happens until <code>fn()</code> is called.</div>
+
+      <h3>Real Project Example</h3>
+      <p>In React class components (and in plain JavaScript event handling), methods often lose their <code>this</code> context when passed as callbacks.</p>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">Dashboard.js</span></div>
+        <pre><code><span class="kw">class</span> <span class="type">Dashboard</span> {
+
+    <span class="fn">constructor</span>() {
+        <span class="kw">this</span>.name = <span class="str">"Dashboard"</span>;
+
+        <span class="kw">this</span>.handleClick = <span class="kw">this</span>.handleClick.<span class="fn">bind</span>(<span class="kw">this</span>);
+    }
+
+    <span class="fn">handleClick</span>() {
+        <span class="fn">console</span>.log(<span class="kw">this</span>.name);
+    }
+
+}</code></pre>
+      </div>
+      <div class="warning">⚠️ Without <code>bind()</code>, <code>this</code> inside <code>handleClick</code> could refer to the button or be <code>undefined</code> (depending on strict mode). In modern React functional components this issue is uncommon because arrow functions capture the surrounding <code>this</code>.</div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="difference"><span>📊 Difference Between call(), apply(), and bind()</span></div>
+  <div class="card">
+    <div class="card-title">📋 Comparison Table</div>
+    <div class="card-content">
+      <table>
+        <tr>
+          <th>Feature</th>
+          <th>call()</th>
+          <th>apply()</th>
+          <th>bind()</th>
+        </tr>
+        <tr>
+          <td>Executes immediately</td>
+          <td>✅ Yes</td>
+          <td>✅ Yes</td>
+          <td>❌ No</td>
+        </tr>
+        <tr>
+          <td>Returns new function</td>
+          <td>❌ No</td>
+          <td>❌ No</td>
+          <td>✅ Yes</td>
+        </tr>
+        <tr>
+          <td>Arguments</td>
+          <td>Comma separated</td>
+          <td>Array</td>
+          <td>Comma separated (pre-filled if desired)</td>
+        </tr>
+        <tr>
+          <td>Changes <code>this</code></td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>✅ (permanently for the returned function)</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-divider" id="when"><span>🧭 When to Use Which?</span></div>
+  <div class="card">
+    <div class="card-title">🗂️ Choosing the Right Method</div>
+    <div class="card-content">
+      <h4>📞 Use call()</h4>
+      <div class="remember">Borrow a method from another object • Invoke a function immediately with a different <code>this</code> • Pass arguments individually</div>
+      <p>Example: Shared validation function, shared logger, utility methods.</p>
+
+      <h4>📋 Use apply()</h4>
+      <div class="remember">Same as <code>call()</code>, but your arguments are already in an array</div>
+      <p>Example: API returns array values, dynamic argument lists.</p>
+
+      <h4>🔗 Use bind()</h4>
+      <div class="remember">Create a callback that always uses the same <code>this</code> • Event handlers • Delayed execution (<code>setTimeout</code>, promises, callbacks) • Passing object methods as callbacks</div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="output"><span>🧠 Output Questions</span></div>
+
+  <div class="card">
+    <div class="card-title">❓ Question 1</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">app.js</span></div>
+        <pre><code><span class="kw">const</span> person = {
+    name: <span class="str">"Shivam"</span>
+};
+
+<span class="kw">function</span> <span class="fn">greet</span>() {
+    <span class="fn">console</span>.log(<span class="kw">this</span>.name);
+}
+
+greet.<span class="fn">call</span>(person);</code></pre>
+      </div>
+      <h4>Output</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">console</span></div>
+        <pre><code>Shivam</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">❓ Question 2</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">app.js</span></div>
+        <pre><code><span class="kw">const</span> person = {
+    name: <span class="str">"Shivam"</span>
+};
+
+<span class="kw">function</span> <span class="fn">greet</span>(city) {
+    <span class="fn">console</span>.log(<span class="kw">this</span>.name, city);
+}
+
+greet.<span class="fn">apply</span>(person, [<span class="str">"Delhi"</span>]);</code></pre>
+      </div>
+      <h4>Output</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">console</span></div>
+        <pre><code>Shivam Delhi</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">❓ Question 3</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">app.js</span></div>
+        <pre><code><span class="kw">const</span> person = {
+    name: <span class="str">"Shivam"</span>
+};
+
+<span class="kw">function</span> <span class="fn">greet</span>() {
+    <span class="fn">console</span>.log(<span class="kw">this</span>.name);
+}
+
+<span class="kw">const</span> fn = greet.<span class="fn">bind</span>(person);
+
+<span class="fn">fn</span>();</code></pre>
+      </div>
+      <h4>Output</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">console</span></div>
+        <pre><code>Shivam</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">❓ Question 4</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">app.js</span></div>
+        <pre><code><span class="kw">const</span> person1 = {
+    name: <span class="str">"A"</span>
+};
+
+<span class="kw">const</span> person2 = {
+    name: <span class="str">"B"</span>
+};
+
+<span class="kw">function</span> <span class="fn">show</span>() {
+    <span class="fn">console</span>.log(<span class="kw">this</span>.name);
+}
+
+<span class="kw">const</span> fn = show.<span class="fn">bind</span>(person1);
+
+fn.<span class="fn">call</span>(person2);</code></pre>
+      </div>
+      <h4>Output</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">console</span></div>
+        <pre><code>A</code></pre>
+      </div>
+      <div class="note"><strong>Why?</strong> <code>bind()</code> permanently binds <code>this</code> to <code>person1</code>. Later using <code>call()</code> or <code>apply()</code> cannot change it.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">❓ Question 5</div>
+    <div class="card-content">
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">app.js</span></div>
+        <pre><code><span class="kw">const</span> person = {
+    name: <span class="str">"Shivam"</span>
+};
+
+<span class="kw">function</span> <span class="fn">greet</span>(age) {
+    <span class="fn">console</span>.log(<span class="kw">this</span>.name, age);
+}
+
+<span class="kw">const</span> fn = greet.<span class="fn">bind</span>(person, <span class="num">25</span>);
+
+<span class="fn">fn</span>();</code></pre>
+      </div>
+      <h4>Output</h4>
+      <div class="code-block">
+        <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">console</span></div>
+        <pre><code>Shivam 25</code></pre>
+      </div>
+      <div class="note"><code>bind()</code> can also pre-fill arguments (partial application).</div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="summary"><span>🎤 Interview Summary</span></div>
+  <div class="card">
+    <div class="card-title">💬 Quick Interview Response</div>
+    <div class="card-content">
+      <div class="short-answer">
+        <strong>call()</strong> → Executes immediately and passes arguments one by one.<br><br>
+        <strong>apply()</strong> → Executes immediately and passes arguments as an array.<br><br>
+        <strong>bind()</strong> → Returns a new function with <code>this</code> (and optionally some arguments) already fixed for later execution.
+      </div>
+      <div class="tip">💡 In modern JavaScript, <code>call()</code> and <code>bind()</code> are encountered more frequently than <code>apply()</code>, since the spread operator (<code>...</code>) has replaced many traditional <code>apply()</code> use cases.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

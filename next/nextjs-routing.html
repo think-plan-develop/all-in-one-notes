@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Next.js App Router Routing Reference</title>
+  <style>
+    * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+    }
+    
+    body { 
+      background: #f8fafc; /* Crisp Slate Light */
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+      color: #334155; 
+      line-height: 1.5;
+    }
+    
+    .container { 
+      width: 92%; 
+      max-width: 1180px; 
+      margin: 60px auto; 
+    }
+
+    .container {
+      --accent-dark:   #4338ca; /* Indigo 700 */
+      --accent:        #4f46e5; /* Indigo 600 */
+      --accent-light:  #818cf8; /* Indigo 400 */
+      --content-bg:    #ffffff; /* Pure White */
+      --card-bg:       #f1f5f9; /* Light Slate */
+      --heading:       #4f46e5; /* Vibrant Indigo */
+      --shadow-rgb:    15, 23, 42;
+    }
+
+    /* ═══════════════════ HEADER ═══════════════════ */
+    .header {
+      background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 100%);
+      border: 1px solid rgba(79, 70, 229, 0.2);
+      border-radius: 20px;
+      padding: 46px 40px;
+      margin-bottom: 44px;
+      box-shadow: 0 10px 30px rgba(79, 70, 229, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+    .header::after {
+      content: '';
+      position: absolute; top: -60px; right: -60px;
+      width: 220px; height: 220px; border-radius: 50%;
+      background: rgba(79, 70, 229, 0.05);
+    }
+    .header h1 { color: #1e293b; font-size: 36px; margin-bottom: 12px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+    .header p { color: #64748b; font-size: 16.5px; margin-bottom: 26px; max-width: 660px; line-height: 1.6; position: relative; }
+    
+    .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+    .toc a {
+      text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700;
+      transition: all 0.2s ease; cursor: pointer;
+      background: #ffffff; color: #475569; border: 1px solid #e2e8f0;
+      letter-spacing: 0.2px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .toc a:hover { background: var(--accent); color: #fff; border-color: var(--accent-light); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2); }
+
+    /* ═══════════════════ KEY TERMS SUMMARY ═══════════════════ */
+    .intro-summary { margin: 0 0 46px; }
+    .intro-summary-title { font-size: 21px; font-weight: 800; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+    .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 14px; padding: 18px; border: 1px solid #e2e8f0; background: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .summary-icon { flex-shrink: 0; width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #f1f5f9; }
+    .summary-text { font-size: 14.5px; line-height: 1.5; font-weight: 500; color: #475569; }
+    .summary-text strong { font-weight: 700; margin-right: 4px; display: inline-block; }
+    
+    .summary-teal   { border-left: 4px solid #4f46e5; } .summary-teal strong { color: #4f46e5; }
+    .summary-pink   { border-left: 4px solid #db2777; } .summary-pink strong { color: #db2777; }
+    .summary-amber  { border-left: 4px solid #d97706; } .summary-amber strong { color: #d97706; }
+    .summary-blue   { border-left: 4px solid #2563eb; } .summary-blue strong { color: #2563eb; }
+
+    /* ═══════════════════ SECTION DIVIDER ═══════════════════ */
+    .section-divider { margin: 60px 0 30px; position: relative; }
+    .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #e2e8f0; }
+    .section-divider span { background: #f8fafc; padding: 0 20px 0 0; position: relative; font-size: 22px; font-weight: 800; color: #1e293b; display: inline-flex; align-items: center; gap: 8px; }
+
+    /* ═══════════════════ CARDS ═══════════════════ */
+    .card { border-radius: 16px; margin-bottom: 30px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; background: var(--card-bg); }
+    .card-title { color: #1e293b; font-size: 19.5px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; letter-spacing: -0.2px; }
+    .card-content { padding: 28px; background: var(--content-bg); }
+    .card-content p { color: #475569; font-size: 16px; line-height: 1.7; margin-bottom: 16px; }
+    .card-content h4 { font-size: 17px; margin-bottom: 12px; margin-top: 24px; font-weight: 700; color: var(--heading); display: flex; align-items: center; gap: 8px; }
+
+    /* ── short-answer ── */
+    .short-answer {
+      position: relative;
+      background: #f8fafc;
+      border: 1px solid rgba(79, 70, 229, 0.15);
+      border-left: 4px solid var(--accent);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 26px;
+      font-size: 16px;
+      line-height: 1.7;
+      color: #334155;
+    }
+    .short-answer::before {
+      content: "ROUTING RULE";
+      display: block; width: fit-content;
+      font-size: 10px; font-weight: 800; letter-spacing: 1px; color: #ffffff;
+      background: var(--accent);
+      padding: 3px 10px; border-radius: 6px; margin-bottom: 14px;
+    }
+    .short-answer code {
+      background: rgba(79, 70, 229, 0.08); color: #4f46e5;
+      padding: 2px 6px; border-radius: 4px; font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── CODE BLOCK CONFIG (RICH DARK THEME) ── */
+    .code-block { 
+      background: #0f172a; /* Deep Slate Blue Dark */
+      border-radius: 14px; 
+      overflow: hidden; 
+      margin: 20px 0; 
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
+      border: 1px solid rgba(255, 255, 255, 0.08); 
+    }
+    .code-bar { 
+      background: #1e293b; /* Sleek Darker Slate Header */
+      padding: 12px 18px; 
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
+    }
+    .code-bar .dot { width: 11px; height: 11px; border-radius: 50%; }
+    .code-bar .dot-red { background: #ff5f56; }
+    .code-bar .dot-grey { background: #ffbd2e; }
+    .code-bar .dot-green { background: #27c93f; }
+    .code-bar .filename { 
+      color: #94a3b8; /* Cool Muted Text */
+      font-size: 13px; 
+      margin-left: 10px; 
+      font-family: 'JetBrains Mono', monospace; 
+      font-weight: 500; 
+    }
+    
+    .code-block pre { padding: 24px; overflow-x: auto; line-height: 1.8; }
+    .code-block code { 
+      color: #e2e8f0; /* Off-White Base Code */
+      font-size: 14.5px; 
+      font-family: 'JetBrains Mono', monospace; 
+      font-variant-ligatures: normal; 
+    }
+    
+    /* Dark Syntax Tokens */
+    .kw    { color: #c084fc; font-weight: 600; }      /* Keywords - Bright Purple */
+    .str   { color: #34d399; }                        /* Strings - Emerald Green */
+    .fn    { color: #38bdf8; }                        /* Core Methods/Globals - Sky Blue */
+    .type  { color: #fbbf24; font-weight: 600; }      /* Component/Constructors - Warm Amber */
+    .num   { color: #fb923c; }                        /* Numbers - Vibrant Orange */
+    .prop  { color: #cbd5e1; }                        /* Object Fields - Muted Off-White */
+
+    /* Comment Tracks */
+    .cmt-setup  { color: #64748b; font-style: italic; font-weight: 500; } /* Structure (Muted Slate) */
+    .cmt-flow   { color: #f87171; font-style: italic; }                   /* Alert Action (Soft Red) */
+    .cmt-assert { color: #38bdf8; font-weight: 500; }                     /* Checkpoints (Electric Blue) */
+    .cmt-inline { color: #64748b; font-style: italic; opacity: 0.85; }    /* Standard Inline */
+
+    /* ── callout boxes ── */
+    .remember {
+      border-radius: 12px; padding: 20px; margin: 24px 0; font-size: 15.5px; line-height: 1.7;
+      background: #f1f5f9; border-left: 4px solid #3b82f6; color: #334155;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    }
+    .remember strong { color: #2563eb; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; }
+    table th { background: #f1f5f9; color: #1e293b; font-size: 15px; font-weight: 700; padding: 16px 20px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+    table td { padding: 14px 20px; font-size: 14.5px; border-bottom: 1px solid #e2e8f0; color: #475569; background: #ffffff; }
+    table tr:nth-child(even) td { background: #f8fafc; }
+    table code { background: rgba(79, 70, 229, 0.06); color: #4f46e5; padding: 3px 6px; border-radius: 5px; font-size: 13.5px; font-family: 'JetBrains Mono', monospace; }
+
+    @media (max-width: 768px) {
+      .header h1 { font-size: 27px; }
+      .toc a { padding: 6px 12px; font-size: 12px; }
+      .card-content { padding: 20px; }
+      .code-block pre { padding: 16px; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- HEADER -->
+    <header class="header">
+      <h1>Next.js App Router Routing Reference</h1>
+      <p>A comprehensive compilation of essential App Router paradigms, complete with clean code representations, exact folder maps, URL resolutions, and visual components.</p>
+      <nav class="toc">
+        <a href="#file-routing">1. File-Based Routing</a>
+        <a href="#dynamic-routes">2. Dynamic Routes</a>
+        <a href="#catch-all">3. Catch-All & Optional</a>
+        <a href="#groups-private">4. Groups & Private Folders</a>
+        <a href="#parallel-intercepting">5. Advanced Routing Patterns</a>
+        <a href="#nested-layouts">6. Nested Routing & Layouts</a>
+        <a href="#cheat-sheet">7. Interview Cheat Sheet</a>
+      </nav>
+    </header>
+
+    <!-- KEY TERMS SUMMARY -->
+    <section class="intro-summary">
+      <h2 class="intro-summary-title">⚡ Route Map Cheat Sheet</h2>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">📁</div>
+          <div class="summary-text"><strong>File Routing</strong> Directory naming converts directly into matching URLs.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🏷️</div>
+          <div class="summary-text"><strong>Dynamic Paths</strong> Extract values cleanly inside bracket segments.</div>
+        </div>
+        <div class="summary-item summary-amber">
+          <div class="summary-icon">🔒</div>
+          <div class="summary-text"><strong>Organization</strong> Group up views or exclude files safely.</div>
+        </div>
+        <div class="summary-item summary-blue">
+          <div class="summary-icon">🔀</div>
+          <div class="summary-text"><strong>State Control</strong> Persist structures with nested layout segments.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1 -->
+    <div class="section-divider" id="file-routing">
+      <span>📁 1. File-Based Routing Basics</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Folder Structure Mapping to Route URL Paths</div>
+      <div class="card-content">
+        <div class="short-answer">
+          Folders inside the <code>app/</code> directory define URL path routes. A route is made public only by placing a <code>page.js</code> inside the path folder.
+        </div>
+
+        <h4>Directory Blueprint</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">Folder Tree</span>
+          </div>
+          <pre><code>app/
+├── page.js          <span class="cmt-setup">// Maps to: /</span>
+├── about/
+│   └── page.js      <span class="cmt-setup">// Maps to: /about</span>
+└── contact/
+    └── page.js      <span class="cmt-setup">// Maps to: /contact</span></code></pre>
+        </div>
+
+        <h4>Component Code Examples</h4>
+        
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/page.js</span>
+          </div>
+          <pre><code><span class="kw">export default function</span> <span class="type">HomePage</span>() {
+  <span class="kw">return</span> &lt;<span class="type">h1</span>&gt;Home Page&lt;/<span class="type">h1</span>&gt;;
+}</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/about/page.js</span>
+          </div>
+          <pre><code><span class="kw">export default function</span> <span class="type">AboutPage</span>() {
+  <span class="kw">return</span> &lt;<span class="type">h1</span>&gt;About Page&lt;/<span class="type">h1</span>&gt;;
+}</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/contact/page.js</span>
+          </div>
+          <pre><code><span class="kw">export default function</span> <span class="type">ContactPage</span>() {
+  <span class="kw">return</span> &lt;<span class="type">h1</span>&gt;Contact Page&lt;/<span class="type">h1</span>&gt;;
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2 -->
+    <div class="section-divider" id="dynamic-routes">
+      <span>🏷️ 2. Dynamic Routes [id]</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Extracting Path variables using brackets</div>
+      <div class="card-content">
+        <div class="short-answer">
+          Brackets (<code>[id]</code>) create dynamic route parameters. You extract the value by referencing the property on the awaited <code>params</code> object.
+        </div>
+
+        <h4>Directory Blueprint</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">Folder Tree</span>
+          </div>
+          <pre><code>app/
+└── products/
+    └── [id]/
+        └── page.js  <span class="cmt-setup">// Maps to: /products/:id</span></code></pre>
+        </div>
+
+        <h4>Component Code</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/products/[id]/page.js</span>
+          </div>
+          <pre><code><span class="kw">export default async function</span> <span class="type">ProductDetails</span>({ params }) {
+  <span class="kw">const</span> { id } = <span class="kw">await</span> params; <span class="cmt-inline">// Resolve params dynamically</span>
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">h1</span>&gt;Product Details&lt;/<span class="type">h1</span>&gt;
+      &lt;<span class="type">p</span>&gt;Product ID : {id}&lt;/<span class="type">p</span>&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h4>Sample Resolutions</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Visited URL</th>
+              <th>Parsed id Parameter</th>
+              <th>Rendered Content</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/products/1</code></td>
+              <td><code>"1"</code></td>
+              <td>Product ID : 1</td>
+            </tr>
+            <tr>
+              <td><code>/products/20</code></td>
+              <td><code>"20"</code></td>
+              <td>Product ID : 20</td>
+            </tr>
+            <tr>
+              <td><code>/products/abc</code></td>
+              <td><code>"abc"</code></td>
+              <td>Product ID : abc</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SECTION 3 -->
+    <div class="section-divider" id="catch-all">
+      <span>📚 3. Catch-All & Optional Catch-All Routes</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Parsing Nested Route Segments with slug Arrays</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <code>[...slug]</code> matches all nested layers below its parent, returning them in an array. <code>[[...slug]]</code> does the same, but *also* matches the parent root layout path when no child segment parameters exist.
+        </div>
+
+        <h4>Directory Blueprint</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">Folder Tree</span>
+          </div>
+          <pre><code>app/
+└── docs/
+    ├── [...slug]/             <span class="cmt-setup">// Catch-All</span>
+    │   └── page.js
+    └── [[...optionalSlug]]/   <span class="cmt-setup">// Optional Catch-All (Covers /docs baseline too)</span>
+        └── page.js</code></pre>
+        </div>
+
+        <h4>Catch-All Component Implementation</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/docs/[...slug]/page.js</span>
+          </div>
+          <pre><code><span class="kw">export default async function</span> <span class="type">Docs</span>({ params }) {
+  <span class="kw">const</span> { slug } = <span class="kw">await</span> params;
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">h2</span>&gt;Documentation&lt;/<span class="type">h2</span>&gt;
+      &lt;<span class="type">p</span>&gt;{<span class="type">JSON</span>.<span class="fn">stringify</span>(slug)}&lt;/<span class="type">p</span>&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h4>Optional Catch-All Component Implementation</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/docs/[[...slug]]/page.js</span>
+          </div>
+          <pre><code><span class="kw">export default async function</span> <span class="type">DocsOptional</span>({ params }) {
+  <span class="kw">const</span> { slug } = <span class="kw">await</span> params;
+
+  <span class="kw">if</span> (!slug) {
+    <span class="kw">return</span> &lt;<span class="type">h1</span>&gt;Documentation Home&lt;/<span class="type">h1</span>&gt;;
+  }
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">h2</span>&gt;Documentation Page&lt;/<span class="type">h2</span>&gt;
+      &lt;<span class="type">p</span>&gt;{<span class="type">JSON</span>.<span class="fn">stringify</span>(slug)}&lt;/<span class="type">p</span>&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h4>Resolution Rules</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Routing Method</th>
+              <th>Visited URL</th>
+              <th>Resulting slug Parameter Array</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Catch-all <code>[...slug]</code></td>
+              <td><code>/docs/react</code></td>
+              <td><code>["react"]</code></td>
+            </tr>
+            <tr>
+              <td>Catch-all <code>[...slug]</code></td>
+              <td><code>/docs/react/hooks/useState</code></td>
+              <td><code>["react", "hooks", "useState"]</code></td>
+            </tr>
+            <tr>
+              <td>Optional Catch-all <code>[[...slug]]</code></td>
+              <td><code>/docs</code></td>
+              <td><code>undefined</code> (falls back to Documentation Home)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SECTION 4 -->
+    <div class="section-divider" id="groups-private">
+      <span>🔒 4. Folder Structure Control (Groups & Private)</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Route Groups (group) & Private Folders _folder</div>
+      <div class="card-content">
+        <p>You can group folders with parentheses to keep structures organized without appending those folder names directly to public-facing routes. Prefixing folder names with an underscore declares them private, preventing them from matching routes entirely.</p>
+
+        <h4>Directory Blueprint</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">Folder Tree</span>
+          </div>
+          <pre><code>app/
+├── (marketing)/       <span class="cmt-setup">// Route Group (omitted from dynamic routing)</span>
+│   ├── about/
+│   │   └── page.js    <span class="cmt-setup">// Resolves: /about</span>
+│   └── pricing/
+│       └── page.js    <span class="cmt-setup">// Resolves: /pricing</span>
+├── _components/       <span class="cmt-setup">// Private Folder (completely skipped by routing system)</span>
+│   ├── Navbar.jsx
+│   └── Footer.jsx
+└── page.js</code></pre>
+        </div>
+
+        <h4>Private Utility Usage Code</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/page.js</span>
+          </div>
+          <pre><code><span class="kw">import</span> <span class="type">Navbar</span> <span class="kw">from</span> <span class="str">"./_components/Navbar"</span>;
+
+<span class="kw">export default function</span> <span class="type">Home</span>() {
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">Navbar</span> /&gt;
+      &lt;<span class="type">h1</span>&gt;Home&lt;/<span class="type">h1</span>&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="remember">
+          <strong>Key Takeaway:</strong> Attempting to navigate to <code>/marketing/about</code> or <code>/_components</code> will return a <strong>404 Route Not Found</strong> error.
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 5 -->
+    <div class="section-divider" id="parallel-intercepting">
+      <span>🔀 5. Advanced Layout Patterns</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Parallel Slots (@slot) & Intercepted Segments ((.))</div>
+      <div class="card-content">
+        <div class="short-answer">
+          Parallel routing streams independent dynamic views inside a single combined layout. Intercepting routes capture local page navigation to load dynamic templates inside modal containers while keeping URLs stable for users.
+        </div>
+
+        <h4>Parallel Routing Setup</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">Folder Tree</span>
+          </div>
+          <pre><code>app/
+└── dashboard/
+    ├── layout.js
+    ├── page.js
+    ├── @analytics/
+    │   └── page.js
+    └── @notification/
+        └── page.js</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/dashboard/layout.js</span>
+          </div>
+          <pre><code><span class="kw">export default function</span> <span class="type">DashboardLayout</span>({ children, analytics, notification }) {
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">header</span>&gt;Dashboard Header&lt;/<span class="type">header</span>&gt;
+      &lt;<span class="type">div</span> <span class="prop">style</span>={{ <span class="prop">display</span>: <span class="str">"flex"</span>, <span class="prop">gap</span>: <span class="str">"20px"</span> }}&gt;
+        &lt;<span class="type">div</span>&gt;{analytics}&lt;/<span class="type">div</span>&gt;
+        &lt;<span class="type">div</span>&gt;{children}&lt;/<span class="type">div</span>&gt;
+        &lt;<span class="type">div</span>&gt;{notification}&lt;/<span class="type">div</span>&gt;
+      &lt;/<span class="type">div</span>&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <h4>Intercepting Sibling Route Layout</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">Folder Tree (Intercepting)</span>
+          </div>
+          <pre><code>app/
+├── feed/
+│   ├── page.js
+│   └── (.)photo/          <span class="cmt-setup">// Intercepts /photo/:id sibling route on client click</span>
+│       └── [id]/
+│           └── page.js
+└── photo/
+    └── [id]/
+        └── page.js        <span class="cmt-setup">// Full direct page reload fallback</span></code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/feed/(.)photo/[id]/page.js</span>
+          </div>
+          <pre><code><span class="kw">export default async function</span> <span class="type">PhotoModal</span>({ params }) {
+  <span class="kw">const</span> { id } = <span class="kw">await</span> params;
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span> <span class="prop">className</span>=<span class="str">"modal"</span>&gt;
+      Photo Preview {id}
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 6 -->
+    <div class="section-divider" id="nested-layouts">
+      <span>📐 6. Nested Routing & Layouts</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Preserving Component Layouts State Globally</div>
+      <div class="card-content">
+        <p>A nested layout template wraps around dynamic page views. As you navigate between sibling routes (like users to settings), only the page child view swap is executed. The parent wrapper component remains intact, preserving structural layout state and visual focus.</p>
+
+        <h4>Directory Blueprint</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">Folder Tree</span>
+          </div>
+          <pre><code>app/
+└── dashboard/
+    ├── layout.js
+    ├── page.js
+    ├── users/
+    │   └── page.js
+    └── settings/
+        └── page.js</code></pre>
+        </div>
+
+        <h4>Layout Shell Code</h4>
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-grey"></span>
+            <span class="dot dot-green"></span>
+            <span class="filename">app/dashboard/layout.js</span>
+          </div>
+          <pre><code><span class="kw">export default function</span> <span class="type">DashboardLayout</span>({ children }) {
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">aside</span>&gt;Sidebar&lt;/<span class="type">aside</span>&gt;
+      &lt;<span class="type">main</span>&gt;{children}&lt;/<span class="type">main</span>&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="remember">
+          When navigating from <code>/dashboard/users</code> to <code>/dashboard/settings</code>, only the content inside the <code>&lt;main&gt;</code> element updates. The sidebar's state, scroll position, and inputs are preserved because <code>DashboardLayout</code> does not re-render.
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 7 -->
+    <div class="section-divider" id="cheat-sheet">
+      <span>🎓 7. App Router Interview Cheat Sheet</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Feature Core Quick-Check References</div>
+      <div class="card-content">
+        <table>
+          <thead>
+            <tr>
+              <th>Routing Paradigm</th>
+              <th>Target Syntax Example</th>
+              <th>Primary Production Use Case</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>File Routing</strong></td>
+              <td><code>about/page.js</code></td>
+              <td>Static content pages (About, Contact, Privacy)</td>
+            </tr>
+            <tr>
+              <td><strong>Dynamic Route</strong></td>
+              <td><code>[id]/page.js</code></td>
+              <td>Dynamic datasets (Product details, individual user feeds)</td>
+            </tr>
+            <tr>
+              <td><strong>Catch-all</strong></td>
+              <td><code>[...slug]/page.js</code></td>
+              <td>Custom content schemas (Documentation portals, nested categories)</td>
+            </tr>
+            <tr>
+              <td><strong>Optional Catch-all</strong></td>
+              <td><code>[[...slug]]/page.js</code></td>
+              <td>Parent paths + dynamic child parameters combined in one file</td>
+            </tr>
+            <tr>
+              <td><strong>Route Group</strong></td>
+              <td><code>(marketing)/about</code></td>
+              <td>Clean multi-layout splitting without changing URL structures</td>
+            </tr>
+            <tr>
+              <td><strong>Parallel Route</strong></td>
+              <td><code>@analytics/page.js</code></td>
+              <td>Complex split-screen dashboards and independent view slots</td>
+            </tr>
+            <tr>
+              <td><strong>Intercepting Route</strong></td>
+              <td><code>(.)photo/[id]/page.js</code></td>
+              <td>In-context modal interfaces, image lightboxes, quick previews</td>
+            </tr>
+            <tr>
+              <td><strong>Private Folder</strong></td>
+              <td><code>_components/Navbar.jsx</code></td>
+              <td>Colocating shared layout blocks, styles, or utilities directly in folders</td>
+            </tr>
+            <tr>
+              <td><strong>Nested Layout</strong></td>
+              <td><code>layout.js</code> inside subfolders</td>
+              <td>Dashboard sidebars, account sub-navigation, multi-step forms</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
