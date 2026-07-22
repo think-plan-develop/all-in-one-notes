@@ -12,7 +12,6 @@
       /* Topbar */
       .topbar { height: 56px; flex-shrink: 0; background: linear-gradient(135deg, #2563eb, #4f46e5); display: flex; align-items: center; gap: 12px; padding: 0 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 200; color: #fff; }
 
-      /* Sidebar toggle button (desktop) */
       .sidebar-toggle {
         width: 34px; height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
         border-radius: 8px; border: none; background: rgba(255,255,255,0.15); color: #fff; cursor: pointer;
@@ -28,42 +27,38 @@
       .sidebar {
         width: 280px; min-width: 280px; background: #ffffff; border-right: 1px solid #e2e8f0;
         display: flex; flex-direction: column; overflow: hidden;
-        transition: width 0.22s ease, min-width 0.22s ease, border-color 0.22s ease;
+        transition: width 0.22s ease, min-width 0.22s ease, transform 0.3s ease;
       }
-      .main.collapsed .sidebar {
-        width: 0; min-width: 0; border-right: none; overflow: hidden;
-      }
+      .main.collapsed .sidebar { width: 0; min-width: 0; border-right: none; }
 
       .sidebar-inner { flex: 1; overflow-y: auto; padding: 16px; scrollbar-width: thin; width: 280px; }
+      .sidebar-group-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #94a3b8; padding: 12px 10px 8px; }
+      .sidebar a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 2px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; color: #475569; transition: all 0.2s ease; }
+      .sidebar a:hover { background: #f1f5f9; color: #1e293b; }
+      .sidebar a.active { background: #eff6ff; color: #2563eb; }
+      .nav-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 7px; }
 
-      .sidebar-group-label { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #94a3b8; padding: 12px 10px 8px; margin-top: 8px; }
-
-      .sidebar a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 2px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; color: #475569; transition: all 0.2s ease; white-space: nowrap; }
-
-      .sidebar a:hover { background: #f1f5f9; color: #1e293b; transform: translateX(4px); }
-
-      .sidebar a.active { background: #eff6ff; color: #2563eb; font-weight: 600; }
-
-      .nav-icon { width: 28px; height: 28px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 7px; transition: background 0.2s; }
+      /* Mobile Overlay */
+      .sidebar-overlay {
+        display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 150;
+      }
 
       iframe { flex: 1; border: none; background: #fff; }
 
-      /* Small floating re-open tab, shown only when collapsed */
-      .sidebar-reopen {
-        position: absolute; top: 12px; left: 12px; z-index: 100;
-        width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e2e8f0;
-        background: #ffffff; color: #475569; display: none; align-items: center; justify-content: center;
-        cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-size: 16px;
-        transition: background 0.2s ease, color 0.2s ease;
+      /* Mobile Styles */
+      @media (max-width: 768px) {
+        .sidebar {
+          position: absolute; left: -280px; height: 100%; z-index: 1000; box-shadow: 10px 0 15px rgba(0,0,0,0.1);
+        }
+        .sidebar.mobile-open { left: 0; }
+        .sidebar.mobile-open + .sidebar-overlay { display: block; }
       }
-      .sidebar-reopen:hover { background: #eff6ff; color: #2563eb; }
-      .main.collapsed .sidebar-reopen { display: flex; }
     </style>
   </head>
   <body>
     <div class="topbar">
       <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
-        <i class="ti ti-layout-sidebar-left-collapse" id="toggleIcon"></i>
+        <i class="ti ti-menu-2"></i>
       </button>
       <div class="topbar-title">
         <i class="ti ti-brand-javascript" style="font-size: 24px;"></i>
@@ -75,9 +70,7 @@
       <nav class="sidebar" id="sidebar">
         <div class="sidebar-inner" id="sidebarInner"></div>
       </nav>
-      <button class="sidebar-reopen" id="sidebarReopen" title="Show sidebar">
-        <i class="ti ti-layout-sidebar-left-expand"></i>
-      </button>
+      <div class="sidebar-overlay" id="sidebarOverlay"></div>
       <iframe name="contentFrame" id="contentFrame" src="./01-basics.html"></iframe>
     </div>
 
@@ -111,7 +104,6 @@
             { icon: "ti-sparkles", color: "#ea580c", text: "13. ES6 Features", href: "./13-es6-features.html" },
             { icon: "ti-clock-bolt", color: "#7c3aed", text: "14. callback", href: "./14.1-callback.html" },
             { icon: "ti-clock-bolt", color: "#7c3aed", text: "14. Promise", href: "./14-promise.html" },
-
             { icon: "ti-clock-bolt", color: "#7c3aed", text: "15. Async JS", href: "./15-async-js.html" },
             { icon: "ti-refresh", color: "#0891b2", text: "16. Event Loop", href: "./16-event-loop.html" },
             { icon: "ti-browser", color: "#4338ca", text: "17. DOM", href: "./17-dom.html" },
@@ -152,33 +144,39 @@
           </div>
         `).join('');
 
+        // Close mobile sidebar when clicking a link
         inner.querySelectorAll('a').forEach(link => {
-          link.addEventListener("click", function() {
+          link.addEventListener("click", () => {
+            if (window.innerWidth <= 768) {
+              sidebar.classList.remove("mobile-open");
+            }
             inner.querySelectorAll("a").forEach(a => a.classList.remove("active"));
-            this.classList.add("active");
+            link.classList.add("active");
           });
         });
       }
 
       buildNav(NAV_CONFIG);
 
-      // Desktop sidebar collapse/expand
-      const mainEl = document.getElementById("main");
+      // Toggle Logic
+      const sidebar = document.getElementById("sidebar");
+      const main = document.getElementById("main");
       const toggleBtn = document.getElementById("sidebarToggle");
-      const reopenBtn = document.getElementById("sidebarReopen");
-      const toggleIcon = document.getElementById("toggleIcon");
+      const overlay = document.getElementById("sidebarOverlay");
 
-      function setCollapsed(collapsed) {
-        mainEl.classList.toggle("collapsed", collapsed);
-        toggleIcon.className = "ti " + (collapsed ? "ti-layout-sidebar-left-expand" : "ti-layout-sidebar-left-collapse");
-        localStorage.setItem("jsRefSidebarCollapsed", collapsed ? "1" : "0");
-      }
+      // Toggle action
+      toggleBtn.addEventListener("click", () => {
+        if (window.innerWidth <= 768) {
+          sidebar.classList.toggle("mobile-open");
+        } else {
+          main.classList.toggle("collapsed");
+        }
+      });
 
-      toggleBtn.addEventListener("click", () => setCollapsed(!mainEl.classList.contains("collapsed")));
-      reopenBtn.addEventListener("click", () => setCollapsed(false));
-
-      // Restore last state
-      if (localStorage.getItem("jsRefSidebarCollapsed") === "1") setCollapsed(true);
+      // Close on overlay click
+      overlay.addEventListener("click", () => {
+        sidebar.classList.remove("mobile-open");
+      });
     </script>
   </body>
 </html>
