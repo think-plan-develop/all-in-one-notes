@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Callback Hell & Inversion of Control - Complete Interview Notes</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+/* ═══════════ THEME VARIABLES ═══════════ */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#f97316; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+
+/* ═══════════ HEADER ═══════════ */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* ═══════════ CARDS (Interview Q&A section) ═══════════ */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+
+/* ═══════════ KEY TERMS SUMMARY ═══════════ */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* ═══════════ SECTION DIVIDER ═══════════ */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* ═══════════ CODE BLOCK ═══════════ */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; } .type { color:#ffcb6b; }
+
+/* ═══════════ DIAGRAM ═══════════ */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+/* ═══════════ INFO BOXES ═══════════ */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* ═══════════ SHORT ANSWER ═══════════ */
+.short-answer { position:relative; background:linear-gradient(160deg,#ffffff 0%, var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),0.16); border-left:4px solid var(--accent); border-radius:12px; padding:18px 22px 20px; margin-bottom:14px; font-size:17px; line-height:1.75; font-weight:500; color:#293244; box-shadow:0 6px 18px rgba(var(--shadow-rgb),0.1); }
+.short-answer::before { content:"QUICK ANSWER"; display:block; width:fit-content; font-size:11px; font-weight:800; letter-spacing:.8px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; margin-bottom:12px; box-shadow:0 3px 8px rgba(var(--shadow-rgb),0.35); }
+.short-answer strong { color: var(--heading); }
+.short-answer code { background:rgba(var(--shadow-rgb),0.1); color:var(--heading); padding:2px 6px; border-radius:5px; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+
+/* ═══════════ NUMBERED SUBSECTIONS (card-sub) ═══════════ */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); border-left:5px solid var(--accent); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .code-block:last-child { margin-bottom:0; }
+
+/* ═══════════ TABLE (default) ═══════════ */
+table { width:100%; border-collapse:collapse; margin:15px 0; border-radius:12px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.08); }
+table th { background:linear-gradient(120deg,#6366f1,#8b5cf6); color:#fff; font-size:17px; padding:14px 18px; text-align:left; }
+table td { padding:12px 18px; font-size:15px; font-weight:500; border-bottom:1px solid #eef0f4; color:#334155; }
+table tr:nth-child(even) { background:#f8fafc; }
+
+/* ═══════════ COMPARISON TABLE (term row + detail row pairs) ═══════════ */
+.compare-table { width:100%; border-collapse:separate; border-spacing:0; margin:16px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb),0.14); border:1px solid rgba(var(--shadow-rgb),0.16); }
+.compare-table th {
+  background: linear-gradient(120deg, #1e3a8a, #3b82f6);
+  color:#fff; font-size:16.5px; font-weight:800; padding:15px 20px; text-align:left;
+  border-bottom: 2px solid rgba(255,255,255,0.25);
+}
+.compare-table th:first-child { border-right: 1px solid rgba(255,255,255,0.25); }
+/* Odd rows = the short "term" row */
+.compare-row-term td {
+  background: var(--content-bg);
+  font-size:15.5px; font-weight:800; color: var(--heading);
+  padding:13px 20px; border-bottom:none;
+}
+.compare-row-term td:first-child { border-right: 1px solid rgba(var(--shadow-rgb),0.14); }
+/* Even rows = the longer "detail" row, visually distinct */
+.compare-row-detail td {
+  background:#fbfbfd; font-size:14.5px; font-style:italic; font-weight:500; color:#55607a;
+  padding:12px 20px 18px; line-height:1.7; border-bottom:1px solid rgba(var(--shadow-rgb),0.12);
+}
+.compare-row-detail td:first-child { border-right: 1px dashed rgba(var(--shadow-rgb),0.18); }
+.compare-table tr:last-child td { border-bottom:none; }
+.compare-table code { background:rgba(var(--shadow-rgb),0.1); color:var(--heading); padding:1px 6px; border-radius:5px; font-style:normal; font-weight:600; }
+
+/* ═══════════ ORIGINAL Q&A STYLES ═══════════ */
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header theme-blue">
+      <h1>🕳️ Callback Hell &amp; Inversion of Control</h1>
+      <p>Why nested callbacks become unmanageable, and how Promises fix the control-flow problem</p>
+      <div class="toc">
+        <a href="#why" onclick="document.getElementById('why').scrollIntoView({behavior:'smooth'});return false;">Callbacks Recap</a>
+        <a href="#hell" onclick="document.getElementById('hell').scrollIntoView({behavior:'smooth'});return false;">Callback Hell</a>
+        <a href="#ioc" onclick="document.getElementById('ioc').scrollIntoView({behavior:'smooth'});return false;">Inversion of Control</a>
+        <a href="#errors" onclick="document.getElementById('errors').scrollIntoView({behavior:'smooth'});return false;">Error Handling</a>
+        <a href="#vs" onclick="document.getElementById('vs').scrollIntoView({behavior:'smooth'});return false;">Callbacks vs Promises</a>
+        <a href="#revision" onclick="document.getElementById('revision').scrollIntoView({behavior:'smooth'});return false;">One-Line Revision</a>
+        <a href="#summary" onclick="document.getElementById('summary').scrollIntoView({behavior:'smooth'});return false;">Interview Summary</a>
+        <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> "Time, tide and JavaScript wait for none." JavaScript is single-threaded, but asynchronous operations are handled by browser/Web APIs (or Node.js APIs), while callbacks are used to receive the result later. Deeply nested, dependent callbacks cause <strong>Callback Hell</strong>, and handing control of execution to another function causes <strong>Inversion of Control</strong> — two separate problems that Promises were built to solve.</div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🔁</div>
+          <div class="summary-text"><strong>Callback:</strong> A function passed as an argument to another function, to be invoked later.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🏔️</div>
+          <div class="summary-text"><strong>Callback Hell:</strong> Deeply nested, dependent async callbacks — code grows horizontally ("Pyramid of Doom").</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🔀</div>
+          <div class="summary-text"><strong>Inversion of Control:</strong> You hand your callback to an external function and trust it to run it correctly.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🤝</div>
+          <div class="summary-text"><strong>Promise:</strong> An object you attach handlers to, so you keep control of the continuation instead of giving it away.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CALLBACKS RECAP (blue) ==================== -->
+    <div class="section-divider" id="why"><span>🔁 Callbacks — A Quick Recap</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>What is a Callback?</h4></div>
+        <div class="card-sub-content">
+          <div class="short-answer">A <strong>callback</strong> is a function passed as an argument to another function, which invokes it at the right time.</div>
+          <div class="code-block">
+            <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">app.js</span></div>
+            <pre><code><span class="kw">function</span> <span class="fn">greet</span>(name, callback) {
+    <span class="fn">console</span>.log(<span class="str">"Hello"</span>, name);
+    callback();
+}
+
+<span class="fn">greet</span>(<span class="str">"Shivam"</span>, <span class="kw">function</span> () {
+    <span class="fn">console</span>.log(<span class="str">"Callback executed"</span>);
+});</code></pre>
+          </div>
+          <div class="info-box box-note">Callbacks are useful on their own. The problems appear only when <strong>multiple dependent async callbacks</strong> get nested inside each other — that's what the next two sections cover.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CALLBACK HELL (blue) ==================== -->
+    <div class="section-divider" id="hell"><span>Callback Hell</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Definition &amp; Example</h4></div>
+        <div class="card-sub-content">
+          <div class="short-answer"><strong>Callback Hell</strong> happens when callbacks are nested inside other callbacks repeatedly, making the code grow horizontally and become hard to read, debug, and maintain.</div>
+
+          <div class="code-block">
+            <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">checkout.js</span></div>
+            <pre><code><span class="kw">const</span> cart = [<span class="str">"shoes"</span>, <span class="str">"pants"</span>, <span class="str">"kurta"</span>];
+
+api.<span class="fn">createOrder</span>(cart, <span class="kw">function</span> () {
+    api.<span class="fn">proceedToPayment</span>(<span class="kw">function</span> () {
+        api.<span class="fn">showOrderSummary</span>(<span class="kw">function</span> () {
+            api.<span class="fn">updateWallet</span>();
+        });
+    });
+});</code></pre>
+          </div>
+
+          <h3>Shape of the Problem</h3>
+          <div class="diagram">createOrder(cb1)
+  └─ proceedToPayment(cb2)
+       └─ showOrderSummary(cb3)
+            └─ updateWallet()
+
+Each step waits on the previous one → code drifts right
+→ commonly called the "Pyramid of Doom"</div>
+
+          <h3>Why It's Bad</h3>
+          <ul>
+            <li>Code grows horizontally (drifts to the right because of increasing indentation)</li>
+            <li>Readability decreases sharply as steps grow</li>
+            <li>Debugging becomes difficult — hard to trace which callback failed</li>
+            <li>Error handling becomes messy (checked at every level)</li>
+            <li>Maintenance becomes expensive as new steps are added</li>
+          </ul>
+
+          <div class="info-box box-warning">⚠️ <strong>Common misconception:</strong> Callback Hell is not caused by callbacks themselves. The precise statement interviewers look for: it's caused by <strong>deeply nested, dependent asynchronous operations</strong> — not by the callback pattern. Callbacks remain valid and are used by many JavaScript APIs. Promise implementations also rely on internal callback/reaction mechanisms, but developers interact with them through <code>.then()</code> and <code>.catch()</code>.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== INVERSION OF CONTROL (green) ==================== -->
+    <div class="section-divider" id="ioc"><span>Inversion of Control</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Definition &amp; Example</h4></div>
+        <div class="card-sub-content">
+          <div class="short-answer">When you pass your callback to an external function or API, <strong>that external code decides when and how your callback runs</strong> — you've handed over control of your own logic. This is <strong>Inversion of Control (IoC)</strong>.</div>
+
+          <div class="code-block">
+            <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">order.js</span></div>
+            <pre><code><span class="fn">createOrder</span>(cart, <span class="kw">function</span> (orderId) {
+    <span class="fn">proceedToPayment</span>(orderId);
+});</code></pre>
+          </div>
+
+          <h3>What You Lose Control Of</h3>
+          <ul>
+            <li><strong>When</strong> the callback will be called</li>
+            <li><strong>Whether</strong> it will be called at all</li>
+            <li><strong>How many times</strong> it will be called</li>
+            <li><strong>What data</strong> will be passed to it</li>
+          </ul>
+
+          <div class="info-box box-note">The program becomes harder to reason about because a piece of code you don't own now controls the execution of logic you wrote. You're trusting <code>createOrder</code> to behave correctly — that trust is the risk IoC describes.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ERROR HANDLING (green) ==================== -->
+    <div class="section-divider" id="errors"><span>Error Handling with Callbacks</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Errors Must Be Checked at Every Level</h4></div>
+        <div class="card-sub-content">
+          <p>Without a centralized mechanism, every nested callback needs its own error check — the nesting problem and the error-handling problem compound each other.</p>
+          <div class="code-block">
+            <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">checkout.js</span></div>
+            <pre><code><span class="fn">createOrder</span>(cart, <span class="kw">function</span> (err, orderId) {
+    <span class="kw">if</span> (err) {
+        <span class="fn">console</span>.error(<span class="str">"Order creation failed:"</span>, err);
+        <span class="kw">return</span>;
+    }
+
+    <span class="fn">proceedToPayment</span>(orderId, <span class="kw">function</span> (err, paymentInfo) {
+        <span class="kw">if</span> (err) {
+            <span class="fn">console</span>.error(<span class="str">"Payment failed:"</span>, err);
+            <span class="kw">return</span>;
+        }
+
+        <span class="fn">showOrderSummary</span>(paymentInfo, <span class="kw">function</span> (err) {
+            <span class="kw">if</span> (err) {
+                <span class="fn">console</span>.error(<span class="str">"Summary failed:"</span>, err);
+                <span class="kw">return</span>;
+            }
+            <span class="fn">updateWalletBalance</span>();
+        });
+    });
+});</code></pre>
+          </div>
+          <p>This pattern is often called <strong>error-first callback style</strong>, where the first argument is reserved for an error object and the second argument contains the success result.</p>
+          <div class="info-box box-warning">⚠️ Every level repeats the same <code>if (err)</code> boilerplate. Miss one check, and an error can silently pass through — this repetition is exactly what Promises centralize away with a single <code>.catch()</code>.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CALLBACKS VS PROMISES (violet) ==================== -->
+    <div class="section-divider" id="vs"><span>📊 Callbacks vs Promises</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>The Core Shift in Control</h4></div>
+        <div class="card-sub-content">
+          <div class="short-answer">With callbacks, you hand your continuation function to the API and trust it. With a <strong>Promise</strong>, the API instead returns an object, and <strong>you</strong> attach your continuation to it with <code>.then()</code> — control stays with your code.</div>
+
+          <div class="code-block">
+            <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">callback-style.js</span></div>
+            <pre><code><span class="fn">createOrder</span>(cart, <span class="kw">function</span> (orderId) {
+    <span class="fn">proceedToPayment</span>(orderId);
+});</code></pre>
+          </div>
+          <div class="code-block">
+            <div class="code-bar"><div class="dot dot-red"></div><div class="dot dot-grey"></div><div class="dot dot-green"></div><span class="filename">promise-style.js</span></div>
+            <pre><code><span class="kw">const</span> promise = <span class="fn">createOrder</span>(cart);
+
+promise.<span class="fn">then</span>(<span class="kw">function</span> (orderId) {
+    <span class="fn">proceedToPayment</span>(orderId);
+});</code></pre>
+          </div>
+
+          <h3>Side-by-Side Comparison</h3>
+          <table class="compare-table">
+            <tr><th>Callbacks</th><th>Promises</th></tr>
+
+            <tr class="compare-row-term">
+              <td>Pass callback into API</td>
+              <td>Attach handler to returned Promise</td>
+            </tr>
+            <tr class="compare-row-detail">
+              <td>We pass a function directly to another function or API, and that API is responsible for calling it later.</td>
+              <td>The API returns a Promise object, and we attach handlers using <code>.then()</code> and <code>.catch()</code> when we want to react to the result.</td>
+            </tr>
+
+            <tr class="compare-row-term">
+              <td>API controls execution</td>
+              <td>We control the continuation flow</td>
+            </tr>
+            <tr class="compare-row-detail">
+              <td>After giving the callback to the API, we must trust the API to execute it correctly, at the right time, and with the correct data.</td>
+              <td>We decide what should happen next by attaching handlers to the Promise, so the continuation of the async flow remains under our control.</td>
+            </tr>
+
+            <tr class="compare-row-term">
+              <td>Code can become deeply nested</td>
+              <td>Code stays flatter and more readable</td>
+            </tr>
+            <tr class="compare-row-detail">
+              <td>When multiple async operations depend on each other, callbacks are often nested inside callbacks, creating the "Pyramid of Doom."</td>
+              <td>Promises allow chaining with <code>.then()</code>, so each async step is written at the same level, making the code easier to read and maintain.</td>
+            </tr>
+
+            <tr class="compare-row-term">
+              <td>Error handling is repetitive</td>
+              <td>Error handling is easier to centralize</td>
+            </tr>
+            <tr class="compare-row-detail">
+              <td>Each callback usually needs its own <code>if (err)</code> check, so the same error-handling code gets repeated many times.</td>
+              <td>A single <code>.catch()</code> can handle errors from the entire Promise chain, reducing repetition and making error handling cleaner.</td>
+            </tr>
+          </table>
+          <div class="info-box box-tip">💡 The bold row is the quick takeaway for each point; the row underneath it (in italics) is the fuller explanation — read the top row first, then drop down only if you need the detail.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ONE-LINE REVISION (violet) ==================== -->
+    <div class="section-divider" id="revision"><span>⚡ One-Line Revision</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>Fast Recall Sheet</h4></div>
+        <div class="card-sub-content">
+          <div class="diagram">Callback Hell        → deeply nested, dependent async operations
+Inversion of Control → external code controls when/if your callback runs
+Promise              → object representing the eventual result of an asynchronous operation
+Fix                  → attach handlers instead of handing over your callback</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== INTERVIEW SUMMARY (orange) ==================== -->
+    <div class="section-divider" id="summary"><span>🎤 Interview Summary</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-3">
+        <div class="card-sub-title"><h4>Key Points to Remember</h4></div>
+        <div class="card-sub-content">
+          <ul>
+            <li><strong>Callback Hell</strong> → multiple dependent async operations nested inside each other, growing the code horizontally.</li>
+            <li>It's caused by the <strong>nesting of dependent operations</strong>, not by callbacks as a mechanism.</li>
+            <li><strong>Inversion of Control</strong> → you pass your callback to external code and trust it to call it correctly, the right number of times, with the right data.</li>
+            <li>Error handling with plain callbacks means repeating checks at <strong>every nested level</strong>.</li>
+            <li>Promises fix both problems: they return an object you attach handlers to, so <strong>you</strong> keep control, and errors can be caught in one place.</li>
+          </ul>
+          <div class="info-box box-benefit">💡 30-second answer: "Callback Hell occurs when multiple dependent asynchronous operations are nested, making the code difficult to read and maintain. Inversion of Control occurs because we pass our callback to external code and trust it to execute correctly. Promises improve this by returning an object to which we attach handlers, giving us a cleaner and more maintainable asynchronous flow with simpler error handling."</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="qa"><span>💡 Interview Q&amp;A — Callback Hell</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-item">
+          <div class="qa-question">Is Callback Hell caused by callbacks themselves?</div>
+          <div class="qa-answer">No. It's caused by <strong>deeply nested, dependent asynchronous operations</strong> — not by the callback pattern. Callbacks are a valid mechanism on their own and are still used internally by many APIs, including Promises.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What exactly does "Inversion of Control" mean?</div>
+          <div class="qa-answer">It means you no longer control when, whether, how many times, or with what data your own callback gets executed — an external function you called now controls that execution instead of your code.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How do Promises fix Inversion of Control?</div>
+          <div class="qa-answer">Instead of handing your callback directly to the API, the API returns a Promise object, and you attach your handler to it using <code>.then()</code>. The continuation stays under your control rather than being trusted to external code.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
