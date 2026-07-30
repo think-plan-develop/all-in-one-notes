@@ -162,6 +162,8 @@ table td code { background:rgba(37,99,235,0.1); color:#1e3a8a; padding:2px 6px; 
     color: #e11d48;
     font-weight: 600;
 }
+.qa-answer .code-block { margin-top:12px; }
+.qa-answer .code-block code { background:transparent; padding:0; color:#d4d4d4; font-weight:400; border-radius:0; }
 
 @media (max-width:768px) {
   .header h1 { font-size:26px; }
@@ -183,6 +185,7 @@ table td code { background:rgba(37,99,235,0.1); color:#1e3a8a; padding:2px 6px; 
         <a href="#let-const" onclick="document.getElementById('let-const').scrollIntoView({behavior:'smooth'});return false;">let &amp; const</a>
         <a href="#tdz" onclick="document.getElementById('tdz').scrollIntoView({behavior:'smooth'});return false;">TDZ</a>
         <a href="#errors" onclick="document.getElementById('errors').scrollIntoView({behavior:'smooth'});return false;">Errors</a>
+        <a href="#revision" onclick="document.getElementById('revision').scrollIntoView({behavior:'smooth'});return false;">Quick Revision</a>
         <a href="#summary" onclick="document.getElementById('summary').scrollIntoView({behavior:'smooth'});return false;">Interview Summary</a>
         <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
       </div>
@@ -486,6 +489,32 @@ a = <span class="num">20</span>;</code></pre>
 
     </div>
 
+    <!-- ==================== QUICK REVISION (all blue) ==================== -->
+    <div class="section-divider" id="revision"><span>⚡ Quick Revision</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Interview Quick Revision Table</h4></div>
+        <div class="card-sub-content">
+          <table>
+            <tr><th>Concept</th><th>Remember</th></tr>
+            <tr><td>Hoisting</td><td>Memory allocated for vars/functions before execution</td></tr>
+            <tr><td>When it happens</td><td>Memory Creation Phase, before Code Execution Phase</td></tr>
+            <tr><td><code>var</code></td><td>Hoisted + initialized to <code>undefined</code></td></tr>
+            <tr><td>Function declarations</td><td>Hoisted with entire body — callable before their line</td></tr>
+            <tr><td>Function expressions / arrow fns</td><td>Only the variable is hoisted, not the function value — same rules as <code>let</code>/<code>const</code>/<code>var</code> depending on how they're declared</td></tr>
+            <tr><td><code>let</code> / <code>const</code></td><td>Hoisted but uninitialized — sit in the TDZ</td></tr>
+            <tr><td>TDZ</td><td>Gap between memory allocation and initialization</td></tr>
+            <tr><td>Accessing TDZ variable</td><td><code>ReferenceError</code></td></tr>
+            <tr><td>Reassigning <code>const</code></td><td><code>TypeError</code></td></tr>
+            <tr><td>Redeclaring <code>let</code>/<code>const</code></td><td><code>SyntaxError</code></td></tr>
+            <tr><td>Classes</td><td>Hoisted like <code>let</code>/<code>const</code> — also sit in the TDZ until defined</td></tr>
+            <tr><td><code>typeof</code> on a TDZ variable</td><td>Still throws <code>ReferenceError</code> — <code>typeof</code> is only "safe" for undeclared variables, not TDZ ones</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- ==================== INTERVIEW SUMMARY (all purple) ==================== -->
     <div class="section-divider" id="summary"><span>Interview Summary</span></div>
 
@@ -529,6 +558,60 @@ a = <span class="num">20</span>;</code></pre>
         <div class="qa-item">
           <div class="qa-question">Why does var return undefined instead of an error?</div>
           <div class="qa-answer">The JavaScript engine initializes <code>var</code> declarations with <code>undefined</code> during the memory allocation phase. Because it has a value (even if it's "undefined"), the engine considers it defined, whereas <code>let</code> remains strictly uninitialized.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Are function expressions and arrow functions hoisted the same way as function declarations?</div>
+          <div class="qa-answer">
+            No. Only the <strong>variable</strong> is hoisted, not the function value assigned to it — the same rule that applies to <code>var</code>/<code>let</code>/<code>const</code> in general.
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">expression-vs-declaration.js</span></div>
+              <pre><code>greet();  <span class="cmt">// ✅ works — function declaration</span>
+sayHi();  <span class="cmt">// ❌ TypeError: sayHi is not a function</span>
+
+<span class="kw">function</span> <span class="fn">greet</span>() { <span class="fn">console</span>.log(<span class="str">"Hello"</span>); }
+
+<span class="kw">var</span> sayHi = <span class="kw">function</span>() { <span class="fn">console</span>.log(<span class="str">"Hi"</span>); };</code></pre>
+            </div>
+            <code>sayHi</code> is hoisted as a <code>var</code> (so it exists as <code>undefined</code> early on), but the function itself isn't assigned to it until that line executes — calling it before then tries to invoke <code>undefined</code>.
+          </div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What does typeof return for a variable in the TDZ?</div>
+          <div class="qa-answer">
+            It still throws a <code>ReferenceError</code>, not <code>"undefined"</code>. Normally <code>typeof</code> is "safe" on an undeclared variable, but a TDZ variable is different — it's declared, just not yet initialized, and the engine still blocks access.
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">typeof-tdz.js</span></div>
+              <pre><code><span class="kw">console</span>.log(<span class="kw">typeof</span> notDeclared); <span class="cmt">// "undefined" — safe</span>
+<span class="kw">console</span>.log(<span class="kw">typeof</span> a);           <span class="cmt">// ❌ ReferenceError — 'a' is in the TDZ</span>
+<span class="kw">let</span> a = <span class="num">10</span>;</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Is a class hoisted in JavaScript?</div>
+          <div class="qa-answer">Yes — like <code>let</code>/<code>const</code>, a class declaration is hoisted but stays uninitialized in the Temporal Dead Zone until the class definition itself is evaluated. Trying to instantiate it earlier throws a <code>ReferenceError</code>, the same way accessing a TDZ variable does.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Does hoisting work the same way inside a function as it does globally?</div>
+          <div class="qa-answer">Yes — every function call creates its own Execution Context with its own Memory Creation Phase, so <code>var</code>/function/`let`/`const` hoisting all happen again <em>within that function's scope</em>, independently of the global scope.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What will this code log, and why?</div>
+          <div class="qa-answer">
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">var-loop-closure.js</span></div>
+              <pre><code><span class="kw">for</span> (<span class="kw">var</span> i = <span class="num">0</span>; i &lt; <span class="num">3</span>; i++) {
+  setTimeout(() =&gt; <span class="kw">console</span>.log(i), <span class="num">0</span>);
+}
+<span class="cmt">// Output: 3, 3, 3</span></code></pre>
+            </div>
+            <code>var</code> is function-scoped, not block-scoped, so all three callbacks close over the <strong>same</strong> hoisted <code>i</code> — by the time they run, the loop has finished and <code>i</code> is <code>3</code>. Replacing <code>var</code> with <code>let</code> gives <code>0, 1, 2</code> instead, since <code>let</code> creates a fresh binding for <code>i</code> on every iteration.
+          </div>
         </div>
 
       </div>

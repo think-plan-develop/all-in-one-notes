@@ -3,217 +3,728 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prototypes — Complete Guide</title>
-<link rel="stylesheet" href="index.css">
+<title>prototype, __proto__ &amp; the Prototype Chain — Complete Interview Notes</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+/* ═══════════ THEME VARIABLES ═══════════ */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#f97316; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+
+/* ═══════════ HEADER ═══════════ */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:32px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:13px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* ═══════════ KEY TERMS SUMMARY ═══════════ */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* ═══════════ SECTION DIVIDER ═══════════ */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* ═══════════ CODE BLOCK ═══════════ */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* ═══════════ DIAGRAM ═══════════ */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+.svg-diagram { background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; margin:14px 0; box-shadow:0 4px 14px rgba(0,0,0,0.05); overflow-x:auto; }
+.svg-diagram svg { display:block; width:100%; height:auto; }
+
+/* ═══════════ INFO BOXES ═══════════ */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* ═══════════ SHORT ANSWER ═══════════ */
+.short-answer { position:relative; background:linear-gradient(160deg,#ffffff 0%, var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),0.16); border-left:4px solid var(--accent); border-radius:12px; padding:18px 22px 20px; margin-bottom:14px; font-size:17px; line-height:1.75; font-weight:500; color:#293244; box-shadow:0 6px 18px rgba(var(--shadow-rgb),0.1); }
+.short-answer::before { content:"QUICK ANSWER"; display:block; width:fit-content; font-size:11px; font-weight:800; letter-spacing:.8px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; margin-bottom:12px; box-shadow:0 3px 8px rgba(var(--shadow-rgb),0.35); }
+.short-answer strong { color: var(--heading); }
+.short-answer code { background:rgba(var(--shadow-rgb),0.1); color:var(--heading); padding:2px 6px; border-radius:5px; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+
+/* ═══════════ MEMORABLE RULE BOX ═══════════ */
+.remember-box { background:linear-gradient(135deg,#fef3c7,#fde68a); border-radius:12px; padding:20px 24px; margin:16px 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.remember-box .remember-label { display:block; font-size:11px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:#92400e; margin-bottom:10px; }
+.remember-box .remember-text { font-size:17px; line-height:1.8; font-weight:700; color:#92400e; }
+
+/* ═══════════ COMPARISON CARDS ═══════════ */
+.compare-grid { display:flex; gap:18px; flex-wrap:wrap; margin:14px 0; }
+.compare-card { flex:1; min-width:220px; border-radius:12px; padding:18px 20px; }
+.compare-card.left { background:linear-gradient(135deg,#eff6ff,#dbeafe); border:1px solid rgba(37,99,235,0.2); }
+.compare-card.right { background:linear-gradient(135deg,#ecfdf5,#d1fae5); border:1px solid rgba(5,150,105,0.2); }
+.compare-card h5 { font-size:16px; font-weight:800; margin-bottom:10px; font-family:'Fira Code','Consolas',monospace; }
+.compare-card.left h5 { color:#1e3a8a; } .compare-card.right h5 { color:#065f46; }
+.compare-card ul { margin-left:18px; }
+.compare-card.left li { color:#1e3a8a; } .compare-card.right li { color:#065f46; }
+.compare-card li { font-size:14.5px; line-height:1.9; font-weight:600; margin-bottom:2px; }
+@media (max-width:768px) { .compare-grid { flex-direction:column; } }
+
+/* ═══════════ NUMBERED SUBSECTIONS (card-sub) ═══════════ */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); border-left:5px solid var(--accent); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); flex:1; }
+.card-sub-title .badge { margin-left:auto; background:rgba(var(--shadow-rgb),0.14); color:var(--heading); font-size:11px; font-weight:800; padding:4px 12px; border-radius:20px; letter-spacing:.4px; white-space:nowrap; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content h3 { font-size:16px; margin:18px 0 8px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .code-block:last-child { margin-bottom:0; }
+
+/* ═══════════ TABLE (theme-aware) ═══════════ */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); border:1px solid rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:500; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.15); transition:background .15s ease; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+/* ═══════════ Q&A (qa-container style) ═══════════ */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:24px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
 </head>
 <body>
 <div class="container">
 
-  <div class="header">
-    <h1>Prototypes ⭐⭐⭐⭐⭐</h1>
-    <p>How JavaScript really shares properties and methods between objects — prototype objects, the prototype chain, `__proto__`, `prototype`, and inheritance.</p>
+  <!-- ==================== HEADER ==================== -->
+  <div class="header theme-blue">
+    <h1>🧬 prototype, __proto__ &amp; the Prototype Chain</h1>
+    <p>Starting from a function's shared toolbox, through what "new" actually does, to the hidden link every object carries</p>
     <div class="toc">
-      <a href="#prototype-object">Prototype Object</a>
-      <a href="#prototype-chain">Prototype Chain</a>
-      <a href="#dunder-proto">__proto__</a>
-      <a href="#dot-prototype">prototype</a>
-      <a href="#inheritance">Inheritance</a>
-      <a href="#prototype-interview-questions">Interview Questions</a>
+      <a href="#prototype" onclick="document.getElementById('prototype').scrollIntoView({behavior:'smooth'});return false;">prototype</a>
+      <a href="#new-keyword" onclick="document.getElementById('new-keyword').scrollIntoView({behavior:'smooth'});return false;">The new keyword</a>
+      <a href="#dunder-proto" onclick="document.getElementById('dunder-proto').scrollIntoView({behavior:'smooth'});return false;">__proto__</a>
+      <a href="#comparison" onclick="document.getElementById('comparison').scrollIntoView({behavior:'smooth'});return false;">Comparison</a>
+      <a href="#chain-examples" onclick="document.getElementById('chain-examples').scrollIntoView({behavior:'smooth'});return false;">Prototype Chain Walkthroughs</a>
+      <a href="#lookup-summary" onclick="document.getElementById('lookup-summary').scrollIntoView({behavior:'smooth'});return false;">Lookup Process &amp; Summary</a>
+      <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      <a href="#polyfills" onclick="document.getElementById('polyfills').scrollIntoView({behavior:'smooth'});return false;">Polyfills</a>
+      <a href="#final-summary" onclick="document.getElementById('final-summary').scrollIntoView({behavior:'smooth'});return false;">30-Second Summary</a>
     </div>
   </div>
 
-  <div class="card" id="prototype-object">
-    <div class="card-title">🧬 Prototype Object</div>
-    <div class="card-content">
-      <p>Every object in JavaScript has a hidden internal link to another object called its <strong>prototype</strong>. When you try to read a property that doesn't exist directly on the object, JavaScript automatically looks it up on the prototype instead — and if it's not there either, it keeps looking up the prototype's own prototype, and so on. This is how methods like <code>.toString()</code> or <code>.map()</code> are available on every object/array without being copied onto each one individually.</p>
+  <div class="info-box box-benefit"><strong>📌 In short:</strong> A function's <code>prototype</code> is a shared toolbox of methods. When you call it with <code>new</code>, the new object gets a hidden link — <code>__proto__</code> — back to that toolbox. Property lookups walk this link outward until found or until <code>null</code> — and that same mechanism is exactly how a polyfill added to <code>Function.prototype</code> becomes available on every function.</div>
 
-      <div class="code-block">
-        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">prototype-object.js</span></div>
-        <pre><code><span class="kw">const</span> obj = {};
-<span class="fn">console</span>.<span class="fn">log</span>(obj.<span class="fn">toString</span>()); <span class="cmt">// "[object Object]"</span>
-<span class="cmt">// obj doesn't define toString() itself —</span>
-<span class="cmt">// it's found on obj's prototype: Object.prototype</span>
-
-<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">Object</span>.<span class="fn">getPrototypeOf</span>(obj) === Object.prototype); <span class="cmt">// true</span></code></pre>
+  <!-- ==================== KEY TERMS SUMMARY ==================== -->
+  <div class="intro-summary">
+    <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+    <div class="summary-grid">
+      <div class="summary-item summary-pink">
+        <div class="summary-icon">🧰</div>
+        <div class="summary-text"><strong>prototype:</strong> Exists only on functions — a shared toolbox of methods handed to objects created with <code>new</code>.</div>
       </div>
-
-      <div class="info-box box-note">📌 Note: The prototype itself is just a normal object — it can have its own prototype too, forming a chain that eventually ends at <code>null</code>.</div>
+      <div class="summary-item summary-teal">
+        <div class="summary-icon">🔗</div>
+        <div class="summary-text"><strong>__proto__:</strong> The hidden link every object has, remembering which toolbox it was created from.</div>
+      </div>
+      <div class="summary-item summary-indigo">
+        <div class="summary-icon">⛓️</div>
+        <div class="summary-text"><strong>Prototype Chain:</strong> The linked path the engine walks when a property isn't found directly on an object.</div>
+      </div>
+      <div class="summary-item summary-orange">
+        <div class="summary-icon">🧩</div>
+        <div class="summary-text"><strong>Polyfill:</strong> Code that recreates a missing built-in feature, often added directly onto a shared toolbox.</div>
+      </div>
     </div>
   </div>
 
-  <div class="card" id="prototype-chain">
-    <div class="card-title">🔗 Prototype Chain</div>
-    <div class="card-content">
-      <p>The <strong>prototype chain</strong> is the sequence of linked objects JavaScript walks through when looking up a property: the object itself, then its prototype, then that prototype's prototype, and so on, until it finds the property or reaches <code>null</code> (the end of every chain).</p>
+  <!-- ==================== PROTOTYPE FIRST (blue) ==================== -->
+  <div class="section-divider" id="prototype"><span>What is prototype? (Start Here)</span></div>
 
-      <div class="code-block">
-        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">prototype-chain.js</span></div>
-        <pre><code><span class="kw">const</span> animal = { eats: <span class="kw">true</span> };
-<span class="kw">const</span> dog = <span class="fn">Object</span>.<span class="fn">create</span>(animal);  <span class="cmt">// dog's prototype is 'animal'</span>
-dog.barks = <span class="kw">true</span>;
+  <div class="categories-wrap">
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Only Functions Have a prototype Property</h4><span class="badge">Start Here</span></div>
+      <div class="card-sub-content">
+        <div class="short-answer"><strong>prototype</strong> belongs to a function. JavaScript uses it whenever <code>new</code> creates an object from that function.</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">function-prototype.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">Person</span>() {}
 
-<span class="fn">console</span>.<span class="fn">log</span>(dog.barks); <span class="cmt">// true -> found directly on dog</span>
-<span class="fn">console</span>.<span class="fn">log</span>(dog.eats);  <span class="cmt">// true -> not on dog, found on animal (its prototype)</span>
-
-<span class="cmt">// Chain: dog -> animal -> Object.prototype -> null</span>
-<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">Object</span>.<span class="fn">getPrototypeOf</span>(animal) === Object.prototype); <span class="cmt">// true</span>
-<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">Object</span>.<span class="fn">getPrototypeOf</span>(Object.prototype));         <span class="cmt">// null -> end of chain</span></code></pre>
+console.<span class="fn">log</span>(Person.prototype);
+<span class="cmt">// Output: {}</span></code></pre>
+        </div>
       </div>
-
-      <div class="info-box box-warning">⚠️ Warning: Long prototype chains make property lookups slower (JS has to walk further before giving up or finding the value) — keep chains shallow where performance matters.</div>
     </div>
-  </div>
 
-  <div class="card" id="dunder-proto">
-    <div class="card-title">🔍 __proto__</div>
-    <div class="card-content">
-      <p><code>__proto__</code> is an accessor property (getter/setter) available on almost every object that exposes its internal prototype link directly, letting you read or set it. It's the historical, informal way to interact with the prototype chain — the modern, standard alternatives are <code>Object.getPrototypeOf()</code> and <code>Object.setPrototypeOf()</code>.</p>
-
-      <div class="code-block">
-        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">dunder-proto.js</span></div>
-        <pre><code><span class="kw">const</span> animal = { eats: <span class="kw">true</span> };
-<span class="kw">const</span> dog = {};
-
-dog.__proto__ = animal;          <span class="cmt">// old-school way to set the prototype</span>
-<span class="fn">console</span>.<span class="fn">log</span>(dog.eats);       <span class="cmt">// true (inherited via __proto__ link)</span>
-
-<span class="cmt">// Preferred modern equivalents:</span>
-<span class="fn">Object</span>.<span class="fn">setPrototypeOf</span>(dog, animal);
-<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">Object</span>.<span class="fn">getPrototypeOf</span>(dog) === animal); <span class="cmt">// true</span></code></pre>
-      </div>
-
-      <div class="info-box box-tip">💡 Tip: Avoid using <code>__proto__</code> in real code — it was only standardized for legacy browser compatibility. Use <code>Object.getPrototypeOf()</code> / <code>Object.setPrototypeOf()</code> instead, and prefer <code>Object.create()</code> when setting up the prototype at creation time (faster than setting it afterward).</div>
-    </div>
-  </div>
-
-  <div class="card" id="dot-prototype">
-    <div class="card-title">🏗️ prototype</div>
-    <div class="card-content">
-      <p><code>prototype</code> is different from <code>__proto__</code> — it's a regular property that exists <strong>only on functions</strong> (specifically ones meant to be used as constructors), not on plain objects. It's the object that will become the <code>__proto__</code> of every instance created with <code>new</code>. This is how shared methods get attached once and used by every instance, instead of being duplicated on each one.</p>
-
-      <div class="code-block">
-        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">dot-prototype.js</span></div>
-        <pre><code><span class="kw">function</span> <span class="fn">Dog</span>(name) {
-  <span class="kw">this</span>.name = name;
-}
-
-<span class="fn">Dog</span>.prototype.bark = <span class="kw">function</span>() {   <span class="cmt">// shared by every instance</span>
-  <span class="fn">console</span>.<span class="fn">log</span>(<span class="kw">this</span>.name + <span class="str">" says woof!"</span>);
-};
-
-<span class="kw">const</span> rex = <span class="kw">new</span> <span class="fn">Dog</span>(<span class="str">"Rex"</span>);
-rex.<span class="fn">bark</span>();  <span class="cmt">// "Rex says woof!"</span>
-
-<span class="fn">console</span>.<span class="fn">log</span>(rex.__proto__ === Dog.prototype); <span class="cmt">// true</span>
-<span class="fn">console</span>.<span class="fn">log</span>(rex.hasOwnProperty(<span class="str">"bark"</span>));   <span class="cmt">// false -> bark lives on Dog.prototype, not on rex itself</span></code></pre>
-      </div>
-
-      <table>
-        <tr><th></th><th><code>__proto__</code></th><th><code>prototype</code></th></tr>
-        <tr><td>Exists on</td><td>Every object (instances)</td><td>Only functions/classes (constructors)</td></tr>
-        <tr><td>Points to</td><td>The object's own prototype</td><td>The object that will be new instances' prototype</td></tr>
-        <tr><td>Typical use</td><td>Reading/inspecting the chain</td><td>Defining shared methods for instances</td></tr>
-      </table>
-    </div>
-  </div>
-
-  <div class="card" id="inheritance">
-    <div class="card-title">🧑‍🤝‍🧑 Inheritance</div>
-    <div class="card-content">
-      <p>JavaScript implements inheritance through the <strong>prototype chain</strong> rather than classical class-copying: an object "inherits" by having another object as its prototype, so it can use that object's properties/methods as if they were its own. ES6 <code>class</code> syntax with <code>extends</code> and <code>super</code> is just a cleaner way to write this same prototype-based mechanism.</p>
-
-      <h4>Constructor-function style (pre-ES6)</h4>
-      <div class="code-block">
-        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">inheritance-constructor.js</span></div>
-        <pre><code><span class="kw">function</span> <span class="fn">Animal</span>(name) {
-  <span class="kw">this</span>.name = name;
-}
-<span class="fn">Animal</span>.prototype.eat = <span class="kw">function</span>() {
-  <span class="fn">console</span>.<span class="fn">log</span>(<span class="kw">this</span>.name + <span class="str">" is eating"</span>);
-};
-
-<span class="kw">function</span> <span class="fn">Dog</span>(name) {
-  <span class="fn">Animal</span>.<span class="fn">call</span>(<span class="kw">this</span>, name);   <span class="cmt">// borrow Animal's constructor logic</span>
-}
-<span class="fn">Dog</span>.prototype = <span class="fn">Object</span>.<span class="fn">create</span>(Animal.prototype); <span class="cmt">// link Dog's prototype to Animal's</span>
-<span class="fn">Dog</span>.prototype.constructor = Dog;
-
-<span class="kw">const</span> rex = <span class="kw">new</span> <span class="fn">Dog</span>(<span class="str">"Rex"</span>);
-rex.<span class="fn">eat</span>(); <span class="cmt">// "Rex is eating" -> inherited from Animal.prototype</span></code></pre>
-      </div>
-
-      <h4>Modern class style (same mechanism, cleaner syntax)</h4>
-      <div class="code-block">
-        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">inheritance-class.js</span></div>
-        <pre><code><span class="kw">class</span> <span class="fn">Animal</span> {
-  <span class="fn">constructor</span>(name) {
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Why Does prototype Exist?</h4></div>
+      <div class="card-sub-content">
+        <p>Imagine you create 100 <code>Person</code> objects. Should each object get its own private copy of <code>greet()</code>? That would waste memory 100 times over.</p>
+        <p>Instead, JavaScript stores <code>greet()</code> <strong>once</strong>, inside <code>Person.prototype</code>. Every object created from <code>Person</code> shares that same method.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">shared-toolbox.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">Person</span>(name) {
     <span class="kw">this</span>.name = name;
-  }
-  <span class="fn">eat</span>() {
-    <span class="fn">console</span>.<span class="fn">log</span>(<span class="kw">this</span>.name + <span class="str">" is eating"</span>);
-  }
 }
 
-<span class="kw">class</span> <span class="fn">Dog</span> <span class="kw">extends</span> Animal {
-  <span class="fn">bark</span>() {
-    <span class="fn">console</span>.<span class="fn">log</span>(<span class="kw">this</span>.name + <span class="str">" says woof!"</span>);
-  }
-}
+Person.prototype.greet = <span class="kw">function</span>() {
+    console.<span class="fn">log</span>(<span class="str">"Hello, I'm "</span> + <span class="kw">this</span>.name);
+};
 
-<span class="kw">const</span> rex = <span class="kw">new</span> <span class="fn">Dog</span>(<span class="str">"Rex"</span>);
-rex.<span class="fn">eat</span>();  <span class="cmt">// "Rex is eating" -> inherited from Animal</span>
-rex.<span class="fn">bark</span>(); <span class="cmt">// "Rex says woof!" -> defined on Dog</span>
-
-<span class="fn">console</span>.<span class="fn">log</span>(rex <span class="kw">instanceof</span> Animal); <span class="cmt">// true -> Dog.prototype's prototype is Animal.prototype</span></code></pre>
+<span class="cmt">// 100 objects, but only ONE greet() in memory</span>
+<span class="kw">const</span> p1 = <span class="kw">new</span> Person(<span class="str">"Asha"</span>);
+<span class="kw">const</span> p2 = <span class="kw">new</span> Person(<span class="str">"Ravi"</span>);
+p1.greet(); <span class="cmt">// "Hello, I'm Asha" — uses the shared greet()</span></code></pre>
+        </div>
+        <div class="info-box box-tip">💡 Think of <code>prototype</code> as a <strong>shared toolbox</strong>, not just a blueprint. A blueprint explains how something is built once; a toolbox explains why 100 objects can all reach for the same tools without each carrying their own copy.</div>
       </div>
-
-      <div class="info-box box-benefit">✅ Benefit: Under the hood, <code>class ... extends</code> just wires up the prototype chain automatically (<code>Dog.prototype.__proto__ === Animal.prototype</code>) — it's syntax sugar over the exact same prototype-based inheritance shown above, not a different inheritance model.</div>
     </div>
   </div>
-  <div class="section-divider"><span>Interview Questions</span></div>
 
-  <div class="card" id="prototype-interview-questions">
-    <div class="card-title">🎤 Prototype Interview Questions</div>
-    <div class="card-content-QA">
+  <!-- ==================== THE NEW KEYWORD (blue) ==================== -->
+  <div class="section-divider" id="new-keyword"><span>What Does the new Keyword Actually Do?</span></div>
 
-      <h4>1. What is a prototype in JavaScript? Explain the Prototype object and how JavaScript uses it for inheritance.</h4>
-      <p>A prototype is an object that other objects can inherit properties and methods from. Every object carries an internal link to its prototype, and when you access a property that isn't found directly on the object, JavaScript automatically looks it up on the prototype instead. This lookup mechanism <em>is</em> JavaScript's inheritance model: rather than copying members into every instance, instances share a single prototype object and read shared behavior from it on demand.</p>
+  <div class="categories-wrap">
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Four Steps Behind new Person()</h4></div>
+      <div class="card-sub-content">
+        <p>Most confusion about <code>__proto__</code> disappears once you see what <code>new</code> is doing step by step:</p>
+        <div class="svg-diagram">
+          <svg viewBox="0 0 560 240" xmlns="http://www.w3.org/2000/svg">
+            <rect x="180" y="10" width="200" height="40" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+            <text x="280" y="35" text-anchor="middle" font-family="Fira Code, monospace" font-size="13" font-weight="700" fill="#1e3a8a">new Person()</text>
 
-      <h4>2. What is the difference between <code>__proto__</code>, <code>prototype</code>, and <code>[[Prototype]]</code>? <span class="badge">Frequently Asked</span></h4>
-      <p>These three terms are often confused, but they describe three distinct things:</p>
-      <table>
-        <tr><th>Term</th><th>What it is</th></tr>
-        <tr><td><code>[[Prototype]]</code></td><td>The actual internal slot every object has, holding the real link to its prototype. It's not directly accessible by that name in code — it's a spec-level concept.</td></tr>
-        <tr><td><code>__proto__</code></td><td>A legacy accessor property (getter/setter) exposed on object instances that lets you read or set their <code>[[Prototype]]</code> from regular code.</td></tr>
-        <tr><td><code>prototype</code></td><td>A plain property that exists only on functions/classes used as constructors. It's the object that becomes the <code>[[Prototype]]</code> (and therefore the <code>__proto__</code>) of every instance created with <code>new</code>.</td></tr>
-      </table>
-      <div class="info-box box-tip">💡 Tip: A clean way to phrase it in an interview: "<code>prototype</code> is on the constructor and decides what instances will inherit; <code>__proto__</code> is on the instance and shows what it actually inherited; <code>[[Prototype]]</code> is the internal mechanism both of those are just interfaces to."</div>
+            <rect x="30" y="70" width="500" height="34" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+            <text x="50" y="92" font-family="Segoe UI, sans-serif" font-size="12" fill="#9a3412">1. Create an empty object</text>
 
-      <h4>3. How does the Prototype Chain work in JavaScript?</h4>
-      <p>When you access a property on an object, the engine first checks the object itself. If it isn't found there, it moves to the object's <code>[[Prototype]]</code>, then that object's own prototype, and so on — this sequence of linked objects is the prototype chain. The search stops as soon as a match is found (an "own" property closer to the object always shadows one further up the chain), or continues until the chain ends at <code>null</code>, at which point the property is <code>undefined</code>.</p>
+            <rect x="30" y="112" width="500" height="34" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="1.5"/>
+            <text x="50" y="134" font-family="Segoe UI, sans-serif" font-size="12" fill="#065f46">2. Link it to Person.prototype (this becomes the object's __proto__)</text>
 
-      <h4>4. How do you add methods to all instances of a constructor function? Why put them on <code>Constructor.prototype</code> instead of inside the constructor?</h4>
-      <p>Attach the method to <code>Constructor.prototype</code> so it's defined <strong>once</strong> and shared by every instance through the prototype chain, rather than defining it inside the constructor function body with <code>this.method = function(){...}</code>, which would recreate a brand-new function object on every single instantiation. For thousands of instances, that's thousands of duplicate function objects wasting memory — prototype methods avoid that entirely, and also make it possible to patch or extend behavior for all existing instances at once.</p>
+            <rect x="30" y="154" width="500" height="34" rx="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+            <text x="50" y="176" font-family="Segoe UI, sans-serif" font-size="12" fill="#5b21b6">3. Call Person(), with 'this' set to the new object</text>
 
-      <h4>5. What is the difference between prototype inheritance and classical inheritance? Compare with Java or C#.</h4>
-      <p>In classical languages like Java or C#, inheritance is based on <strong>classes</strong>: a class is a fixed, compile-time blueprint, and objects are instances built from it — the hierarchy is static and defined ahead of time. JavaScript's prototypal model has objects inherit directly from <strong>other objects</strong> at runtime; there's no separate "blueprint" concept, prototypes can be reassigned or modified dynamically even after objects exist, and the inheritance chain is just a live series of object references. ES6 <code>class</code> syntax makes JS <em>look</em> classical, but underneath it's still prototype links — there's no true class-based mechanism running the show.</p>
+            <rect x="30" y="196" width="500" height="34" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+            <text x="50" y="218" font-family="Segoe UI, sans-serif" font-size="12" fill="#1e3a8a">4. Return the object</text>
 
-      <h4>6. What is the relationship between <code>Object.create()</code> and prototypes? How does it create an object with a specified prototype?</h4>
-      <p><code>Object.create(proto)</code> creates a brand-new, empty object whose <code>[[Prototype]]</code> is set directly to whatever object you pass in — no constructor function or <code>new</code> keyword involved. It's the most direct way to express "make an object that inherits from this other object," which is useful for pure prototypal inheritance patterns without the ceremony of constructor functions or classes.</p>
-      <div class="code-block">
-        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">object-create.js</span></div>
-        <pre><code><span class="kw">const</span> animal = { eats: <span class="kw">true</span> };
-<span class="kw">const</span> dog = <span class="fn">Object</span>.<span class="fn">create</span>(animal); <span class="cmt">// dog's [[Prototype]] is set to 'animal' directly</span>
-<span class="fn">console</span>.<span class="fn">log</span>(dog.eats);       <span class="cmt">// true -> inherited</span>
-<span class="fn">console</span>.<span class="fn">log</span>(<span class="fn">Object</span>.<span class="fn">getPrototypeOf</span>(dog) === animal); <span class="cmt">// true</span></code></pre>
+            <line x1="280" y1="50" x2="280" y2="64" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowNew)"/>
+            <defs>
+              <marker id="arrowNew" markerWidth="9" markerHeight="9" refX="5" refY="4.5" orient="auto">
+                <path d="M0,0 L9,4.5 L0,9 Z" fill="#94a3b8"/>
+              </marker>
+            </defs>
+          </svg>
+        </div>
+        <div class="info-box box-note">📌 Step 2 is the one that matters most here — it's the exact moment the new object's <code>__proto__</code> gets set to <code>Person.prototype</code>.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== __PROTO__ (green) ==================== -->
+  <div class="section-divider" id="dunder-proto"><span>What is __proto__?</span></div>
+
+  <div class="categories-wrap">
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>The Hidden Link Every Object Has</h4></div>
+      <div class="card-sub-content">
+        <div class="short-answer"><strong>__proto__</strong> belongs to an object. It remembers which toolbox (prototype) that object was created from.</div>
+        <p>Every object remembers where it inherited its properties from. That link is available through <code>__proto__</code>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">proto-basic.js</span></div>
+          <pre><code><span class="kw">const</span> obj = {};
+
+console.<span class="fn">log</span>(obj.__proto__); <span class="cmt">// "Show me this object's prototype."</span></code></pre>
+        </div>
+        <p>Internally this link is stored as <code>[[Prototype]]</code> — a hidden engine property. The double underscores in <code>__proto__</code> aren't a keyword; they just signal "this is special," and browsers expose it as a convenience for reading that internal link.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>The Relationship, Visually</h4></div>
+      <div class="card-sub-content">
+        <div class="svg-diagram">
+          <svg viewBox="0 0 500 220" xmlns="http://www.w3.org/2000/svg">
+            <rect x="30" y="10" width="180" height="44" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+            <text x="120" y="37" text-anchor="middle" font-family="Fira Code, monospace" font-size="13" font-weight="700" fill="#1e3a8a">function Person(){}</text>
+
+            <rect x="60" y="88" width="130" height="40" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+            <text x="125" y="113" text-anchor="middle" font-family="Fira Code, monospace" font-size="12.5" font-weight="700" fill="#9a3412">prototype</text>
+
+            <rect x="290" y="88" width="140" height="40" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+            <text x="360" y="113" text-anchor="middle" font-family="Fira Code, monospace" font-size="12.5" font-weight="700" fill="#065f46">__proto__</text>
+
+            <rect x="290" y="160" width="140" height="44" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+            <text x="360" y="187" text-anchor="middle" font-family="Fira Code, monospace" font-size="12.5" font-weight="700" fill="#5b21b6">person</text>
+
+            <line x1="120" y1="54" x2="125" y2="84" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowRel1)"/>
+            <text x="130" y="72" font-family="Segoe UI, sans-serif" font-size="10" fill="#64748b">has</text>
+
+            <line x1="360" y1="128" x2="360" y2="156" stroke="#94a3b8" stroke-width="2"/>
+            <text x="370" y="145" font-family="Segoe UI, sans-serif" font-size="10" fill="#64748b">points to</text>
+            <path d="M360,160 L360,145 L195,108" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrowRel1)"/>
+
+            <defs>
+              <marker id="arrowRel1" markerWidth="9" markerHeight="9" refX="5" refY="4.5" orient="auto">
+                <path d="M0,0 L9,4.5 L0,9 Z" fill="#94a3b8"/>
+              </marker>
+            </defs>
+
+            <text x="250" y="220" text-anchor="middle" font-family="Fira Code, monospace" font-size="12" fill="#333">const person = new Person();</text>
+          </svg>
+        </div>
+        <p>When you write:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">new-person.js</span></div>
+          <pre><code><span class="kw">new</span> Person()</code></pre>
+        </div>
+        <p>JavaScript automatically does:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">under-the-hood.js</span></div>
+          <pre><code>newObject.__proto__ = Person.prototype;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Should We Use __proto__ Directly?</h4><span class="badge">No</span></div>
+      <div class="card-sub-content">
+        <div class="short-answer"><strong>No.</strong> Although browsers still support it, <code>__proto__</code> is <strong>deprecated for direct use</strong>.</div>
+        <p>Avoid code like:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">avoid.js</span></div>
+          <pre><code>obj.__proto__;
+obj.__proto__ = anotherObject;</code></pre>
+        </div>
+        <p>Instead use the official APIs:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">recommended.js</span></div>
+          <pre><code>Object.<span class="fn">getPrototypeOf</span>(obj);
+
+Object.<span class="fn">setPrototypeOf</span>(obj, anotherObject);</code></pre>
+        </div>
+        <h3>Why should __proto__ be avoided?</h3>
+        <ul>
+          <li><strong>Slow performance</strong> — changing an object's prototype at runtime forces the engine to re-optimize it, which can slow down your code.</li>
+          <li><strong>Legacy feature</strong> — <code>__proto__</code> exists mainly for browser compatibility; modern JavaScript recommends <code>Object.getPrototypeOf()</code>/<code>setPrototypeOf()</code> instead.</li>
+          <li><strong>Harder to understand</strong> — <code>obj.__proto__ = person;</code> doesn't clearly express intent, while <code>Object.setPrototypeOf(obj, person);</code> reads like exactly what it does.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== COMPARISON (orange) ==================== -->
+  <div class="section-divider" id="comparison"><span>prototype vs __proto__, Side by Side</span></div>
+
+  <div class="categories-wrap">
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>The Comparison</h4></div>
+      <div class="card-sub-content">
+        <div class="compare-grid">
+          <div class="compare-card left">
+            <h5>prototype</h5>
+            <ul>
+              <li>Exists on Functions</li>
+              <li>Acts as a shared toolbox</li>
+              <li>Used while creating objects</li>
+            </ul>
+          </div>
+          <div class="compare-card right">
+            <h5>__proto__</h5>
+            <ul>
+              <li>Exists on Objects</li>
+              <li>Points to the toolbox</li>
+              <li>Used while accessing properties</li>
+            </ul>
+          </div>
+        </div>
+        <table>
+          <tr><th>Kind</th><th>Has</th></tr>
+          <tr><td><code>const obj = {}</code> (an object)</td><td><code>obj.__proto__</code></td></tr>
+          <tr><td><code>function Person(){}</code> (a function)</td><td><code>Person.prototype</code></td></tr>
+        </table>
+        <div class="remember-box">
+          <span class="remember-label">📌 Remember</span>
+          <div class="remember-text">Functions own <code>prototype</code>.<br>Objects own <code>__proto__</code>.<br>Both point to the SAME object.</div>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">same-object.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">Person</span>() {}
+<span class="kw">const</span> p = <span class="kw">new</span> Person();
+
+Person.prototype === p.__proto__
+<span class="cmt">// true</span></code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== PROTOTYPE CHAIN WALKTHROUGHS (green) ==================== -->
+  <div class="section-divider" id="chain-examples"><span>Prototype Chain Walkthroughs</span></div>
+
+  <div class="categories-wrap">
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Array Prototype</h4><span class="badge">Example 1</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">array-proto.js</span></div>
+          <pre><code><span class="kw">const</span> arr = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>];
+
+console.<span class="fn">log</span>(arr.__proto__ === Array.prototype); <span class="cmt">// true</span></code></pre>
+        </div>
+        <p>Every array inherits from <code>Array.prototype</code>, so <code>arr.__proto__</code> and <code>Array.prototype</code> print the same object.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">array-chain-walk.js</span></div>
+          <pre><code>arr.__proto__.__proto__;
+<span class="cmt">// Object.prototype — because arrays are objects too</span>
+
+arr.__proto__.__proto__.__proto__;
+<span class="cmt">// null — the prototype chain ends here</span></code></pre>
+        </div>
+        <div class="diagram">arr
+ ↓
+Array.prototype
+ ↓
+Object.prototype
+ ↓
+null</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Object Prototype</h4><span class="badge">Example 2</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">object-proto.js</span></div>
+          <pre><code><span class="kw">const</span> obj = {};
+
+obj.__proto__;              <span class="cmt">// Object.prototype</span>
+obj.__proto__.__proto__;    <span class="cmt">// null</span></code></pre>
+        </div>
+        <div class="diagram">obj
+ ↓
+Object.prototype
+ ↓
+null</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Function Prototype</h4><span class="badge">Example 3</span></div>
+      <div class="card-sub-content">
+        <p>Functions are also objects, so they too inherit from a prototype — specifically <code>Function.prototype</code>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">function-proto.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">hello</span>() {}
+
+console.<span class="fn">log</span>(hello.__proto__);
+<span class="cmt">// Output: Function.prototype</span>
+
+hello.__proto__.__proto__;  <span class="cmt">// Object.prototype</span>
+hello.__proto__.__proto__.__proto__; <span class="cmt">// null</span></code></pre>
+        </div>
+        <div class="diagram">hello
+ ↓
+Function.prototype
+ ↓
+Object.prototype
+ ↓
+null</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Prototypal Inheritance in Practice</h4><span class="badge">Example 4</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">prototypal-inheritance.js</span></div>
+          <pre><code><span class="kw">let</span> object = {
+    name: <span class="str">"Akshay"</span>,
+    city: <span class="str">"Dehradun"</span>,
+
+    getIntro() {
+        console.<span class="fn">log</span>(<span class="kw">this</span>.name + <span class="str">" from "</span> + <span class="kw">this</span>.city);
+    }
+};
+
+<span class="kw">let</span> object2 = {
+    name: <span class="str">"Aditya"</span>
+};
+
+object2.__proto__ = object;</code></pre>
+        </div>
+        <div class="diagram">object2
+   ↓
+object
+   ↓
+Object.prototype
+   ↓
+null</div>
+
+        <h3>Looking up object2.city</h3>
+        <p>JavaScript searches <code>object2</code> first — not found. It walks up to <code>object</code> — found <code>city</code> — returns <code>"Dehradun"</code>.</p>
+
+        <h3>Calling object2.getIntro()</h3>
+        <p><code>getIntro()</code> itself is found on <code>object</code>, but <strong><code>this</code> still points to <code>object2</code></strong> — the object the method was called on. So <code>this.name</code> comes from <code>object2</code> ("Aditya"), while <code>this.city</code> is found by walking up to <code>object</code> ("Dehradun").</p>
+        <div class="info-box box-benefit"><strong>Output:</strong> <code>Aditya from Dehradun</code></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== LOOKUP PROCESS & SUMMARY (violet) ==================== -->
+  <div class="section-divider" id="lookup-summary"><span>Property Lookup Process &amp; Summary</span></div>
+
+  <div class="categories-wrap">
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><h4>How Property Lookup Works</h4></div>
+      <div class="card-sub-content">
+        <p>When JavaScript accesses a property like <code>obj.name</code>, it searches in this order:</p>
+        <div class="diagram">Object
+   ↓
+Prototype
+   ↓
+Prototype's Prototype
+   ↓
+...
+   ↓
+null</div>
+        <p>If the property is found at any step, JavaScript returns it immediately. If the search reaches <code>null</code> without finding it, the result is <code>undefined</code>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><h4>Summary Table</h4><span class="badge">Cheat Sheet</span></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Term</th><th>Exists On</th><th>Purpose</th></tr>
+          <tr><td><code>prototype</code></td><td>Functions only</td><td>Shared toolbox used when creating objects with <code>new</code></td></tr>
+          <tr><td><code>__proto__</code></td><td>Every object</td><td>Points to the object's prototype (legacy accessor for <code>[[Prototype]]</code>)</td></tr>
+          <tr><td><code>[[Prototype]]</code></td><td>Internal engine property</td><td>The actual internal prototype link</td></tr>
+          <tr><td><code>Object.getPrototypeOf()</code></td><td>Static method</td><td>Recommended way to read an object's prototype</td></tr>
+          <tr><td><code>Object.setPrototypeOf()</code></td><td>Static method</td><td>Recommended way to change an object's prototype</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== INTERVIEW Q&A (original style) ==================== -->
+  <div class="section-divider" id="qa"><span>Interview Questions</span></div>
+
+  <div class="card theme-blue">
+    <div class="card-title">💡 Interview Q&A</div>
+    <div class="card-content qa-container">
+
+      <div class="qa-item">
+        <div class="qa-question">Is __proto__ the same as prototype?</div>
+        <div class="qa-answer">No. <code>prototype</code> belongs to constructor functions — it's the shared toolbox handed to objects created with <code>new</code>. <code>__proto__</code> belongs to objects — it's the live link to the toolbox they were created from.</div>
       </div>
 
-      <h4>7. Can you modify the prototype of built-in objects like <code>Array</code> or <code>String</code>? Should you?</h4>
-      <p>Technically yes — you can add to <code>Array.prototype</code> or <code>String.prototype</code> and every array or string in your program instantly gets that new method, a practice called <strong>monkey-patching</strong> or prototype extension. It's generally discouraged, though: a future JavaScript version might add a native method with the same name and different behavior, silently breaking your code; different libraries patching the same built-in can collide and overwrite each other; and added properties can unexpectedly show up in <code>for...in</code> loops over arrays/objects if not made non-enumerable. Safer alternatives are writing standalone utility functions or extending your own custom classes instead of built-ins.</p>
+      <div class="qa-item">
+        <div class="qa-question">Do arrays have prototypes?</div>
+        <div class="qa-answer">Yes. Arrays inherit from <code>Array.prototype</code>, which in turn inherits from <code>Object.prototype</code>, which inherits from <code>null</code>.</div>
+      </div>
 
-      <h4>8. How do ES6 classes use prototypes internally?</h4>
-      <p><code>class</code> syntax is syntactic sugar over the exact same prototype system that existed before ES6 — it doesn't introduce a new inheritance model. Methods written inside a class body are attached to <code>ClassName.prototype</code> automatically (and made non-enumerable, unlike manually-added prototype properties). When you write <code>class Dog extends Animal</code>, JavaScript wires up two links behind the scenes: <code>Dog.prototype</code>'s own prototype is set to <code>Animal.prototype</code> (so instances inherit instance methods), and <code>Dog</code> itself is linked to <code>Animal</code> (so static methods are inherited too). <code>super()</code> inside the constructor is just a controlled call to the parent constructor function, and <code>super.method()</code> looks up the method starting from the parent's prototype instead of the child's.</p>
-      <div class="info-box box-note">📌 Note: You can verify this yourself: <code>Object.getPrototypeOf(Dog.prototype) === Animal.prototype</code> is <code>true</code> for any <code>class Dog extends Animal</code>.</div>
+      <div class="qa-item">
+        <div class="qa-question">Are functions objects?</div>
+        <div class="qa-answer">Yes. Every function is also an object, so it inherits from <code>Function.prototype</code>, which in turn inherits from <code>Object.prototype</code>.</div>
+      </div>
+
+      <div class="qa-item">
+        <div class="qa-question">Why is __proto__ discouraged?</div>
+        <div class="qa-answer">Because it's a legacy accessor, can hurt performance when used to modify prototypes at runtime, and modern JavaScript provides clearer APIs: <code>Object.getPrototypeOf(obj)</code> and <code>Object.setPrototypeOf(obj, prototype)</code>.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== POLYFILLS (orange) ==================== -->
+  <div class="section-divider" id="polyfills"><span>Polyfills</span></div>
+
+  <div class="categories-wrap">
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>What is a Polyfill?</h4></div>
+      <div class="card-sub-content">
+        <div class="short-answer">A <strong>polyfill</strong> is a piece of JavaScript code that adds support for a feature that is <strong>missing</strong> in an older browser or JavaScript environment. In simple words: a polyfill recreates a built-in JavaScript feature if it doesn't already exist.</div>
+        <p>For example, if an old browser doesn't support <code>Array.prototype.includes()</code>, you can write your own implementation so your code still works there.</p>
+
+        <h3>Why are polyfills needed?</h3>
+        <p>Suppose JavaScript did not have a <code>bind()</code> method. You could create your own version by adding it to <code>Function.prototype</code>. Since <strong>every function inherits from <code>Function.prototype</code></strong>, all functions would immediately gain access to the new method.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>Example — A Custom myBind()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">polyfill-mybind.js</span></div>
+          <pre><code>Function.prototype.myBind = <span class="kw">function</span> () {
+    console.<span class="fn">log</span>(<span class="str">"Custom bind() called"</span>);
+};
+
+<span class="kw">function</span> <span class="fn">fun</span>() {}
+<span class="kw">function</span> <span class="fn">fun2</span>() {}
+
+fun.<span class="fn">myBind</span>();
+fun2.<span class="fn">myBind</span>();
+
+<span class="cmt">// Output:
+// Custom bind() called
+// Custom bind() called</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>How Does It Work?</h4></div>
+      <div class="card-sub-content">
+        <p>When JavaScript executes <code>fun.myBind()</code>, it first searches inside <code>fun</code> itself — not found — then walks up to <code>Function.prototype</code>, where <code>myBind</code> is found and executed.</p>
+        <div class="diagram">fun
+│
+├── myBind ❌ Not Found
+│
+▼
+Function.prototype
+│
+├── myBind ✅ Found</div>
+        <p>The exact same lookup happens for <code>fun2</code> — it also has no <code>myBind</code> of its own, so the engine walks up to the shared <code>Function.prototype</code> and finds it there too.</p>
+        <div class="diagram">fun2
+│
+├── myBind ❌ Not Found
+│
+▼
+Function.prototype
+│
+├── myBind ✅ Found</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>Why Add It to Function.prototype?</h4></div>
+      <div class="card-sub-content">
+        <p>Because every function automatically inherits from <code>Function.prototype</code>:</p>
+        <div class="diagram">fun
+      ↓
+Function.prototype
+      ↓
+Object.prototype
+      ↓
+null
+
+fun2
+      ↓
+Function.prototype
+      ↓
+Object.prototype
+      ↓
+null</div>
+        <p>Adding a method once to <code>Function.prototype</code> makes it available to <strong>every function</strong>, without touching each one individually — that's the same mechanism the prototype chain uses for everything else.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>Another Simple Example</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">polyfill-sayhello.js</span></div>
+          <pre><code>Function.prototype.sayHello = <span class="kw">function</span> () {
+    console.<span class="fn">log</span>(<span class="str">"Hello from all functions!"</span>);
+};
+
+<span class="kw">function</span> <span class="fn">add</span>() {}
+<span class="kw">function</span> <span class="fn">multiply</span>() {}
+
+add.<span class="fn">sayHello</span>();
+multiply.<span class="fn">sayHello</span>();
+
+<span class="cmt">// Output:
+// Hello from all functions!
+// Hello from all functions!</span></code></pre>
+        </div>
+        <div class="info-box box-note"><strong>📌 Important note:</strong> These examples demonstrate <em>how</em> polyfills work. In real applications, a polyfill is usually written only when a built-in JavaScript method is missing in some environment — but creating simple methods like <code>myBind()</code> or <code>sayHello()</code> is a great way to understand how JavaScript's prototype system actually operates.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 30-SECOND SUMMARY ==================== -->
+  <div class="section-divider" id="final-summary"><span>30-Second Summary</span></div>
+
+  <div class="card theme-blue">
+    <div class="card-title">⏱️ Everything in One Diagram</div>
+    <div class="card-content">
+      <div class="svg-diagram">
+        <svg viewBox="0 0 560 260" xmlns="http://www.w3.org/2000/svg">
+          <rect x="190" y="10" width="180" height="42" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+          <text x="280" y="36" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="13" font-weight="800" fill="#1e3a8a">Function</text>
+
+          <rect x="190" y="80" width="180" height="42" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+          <text x="280" y="106" text-anchor="middle" font-family="Fira Code, monospace" font-size="12.5" font-weight="700" fill="#9a3412">prototype</text>
+          <text x="280" y="72" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="10" fill="#64748b">used by new</text>
+
+          <rect x="190" y="150" width="180" height="42" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+          <text x="280" y="176" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="13" font-weight="800" fill="#065f46">Object</text>
+
+          <rect x="190" y="218" width="180" height="34" rx="10" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+          <text x="280" y="240" text-anchor="middle" font-family="Fira Code, monospace" font-size="12" font-weight="700" fill="#5b21b6">__proto__ → prototype</text>
+
+          <line x1="280" y1="52" x2="280" y2="76" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowFinal)"/>
+          <line x1="280" y1="122" x2="280" y2="146" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowFinal)"/>
+          <line x1="280" y1="192" x2="280" y2="214" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrowFinal)"/>
+          <defs>
+            <marker id="arrowFinal" markerWidth="9" markerHeight="9" refX="5" refY="4.5" orient="auto">
+              <path d="M0,0 L9,4.5 L0,9 Z" fill="#94a3b8"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+      <div class="diagram">If a property isn't found
+↓
+Follow __proto__
+↓
+Keep searching
+↓
+null</div>
     </div>
   </div>
 
