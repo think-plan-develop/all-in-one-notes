@@ -52,8 +52,13 @@ body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, A
 .code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
 .kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
 
-/* ═══════════ DIAGRAM ═══════════ */
+/* ═══════════ DIAGRAM (legacy text style, kept for other sections) ═══════════ */
 .diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+/* ═══════════ SVG DIAGRAM WRAPPER ═══════════ */
+.svg-diagram { background:#0f172a; border-radius:14px; padding:22px; margin:16px 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 10px 24px rgba(0,0,0,0.18); overflow-x:auto; }
+.svg-diagram svg { display:block; width:100%; height:auto; }
+.svg-diagram-caption { text-align:center; font-size:12px; color:#94a3b8; margin-top:10px; font-family:'Fira Code','Consolas',monospace; letter-spacing:.3px; }
 
 /* ═══════════ INFO BOXES ═══════════ */
 .info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
@@ -86,7 +91,8 @@ body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, A
 .card-sub-content .diagram:last-child,
 .card-sub-content .info-box:last-child,
 .card-sub-content table:last-child,
-.card-sub-content .code-block:last-child { margin-bottom:0; }
+.card-sub-content .code-block:last-child,
+.card-sub-content .svg-diagram:last-child { margin-bottom:0; }
 
 /* ═══════════ SIDE-BY-SIDE (good vs bad) ═══════════ */
 .compare-2col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:14px 0; }
@@ -387,37 +393,76 @@ p.then((data) =&gt; {
             <li>Once the Call Stack becomes empty, the Event Loop pushes that microtask back onto the Call Stack, and execution resumes exactly where it left off.</li>
           </ol>
 
-          <div class="diagram">handlePromise()
-      |
-      v
-+------------------+
-|   Call Stack     |
-+------------------+
-      |
-      | await p
-      v
-+------------------+
-| Function         |
-| Suspended        |
-+------------------+
-      |
-      | Promise pending
-      v
-(Main thread is free)
+          <div class="svg-diagram">
+            <svg viewBox="0 0 920 620" xmlns="http://www.w3.org/2000/svg" font-family="Fira Code, Consolas, monospace">
+              <defs>
+                <marker id="arrow1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="#60a5fa"/>
+                </marker>
+                <marker id="arrowGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="#34d399"/>
+                </marker>
+              </defs>
 
-After Promise resolves:
+              <!-- handlePromise() call -->
+              <rect x="330" y="14" width="260" height="42" rx="10" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="460" y="40" text-anchor="middle" fill="#93c5fd" font-size="15" font-weight="700">handlePromise()</text>
 
-+------------------+
-| Microtask Queue  |
-+------------------+
-      |
-      v
-+------------------+
-|   Call Stack     |
-+------------------+
-      |
-      v
-Execution resumes after await</div>
+              <line x1="460" y1="56" x2="460" y2="86" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrow1)"/>
+
+              <!-- Call Stack box -->
+              <rect x="330" y="90" width="260" height="56" rx="10" fill="#0b1220" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="460" y="114" text-anchor="middle" fill="#e0e7ff" font-size="13" font-weight="700">Call Stack</text>
+              <text x="460" y="134" text-anchor="middle" fill="#93c5fd" font-size="12">"Hello World!!" printed</text>
+
+              <line x1="460" y1="146" x2="460" y2="176" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrow1)"/>
+
+              <!-- await p / suspend -->
+              <rect x="300" y="180" width="320" height="66" rx="10" fill="#1e1b4b" stroke="#a78bfa" stroke-width="1.5"/>
+              <text x="460" y="204" text-anchor="middle" fill="#c4b5fd" font-size="13" font-weight="700">await p  →  Function Suspended</text>
+              <text x="460" y="224" text-anchor="middle" fill="#a5b4fc" font-size="11.5">removed from Call Stack, state preserved</text>
+              <text x="460" y="240" text-anchor="middle" fill="#a5b4fc" font-size="11.5">by the JS engine</text>
+
+              <!-- split into two paths -->
+              <line x1="380" y1="246" x2="230" y2="286" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrow1)"/>
+              <line x1="540" y1="246" x2="690" y2="286" stroke="#34d399" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+              <!-- Left path: main thread free -->
+              <rect x="70" y="290" width="320" height="70" rx="10" fill="#0b1220" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="230" y="316" text-anchor="middle" fill="#93c5fd" font-size="13" font-weight="700">Main Thread is Free</text>
+              <text x="230" y="336" text-anchor="middle" fill="#bfdbfe" font-size="11.5">other functions, timers, UI events,</text>
+              <text x="230" y="352" text-anchor="middle" fill="#bfdbfe" font-size="11.5">and callbacks keep running</text>
+
+              <!-- Right path: Promise continues work -->
+              <rect x="530" y="290" width="320" height="70" rx="10" fill="#052e2b" stroke="#34d399" stroke-width="1.5"/>
+              <text x="690" y="316" text-anchor="middle" fill="#6ee7b7" font-size="13" font-weight="700">Promise Keeps Working</text>
+              <text x="690" y="336" text-anchor="middle" fill="#a7f3d0" font-size="11.5">timer / network request runs</text>
+              <text x="690" y="352" text-anchor="middle" fill="#a7f3d0" font-size="11.5">independently, outside the Call Stack</text>
+
+              <!-- converge down to resolve -->
+              <line x1="230" y1="360" x2="460" y2="404" stroke="#60a5fa" stroke-width="2"/>
+              <line x1="690" y1="360" x2="460" y2="404" stroke="#34d399" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+              <!-- setTimeout resolves -->
+              <rect x="310" y="408" width="300" height="52" rx="10" fill="#052e2b" stroke="#34d399" stroke-width="1.5"/>
+              <text x="460" y="430" text-anchor="middle" fill="#6ee7b7" font-size="13" font-weight="700">setTimeout fires → Promise resolves</text>
+              <text x="460" y="448" text-anchor="middle" fill="#a7f3d0" font-size="11.5">(after 10 seconds in this example)</text>
+
+              <line x1="460" y1="460" x2="460" y2="490" stroke="#34d399" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+              <!-- Microtask queue -->
+              <rect x="330" y="494" width="260" height="52" rx="10" fill="#1e1b4b" stroke="#a78bfa" stroke-width="1.5"/>
+              <text x="460" y="516" text-anchor="middle" fill="#c4b5fd" font-size="13" font-weight="700">Microtask Queue</text>
+              <text x="460" y="534" text-anchor="middle" fill="#a5b4fc" font-size="11.5">continuation after await p is queued</text>
+
+              <line x1="460" y1="546" x2="460" y2="576" stroke="#a78bfa" stroke-width="2" marker-end="url(#arrow1)"/>
+
+              <!-- Resume -->
+              <rect x="300" y="580" width="320" height="34" rx="10" fill="#0b1220" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="460" y="602" text-anchor="middle" fill="#93c5fd" font-size="13" font-weight="700">Call Stack empty → Event Loop resumes function</text>
+            </svg>
+            <div class="svg-diagram-caption">Suspension → main thread stays free → Promise settles → microtask → resume after await</div>
+          </div>
         </div>
       </div>
     </div>
@@ -716,20 +761,68 @@ Execution resumes after await</div>
       <div class="card-sub cat-2">
         <div class="card-sub-title"><h4>Revision Cheat Sheet</h4></div>
         <div class="card-sub-content">
-          <div class="diagram">async
-  ↓
-Always returns Promise
-  ↓
-await
-  ↓
-Suspend async function
-  ↓
-Call Stack becomes free
-  ↓
-Promise resolves (or rejects)
-  ↓
-Resolved → Microtask Queue → Event Loop → resume after await
-Rejected → thrown at the await line → caught by try/catch</div>
+          <div class="svg-diagram">
+            <svg viewBox="0 0 900 460" xmlns="http://www.w3.org/2000/svg" font-family="Fira Code, Consolas, monospace">
+              <defs>
+                <marker id="arrowMain" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="#93c5fd"/>
+                </marker>
+                <marker id="arrowOk" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="#34d399"/>
+                </marker>
+                <marker id="arrowBad" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="#f87171"/>
+                </marker>
+              </defs>
+
+              <!-- async -->
+              <rect x="350" y="10" width="200" height="46" rx="10" fill="#1e293b" stroke="#60a5fa" stroke-width="1.5"/>
+              <text x="450" y="38" text-anchor="middle" fill="#93c5fd" font-size="15" font-weight="800">async</text>
+
+              <line x1="450" y1="56" x2="450" y2="82" stroke="#93c5fd" stroke-width="2" marker-end="url(#arrowMain)"/>
+              <text x="450" y="76" text-anchor="middle" fill="#7dd3fc" font-size="11.5">always returns</text>
+
+              <!-- Always returns Promise -->
+              <rect x="330" y="86" width="240" height="42" rx="10" fill="#0b1220" stroke="#60a5fa" stroke-width="1.5"/>
+              <text x="450" y="112" text-anchor="middle" fill="#bfdbfe" font-size="13" font-weight="700">Promise</text>
+
+              <line x1="450" y1="128" x2="450" y2="156" stroke="#93c5fd" stroke-width="2" marker-end="url(#arrowMain)"/>
+
+              <!-- await -->
+              <rect x="350" y="160" width="200" height="46" rx="10" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+              <text x="450" y="188" text-anchor="middle" fill="#c4b5fd" font-size="15" font-weight="800">await</text>
+
+              <line x1="450" y1="206" x2="450" y2="234" stroke="#a78bfa" stroke-width="2" marker-end="url(#arrowMain)"/>
+
+              <!-- Suspend + Call Stack free -->
+              <rect x="290" y="238" width="320" height="56" rx="10" fill="#1e1b4b" stroke="#a78bfa" stroke-width="1.5"/>
+              <text x="450" y="262" text-anchor="middle" fill="#c4b5fd" font-size="13" font-weight="700">Suspend async function</text>
+              <text x="450" y="280" text-anchor="middle" fill="#a5b4fc" font-size="11.5">Call Stack becomes free</text>
+
+              <line x1="450" y1="294" x2="450" y2="322" stroke="#a78bfa" stroke-width="2" marker-end="url(#arrowMain)"/>
+
+              <!-- Promise settles -->
+              <rect x="330" y="326" width="240" height="42" rx="10" fill="#0b1220" stroke="#e5e7eb" stroke-width="1.5"/>
+              <text x="450" y="352" text-anchor="middle" fill="#e5e7eb" font-size="13" font-weight="700">Promise settles</text>
+
+              <!-- Branch left: resolved -->
+              <line x1="380" y1="368" x2="220" y2="398" stroke="#34d399" stroke-width="2" marker-end="url(#arrowOk)"/>
+              <text x="270" y="386" text-anchor="middle" fill="#6ee7b7" font-size="11.5">Resolved</text>
+
+              <rect x="30" y="400" width="380" height="52" rx="10" fill="#052e2b" stroke="#34d399" stroke-width="1.5"/>
+              <text x="220" y="422" text-anchor="middle" fill="#6ee7b7" font-size="12.5" font-weight="700">Microtask Queue → Event Loop</text>
+              <text x="220" y="440" text-anchor="middle" fill="#a7f3d0" font-size="11.5">resume execution after await</text>
+
+              <!-- Branch right: rejected -->
+              <line x1="520" y1="368" x2="680" y2="398" stroke="#f87171" stroke-width="2" marker-end="url(#arrowBad)"/>
+              <text x="630" y="386" text-anchor="middle" fill="#fca5a5" font-size="11.5">Rejected</text>
+
+              <rect x="490" y="400" width="380" height="52" rx="10" fill="#3f0d0d" stroke="#f87171" stroke-width="1.5"/>
+              <text x="680" y="422" text-anchor="middle" fill="#fca5a5" font-size="12.5" font-weight="700">Thrown at the await line</text>
+              <text x="680" y="440" text-anchor="middle" fill="#fecaca" font-size="11.5">caught by try/catch</text>
+            </svg>
+            <div class="svg-diagram-caption">async → Promise → await → suspend → settle → resume (or throw into try/catch)</div>
+          </div>
         </div>
       </div>
 
@@ -800,6 +893,11 @@ Rejected → thrown at the await line → caught by try/catch</div>
             <pre><code><span class="kw">async function</span> <span class="fn">test</span>() {
   <span class="fn">console</span>.log(<span class="str">"A"</span>);
   <span class="kw">await</span> Promise.resolve();
+  <span class="fn">console</span>.log(<span class="str">"B"</span>);
+}
+
+<span class="fn">test</span>();
+<span class="fn">console</span>.log(<span class="str">"C"</span>);</code></pre>
           </div>
           <div class="info-box box-note">🤔 <strong>Think first…</strong> what order do <code>A</code>, <code>B</code>, and <code>C</code> print in?</div>
           <div class="info-box box-benefit"><strong>Output:</strong> <code>A</code>, <code>C</code>, <code>B</code></div>

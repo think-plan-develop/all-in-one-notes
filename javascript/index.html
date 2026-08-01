@@ -7,48 +7,131 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
     <style>
       *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-      body { display: flex; flex-direction: column; height: 100vh; font-family: "Segoe UI", system-ui, sans-serif; background: #f8fafc; color: #1e293b; overflow: hidden; }
+      html, body { height: 100%; }
+      body {
+        display: flex; flex-direction: column; height: 100vh; font-family: "Segoe UI", system-ui, sans-serif;
+        color: #1e293b; overflow: hidden; position: relative;
+        background: #eef1f8;
+      }
+
+      /* ── Ambient color blobs behind everything, so the glass panels have color to refract ── */
+      .bg-blobs { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+      .bg-blobs span {
+        position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.55;
+      }
+      .bg-blobs .b1 { width: 480px; height: 480px; top: -160px; left: -120px; background: radial-gradient(circle, #6366f1, transparent 70%); }
+      .bg-blobs .b2 { width: 460px; height: 460px; top: 10%; left: 60%; background: radial-gradient(circle, #ec4899, transparent 70%); }
+      .bg-blobs .b3 { width: 420px; height: 420px; bottom: -140px; left: 10%; background: radial-gradient(circle, #10b981, transparent 70%); }
+      .bg-blobs .b4 { width: 400px; height: 400px; bottom: -100px; right: -100px; background: radial-gradient(circle, #f59e0b, transparent 70%); }
+      .bg-blobs .b5 { width: 360px; height: 360px; top: 40%; left: 28%; background: radial-gradient(circle, #06b6d4, transparent 70%); }
 
       /* Topbar */
-      .topbar { height: 56px; flex-shrink: 0; background: linear-gradient(135deg, #2563eb, #4f46e5); display: flex; align-items: center; gap: 12px; padding: 0 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 200; color: #fff; }
+      .topbar {
+        height: 58px; flex-shrink: 0; position: relative; z-index: 200;
+        background: linear-gradient(120deg, rgba(30,58,138,0.92), rgba(79,70,229,0.92) 60%, rgba(109,40,217,0.92));
+        backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%);
+        display: flex; align-items: center; gap: 12px; padding: 0 18px;
+        box-shadow: 0 4px 24px rgba(30, 41, 59, 0.22); color: #fff;
+        border-bottom: 1px solid rgba(255,255,255,0.14);
+      }
 
       .sidebar-toggle {
-        width: 34px; height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-        border-radius: 8px; border: none; background: rgba(255,255,255,0.15); color: #fff; cursor: pointer;
-        transition: background 0.2s ease; font-size: 18px;
+        width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+        border-radius: 9px; border: 1px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.14); color: #fff; cursor: pointer;
+        transition: background 0.2s ease, transform 0.15s ease; font-size: 18px;
       }
-      .sidebar-toggle:hover { background: rgba(255,255,255,0.28); }
+      .sidebar-toggle:hover { background: rgba(255,255,255,0.28); transform: translateY(-1px); }
 
-      .topbar-title { display: flex; align-items: center; gap: 12px; }
+      .topbar-title { display: flex; align-items: center; gap: 10px; }
+      .topbar-title i { font-size: 22px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25)); background: linear-gradient(120deg,#fde68a,#fca5f5); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .topbar-title span { font-weight: 700; font-size: 17.5px; letter-spacing: .2px; }
 
-      .main { display: flex; flex: 1; overflow: hidden; position: relative; }
+      .back-btn {
+        display: flex; align-items: center; gap: 6px; padding: 7px 14px; margin-left: 6px;
+        border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.14);
+        color: #fff; font-size: 13.5px; font-weight: 600; text-decoration: none; cursor: pointer;
+        transition: background 0.2s ease, transform 0.15s ease;
+      }
+      .back-btn:hover { background: rgba(255,255,255,0.28); transform: translateY(-1px); }
+      .back-btn i { font-size: 16px; }
 
-      /* Sidebar */
+      .topbar-author {
+        margin-left: auto; display: flex; align-items: center; gap: 8px;
+        font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.92);
+        background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+        padding: 6px 12px; border-radius: 20px; white-space: nowrap;
+      }
+      .topbar-author i { font-size: 15px; opacity: 0.85; }
+
+      .main { display: flex; flex: 1; overflow: hidden; position: relative; z-index: 1; }
+
+      /* ── Glassy sidebar ── */
       .sidebar {
-        width: 280px; min-width: 280px; background: #ffffff; border-right: 1px solid #e2e8f0;
+        width: 296px; min-width: 296px;
+        background: #ffffff;
+        border-right: 1px solid rgba(15,23,42,0.08);
         display: flex; flex-direction: column; overflow: hidden;
         transition: width 0.22s ease, min-width 0.22s ease, transform 0.3s ease;
+        box-shadow: 8px 0 32px rgba(30, 41, 59, 0.08);
       }
-      .main.collapsed .sidebar { width: 0; min-width: 0; border-right: none; }
+      .main.collapsed .sidebar { width: 0; min-width: 0; border-right: none; box-shadow: none; }
 
-      .sidebar-inner { flex: 1; overflow-y: auto; padding: 16px; scrollbar-width: thin; width: 280px; }
-      .sidebar-group-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #94a3b8; padding: 12px 10px 8px; }
-      .sidebar a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 2px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; color: #475569; transition: all 0.2s ease; }
-      .sidebar a:hover { background: #f1f5f9; color: #1e293b; }
-      .sidebar a.active { background: #eff6ff; color: #2563eb; }
-      .nav-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 7px; }
+      .sidebar-inner { flex: 1; overflow-y: auto; padding: 16px 12px 24px; scrollbar-width: thin; width: 296px; }
+      .sidebar-inner::-webkit-scrollbar { width: 6px; }
+      .sidebar-inner::-webkit-scrollbar-thumb { background: linear-gradient(180deg,#818cf8,#f472b6); border-radius: 10px; }
+
+      /* Each topic gets its own solid, tinted panel */
+      .sidebar-section {
+        margin-bottom: 12px; padding: 10px 8px 10px; border-radius: 16px;
+        background: var(--sec-tint-a);
+        border: 1px solid var(--sec-border);
+      }
+
+      .sidebar-group-label {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px;
+        color: var(--sec-color); padding: 4px 6px 8px;
+      }
+      .sidebar-group-label .dot {
+        width: 7px; height: 7px; border-radius: 50%; background: var(--sec-color); flex-shrink: 0;
+      }
+
+      .sidebar a {
+        display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 9px; margin-bottom: 3px;
+        border-radius: 10px; text-decoration: none; font-size: 14px; font-weight: 500; color: #475569;
+        border: 1px solid transparent;
+        transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.12s ease, box-shadow 0.16s ease;
+      }
+      .sidebar a:hover {
+        background: var(--tint-strong);
+        color: var(--c);
+        border-color: var(--tint-strong);
+      }
+      .sidebar a.active {
+        background: var(--tint-strong);
+        color: var(--c);
+        font-weight: 700;
+        border-color: var(--c);
+      }
+
+      .nav-icon {
+        width: 30px; height: 30px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+        border-radius: 9px; font-size: 14.5px; color: #fff;
+        background: var(--c);
+      }
+      .sidebar a:hover .nav-icon, .sidebar a.active .nav-icon { transform: scale(1.1) rotate(-3deg); }
 
       /* Mobile Overlay */
       .sidebar-overlay {
-        display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 150;
+        display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.35); z-index: 150;
       }
 
-      iframe { flex: 1; border: none; background: #fff; }
+      iframe { flex: 1; border: none; background: #fff; position: relative; z-index: 1; }
 
       /* Mobile Styles */
       @media (max-width: 768px) {
         .sidebar {
-          position: absolute; left: -280px; height: 100%; z-index: 1000; box-shadow: 10px 0 15px rgba(0,0,0,0.1);
+          position: absolute; left: -296px; height: 100%; z-index: 1000; box-shadow: 10px 0 30px rgba(0,0,0,0.2);
         }
         .sidebar.mobile-open { left: 0; }
         .sidebar.mobile-open + .sidebar-overlay { display: block; }
@@ -56,13 +139,25 @@
     </style>
   </head>
   <body>
+    <div class="bg-blobs">
+      <span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span><span class="b5"></span>
+    </div>
+
     <div class="topbar">
       <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
         <i class="ti ti-menu-2"></i>
       </button>
       <div class="topbar-title">
-        <i class="ti ti-brand-javascript" style="font-size: 24px;"></i>
-        <span style="font-weight: 700; font-size: 18px;">JavaScript Reference</span>
+        <i class="ti ti-brand-javascript"></i>
+        <span>JavaScript Reference</span>
+      </div>
+      <button class="back-btn" id="backBtn" title="Go back">
+        <i class="ti ti-arrow-left"></i>
+        Back
+      </button>
+      <div class="topbar-author">
+        <i class="ti ti-user"></i>
+        Author: Shivam
       </div>
     </div>
 
@@ -75,87 +170,104 @@
     </div>
 
     <script>
-      const NAV_CONFIG = [
-        {
-          label: "JavaScript Basics",
-          links: [
-            { icon: "ti-box", color: "#2563eb", text: "01. Basics", href: "./01-basics.html" },
-            { icon: "ti-box-multiple", color: "#2563eb", text: "01. Basics 2", href: "./01.05-basics.html" },
-            { icon: "ti-sparkles", color: "#ea580c", text: "12. ES6 Features", href: "./13-es6-features.html" },
-            { icon: "ti-stars", color: "#ea580c", text: "12. ES6 Advance", href: "./13-es6-part2-advanced.html" },
-            { icon: "ti-generator", color: "#6366f1", text: "Generators & Iterators", href: "./13-es-6-generators-iterators.html" },
-            { icon: "ti-map", color: "#6366f1", text: "Map & Set", href: "./13-es-6-map-set.html" },
-          ]
-        },
-        {
-          label: "Execution & Scope",
-          links: [
-            { icon: "ti-stack-2", color: "#7c3aed", text: "02. Execution Context", href: "./02-execution-context.html" },
-            { icon: "ti-arrow-bar-up", color: "#7c3aed", text: "03. Hoisting", href: "./03-hoisting.html" },
-            { icon: "ti-scope", color: "#7c3aed", text: "04. Scope", href: "./04-scope.html" },
-            { icon: "ti-lock-check", color: "#db2777", text: "06. Closures", href: "./06-closures.html" }
-          ]
-        },
-        {
-          label: "Functions & this",
-          links: [
-            { icon: "ti-function", color: "#0891b2", text: "05. Functions", href: "./05-functions.html" },
-            { icon: "ti-pointer", color: "#d97706", text: "07. This Keyword", href: "./07-this-keyword.html" },
-            { icon: "ti-briefcase", color: "#d97706", text: "08. Call, Apply, Bind", href: "./08-call-apply-bind.html" },
-            { icon: "ti-wand", color: "#db2777", text: "19. Special Functions", href: "./19-special-functions.html" }
-          ]
-        },
-        {
-          label: "Objects & Data Structures",
-          links: [
-            { icon: "ti-box-model", color: "#059669", text: "09. Objects", href: "./09-objects.html" },
-            { icon: "ti-list-check", color: "#7c3aed", text: "10. Arrays", href: "./10-arrays.html" },
-            { icon: "ti-letter-case", color: "#0d9488", text: "11. Strings", href: "./11-strings.html" },
-            { icon: "ti-affiliate", color: "#7e22ce", text: "13. Prototypes", href: "./12-prototypes.html" },
-            { icon: "ti-hierarchy", color: "#dc2626", text: "18. OOP Concepts", href: "./18-oop-concepts.html" }
-          ]
-        },
-        {
-          label: "Asynchronous JavaScript",
-          links: [
-            { icon: "ti-clock-code", color: "#7c3aed", text: "14. Callback Functions", href: "./14.1-callback.html" },
-            { icon: "ti-clock-check", color: "#7c3aed", text: "15. Promises", href: "./14-promise.html" },
-            { icon: "ti-clock-up", color: "#7c3aed", text: "16. Async/Await", href: "./14.3-async-await.html" },
-            { icon: "ti-clock-bolt", color: "#7c3aed", text: "17. Async JS", href: "./15-async-js.html" },
-            { icon: "ti-refresh", color: "#0891b2", text: "18. Event Loop", href: "./16-event-loop.html" }
-          ]
-        },
-        {
-          label: "Browser Environment",
-          links: [
-            { icon: "ti-browser", color: "#4338ca", text: "19. DOM & Events", href: "./17-dom.html" },
-            { icon: "ti-database", color: "#0891b2", text: "20. Browser Storage", href: "./20-browser-storage.html" },
-            { icon: "ti-api", color: "#059669", text: "21. Web APIs", href: "./21-web-apis.html" }
-          ]
-        },
-        {
-          label: "Interview Preparation",
-          links: [
-            { icon: "ti-bolt", color: "#d97706", text: "22. Short Q&A I", href: "./22-short-qna-part-i.html" },
-            { icon: "ti-file-description", color: "#7c3aed", text: "23. Long Q&A II", href: "./23-long-qna-part-ii.html" },
-            { icon: "ti-variable", color: "#2563eb", text: "24. Var, Func & Obj Q&A", href: "./24-var-func-obj-qna.html" },
-            { icon: "ti-list-numbers", color: "#7c3aed", text: "25. Array Q&A", href: "./25-array-qna.html" },
-            { icon: "ti-sparkles", color: "#ea580c", text: "26. ES6 Q&A", href: "./26-es6-qna.html" },
-            { icon: "ti-browser-check", color: "#0d9488", text: "27. DOM & Browser Q&A", href: "./27-dom-browser-qna.html" },
-            { icon: "ti-code", color: "#0d9488", text: "28. Coding Challenges", href: "./28-coding-challenges.html" },
-            { icon: "ti-question-mark", color: "#0d9488", text: "29. Frequently Asked", href: "./29-frequently-asked.html" }
-          ]
-        }
-      ];
+     const NAV_CONFIG = [
+  {
+    label: "JavaScript Fundamentals",
+    color: "#2563eb",
+    links: [
+      { icon: "ti-braces", color: "#2563eb", light: "#60a5fa", text: "01. JavaScript Basics", href: "./01-basics.html" },
+      { icon: "ti-code", color: "#1d4ed8", light: "#3b82f6", text: "02. JavaScript Basics - Part 2", href: "./01.05-basics.html" }
+    ]
+  },
 
+  {
+    label: "Execution & Scope",
+    color: "#7c3aed",
+    links: [
+      { icon: "ti-cpu", color: "#7c3aed", light: "#a78bfa", text: "03. Execution Context", href: "./02-execution-context.html" },
+      { icon: "ti-arrow-up", color: "#8b5cf6", light: "#c4b5fd", text: "04. Hoisting", href: "./03-hoisting.html" },
+      { icon: "ti-focus-2", color: "#a855f7", light: "#d8b4fe", text: "05. Scope", href: "./04-scope.html" },
+      { icon: "ti-function", color: "#7c3aed", light: "#a78bfa", text: "06. Functions", href: "./05-functions.html" },
+      { icon: "ti-lock", color: "#9333ea", light: "#c084fc", text: "07. Closures", href: "./06-closures.html" },
+      { icon: "ti-target-arrow", color: "#8b5cf6", light: "#c4b5fd", text: "08. this Keyword", href: "./07-this-keyword.html" },
+      { icon: "ti-briefcase", color: "#a855f7", light: "#d8b4fe", text: "09. call(), apply() & bind()", href: "./08-call-apply-bind.html" }
+    ]
+  },
+
+  {
+    label: "Data Structures",
+    color: "#059669",
+    links: [
+      { icon: "ti-box", color: "#059669", light: "#34d399", text: "10. Objects", href: "./09-objects.html" },
+      { icon: "ti-list", color: "#10b981", light: "#6ee7b7", text: "11. Arrays", href: "./10-arrays.html" },
+      { icon: "ti-letter-case", color: "#0d9488", light: "#5eead4", text: "12. Strings", href: "./11-strings.html" }
+    ]
+  },
+
+  {
+    label: "Object-Oriented JavaScript",
+    color: "#4d7c0f",
+    links: [
+      { icon: "ti-affiliate", color: "#4d7c0f", light: "#bef264", text: "13. Prototypes", href: "./12-prototypes.html" },
+      { icon: "ti-cube", color: "#65a30d", light: "#d9f99d", text: "14. Object-Oriented Programming (OOP)", href: "./18-oop-concepts.html" }
+    ]
+  },
+
+  {
+    label: "Modern JavaScript (ES6+)",
+    color: "#ea580c",
+    links: [
+      { icon: "ti-sparkles", color: "#ea580c", light: "#fb923c", text: "15. ES6 Features", href: "./13-es6-features.html" },
+      { icon: "ti-stars", color: "#f97316", light: "#fdba74", text: "16. Advanced ES6 Features", href: "./13-es6-part2-advanced.html" },
+      { icon: "ti-category", color: "#d97706", light: "#fbbf24", text: "17. Map & Set", href: "./13-es-6-map-set.html" },
+      { icon: "ti-repeat", color: "#ea580c", light: "#fb923c", text: "18. Iterators & Generators", href: "./13-es-6-generators-iterators.html" },
+      { icon: "ti-wand", color: "#f97316", light: "#fdba74", text: "19. Special Functions", href: "./19-special-functions.html" }
+    ]
+  },
+
+  {
+    label: "Asynchronous JavaScript",
+    color: "#0891b2",
+    links: [
+      { icon: "ti-clock-bolt", color: "#0891b2", light: "#22d3ee", text: "20. Callback Functions", href: "./14.1-callback.html" },
+      { icon: "ti-checklist", color: "#0ea5e9", light: "#7dd3fc", text: "21. Promises", href: "./14-promise.html" },
+      { icon: "ti-hourglass", color: "#06b6d4", light: "#67e8f9", text: "22. Async / Await", href: "./14.3-async-await.html" },
+      { icon: "ti-refresh", color: "#0891b2", light: "#22d3ee", text: "23. Event Loop", href: "./16-event-loop.html" }
+    ]
+  },
+
+  {
+    label: "Browser Environment",
+    color: "#4338ca",
+    links: [
+      { icon: "ti-browser", color: "#4338ca", light: "#818cf8", text: "24. DOM & Event System", href: "./17-dom.html" },
+      { icon: "ti-api", color: "#4f46e5", light: "#a5b4fc", text: "25. Web APIs", href: "./21-web-apis.html" },
+      { icon: "ti-database", color: "#6366f1", light: "#a5b4fc", text: "26. Browser Storage", href: "./20-browser-storage.html" }
+    ]
+  },
+
+  {
+    label: "Interview Preparation",
+    color: "#0c4a6e",
+    links: [
+      { icon: "ti-bolt", color: "#0c4a6e", light: "#7dd3fc", text: "27. JavaScript Short Q&A", href: "./22-short-qna-part-i.html" },
+      { icon: "ti-file-description", color: "#0369a1", light: "#67e8f9", text: "28. JavaScript Long Q&A", href: "./23-long-qna-part-ii.html" },
+      { icon: "ti-variable", color: "#0284c7", light: "#93c5fd", text: "29. Variables, Functions & Objects Q&A", href: "./24-var-func-obj-qna.html" },
+      { icon: "ti-list-numbers", color: "#0c4a6e", light: "#7dd3fc", text: "30. Array Interview Questions", href: "./25-array-qna.html" },
+      { icon: "ti-sparkles", color: "#0369a1", light: "#67e8f9", text: "31. ES6 Interview Questions", href: "./26-es6-qna.html" },
+      { icon: "ti-code", color: "#0c4a6e", light: "#7dd3fc", text: "33. Coding Challenges", href: "./28-coding-challenges.html" },
+      { icon: "ti-question-mark", color: "#0369a1", light: "#67e8f9", text: "34. Frequently Asked Questions", href: "./29-frequently-asked.html" }
+    ]
+  }
+];
       function buildNav(config) {
         const inner = document.getElementById("sidebarInner");
         inner.innerHTML = config.map(section => `
-          <div class="sidebar-section">
-            <div class="sidebar-group-label">${section.label}</div>
+          <div class="sidebar-section" style="--sec-color:${section.color}; --sec-tint-a:${section.color}22; --sec-tint-b:${section.color}05; --sec-border:${section.color}30;">
+            <div class="sidebar-group-label"><span class="dot"></span>${section.label}</div>
             ${section.links.map(link => `
-              <a href="${link.href}" target="contentFrame">
-                <span class="nav-icon" style="background:${link.color}15; color:${link.color};">
+              <a href="${link.href}" target="contentFrame" style="--c:${link.color}; --c-light:${link.light}; --tint-strong:${link.color}33;">
+                <span class="nav-icon">
                   <i class="ti ${link.icon}"></i>
                 </span>
                 ${link.text}
@@ -191,6 +303,14 @@
         } else {
           main.classList.toggle("collapsed");
         }
+      });
+
+      // Back button — return to the previous page if available, otherwise go to the parent index
+      const backBtn = document.getElementById("backBtn");
+      backBtn.addEventListener("click", () => {
+       
+          window.location.href = "../index.html";
+        
       });
 
       // Close on overlay click
