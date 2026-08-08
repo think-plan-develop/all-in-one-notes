@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Node.js & The Event Loop - Complete Interview Notes</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* ═══════════ THEME VARIABLES ═══════════ */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#f97316; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+
+/* ═══════════ HEADER ═══════════ */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* ═══════════ CARDS (used by Interview Q&A section) ═══════════ */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+
+/* ═══════════ KEY TERMS SUMMARY ═══════════ */
+.intro-summary { margin:0 0 32px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* ═══════════ SECTION DIVIDER ═══════════ */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* ═══════════ CODE BLOCK ═══════════ */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* ═══════════ DIAGRAM ═══════════ */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+.svg-diagram { background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; margin:14px 0; box-shadow:0 4px 14px rgba(0,0,0,0.05); overflow-x:auto; }
+.svg-diagram svg { display:block; width:100%; height:auto; }
+
+/* ═══════════ INFO BOXES ═══════════ */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* ═══════════ SHORT ANSWER ═══════════ */
+.short-answer { position:relative; background:linear-gradient(160deg,#ffffff 0%, var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),0.16); border-left:4px solid var(--accent); border-radius:12px; padding:18px 22px 20px; margin-bottom:14px; font-size:17px; line-height:1.75; font-weight:500; color:#293244; box-shadow:0 6px 18px rgba(var(--shadow-rgb),0.1); }
+.short-answer::before { content:"QUICK ANSWER"; display:block; width:fit-content; font-size:11px; font-weight:800; letter-spacing:.8px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; margin-bottom:12px; box-shadow:0 3px 8px rgba(var(--shadow-rgb),0.35); }
+.short-answer strong { color: var(--heading); }
+.short-answer code { background:rgba(var(--shadow-rgb),0.1); color:var(--heading); padding:2px 6px; border-radius:5px; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+
+/* ═══════════ SUBSECTIONS (card-sub) ═══════════ */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); border-left:5px solid var(--accent); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-badge { font-size:11px; font-weight:800; letter-spacing:.5px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .code-block:last-child { margin-bottom:0; }
+
+/* ═══════════ TABLE ═══════════ */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(37,99,235,0.12); border:1px solid rgba(37,99,235,0.12); }
+table th { background:linear-gradient(120deg,#1e3a8a,#2563eb); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:500; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background:#eff6ff; }
+table tr:hover td { background:#dbeafe; transition:background .15s ease; }
+table td code { background:rgba(37,99,235,0.1); color:#1e3a8a; padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+/* ═══════════ ORIGINAL Q&A STYLES ═══════════ */
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item {
+    background: #ffffff;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+.qa-question {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.qa-question::before {
+    content: "Q";
+    background: var(--accent);
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 800;
+}
+.qa-answer {
+     background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 17px;
+    line-height: 1.9;
+    color: #000000;
+    font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #e11d48;
+    font-weight: 600;
+}
+.qa-answer .code-block { margin-top:12px; }
+.qa-answer .code-block code { background:transparent; padding:0; color:#d4d4d4; font-weight:400; border-radius:0; }
+.qa-answer .diagram { margin-top:12px; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header theme-blue">
+      <h1>⚙️ Node.js &amp; The Event Loop</h1>
+      <p>What Node.js is, why it was built, how V8 makes it fast, and a full deep-dive into the Event Loop</p>
+      <div class="toc">
+        <a href="#definition" onclick="document.getElementById('definition').scrollIntoView({behavior:'smooth'});return false;">Definition</a>
+        <a href="#why-created" onclick="document.getElementById('why-created').scrollIntoView({behavior:'smooth'});return false;">Why Created</a>
+        <a href="#architecture" onclick="document.getElementById('architecture').scrollIntoView({behavior:'smooth'});return false;">Architecture</a>
+        <a href="#v8" onclick="document.getElementById('v8').scrollIntoView({behavior:'smooth'});return false;">V8 Engine</a>
+        <a href="#why-fast" onclick="document.getElementById('why-fast').scrollIntoView({behavior:'smooth'});return false;">Why Fast</a>
+        <a href="#event-loop" onclick="document.getElementById('event-loop').scrollIntoView({behavior:'smooth'});return false;">Event Loop</a>
+        <a href="#internals" onclick="document.getElementById('internals').scrollIntoView({behavior:'smooth'});return false;">Internals</a>
+        <a href="#components" onclick="document.getElementById('components').scrollIntoView({behavior:'smooth'});return false;">Components</a>
+        <a href="#phases" onclick="document.getElementById('phases').scrollIntoView({behavior:'smooth'});return false;">Phases</a>
+        <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> Node.js is a JavaScript runtime built on Google's V8 engine that runs JavaScript outside the browser. It stays fast under heavy load not by using threads-per-request, but by combining V8's JIT compilation, non-blocking I/O, and a single-threaded Event Loop that delegates slow work to the OS / <code>libuv</code> thread pool and processes callbacks when they're ready.</div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">⚙️</div>
+          <div class="summary-text"><strong>Node.js:</strong> A JavaScript runtime environment that lets JavaScript run outside the browser — on servers, CLIs, and more.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🚀</div>
+          <div class="summary-text"><strong>V8:</strong> Google's JavaScript engine (also used in Chrome) that compiles JS into machine code via JIT compilation.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🔁</div>
+          <div class="summary-text"><strong>Event Loop:</strong> The mechanism that lets Node's single thread handle thousands of concurrent I/O operations without blocking.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🧵</div>
+          <div class="summary-text"><strong>libuv:</strong> The C library that gives Node its thread pool and OS-level async I/O — the engine behind non-blocking behavior.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== DEFINITION ==================== -->
+    <div class="section-divider" id="definition"><span>1. What is Node.js?</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Definition</h4></div>
+        <div class="card-sub-content">
+          <div class="short-answer">
+            <strong>Node.js</strong> is a <strong>JavaScript runtime environment</strong> that allows JavaScript to run <strong>outside the browser</strong> — built by <strong>Ryan Dahl in 2009</strong>.
+          </div>
+          <p>Normally, JavaScript runs inside a web browser like Chrome or Firefox. Node.js makes it possible to use JavaScript on the server for tasks like:</p>
+          <ul>
+            <li>Building APIs</li>
+            <li>Creating web servers</li>
+            <li>Reading and writing files</li>
+            <li>Working with databases</li>
+            <li>Running command-line tools</li>
+            <li>Real-time applications (chat, games)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== WHY CREATED ==================== -->
+    <div class="section-divider" id="why-created"><span>Why Was Node.js Created?</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>The Thread-Per-Request Problem</h4></div>
+        <div class="card-sub-content">
+          <p>Before Node.js, most web servers (such as Apache running PHP or traditional Java servers) followed a <strong>thread-per-request model</strong> — every incoming client request got its own thread.</p>
+          <div class="diagram">Request 1  → Thread 1
+Request 2  → Thread 2
+Request 3  → Thread 3
+Request 4  → Thread 4
+
+If 10,000 users access your application simultaneously:
+
+10,000 Requests
+       │
+       ▼
+10,000 Threads</div>
+          <div class="info-box box-warning"><strong>⚠️ Problems:</strong> Huge memory usage · Expensive context switching · Slow performance under load.</div>
+          <p>Node.js solved this using:</p>
+          <ul>
+            <li>A single thread</li>
+            <li>An Event Loop</li>
+            <li>Non-blocking I/O</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ARCHITECTURE ==================== -->
+    <div class="section-divider" id="architecture"><span>Node.js Architecture</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>From JavaScript Code to Machine Code</h4></div>
+        <div class="card-sub-content">
+          <div class="diagram">JavaScript Code
+       │
+       ▼
+Node.js Runtime
+       │
+       ▼
+V8 Engine
+       │
+       ▼
+Machine Code</div>
+          <p>Node.js itself provides built-in APIs such as:</p>
+          <ul>
+            <li>File System (<code>fs</code>)</li>
+            <li>HTTP</li>
+            <li>Path</li>
+            <li>Streams</li>
+            <li>Crypto</li>
+            <li>Timers</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== V8 ==================== -->
+    <div class="section-divider" id="v8"><span>2. The V8 Engine</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>What is V8?</h4></div>
+        <div class="card-sub-content">
+          <div class="short-answer">
+            <strong>V8</strong> is the JavaScript engine that actually <strong>executes</strong> your JavaScript code — created by <strong>Google</strong>, originally to power Chrome.
+          </div>
+          <p>Think of it this way: JavaScript is just text/code — something needs to read and run it. V8 is that "something." It takes JavaScript code and converts it into <strong>machine code</strong> (the low-level instructions your computer's CPU understands) so it can actually execute.</p>
+          <p>Node.js is built on top of V8. Node takes V8 (the same engine used in Chrome) and adds extra capabilities to it — like the ability to read/write files, work with networks, and access the operating system — things a browser normally wouldn't let JavaScript do for security reasons.</p>
+          <div class="info-box box-note">💡 <strong>So:</strong> V8 runs the JavaScript. Node.js wraps V8 and adds server-side superpowers.</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>Important Features of V8</h4></div>
+        <div class="card-sub-content">
+          <table>
+            <tr><th>Feature</th><th>What it does</th></tr>
+            <tr><td>Just-In-Time (JIT) Compilation</td><td>Compiles JavaScript into machine code during execution, making programs run much faster than pure interpretation.</td></tr>
+            <tr><td>Optimizing Compiler (TurboFan)</td><td>An advanced compiler that analyzes frequently executed code and optimizes it for maximum performance.</td></tr>
+            <tr><td>Automatic Garbage Collection</td><td>Automatically detects and removes unused memory, preventing memory leaks and reducing manual memory management.</td></tr>
+            <tr><td>Memory Optimization</td><td>Efficiently allocates and reclaims memory to minimize memory usage and improve application performance.</td></tr>
+            <tr><td>Fast Execution</td><td>Executes JavaScript at high speed by combining JIT compilation, code optimization, and efficient memory management.</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== WHY FAST ==================== -->
+    <div class="section-divider" id="why-fast"><span>3. Why Node.js is Fast</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>Reason 1 — V8's Compilation Approach</h4></div>
+        <div class="card-sub-content">
+          <p>V8 compiles JavaScript directly into optimized machine code (instead of slowly interpreting it line-by-line), which makes execution quick.</p>
+        </div>
+      </div>
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>Reason 2 — Non-Blocking I/O</h4></div>
+        <div class="card-sub-content">
+          <p>Suppose reading a file takes 5 seconds.</p>
+          <h3>Blocking</h3>
+          <div class="diagram">Read File (5 sec)
+       │
+       ▼
+     Wait
+       │
+       ▼
+  Next Task</div>
+          <div class="info-box box-warning">⚠️ Everything waits.</div>
+          <h3>Non-Blocking</h3>
+          <div class="diagram">Read File
+       │
+       ▼
+Background Thread
+       │
+       ▼
+Continue other work
+       │
+       ▼
+Callback when completed</div>
+          <div class="info-box box-benefit">✅ Node never waits unnecessarily.</div>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">non-blocking.js</span></div>
+            <pre><code><span class="kw">const</span> fs = <span class="fn">require</span>(<span class="str">"fs"</span>);
+
+console.<span class="fn">log</span>(<span class="str">"Start"</span>);
+
+fs.<span class="fn">readFile</span>(<span class="str">"demo.txt"</span>, () => {
+    console.<span class="fn">log</span>(<span class="str">"Done"</span>);
+});
+
+console.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+          </div>
+          <div class="short-answer">
+            <strong>Output:</strong><br>
+            <code>Start</code><br>
+            <code>End</code><br>
+            <code>Done</code><br>
+            The application continues working while the file is being read.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>Reason 3 — Event Loop</h4></div>
+        <div class="card-sub-content">
+          <p>Node.js uses a single-threaded <strong>Event Loop</strong> to efficiently handle many concurrent requests.</p>
+          <div class="diagram">Client
+   │
+   ▼
+Event Loop
+   │
+   ▼
+Worker Threads (for I/O)
+   │
+   ▼
+Callback Queue
+   │
+   ▼
+Event Loop</div>
+          <p>Instead of creating a new thread for every request, Node.js delegates long-running I/O operations (like file access or database queries) to the operating system or a worker thread pool, then continues processing other requests. When the operation finishes, the Event Loop handles the callback — greatly reducing memory usage and thread management overhead.</p>
+
+          <h3>Real Example — 10,000 Concurrent Users</h3>
+          <div class="diagram">Traditional Server            Node.js
+────────────────────          ────────────────────
+10,000 Users                  10,000 Users
+      │                             │
+      ▼                             ▼
+10,000 Threads                 1 Event Loop
+                                     │
+(huge memory,                       ▼
+ context switching)          Worker Threads for I/O
+                                     │
+                                     ▼
+                                Callbacks</div>
+          <div class="info-box box-note">💡 Fewer threads are needed to manage many I/O-bound requests efficiently.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== EVENT LOOP DEEP DIVE ==================== -->
+    <div class="section-divider" id="event-loop"><span>Event Loop (Deep Dive)</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>What is the Event Loop?</h4></div>
+        <div class="card-sub-content">
+          <div class="short-answer">
+            The <strong>Event Loop</strong> is the core mechanism in Node.js that enables non-blocking, asynchronous execution. When Node.js encounters a slow operation like reading a file, querying a database, or making an API call, it delegates that task to the operating system or <code>libuv</code> instead of blocking the main thread. The Event Loop continuously checks the Call Stack, and when it becomes empty, it executes completed callbacks from the Callback Queue. This allows Node.js to efficiently handle multiple concurrent requests using a single JavaScript thread.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>Why Do We Need an Event Loop?</h4></div>
+        <div class="card-sub-content">
+          <p>Imagine reading a file:</p>
+          <div class="diagram">Read File
+       │
+       ▼
+Wait 5 Seconds
+       │
+       ▼
+   Continue</div>
+          <div class="info-box box-warning">⚠️ Without an Event Loop, the server would stop processing every other request while waiting — wasting CPU time.</div>
+          <p>Instead, Node.js delegates the slow operation and continues doing useful work.</p>
+
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">event-loop-example.js</span></div>
+            <pre><code><span class="kw">const</span> fs = <span class="fn">require</span>(<span class="str">"fs"</span>);
+
+console.<span class="fn">log</span>(<span class="str">"Start"</span>);
+
+fs.<span class="fn">readFile</span>(<span class="str">"demo.txt"</span>, () => {
+    console.<span class="fn">log</span>(<span class="str">"File Read"</span>);
+});
+
+console.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+          </div>
+          <div class="short-answer">
+            <strong>Output:</strong><br>
+            <code>Start</code><br>
+            <code>End</code><br>
+            <code>File Read</code><br>
+            Because <code>readFile()</code> is asynchronous.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== INTERNALS STEP BY STEP ==================== -->
+    <div class="section-divider" id="internals"><span>What Happens Internally?</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>Step 1 — Execution Starts</h4><span class="card-sub-badge">STEP 1</span></div>
+        <div class="card-sub-content">
+          <p>JavaScript starts executing.</p>
+          <div class="diagram">Main Thread
+     │
+     ▼
+console.log("Start")</div>
+          <div class="info-box box-note"><strong>Output:</strong> <code>Start</code></div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>Step 2 — readFile() is Delegated</h4><span class="card-sub-badge">STEP 2</span></div>
+        <div class="card-sub-content">
+          <p>Node.js reaches <code>fs.readFile(...)</code>. Instead of reading the file itself, it hands the work off:</p>
+          <div class="diagram">Main Thread
+     │
+     ▼
+   libuv
+     │
+     ▼
+Operating System / Worker Thread</div>
+          <p>The file read starts in the background. The main thread <strong>does not wait</strong>.</p>
+        </div>
+      </div>
+
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>Step 3 — Execution Continues</h4><span class="card-sub-badge">STEP 3</span></div>
+        <div class="card-sub-content">
+          <p>Execution continues to <code>console.log("End")</code>.</p>
+          <div class="info-box box-note"><strong>Output:</strong> <code>End</code></div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>Step 4 — File Finishes Reading</h4><span class="card-sub-badge">STEP 4</span></div>
+        <div class="card-sub-content">
+          <p>The file finishes reading in the background, and its callback is added to the queue.</p>
+          <div class="diagram">Background
+     │
+     ▼
+Callback Queue</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>Step 5 — Event Loop Executes the Callback</h4><span class="card-sub-badge">STEP 5</span></div>
+        <div class="card-sub-content">
+          <p>The Event Loop checks whether the Call Stack is empty:</p>
+          <div class="diagram">Call Stack Empty?
+     │
+     ▼
+    Yes</div>
+          <p>It moves the callback onto the Call Stack:</p>
+          <div class="diagram">Callback Queue
+     │
+     ▼
+Call Stack
+     │
+     ▼
+Execute Callback</div>
+          <div class="info-box box-benefit"><strong>Output:</strong> <code>File Read</code></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== COMPLETE FLOW ==================== -->
+    <div class="section-divider"><span>Complete Flow</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>End-to-End Diagram</h4></div>
+        <div class="card-sub-content">
+          <div class="diagram">           JavaScript Code
+                   │
+                   ▼
+              Call Stack
+                   │
+      ┌────────────┴────────────┐
+      │                         │
+Synchronous Code        Asynchronous API
+                               │
+                               ▼
+                 libuv / OS / Thread Pool
+                               │
+                         Operation Complete
+                               │
+                               ▼
+                         Callback Queue
+                               │
+                         Event Loop
+                               │
+                    Call Stack Empty?
+                               │
+                              Yes
+                               ▼
+                      Execute Callback</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== COMPONENTS ==================== -->
+    <div class="section-divider" id="components"><span>Components of the Event Loop</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>1. Call Stack</h4></div>
+        <div class="card-sub-content">
+          <p>Stores functions currently being executed.</p>
+          <div class="diagram">top
+
+function C
+function B
+function A
+
+bottom</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>2. Background APIs</h4></div>
+        <div class="card-sub-content">
+          <p>Node.js delegates long-running operations to:</p>
+          <ul>
+            <li>File System</li>
+            <li>Network</li>
+            <li>Timers</li>
+            <li>DNS</li>
+            <li>Worker Thread Pool</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>3. Callback Queue</h4></div>
+        <div class="card-sub-content">
+          <p>Completed callbacks wait here.</p>
+          <div class="diagram">Callback 1
+Callback 2
+Callback 3</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>4. Event Loop</h4></div>
+        <div class="card-sub-content">
+          <p>Its job is simple:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">event-loop.pseudo</span></div>
+            <pre><code><span class="kw">while</span> (<span class="kw">true</span>) {
+
+    <span class="kw">if</span> (Call Stack <span class="kw">is</span> Empty) {
+
+        Move callback <span class="kw">to</span> Call Stack
+
+    }
+
+}</code></pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== PHASES ==================== -->
+    <div class="section-divider" id="phases"><span>Event Loop Phases (Interview)</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>The 6 Phases Per Iteration</h4></div>
+        <div class="card-sub-content">
+          <table>
+            <tr><th>#</th><th>Phase</th><th>What it does</th></tr>
+            <tr><td>1</td><td>Timers</td><td>Executes callbacks scheduled by <code>setTimeout()</code> and <code>setInterval()</code>.</td></tr>
+            <tr><td>2</td><td>Pending Callbacks</td><td>Executes certain system-level callbacks deferred from the previous cycle.</td></tr>
+            <tr><td>3</td><td>Idle / Prepare</td><td>Internal phase used by Node.js.</td></tr>
+            <tr><td>4</td><td>Poll</td><td>Processes most I/O events, waits for new I/O if needed, and executes I/O callbacks.</td></tr>
+            <tr><td>5</td><td>Check</td><td>Executes callbacks scheduled with <code>setImmediate()</code>.</td></tr>
+            <tr><td>6</td><td>Close Callbacks</td><td>Executes close-event callbacks, such as <code>socket.on("close")</code>.</td></tr>
+          </table>
+          <div class="info-box box-extra">⚡ <strong><code>process.nextTick()</code></strong> and <strong>Promise microtasks</strong> run before the Event Loop proceeds to the next phase — that's why they execute with higher priority than timer callbacks.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="qa"><span>Interview Q&amp;A — Node.js &amp; Event Loop</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-item">
+          <div class="qa-question">What is Node.js?</div>
+          <div class="qa-answer">Node.js is a JavaScript runtime environment built on Google's <strong>V8</strong> JavaScript engine. It allows JavaScript to run outside the browser and is mainly used for building scalable server-side applications, APIs, and real-time services.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is the V8 Engine?</div>
+          <div class="qa-answer">V8 is Google's open-source JavaScript engine used by Chrome and Node.js. It parses JavaScript and compiles it into optimized machine code using <strong>Just-In-Time (JIT) compilation</strong>, making execution very fast.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why is Node.js fast?</div>
+          <div class="qa-answer">Node.js is fast because it uses the V8 engine for optimized JavaScript execution, follows a <strong>non-blocking I/O</strong> model so it doesn't wait for slow operations, and uses a <strong>single-threaded Event Loop</strong> to efficiently handle many concurrent I/O requests with low memory overhead.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why is Node.js called single-threaded?</div>
+          <div class="qa-answer">Because JavaScript execution happens on a single main thread, coordinated by the Event Loop.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">If Node.js is single-threaded, how can it handle thousands of users?</div>
+          <div class="qa-answer">Because slow I/O operations are delegated to the operating system or <code>libuv</code>'s worker thread pool, allowing the Event Loop to continue processing other requests without blocking.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Can Node.js use multiple threads?</div>
+          <div class="qa-answer">
+            Yes. Although JavaScript runs on one main thread by default, Node.js can use:
+            <ul style="margin:10px 0 0 20px;">
+              <li><strong>Worker Threads</strong> for CPU-intensive JavaScript.</li>
+              <li><strong>Child Processes</strong> for separate Node.js processes.</li>
+              <li>The <strong><code>libuv</code> worker thread pool</strong> for specific asynchronous operations like file system access and cryptography.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Give the 30-second interview answer for how Node.js handles concurrency.</div>
+          <div class="qa-answer">Node.js executes JavaScript on a single main thread, but it uses an Event Loop with non-blocking I/O to handle many concurrent requests efficiently. Long-running operations such as file access or cryptography are delegated to the operating system or <code>libuv</code>'s worker thread pool, allowing the main thread to keep serving other requests. Once an operation completes, its callback is placed in a queue, and the Event Loop executes it when the Call Stack is empty. This architecture makes Node.js highly efficient for I/O-bound applications while keeping memory usage relatively low.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What order do Start / End / File Read print in, and why?</div>
+          <div class="qa-answer">
+            <code>fs.readFile()</code> is asynchronous, so it never blocks the main thread. The synchronous lines run first, and the callback only runs once the file read finishes and the Event Loop finds the Call Stack empty.
+            <div class="diagram">console.log("Start")   →  synchronous, runs immediately
+fs.readFile(..., cb)  →  delegated to background, continues immediately
+console.log("End")    →  synchronous, runs immediately
+...file finishes...
+cb() → console.log("File Read")  →  runs last, via Callback Queue
+
+Output: Start, End, File Read</div>
+          </div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why do process.nextTick() and Promise microtasks run before timer callbacks?</div>
+          <div class="qa-answer">The microtask queue (<code>process.nextTick()</code> and resolved Promises) is drained completely after the currently executing operation finishes and before the Event Loop is allowed to move into its next phase — including the Timers phase. This gives microtasks a higher priority than <code>setTimeout()</code> or <code>setInterval()</code> callbacks, even a <code>setTimeout(fn, 0)</code>.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

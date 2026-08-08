@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Node.js Core Modules — path, os, crypto &amp; import.meta.url</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* THEME VARIABLES */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#0e7490; --accent:#0891b2; --accent-light:#22d3ee; --content-bg:#ecfeff; --heading:#0e7490; --shadow-rgb:8,145,178; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+
+/* HEADER */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* KEY TERMS SUMMARY */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+
+/* SECTION DIVIDER */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* CODE BLOCK */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* INFO BOXES */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* SUBSECTIONS */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 50%, #fff7ed 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); border-left:5px solid var(--accent); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+/* Sections without a left accent border (Quick Summary, Core Methods, Examples, Use Case tables, Quick Examples) */
+.card-sub.no-left-border { border-left:1px solid rgba(var(--shadow-rgb),0.18); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content h3 { font-size:17px; font-weight:800; color:var(--heading); margin:0 0 12px; padding-bottom:10px; border-bottom:2px dashed rgba(var(--shadow-rgb),0.25); }
+.card-sub-content h3:not(:first-child) { margin-top:26px; }
+.plain-section { padding:4px 4px 22px; margin-bottom:6px; }
+.plain-section:last-child { padding-bottom:4px; margin-bottom:0; }
+.plain-heading { font-size:18px; font-weight:800; margin-bottom:10px; }
+.plain-heading.cat-1 { color:#1e3a8a; } .plain-heading.cat-2 { color:#065f46; } .plain-heading.cat-3 { color:#0e7490; } .plain-heading.cat-4 { color:#5b21b6; }
+.plain-section p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.plain-section p:last-child { margin-bottom:0; }
+.plain-section table { margin:15px 0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .code-block:last-child { margin-bottom:0; }
+
+/* TABLE */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); border:1px solid rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:700; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.15); transition:background .15s ease; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+/* INTERVIEW Q&A */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+
+/* USE-CASE GRID (crypto) */
+.usecase-table td:first-child { font-weight:700; color:var(--heading); }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+.qa-answer:hover { background: #bfffea !important; }
+</style>
+<body>
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="header theme-blue">
+      <h1>Node.js Core Modules</h1>
+      <p><code style="color:#fff;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:6px;">path</code> · <code style="color:#fff;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:6px;">os</code> · <code style="color:#fff;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:6px;">crypto</code> · <code style="color:#fff;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:6px;">import.meta.url</code> — complete interview-ready reference</p>
+      <div class="toc">
+        <a href="#path" onclick="document.getElementById('path').scrollIntoView({behavior:'smooth'});return false;">path Module</a>
+        <a href="#os" onclick="document.getElementById('os').scrollIntoView({behavior:'smooth'});return false;">os Module</a>
+        <a href="#crypto" onclick="document.getElementById('crypto').scrollIntoView({behavior:'smooth'});return false;">crypto Module</a>
+        <a href="#import-meta" onclick="document.getElementById('import-meta').scrollIntoView({behavior:'smooth'});return false;">import.meta.url</a>
+        <a href="#interview-qa" onclick="document.getElementById('interview-qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> Use <code>path</code> for cross-platform file paths, <code>os</code> to read system info, <code>crypto</code> for tokens/hashing/encryption, and <code>import.meta.url</code> to resolve file paths and recreate <code>__dirname</code>/<code>__filename</code> in ES Modules.</div>
+
+    <!-- KEY TERMS SUMMARY -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">📦</div>
+          <div class="summary-text"><strong>path:</strong> Utilities for building, resolving, and parsing file system paths without hardcoding separators.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">💻</div>
+          <div class="summary-text"><strong>os:</strong> Read-only info about the operating system — CPU, memory, platform, hostname, uptime.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🔐</div>
+          <div class="summary-text"><strong>crypto:</strong> Built-in cryptographic toolkit — random bytes, UUIDs, hashing, HMAC, and encryption.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🔗</div>
+          <div class="summary-text"><strong>import.meta.url:</strong> Returns the URL of the current module file — the ESM replacement for <code>__dirname</code>/<code>__filename</code>.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="path"><span>path Module</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Definition</h4></div>
+      <div class="card-sub-content">
+        <p>The <strong>path</strong> module is a built-in Node.js module used to work with file and directory paths in a platform-independent way.</p>
+        <div class="info-box box-tip"><strong>Interview Definition:</strong> The <code>path</code> module provides utilities for creating, resolving, and manipulating file system paths without hardcoding path separators (<code>/</code> or <code>\</code>).</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">import.js</span></div>
+          <pre><code><span class="kw">const</span> path = <span class="fn">require</span>(<span class="str">"path"</span>);</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="plain-section">
+      <h4 class="plain-heading cat-1">Why use it?</h4>
+        <p>Different operating systems use different path separators — hardcoding either one breaks the other platform.</p>
+        <table>
+          <tr><th>OS</th><th>Example Path</th></tr>
+          <tr><td>Windows</td><td><code>C:\Users\Shivam\project\file.txt</code></td></tr>
+          <tr><td>Linux / macOS</td><td><code>/home/shivam/project/file.txt</code></td></tr>
+        </table>
+        <div class="info-box box-warning"><strong>Avoid:</strong> hardcoded strings like <code>"uploads/images/profile.jpg"</code> or <code>"uploads\\images\\profile.jpg"</code> — they may break across operating systems.</div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Methods</h4></div>
+      <div class="card-sub-content">
+        <h3>path.join()</h3>
+        <p>Joins multiple path segments into a single normalized path.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">join.js</span></div>
+          <pre><code><span class="kw">const</span> path = <span class="fn">require</span>(<span class="str">"path"</span>);
+
+<span class="kw">const</span> filePath = path.<span class="fn">join</span>(<span class="str">"users"</span>, <span class="str">"images"</span>, <span class="str">"profile.jpg"</span>);
+<span class="fn">console</span>.log(filePath);
+<span class="cmt">// Windows: users\images\profile.jpg</span>
+<span class="cmt">// Linux/macOS: users/images/profile.jpg</span></code></pre>
+        </div>
+        <div class="info-box box-note"><strong>Use case:</strong> building file paths safely.</div>
+
+        <h3>path.resolve()</h3>
+        <p>Converts a relative path into an <strong>absolute path</strong>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">resolve.js</span></div>
+          <pre><code><span class="kw">const</span> path = <span class="fn">require</span>(<span class="str">"path"</span>);
+
+<span class="kw">const</span> absolutePath = path.<span class="fn">resolve</span>(<span class="str">"uploads"</span>, <span class="str">"image.png"</span>);
+<span class="fn">console</span>.log(absolutePath);
+<span class="cmt">// C:\Projects\NodeApp\uploads\image.png</span></code></pre>
+        </div>
+        <div class="info-box box-note"><strong>Use case:</strong> when APIs require an absolute path.</div>
+
+        <h3>path.extname()</h3>
+        <p>Returns the file extension.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">extname.js</span></div>
+          <pre><code><span class="fn">console</span>.log(path.<span class="fn">extname</span>(<span class="str">"photo.jpg"</span>));    <span class="cmt">// .jpg</span>
+<span class="fn">console</span>.log(path.<span class="fn">extname</span>(<span class="str">"document.pdf"</span>)); <span class="cmt">// .pdf</span>
+<span class="fn">console</span>.log(path.<span class="fn">extname</span>(<span class="str">"index.html"</span>));  <span class="cmt">// .html</span></code></pre>
+        </div>
+        <div class="info-box box-note"><strong>Use case:</strong> validate uploaded file types.</div>
+
+        <h3>path.basename()</h3>
+        <p>Returns the file name from a path — and can optionally strip the extension.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">basename.js</span></div>
+          <pre><code><span class="fn">console</span>.log(path.<span class="fn">basename</span>(<span class="str">"/users/images/profile.jpg"</span>));
+<span class="cmt">// profile.jpg</span>
+
+<span class="fn">console</span>.log(path.<span class="fn">basename</span>(<span class="str">"profile.jpg"</span>, <span class="str">".jpg"</span>));
+<span class="cmt">// profile</span></code></pre>
+        </div>
+        <div class="info-box box-note"><strong>Use case:</strong> extract the file name from a full path.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 no-left-border">
+      <div class="card-sub-title"><h4>Quick Summary</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Method</th><th>Purpose</th><th>Example Output</th></tr>
+          <tr><td><code>path.join()</code></td><td>Join path segments</td><td><code>uploads/images/file.jpg</code></td></tr>
+          <tr><td><code>path.resolve()</code></td><td>Create an absolute path</td><td><code>C:\Project\uploads\file.jpg</code></td></tr>
+          <tr><td><code>path.extname()</code></td><td>Get file extension</td><td><code>.jpg</code></td></tr>
+          <tr><td><code>path.basename()</code></td><td>Get file name</td><td><code>file.jpg</code></td></tr>
+        </table>
+        <div class="info-box box-benefit"><strong>Interview Answer:</strong> The <code>path</code> module safely works with file and directory paths across operating systems. <code>join()</code> combines segments, <code>resolve()</code> generates an absolute path, <code>extname()</code> returns the extension, and <code>basename()</code> extracts the file name — avoiding hardcoded strings and ensuring cross-platform compatibility.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== OS (green) ==================== -->
+    <div class="section-divider" id="os"><span>os Module</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Definition</h4></div>
+      <div class="card-sub-content">
+        <p>The <strong>os</strong> module is a built-in Node.js module that provides information about the operating system — CPU, memory, platform, hostname, and more.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">import.js</span></div>
+          <pre><code><span class="kw">import</span> os <span class="kw">from</span> <span class="str">"os"</span>;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 no-left-border">
+      <div class="card-sub-title"><h4>Core Methods</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Method</th><th>One-Line Explanation</th></tr>
+          <tr><td><code>os.platform()</code></td><td>Returns the operating system platform.</td></tr>
+          <tr><td><code>os.arch()</code></td><td>Returns the CPU architecture.</td></tr>
+          <tr><td><code>os.cpus()</code></td><td>Returns details about all CPU cores.</td></tr>
+          <tr><td><code>os.totalmem()</code></td><td>Returns the total installed RAM.</td></tr>
+          <tr><td><code>os.freemem()</code></td><td>Returns the currently available RAM.</td></tr>
+          <tr><td><code>os.hostname()</code></td><td>Returns the computer's hostname.</td></tr>
+          <tr><td><code>os.uptime()</code></td><td>Returns the system uptime in seconds.</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 no-left-border">
+      <div class="card-sub-title"><h4>Examples</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">os-examples.js</span></div>
+          <pre><code><span class="kw">import</span> os <span class="kw">from</span> <span class="str">"os"</span>;
+
+<span class="fn">console</span>.log(os.<span class="fn">platform</span>());   <span class="cmt">// "win32", "linux", "darwin"</span>
+<span class="fn">console</span>.log(os.<span class="fn">arch</span>());       <span class="cmt">// "x64", "arm64"</span>
+<span class="fn">console</span>.log(os.<span class="fn">cpus</span>());       <span class="cmt">// array of CPU core details</span>
+<span class="fn">console</span>.log(os.<span class="fn">totalmem</span>());   <span class="cmt">// total RAM in bytes</span>
+<span class="fn">console</span>.log(os.<span class="fn">freemem</span>());    <span class="cmt">// available RAM in bytes</span>
+<span class="fn">console</span>.log(os.<span class="fn">hostname</span>());   <span class="cmt">// e.g. "shivam-laptop"</span>
+<span class="fn">console</span>.log(os.<span class="fn">uptime</span>());     <span class="cmt">// seconds since last reboot</span></code></pre>
+        </div>
+        <div class="info-box box-warning"><strong>⚠️ Note:</strong> <code>hostname()</code> is a method, not a property — you must call it with <code>()</code>. Logging <code>os.hostname</code> without parentheses prints the function itself, not the value.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Interview Q&amp;A</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Question</th><th>Answer</th></tr>
+          <tr><td>What is the <code>os</code> module?</td><td>A built-in Node.js module that provides information about the operating system.</td></tr>
+          <tr><td><code>platform()</code> vs <code>type()</code></td><td><code>platform()</code> returns a platform identifier (<code>win32</code>, <code>linux</code>); <code>type()</code> returns the OS name (<code>Windows_NT</code>, <code>Linux</code>).</td></tr>
+          <tr><td><code>totalmem()</code> vs <code>freemem()</code></td><td><code>totalmem()</code> returns total RAM; <code>freemem()</code> returns currently available RAM.</td></tr>
+          <tr><td>Why use the <code>os</code> module?</td><td>To retrieve CPU, memory, platform, hostname, and other system info for monitoring or platform-specific logic.</td></tr>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== CRYPTO (orange) ==================== -->
+    <div class="section-divider" id="crypto"><span>crypto Module — Practical Usage</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>Overview</h4></div>
+      <div class="card-sub-content">
+        <p>Knowing raw <code>crypto</code> matters, but real projects usually reach for specific tools per use case. Here's what's actually used where.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 no-left-border">
+      <div class="card-sub-title"><h4>Use Case → What's Generally Used</h4></div>
+      <div class="card-sub-content">
+        <table class="usecase-table">
+          <tr><th>Use Case</th><th>What is Generally Used?</th></tr>
+          <tr><td>Password hashing</td><td><code>bcrypt</code> or <code>Argon2</code> ✅</td></tr>
+          <tr><td>JWT signing</td><td><code>jsonwebtoken</code> (internally uses crypto)</td></tr>
+          <tr><td>Password reset token</td><td><code>crypto.randomBytes()</code> ✅</td></tr>
+          <tr><td>UUID generation</td><td><code>crypto.randomUUID()</code> (or <code>uuid</code> package in older projects)</td></tr>
+          <tr><td>Encrypt sensitive data</td><td><code>crypto.createCipheriv()</code></td></tr>
+          <tr><td>Verify webhook signatures</td><td><code>crypto.createHmac()</code></td></tr>
+          <tr><td>HTTPS/TLS</td><td>Node.js <code>https</code> module (uses crypto internally)</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 no-left-border">
+      <div class="card-sub-title"><h4>Quick Examples</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">crypto-examples.js</span></div>
+          <pre><code><span class="kw">import</span> crypto <span class="kw">from</span> <span class="str">"crypto"</span>;
+
+<span class="cmt">// Password reset token</span>
+<span class="kw">const</span> token = crypto.<span class="fn">randomBytes</span>(<span class="num">32</span>).<span class="fn">toString</span>(<span class="str">"hex"</span>);
+
+<span class="cmt">// UUID generation (built-in, no package needed)</span>
+<span class="kw">const</span> id = crypto.<span class="fn">randomUUID</span>();
+<span class="fn">console</span>.log(id); <span class="cmt">// e.g. "3f9a1c2e-4b8d-4a1e-9c3f-2e1a9b7d6c5f"</span>
+
+<span class="cmt">// Encrypt sensitive data</span>
+<span class="kw">const</span> key = crypto.<span class="fn">randomBytes</span>(<span class="num">32</span>);
+<span class="kw">const</span> iv = crypto.<span class="fn">randomBytes</span>(<span class="num">16</span>);
+<span class="kw">const</span> cipher = crypto.<span class="fn">createCipheriv</span>(<span class="str">"aes-256-cbc"</span>, key, iv);
+<span class="kw">let</span> encrypted = cipher.<span class="fn">update</span>(<span class="str">"secret data"</span>, <span class="str">"utf8"</span>, <span class="str">"hex"</span>);
+encrypted += cipher.<span class="fn">final</span>(<span class="str">"hex"</span>);
+
+<span class="cmt">// Verify webhook signature</span>
+<span class="kw">const</span> hmac = crypto.<span class="fn">createHmac</span>(<span class="str">"sha256"</span>, <span class="str">"webhookSecret"</span>).<span class="fn">update</span>(payloadBody).<span class="fn">digest</span>(<span class="str">"hex"</span>);</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>Interview Tip</h4></div>
+      <div class="card-sub-content">
+        <p>Raw <code>crypto</code> is the foundation — good for random tokens, HMAC verification, and encryption.</p>
+        <div class="info-box box-benefit"><strong>Remember:</strong> passwords always go through <code>bcrypt</code>/<code>Argon2</code> (never raw hashing), and auth tokens go through <code>jsonwebtoken</code> — both wrap <code>crypto</code> internally with safer, purpose-built APIs. Knowing when to use the raw module vs. the specialized package is exactly what interviewers are probing for.</div>
+      </div>
+    </div>
+
+    </div>
+    <div class="section-divider" id="import-meta"><span>What is import.meta.url used for?</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><h4>Definition</h4></div>
+      <div class="card-sub-content">
+        <p><code>import.meta.url</code> returns the <strong>URL of the current module file</strong>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.js</span></div>
+          <pre><code><span class="fn">console</span>.log(import.meta.url);</code></pre>
+        </div>
+        <div class="output-block">
+          <div class="output-bar">Output</div>
+          <pre>file:///Users/shivam/project/index.js</pre>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== COMMON USES (green) ==================== -->
+    <div class="section-divider" id="import-uses"><span>Common Uses</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4 no-left-border">
+      <div class="card-sub-title"><h4>Use Case Table</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Use Case</th><th>Example</th></tr>
+          <tr><td>Read files relative to current module</td><td><code>new URL("./data.json", import.meta.url)</code></td></tr>
+          <tr><td>Get current file path</td><td><code>fileURLToPath(import.meta.url)</code></td></tr>
+          <tr><td>Create <code>__dirname</code> equivalent</td><td><code>path.dirname(fileURLToPath(import.meta.url))</code></td></tr>
+          <tr><td>Dynamic imports</td><td><code>await import(new URL("./math.js", import.meta.url))</code></td></tr>
+          <tr><td>Load assets/config files</td><td><code>new URL("./config.json", import.meta.url)</code></td></tr>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== EXAMPLES (teal) ==================== -->
+    <div class="section-divider" id="import-examples"><span>Examples</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><h4>Usage Patterns</h4></div>
+      <div class="card-sub-content">
+
+        <h3>1. Reading a File</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">read-file.js</span></div>
+          <pre><code><span class="kw">const</span> filePath = <span class="kw">new</span> <span class="fn">URL</span>(<span class="str">"./data.txt"</span>, import.meta.url);</code></pre>
+        </div>
+        <div class="info-box box-note">No need for <code>__dirname</code>.</div>
+
+        <h3>2. Getting __filename</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">get-filename.js</span></div>
+          <pre><code><span class="kw">import</span> { fileURLToPath } <span class="kw">from</span> <span class="str">"url"</span>;
+
+<span class="kw">const</span> __filename = <span class="fn">fileURLToPath</span>(import.meta.url);
+
+<span class="fn">console</span>.log(__filename);</code></pre>
+        </div>
+        <div class="output-block">
+          <div class="output-bar">Output</div>
+          <pre>/Users/shivam/project/index.js</pre>
+        </div>
+
+        <h3>3. Getting __dirname</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">get-dirname.js</span></div>
+          <pre><code><span class="kw">import</span> path <span class="kw">from</span> <span class="str">"path"</span>;
+<span class="kw">import</span> { fileURLToPath } <span class="kw">from</span> <span class="str">"url"</span>;
+
+<span class="kw">const</span> __filename = <span class="fn">fileURLToPath</span>(import.meta.url);
+<span class="kw">const</span> __dirname = path.<span class="fn">dirname</span>(__filename);
+
+<span class="fn">console</span>.log(__dirname);</code></pre>
+        </div>
+        <div class="output-block">
+          <div class="output-bar">Output</div>
+          <pre>/Users/shivam/project</pre>
+        </div>
+
+        <h3>4. Dynamic Import</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">dynamic-import.js</span></div>
+          <pre><code><span class="kw">const</span> math = <span class="kw">await</span> <span class="kw">import</span>(
+  <span class="kw">new</span> <span class="fn">URL</span>(<span class="str">"./math.js"</span>, import.meta.url)
+);
+
+<span class="fn">console</span>.log(math.<span class="fn">add</span>(<span class="num">2</span>, <span class="num">3</span>));</code></pre>
+        </div>
+        <div class="info-box box-note">Useful when loading modules dynamically.</div>
+
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="interview-qa"><span>Interview Questions</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-item">
+          <div class="qa-question">Why use the path module instead of string concatenation?</div>
+          <div class="qa-answer">Because path separators differ across operating systems (<code>\</code> on Windows vs <code>/</code> on Linux/macOS). <code>path.join()</code> and <code>path.resolve()</code> handle this automatically so the same code works everywhere.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Difference between path.join() and path.resolve()?</div>
+          <div class="qa-answer"><code>join()</code> simply concatenates and normalizes segments into a relative or partial path. <code>resolve()</code> does the same but always returns a fully qualified <strong>absolute path</strong>, resolving from right to left until an absolute path is formed.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How do you get a file's extension or name in Node.js?</div>
+          <div class="qa-answer">Use <code>path.extname(filePath)</code> to get the extension (e.g. <code>.jpg</code>), and <code>path.basename(filePath)</code> to get the file name. Passing a second argument to <code>basename()</code> strips that extension from the result.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How would you check available system memory in Node.js?</div>
+          <div class="qa-answer">Use <code>os.totalmem()</code> for total installed RAM and <code>os.freemem()</code> for currently available RAM, both returned in bytes — useful for basic monitoring or resource-aware logic.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why does console.log(os.hostname) print a function?</div>
+          <div class="qa-answer">Because <code>hostname</code> is a method, not a property — omitting the parentheses logs the function reference itself instead of invoking it. It must be called as <code>os.hostname()</code>.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Should you hash passwords with crypto directly?</div>
+          <div class="qa-answer">No. Raw <code>crypto</code> hashing (like SHA-256) is too fast and lacks built-in salting, making it vulnerable to brute-force attacks. Use <code>bcrypt</code> or <code>Argon2</code> instead — they're purpose-built for password hashing with slow, salted algorithms.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How do you generate a secure random token in Node.js?</div>
+          <div class="qa-answer">Use <code>crypto.randomBytes(32).toString("hex")</code> — this is the standard approach for password-reset tokens and other secure random identifiers.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is import.meta.url?</div>
+          <div class="qa-answer"><code>import.meta.url</code> is an ES Module feature that provides the URL of the current module. It is commonly used to resolve file paths, read files relative to the current module, recreate <code>__dirname</code> and <code>__filename</code>, and perform dynamic imports. It replaces many use cases where CommonJS applications relied on <code>__dirname</code>.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why doesn't __dirname work in ES Modules?</div>
+          <div class="qa-answer"><code>__dirname</code> and <code>__filename</code> are CommonJS-specific globals and are not defined inside ES Modules. Instead, ESM exposes <code>import.meta.url</code>, from which the equivalent path information can be derived using <code>fileURLToPath()</code> and <code>path.dirname()</code>.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How do you get __dirname in an ES Module?</div>
+          <div class="qa-answer">First derive <code>__filename</code> with <code>fileURLToPath(import.meta.url)</code>, then pass that into <code>path.dirname()</code> to get the containing folder — recreating the CommonJS <code>__dirname</code> global.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How do you perform a dynamic import relative to the current module?</div>
+          <div class="qa-answer">Use <code>await import(new URL("./module.js", import.meta.url))</code> — this resolves the target module's path relative to the current file before dynamically loading it, which is useful for conditionally loading modules at runtime.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

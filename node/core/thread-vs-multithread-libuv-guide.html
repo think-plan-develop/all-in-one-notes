@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Single Thread vs Multi Thread & libuv - Complete Interview Notes</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* ═══════════ THEME VARIABLES ═══════════ */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#f97316; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+
+/* ═══════════ HEADER ═══════════ */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* ═══════════ CARDS (used by Interview Q&A section) ═══════════ */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+
+/* ═══════════ KEY TERMS SUMMARY ═══════════ */
+.intro-summary { margin:0 0 32px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* ═══════════ SECTION DIVIDER ═══════════ */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* ═══════════ CODE BLOCK ═══════════ */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* ═══════════ DIAGRAM ═══════════ */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+.svg-diagram { background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; margin:14px 0; box-shadow:0 4px 14px rgba(0,0,0,0.05); overflow-x:auto; }
+.svg-diagram svg { display:block; width:100%; height:auto; }
+
+/* ═══════════ INFO BOXES ═══════════ */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* ═══════════ SHORT ANSWER ═══════════ */
+.short-answer { position:relative; background:linear-gradient(160deg,#ffffff 0%, var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),0.16); border-left:4px solid var(--accent); border-radius:12px; padding:18px 22px 20px; margin-bottom:14px; font-size:17px; line-height:1.75; font-weight:500; color:#293244; box-shadow:0 6px 18px rgba(var(--shadow-rgb),0.1); }
+.short-answer::before { content:"QUICK ANSWER"; display:block; width:fit-content; font-size:11px; font-weight:800; letter-spacing:.8px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; margin-bottom:12px; box-shadow:0 3px 8px rgba(var(--shadow-rgb),0.35); }
+.short-answer strong { color: var(--heading); }
+.short-answer code { background:rgba(var(--shadow-rgb),0.1); color:var(--heading); padding:2px 6px; border-radius:5px; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+
+/* ═══════════ SUBSECTIONS (card-sub) ═══════════ */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); border-left:5px solid var(--accent); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-badge { font-size:11px; font-weight:800; letter-spacing:.5px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .code-block:last-child { margin-bottom:0; }
+
+/* ═══════════ TABLE ═══════════ */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(37,99,235,0.12); border:1px solid rgba(37,99,235,0.12); }
+table th { background:linear-gradient(120deg,#1e3a8a,#2563eb); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:500; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background:#eff6ff; }
+table tr:hover td { background:#dbeafe; transition:background .15s ease; }
+table td code { background:rgba(37,99,235,0.1); color:#1e3a8a; padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+/* ═══════════ ORIGINAL Q&A STYLES ═══════════ */
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item {
+    background: #ffffff;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+.qa-question {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.qa-question::before {
+    content: "Q";
+    background: var(--accent);
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 800;
+}
+.qa-answer {
+     background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 17px;
+    line-height: 1.9;
+    color: #000000;
+    font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #e11d48;
+    font-weight: 600;
+}
+.qa-answer .code-block { margin-top:12px; }
+.qa-answer .code-block code { background:transparent; padding:0; color:#d4d4d4; font-weight:400; border-radius:0; }
+.qa-answer .diagram { margin-top:12px; }
+.qa-answer table { margin-top:10px; box-shadow:0 4px 12px rgba(0,0,0,0.08); }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header theme-blue">
+      <h1>🧵 Single Thread vs Multi Thread &amp; libuv</h1>
+      <p>Is Node.js really single-threaded? What runs on the main thread, what runs on worker threads, and what libuv does under the hood</p>
+      <div class="toc">
+        <a href="#thread-basics" onclick="document.getElementById('thread-basics').scrollIntoView({behavior:'smooth'});return false;">What is a Thread</a>
+        <a href="#single-multi" onclick="document.getElementById('single-multi').scrollIntoView({behavior:'smooth'});return false;">Single vs Multi</a>
+        <a href="#node-answer" onclick="document.getElementById('node-answer').scrollIntoView({behavior:'smooth'});return false;">Node's Real Answer</a>
+        <a href="#main-thread" onclick="document.getElementById('main-thread').scrollIntoView({behavior:'smooth'});return false;">Main Thread</a>
+        <a href="#worker-threads" onclick="document.getElementById('worker-threads').scrollIntoView({behavior:'smooth'});return false;">Worker Threads</a>
+        <a href="#architecture" onclick="document.getElementById('architecture').scrollIntoView({behavior:'smooth'});return false;">Architecture</a>
+        <a href="#libuv" onclick="document.getElementById('libuv').scrollIntoView({behavior:'smooth'});return false;">libuv</a>
+        <a href="#libuv-scope" onclick="document.getElementById('libuv-scope').scrollIntoView({behavior:'smooth'});return false;">What libuv Handles</a>
+        <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> Node.js is <strong>single-threaded for JavaScript execution</strong>, but <strong>multi-threaded internally</strong>. Your JS code, the Event Loop, and callbacks all run on one main thread — but slow I/O work (files, DNS, crypto, compression) is handed off to <strong>libuv</strong>, which uses OS async APIs and a worker thread pool (default 4 threads) so the main thread never blocks.</div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🧵</div>
+          <div class="summary-text"><strong>Thread:</strong> The smallest unit of execution inside a process — think of it as a worker executing instructions.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">1️⃣</div>
+          <div class="summary-text"><strong>Single-threaded (JS):</strong> Only one JavaScript statement executes at a time, on the main thread.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🧠</div>
+          <div class="summary-text"><strong>libuv:</strong> The C library that gives Node.js its Event Loop, async I/O, and worker thread pool.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🏊</div>
+          <div class="summary-text"><strong>Worker Thread Pool:</strong> A set of background threads (default size 4, via <code>UV_THREADPOOL_SIZE</code>) that handle heavy I/O off the main thread.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== WHAT IS A THREAD ==================== -->
+    <div class="section-divider" id="thread-basics"><span>What is a Thread?</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Thread = A Worker</h4></div>
+        <div class="card-sub-content">
+          <div class="short-answer">
+            A <strong>thread</strong> is the smallest unit of execution inside a process. Think of a thread as a <strong>worker</strong> that executes your program's instructions.
+          </div>
+          <p>If there is one worker, tasks are executed one at a time. If there are multiple workers, several tasks can be executed simultaneously.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SINGLE VS MULTI ==================== -->
+    <div class="section-divider" id="single-multi"><span>Single Thread vs Multi Thread</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>Single Thread</h4></div>
+        <div class="card-sub-content">
+          <p>A <strong>single-threaded application has only one main thread</strong> to execute code.</p>
+        </div>
+      </div>
+
+      <div class="card-sub cat-3">
+        <div class="card-sub-title"><h4>Multi Thread</h4></div>
+        <div class="card-sub-content">
+          <p>A <strong>multi-threaded application</strong> has multiple threads working together, able to execute several tasks at once.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== NODE'S REAL ANSWER ==================== -->
+    <div class="section-divider" id="node-answer"><span>Is Node.js Single-Threaded or Multi-Threaded?</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>Short Answer</h4></div>
+        <div class="card-sub-content">
+          <div class="short-answer">
+            Node.js is <strong>single-threaded for JavaScript execution</strong>, but <strong>multi-threaded internally</strong>. This is the most accurate interview answer.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Why Do People Say "Single-Threaded"?</h4></div>
+        <div class="card-sub-content">
+          <p>Your JavaScript code runs on <strong>one main thread</strong>.</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">single-thread.js</span></div>
+            <pre><code>console.<span class="fn">log</span>(<span class="str">"Start"</span>);
+console.<span class="fn">log</span>(<span class="str">"Middle"</span>);
+console.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+          </div>
+          <div class="diagram">Main Thread
+     │
+     ▼
+   Start
+     │
+     ▼
+  Middle
+     │
+     ▼
+    End</div>
+          <div class="info-box box-note">💡 Only one JavaScript statement executes at a time. So from a JavaScript developer's perspective, Node.js is single-threaded.</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>Then Why Do People Say "Multi-Threaded"?</h4></div>
+        <div class="card-sub-content">
+          <p>Because Node.js doesn't do <em>everything</em> on the main thread. When your code performs slow operations like:</p>
+          <ul>
+            <li>Reading files</li>
+            <li>Database queries</li>
+            <li>DNS lookups</li>
+            <li>Encryption</li>
+            <li>Compression</li>
+          </ul>
+          <p>Node.js delegates these operations to <strong>libuv</strong>, which uses:</p>
+          <ul>
+            <li>Operating System asynchronous APIs</li>
+            <li>A Worker Thread Pool (default size: 4 threads, configurable via <code>UV_THREADPOOL_SIZE</code>)</li>
+          </ul>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">delegated-read.js</span></div>
+            <pre><code><span class="kw">const</span> fs = <span class="fn">require</span>(<span class="str">"fs"</span>);
+
+console.<span class="fn">log</span>(<span class="str">"Start"</span>);
+
+fs.<span class="fn">readFile</span>(<span class="str">"data.txt"</span>, () => {
+    console.<span class="fn">log</span>(<span class="str">"File Read"</span>);
+});
+
+console.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+          </div>
+          <p>Internally:</p>
+          <div class="diagram">                 Main Thread
+                      │
+                      ▼
+          fs.readFile("data.txt")
+                      │
+                      ▼
+            libuv Worker Thread
+                      │
+              Reads the file
+                      │
+                      ▼
+              Callback Queue
+                      │
+                      ▼
+                 Event Loop
+                      │
+                      ▼
+          Main Thread Executes Callback</div>
+          <div class="info-box box-warning">⚠️ Notice that the main thread never reads the file itself.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== MAIN THREAD ==================== -->
+    <div class="section-divider" id="main-thread"><span>What Exactly Runs on the Main Thread?</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-3">
+        <div class="card-sub-title"><h4>Main Thread Responsibilities</h4></div>
+        <div class="card-sub-content">
+          <p>The main thread executes:</p>
+          <ul>
+            <li>JavaScript code</li>
+            <li>Event Loop</li>
+            <li>Callback execution</li>
+            <li>Promise callbacks</li>
+            <li>Timers (<code>setTimeout</code>, <code>setInterval</code>)</li>
+          </ul>
+          <div class="info-box box-note">💡 Everything here runs one task at a time.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== WORKER THREADS ==================== -->
+    <div class="section-divider" id="worker-threads"><span>What Runs on Worker Threads?</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>Operations Typically Handled Off the Main Thread</h4></div>
+        <div class="card-sub-content">
+          <table>
+            <tr><th>Operation</th><th>Runs on Worker Thread?</th></tr>
+            <tr><td><code>fs.readFile()</code></td><td>✅ Yes</td></tr>
+            <tr><td><code>crypto.pbkdf2()</code></td><td>✅ Yes</td></tr>
+            <tr><td>zlib compression</td><td>✅ Yes</td></tr>
+            <tr><td>DNS lookup (<code>dns.lookup</code>)</td><td>✅ Yes</td></tr>
+            <tr><td>Network I/O (HTTP requests)</td><td>Usually handled asynchronously by the OS, not the thread pool</td></tr>
+            <tr><td>JavaScript code</td><td>❌ No (runs on the main thread unless using Worker Threads)</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ARCHITECTURE ==================== -->
+    <div class="section-divider" id="architecture"><span>Visual Architecture</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>From JS Code to Callback Execution</h4></div>
+        <div class="card-sub-content">
+          <div class="diagram">                 JavaScript Code
+                        │
+                        ▼
+              Main JavaScript Thread
+                        │
+                  Event Loop
+                        │
+        ┌───────────────┴───────────────┐
+        │                               │
+        ▼                               ▼
+ Synchronous Code             Asynchronous Tasks
+                                        │
+                                        ▼
+                         libuv / Operating System
+                                        │
+                          Worker Thread Pool
+                                        │
+                                        ▼
+                               Callback Queue
+                                        │
+                                        ▼
+                                 Event Loop
+                                        │
+                                        ▼
+                              Main Thread Executes</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>Why Doesn't Node.js Create a Thread for Every Request?</h4></div>
+        <div class="card-sub-content">
+          <p>Traditional servers often handled requests like this:</p>
+          <div class="diagram">Request 1 → Thread 1
+Request 2 → Thread 2
+Request 3 → Thread 3</div>
+          <p>Node.js instead uses:</p>
+          <div class="diagram">1000 Requests
+      │
+      ▼
+One Main Thread
+      │
+   Event Loop
+      │
+Background I/O</div>
+          <div class="info-box box-benefit">✅ This reduces memory usage, context switching, and thread management overhead.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== LIBUV ==================== -->
+    <div class="section-divider" id="libuv"><span>libuv</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-3">
+        <div class="card-sub-title"><h4>What is libuv?</h4></div>
+        <div class="card-sub-content">
+          <div class="short-answer">
+            <strong>libuv</strong> is a cross-platform C library used internally by Node.js to implement the <strong>Event Loop</strong>, <strong>asynchronous I/O</strong>, and a <strong>worker thread pool</strong>.
+          </div>
+          <p>In simple words: <strong>libuv is the component that makes Node.js asynchronous and non-blocking.</strong> Without libuv, Node.js would not be able to efficiently handle file operations, timers, networking, and many other asynchronous tasks.</p>
+        </div>
+      </div>
+
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>Why Was libuv Needed?</h4></div>
+        <div class="card-sub-content">
+          <p>JavaScript is single-threaded. Imagine you write:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">why-libuv.js</span></div>
+            <pre><code>fs.<span class="fn">readFile</span>(<span class="str">"data.txt"</span>, () => {
+    console.<span class="fn">log</span>(<span class="str">"Done"</span>);
+});</code></pre>
+          </div>
+          <p>JavaScript itself cannot read files. It simply says: <em>"I need this file. Someone please read it."</em></p>
+          <div class="info-box box-note">💡 That "someone" is libuv.</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>How Does libuv Work?</h4></div>
+        <div class="card-sub-content">
+          <div class="diagram">Your JavaScript Code
+         │
+         ▼
+      Node.js APIs
+(fs, http, crypto, timers...)
+         │
+         ▼
+        libuv
+         │
+ ┌───────┴─────────┐
+ │                 │
+Operating System   Worker Thread Pool
+         │
+Operation Completes
+         │
+         ▼
+Callback Queue
+         │
+         ▼
+Event Loop
+         │
+         ▼
+JavaScript Callback Executes</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>What Does libuv Actually Do?</h4></div>
+        <div class="card-sub-content">
+          <ul>
+            <li>✅ Event Loop</li>
+            <li>✅ Worker Thread Pool</li>
+            <li>✅ File System operations (<code>fs</code>)</li>
+            <li>✅ Timers (<code>setTimeout</code>, <code>setInterval</code>)</li>
+            <li>✅ DNS lookups</li>
+            <li>✅ TCP/UDP networking</li>
+            <li>✅ Cross-platform asynchronous I/O</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== WHAT LIBUV HANDLES ==================== -->
+    <div class="section-divider" id="libuv-scope"><span>Does libuv Handle Every Task?</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-3">
+        <div class="card-sub-title"><h4>No — Only Asynchronous I/O</h4></div>
+        <div class="card-sub-content">
+          <div class="info-box box-warning">⚠️ This is where many developers get confused. libuv mainly handles <strong>asynchronous I/O tasks</strong>, not CPU-intensive JavaScript code.</div>
+          <p>Asynchronous I/O tasks are handled by libuv, while CPU-intensive JavaScript calculations are executed on the main thread (unless you use Worker Threads).</p>
+        </div>
+      </div>
+
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>Example 1 — File Reading (Handled by libuv)</h4></div>
+        <div class="card-sub-content">
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">io-task.js</span></div>
+            <pre><code>fs.<span class="fn">readFile</span>(<span class="str">"data.txt"</span>, () => {
+  console.<span class="fn">log</span>(<span class="str">"Done"</span>);
+});</code></pre>
+          </div>
+          <div class="info-box box-benefit">✅ Even if the file is 10 GB (a heavy file read), it is still an I/O operation, so libuv handles it.</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Example 2 — Heavy Calculation (NOT Handled by libuv)</h4></div>
+        <div class="card-sub-content">
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">cpu-task.js</span></div>
+            <pre><code><span class="kw">let</span> sum = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; <span class="num">10000000000</span>; i++) {
+  sum += i;
+}</code></pre>
+          </div>
+          <div class="info-box box-warning">⚠️ This is a CPU-bound JavaScript task. It runs on the main thread and <strong>blocks the Event Loop</strong>.</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>Do We Manage libuv?</h4></div>
+        <div class="card-sub-content">
+          <p><strong>No.</strong> Node.js manages libuv automatically.</p>
+          <div class="info-box box-note">💡 Note: libuv is part of the Node.js runtime, not the V8 engine.</div>
+          <div class="short-answer">
+            <strong>libuv</strong> is the internal library that powers Node.js's Event Loop and asynchronous I/O. It automatically manages I/O operations in the background, allowing the main JavaScript thread to remain non-blocking, while CPU-intensive JavaScript code continues to run on the main thread unless Worker Threads are used.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-3">
+        <div class="card-sub-title"><h4>Why Does Node.js Need libuv?</h4></div>
+        <div class="card-sub-content">
+          <p>JavaScript runs on a single main thread. If Node.js had to wait for every slow operation:</p>
+          <ul>
+            <li>Reading files</li>
+            <li>Database queries</li>
+            <li>Network requests</li>
+            <li>Timers</li>
+          </ul>
+          <p>...the application would freeze.</p>
+          <div class="info-box box-benefit">✅ libuv solves this by handling these operations asynchronously.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="qa"><span>Interview Q&amp;A — Threads &amp; libuv</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-item">
+          <div class="qa-question">Is Node.js single-threaded or multi-threaded?</div>
+          <div class="qa-answer">Node.js is <strong>single-threaded for JavaScript execution</strong>, but <strong>multi-threaded internally</strong>. Your JS code, the Event Loop, and callbacks all run on one main thread, while libuv delegates slow I/O work to the operating system and a worker thread pool.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What exactly runs on the main thread, and what doesn't?</div>
+          <div class="qa-answer">
+            The main thread runs JavaScript code, the Event Loop, callback execution, Promise callbacks, and timers. It does <strong>not</strong> run file reads, DNS lookups, encryption, or compression directly — those are delegated to libuv's worker thread pool or the OS.
+            <table>
+              <tr><th>Runs on Main Thread</th><th>Runs on Worker Thread / OS</th></tr>
+              <tr><td>JavaScript code</td><td><code>fs.readFile()</code></td></tr>
+              <tr><td>Event Loop</td><td><code>crypto.pbkdf2()</code></td></tr>
+              <tr><td>Promise callbacks</td><td>zlib compression</td></tr>
+              <tr><td>Timers</td><td>DNS lookups</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why doesn't Node.js create a new thread for every incoming request?</div>
+          <div class="qa-answer">Because that model (one thread per request) doesn't scale — thousands of requests mean thousands of threads, which costs huge memory and expensive context switching. Node.js instead uses one main thread plus the Event Loop, delegating I/O to the background, which drastically reduces memory usage and thread management overhead.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is libuv, and why does Node.js need it?</div>
+          <div class="qa-answer">
+            libuv is a cross-platform C library that implements Node.js's Event Loop, asynchronous I/O, and worker thread pool — it's the component that makes Node.js non-blocking. JavaScript itself has no ability to read files or talk to the network; libuv is the "someone" that actually performs those operations and reports back via the Callback Queue.
+            <div class="diagram">JS Code → Node.js APIs (fs, http, crypto) → libuv → OS / Worker Pool → Callback Queue → Event Loop → JS Callback</div>
+          </div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Does libuv handle CPU-heavy JavaScript, like a large loop or sorting algorithm?</div>
+          <div class="qa-answer">No. libuv only handles <strong>asynchronous I/O tasks</strong> — file access, networking, DNS, timers. A CPU-bound task like a billion-iteration loop runs entirely on the main thread and <strong>blocks the Event Loop</strong> until it finishes, since there's no I/O for libuv to offload. To parallelize CPU-heavy work, you need Worker Threads instead.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is UV_THREADPOOL_SIZE?</div>
+          <div class="qa-answer">It's an environment variable that controls the size of libuv's worker thread pool, which defaults to <strong>4 threads</strong>. Operations like <code>fs</code> calls, <code>crypto.pbkdf2()</code>, and DNS lookups queue up on this pool — if you have more concurrent I/O-bound work than threads, extra tasks wait for a free thread, so increasing this value can help under heavy concurrent file/crypto load.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Is libuv part of the V8 engine?</div>
+          <div class="qa-answer">No. This is a common point of confusion. <strong>V8</strong> only executes JavaScript and has nothing to do with I/O. <strong>libuv</strong> is a separate part of the Node.js runtime responsible for the Event Loop, async I/O, and the thread pool — Node.js combines both V8 and libuv together.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

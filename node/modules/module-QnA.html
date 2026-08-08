@@ -1,0 +1,481 @@
+## Interview Questions — Node.js Modules
+
+### Q1. What is a module in Node.js?
+
+A module is a **reusable JavaScript file** that contains related code (functions, objects, classes, or variables) and can be imported into other files. Modules help organize code, improve maintainability, and promote code reuse.
+
+---
+
+### Q2. Why do we use modules?
+
+- Organize code into smaller files
+- Reuse functionality across multiple files
+- Avoid code duplication
+- Improve maintainability and readability
+- Enable team collaboration
+- Encapsulate functionality (hide implementation details)
+
+---
+
+### Q3. What are the types of modules in Node.js?
+
+#### 1. Core (Built-in) Modules
+Provided by Node.js itself — no installation required.
+
+**Examples:** `fs`, `http`, `path`, `os`, `crypto`, `events`, `stream`, `buffer`, `util`
+
+```js
+import fs from "fs";
+import path from "path";
+```
+
+#### 2. Local (Custom) Modules
+Created by the developer inside the project.
+
+```text
+project/
+├── app.js
+└── math.js
+```
+
+```js
+// math.js
+export function add(a, b) {
+  return a + b;
+}
+
+// app.js
+import { add } from "./math.js";
+console.log(add(10, 20));
+```
+
+#### 3. Third-party Modules
+Built by the community, installed via npm.
+
+```bash
+npm install express
+```
+```js
+import express from "express";
+```
+**Examples:** Express, Mongoose, Axios, Lodash, bcrypt, dotenv
+
+---
+
+### Q4. What is a module system?
+
+The mechanism Node.js uses to **export code from one module and import it into another**.
+
+- A **module** = the file containing the code
+- A **module system** = the rules for how modules import/export from each other
+
+---
+
+### Q5. What are the module systems in Node.js?
+
+Node.js supports two:
+
+#### 1. CommonJS (CJS)
+```js
+// Export
+module.exports = add;
+
+// Import
+const add = require("./math");
+```
+Default in older Node.js projects. No `"type": "module"` needed in `package.json`.
+
+#### 2. ES Modules (ESM)
+```js
+// Export
+export function add(a, b) {
+  return a + b;
+}
+
+// Import
+import { add } from "./math.js";
+```
+Recommended for modern Node.js apps. Requires either:
+- `"type": "module"` in `package.json`, **or**
+- `.mjs` file extension
+
+```json
+// package.json
+{
+  "type": "module"
+}
+```
+
+---
+
+### Module vs Module System
+
+| Module | Module System |
+|---|---|
+| A JavaScript file containing reusable code | A mechanism for importing/exporting modules |
+| Example: `math.js`, `user.js` | CommonJS and ES Modules |
+| Represents **what** is being shared | Represents **how** it is shared |
+| Contains functions, classes, objects, etc. | Defines the syntax and rules for sharing code |
+
+---
+
+## One-line Interview Answer
+
+> A module is a reusable JavaScript file that contains related functionality, while a module system is the mechanism that defines how modules are imported and exported. Node.js supports two module systems: CommonJS (`require`, `module.exports`) and ES Modules (`import`, `export`).
+
+
+Here's a simple **Node.js HTTP server** that handles both **GET** and **POST** requests without using Express.
+
+```javascript
+import http from "http";
+
+const server = http.createServer((req, res) => {
+  // GET Request
+  if (req.method === "GET" && req.url === "/") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        message: "GET request received",
+      })
+    );
+  }
+
+  // POST Request
+  else if (req.method === "POST" && req.url === "/user") {
+    let body = "";
+
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+
+    req.on("end", () => {
+      const data = JSON.parse(body);
+
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          message: "POST request received",
+          user: data,
+        })
+      );
+    });
+  }
+
+  // Route Not Found
+  else {
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        message: "Route not found",
+      })
+    );
+  }
+});
+
+server.listen(3000, () => {
+  console.log("Server running at http://localhost:3000");
+});
+```
+
+### Test GET
+
+```http
+GET http://localhost:3000/
+```
+
+**Response**
+
+```json
+{
+  "message": "GET request received"
+}
+```
+
+---
+
+### Test POST
+
+```http
+POST http://localhost:3000/user
+Content-Type: application/json
+```
+
+**Body**
+
+```json
+{
+  "name": "Shivam",
+  "age": 25
+}
+```
+
+**Response**
+
+```json
+{
+  "message": "POST request received",
+  "user": {
+    "name": "Shivam",
+    "age": 25
+  }
+}
+```
+
+### Interview Points
+
+* `http.createServer()` creates an HTTP server.
+* `req.method` identifies the HTTP method (`GET`, `POST`, etc.).
+* `req.url` identifies the requested route.
+* `req.on("data")` receives incoming request body chunks.
+* `req.on("end")` fires when the entire request body has been received.
+* `res.writeHead()` sets the status code and response headers.
+* `res.end()` sends the response and closes the connection.
+
+
+The `http` module works perfectly, but as your application grows it becomes difficult to manage. **Express solves these problems by providing higher-level abstractions.**
+
+| Using `http` Module                                       | Using Express                                    |
+| --------------------------------------------------------- | ------------------------------------------------ |
+| Manually check `req.method` and `req.url`                 | `app.get()`, `app.post()` routes                 |
+| Manually parse request body using `data` and `end` events | `express.json()` parses JSON automatically       |
+| Manually set headers and status codes                     | `res.json()`, `res.status()`                     |
+| Manual routing with many `if...else` statements           | Clean route definitions                          |
+| No built-in middleware support                            | Powerful middleware system                       |
+| Manual error handling                                     | Centralized error handling middleware            |
+| Hard to organize large applications                       | Easy to split into routes, controllers, services |
+
+### Example with `http`
+
+```javascript
+if (req.method === "GET" && req.url === "/users") {
+  // ...
+} else if (req.method === "POST" && req.url === "/users") {
+  // ...
+} else if (req.method === "PUT" && req.url === "/users/1") {
+  // ...
+} else if (req.method === "DELETE" && req.url === "/users/1") {
+  // ...
+}
+```
+
+As routes increase, this becomes difficult to read and maintain.
+
+---
+
+### Same with Express
+
+```javascript
+app.get("/users", getUsers);
+app.post("/users", createUser);
+app.put("/users/:id", updateUser);
+app.delete("/users/:id", deleteUser);
+```
+
+Each route is independent and much cleaner.
+
+---
+
+### Parsing Request Body
+
+#### `http`
+
+```javascript
+let body = "";
+
+req.on("data", (chunk) => {
+  body += chunk;
+});
+
+req.on("end", () => {
+  const data = JSON.parse(body);
+});
+```
+
+#### Express
+
+```javascript
+app.use(express.json());
+
+app.post("/users", (req, res) => {
+  console.log(req.body);
+});
+```
+
+Express parses the JSON body automatically.
+
+---
+
+### Sending Response
+
+#### `http`
+
+```javascript
+res.writeHead(200, {
+  "Content-Type": "application/json",
+});
+
+res.end(JSON.stringify(data));
+```
+
+#### Express
+
+```javascript
+res.status(200).json(data);
+```
+
+---
+
+### Interview Answer
+
+**Why do we use Express if Node.js already has the `http` module?**
+
+> The `http` module provides low-level APIs to create a web server, but we have to manually handle routing, request parsing, response formatting, middleware, and error handling. Express is built on top of the `http` module and provides these features out of the box, making backend development faster, cleaner, and easier to maintain. It doesn't replace `http`; it simplifies working with it.
+
+
+
+### Interview Question
+
+**Q: In an ES Module (`import` syntax), how do you get the absolute path of a file without using `__dirname`? Why doesn't `__dirname` work in ES Modules?**
+
+### Answer
+
+In ES Modules, `__dirname` and `__filename` are **not available** because they are CommonJS-specific globals. The recommended way is to use `import.meta.url` with `new URL()`.
+
+```javascript
+import fs from "fs";
+
+const filePath = new URL("./es1.html", import.meta.url);
+
+fs.readFile(filePath, "utf8", (err, data) => {
+  if (err) {
+    console.error(err);
+    return;
+  }
+
+  console.log(data);
+});
+```
+
+**Explanation:**
+
+* `import.meta.url` returns the URL of the current module.
+* `new URL("./es1.html", import.meta.url)` resolves the file path relative to the current module.
+* This approach is the standard and recommended way to access files in ES Modules because it works regardless of the directory from which the application is executed.
+
+
+### Q. What is `pipe()` in Node.js? Can it be used with Duplex and Transform streams?
+
+**Answer:**
+
+`pipe()` is a **method of a Readable stream** that automatically sends data from one stream to another. It handles reading, writing, and backpressure internally, so you don't need to manually process each chunk.
+
+It is **not a type of stream**.
+
+`pipe()` is commonly used to connect:
+
+* **Readable → Writable**
+* **Readable → Transform → Writable**
+* **Readable → Duplex → Writable** (when appropriate)
+
+**Example 1: Readable → Writable**
+
+```javascript
+const fs = require("fs");
+
+const readStream = fs.createReadStream("input.txt");
+const writeStream = fs.createWriteStream("output.txt");
+
+readStream.pipe(writeStream);
+```
+
+**Flow:**
+
+```text
+Readable
+   │
+ pipe()
+   │
+Writable
+```
+
+---
+
+**Example 2: Readable → Transform → Writable**
+
+```javascript
+const fs = require("fs");
+const zlib = require("zlib");
+
+const readStream = fs.createReadStream("input.txt");
+const gzip = zlib.createGzip(); // Transform stream
+const writeStream = fs.createWriteStream("input.txt.gz");
+
+readStream
+  .pipe(gzip)
+  .pipe(writeStream);
+```
+
+**Flow:**
+
+```text
+Readable
+   │
+ pipe()
+   ▼
+Transform
+   │
+ pipe()
+   ▼
+Writable
+```
+
+### Interview Summary
+
+> **`pipe()` is a method that connects streams and automatically transfers data between them. It is not a stream itself and can be used to connect Readable, Writable, Transform, and compatible Duplex streams.**
+
+
+streaming a vedio?
+
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+
+const videoPath = path.join(__dirname,  "Arijit-Singh.mp4");
+
+http.createServer((req, res) => {
+    const stat = fs.statSync(videoPath);
+    const fileSize = stat.size;
+
+    const range = req.headers.range;
+
+    // No Range header
+    if (!range) {
+        res.writeHead(200, {
+            "Content-Length": fileSize,
+            "Content-Type": "video/mp4",
+        });
+
+        return fs.createReadStream(videoPath).pipe(res);
+    }
+
+    // Range header present
+    const CHUNK_SIZE = 1024 * 1024; // 1 MB
+
+    const start = Number(range.replace(/\D/g, ""));
+    const end = Math.min(start + CHUNK_SIZE - 1, fileSize - 1);
+
+    const contentLength = end - start + 1;
+
+    res.writeHead(206, {
+        "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": contentLength,
+        "Content-Type": "video/mp4",
+    });
+
+    fs.createReadStream(videoPath, { start, end }).pipe(res);
+
+}).listen(3000, () => {
+    console.log("Server running on http://localhost:3000");
+});
+

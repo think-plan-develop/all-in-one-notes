@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Node.js http Module</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* THEME VARIABLES */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#0e7490; --accent:#0891b2; --accent-light:#22d3ee; --content-bg:#ecfeff; --heading:#0e7490; --shadow-rgb:8,145,178; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+
+/* HEADER */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* KEY TERMS SUMMARY */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* SECTION DIVIDER */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* CODE BLOCK */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* INFO BOXES */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* SUBSECTIONS */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 50%, #fff7ed 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); border-left:5px solid var(--accent); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-left { border-left: 1px solid rgba(var(--shadow-rgb),0.18); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content h3 { font-size:17px; font-weight:800; color:var(--heading); margin:0 0 12px; padding-bottom:10px; border-bottom:2px dashed rgba(var(--shadow-rgb),0.25); }
+.card-sub-content h3:not(:first-child) { margin-top:26px; }
+.plain-section { padding:4px 4px 22px; margin-bottom:6px; }
+.plain-section:last-child { padding-bottom:4px; margin-bottom:0; }
+.plain-heading { font-size:18px; font-weight:800; margin-bottom:10px; }
+.plain-heading.cat-1 { color:#1e3a8a; } .plain-heading.cat-2 { color:#065f46; } .plain-heading.cat-3 { color:#0e7490; } .plain-heading.cat-4 { color:#5b21b6; }
+.plain-section p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.plain-section p:last-child { margin-bottom:0; }
+.plain-section table { margin:15px 0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .code-block:last-child { margin-bottom:0; }
+
+/* TABLE */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); border:1px solid rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:700; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.15); transition:background .15s ease; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+/* INTERVIEW Q&A */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+.qa-answer .code-block { margin-top:12px; }
+.qa-answer .code-block code { background:transparent; padding:0; color:#d4d4d4; font-weight:400; border-radius:0; }
+.qa-answer .diagram { margin-top:12px; }
+
+/* USE-CASE GRID (crypto) */
+.usecase-table td:first-child { font-weight:700; color:var(--heading); }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+.qa-answer:hover { background: #bfffea !important; }
+</style>
+<body>
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="header theme-blue">
+      <h1>Node.js http Module</h1>
+      <p>Lets Node.js act as a web server or client — build servers, handle requests, send responses, all without a framework</p>
+      <div class="toc">
+        <a href="#http" onclick="document.getElementById('http').scrollIntoView({behavior:'smooth'});return false;">http Module</a>
+        <a href="#https" onclick="document.getElementById('https').scrollIntoView({behavior:'smooth'});return false;">HTTPS</a>
+        <a href="#interview-qa" onclick="document.getElementById('interview-qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> The <code>http</code> module lets Node.js act as a web server (receive requests, send responses) or a client (make requests to other servers) — without any framework. It's the exact foundation Express, Koa, and Fastify are built on top of.</div>
+
+    <!-- KEY TERMS SUMMARY -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🌐</div>
+          <div class="summary-text"><strong>http.createServer():</strong> The core method — creates an HTTP server that receives requests and sends responses.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">📥</div>
+          <div class="summary-text"><strong>req:</strong> A Readable stream representing the incoming request — method, url, headers, and body arrive in chunks.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">📤</div>
+          <div class="summary-text"><strong>res:</strong> A Writable stream representing the outgoing response — you can <code>.write()</code> multiple times before <code>.end()</code>.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🔒</div>
+          <div class="summary-text"><strong>https:</strong> Sibling module with an identical API, used for SSL/TLS-secured servers and requests.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="http"><span>http Module</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4 no-left">
+      <div class="card-sub-title"><span class="card-sub-num">🌐</span><h4>What it does</h4></div>
+      <div class="card-sub-content">
+        <p>Lets Node.js act as a <strong>web server</strong> (receive requests, send responses) or a <strong>client</strong> (make requests to other servers) — without any framework like Express.</p>
+        <div class="info-box box-tip"><strong>Interview Definition:</strong> The <code>http</code> module is a built-in Node.js module used to create HTTP servers and clients, handling raw requests and responses without any external framework.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4 no-left">
+      <div class="card-sub-title"><span class="card-sub-num">🧰</span><h4>Core Methods &amp; Properties</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Method</th><th>One-Line Explanation</th></tr>
+          <tr><td><code>http.createServer()</code></td><td>Creates an HTTP server.</td></tr>
+          <tr><td><code>server.listen()</code></td><td>Starts listening for requests on a port.</td></tr>
+          <tr><td><code>res.writeHead(status, headers)</code></td><td>Sets the status code and headers together in a single call.</td></tr>
+          <tr><td><code>res.setHeader()</code></td><td>Sets a single HTTP response header (can be called multiple times).</td></tr>
+          <tr><td><code>res.write()</code></td><td>Writes a chunk of data to the response.</td></tr>
+          <tr><td><code>res.end()</code></td><td>Ends the response and sends it to the client.</td></tr>
+          <tr><td><code>req.url</code></td><td>Gets the requested URL.</td></tr>
+          <tr><td><code>req.method</code></td><td>Gets the HTTP request method (GET, POST, etc.).</td></tr>
+          <tr><td><code>req.headers</code></td><td>Object of incoming headers — Node lowercases all header names.</td></tr>
+        </table>
+        <div class="info-box box-note"><strong>Why do we need the http module?</strong> It allows Node.js to communicate over the web — create a web server, handle client requests, send responses, and build APIs (before Express).</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">1️⃣</span><h4>Creating a Basic Server</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">server.js</span></div>
+          <pre><code><span class="kw">const</span> http = <span class="fn">require</span>(<span class="str">"http"</span>);
+
+<span class="kw">const</span> server = http.<span class="fn">createServer</span>((req, res) =&gt; {
+  res.<span class="fn">writeHead</span>(<span class="num">200</span>, { <span class="str">"Content-Type"</span>: <span class="str">"text/plain"</span> });
+  res.<span class="fn">end</span>(<span class="str">"Hello World"</span>);
+});
+
+server.<span class="fn">listen</span>(<span class="num">3000</span>, () =&gt; {
+  <span class="fn">console</span>.log(<span class="str">"Server running on port 3000"</span>);
+});</code></pre>
+        </div>
+        <div class="info-box box-note"><strong>Use case:</strong> this is the foundation every Node backend framework (Express, Koa, etc.) is built on top of.</div>
+
+        <h3>Alternative Form</h3>
+        <p><code>http.createServer()</code>'s callback is just a shortcut for attaching a listener to the server's <code>"request"</code> event. These are equivalent:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">alternative.js</span></div>
+          <pre><code><span class="kw">const</span> server = http.<span class="fn">createServer</span>();
+
+server.<span class="fn">on</span>(<span class="str">"request"</span>, (req, res) =&gt; {
+  res.<span class="fn">end</span>(<span class="str">"Hello World"</span>);
+});</code></pre>
+        </div>
+
+        <h3>res.writeHead() vs res.setHeader()</h3>
+        <ul>
+          <li><strong><code>res.writeHead(statusCode, headersObject)</code></strong> — sets the status code and one or more headers in a single call. Must be called before any <code>res.write()</code>.</li>
+          <li><strong><code>res.setHeader(name, value)</code></strong> — sets a single header at a time; can be called multiple times before the response is sent. Pair it with <code>res.statusCode = 200</code> if you're not using <code>writeHead()</code>.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">📥</span><h4>The req Object (Incoming Request)</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">request.js</span></div>
+          <pre><code><span class="kw">const</span> server = http.<span class="fn">createServer</span>((req, res) =&gt; {
+  <span class="fn">console</span>.log(req.method);   <span class="cmt">// "GET", "POST", etc.</span>
+  <span class="fn">console</span>.log(req.url);      <span class="cmt">// "/users?id=5"</span>
+  <span class="fn">console</span>.log(req.headers);  <span class="cmt">// { host: '...', 'user-agent': '...' }</span>
+
+  res.<span class="fn">end</span>(<span class="str">"Received"</span>);
+});</code></pre>
+        </div>
+        <div class="info-box box-note"><strong>Use case:</strong> read method/URL to route requests, read headers for auth tokens, content-type, etc.</div>
+        <div class="info-box box-warning">⚠️ <strong>Gotcha:</strong> Node.js automatically lowercases all incoming header names. A client sending <code>Content-Type: application/json</code> is read as <code>req.headers['content-type']</code>, not <code>req.headers['Content-Type']</code>.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">📤</span><h4>The res Object (Outgoing Response)</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">response.js</span></div>
+          <pre><code><span class="kw">const</span> server = http.<span class="fn">createServer</span>((req, res) =&gt; {
+  res.statusCode = <span class="num">200</span>;
+  res.<span class="fn">setHeader</span>(<span class="str">"Content-Type"</span>, <span class="str">"application/json"</span>);
+  res.<span class="fn">end</span>(JSON.<span class="fn">stringify</span>({ message: <span class="str">"Hello"</span> }));
+});</code></pre>
+        </div>
+        <div class="info-box box-note"><strong>Use case:</strong> set status codes, headers, and send back data (text, JSON, HTML).</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">🧭</span><h4>Basic Routing (Manual, No Framework)</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">routing.js</span></div>
+          <pre><code><span class="kw">const</span> server = http.<span class="fn">createServer</span>((req, res) =&gt; {
+  <span class="kw">if</span> (req.url === <span class="str">"/"</span> &amp;&amp; req.method === <span class="str">"GET"</span>) {
+    res.<span class="fn">end</span>(<span class="str">"Home Page"</span>);
+  } <span class="kw">else if</span> (req.url === <span class="str">"/about"</span>) {
+    res.<span class="fn">end</span>(<span class="str">"About Page"</span>);
+  } <span class="kw">else</span> {
+    res.statusCode = <span class="num">404</span>;
+    res.<span class="fn">end</span>(<span class="str">"Not Found"</span>);
+  }
+});</code></pre>
+        </div>
+        <div class="info-box box-warning"><strong>Use case:</strong> shows why Express exists — this gets messy fast, so frameworks handle routing for you.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">📨</span><h4>Reading POST Data (Request Body)</h4></div>
+      <div class="card-sub-content">
+        <p>Request bodies arrive as a <strong>stream of Buffer chunks</strong> — you have to collect them manually.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">post-body.js</span></div>
+          <pre><code><span class="kw">const</span> server = http.<span class="fn">createServer</span>((req, res) =&gt; {
+  <span class="kw">if</span> (req.method === <span class="str">"POST"</span>) {
+    <span class="kw">let</span> body = <span class="str">""</span>;
+
+    req.<span class="fn">on</span>(<span class="str">"data"</span>, (chunk) =&gt; {
+      body += chunk.<span class="fn">toString</span>();
+    });
+
+    req.<span class="fn">on</span>(<span class="str">"end"</span>, () =&gt; {
+      <span class="fn">console</span>.log(<span class="str">"Body:"</span>, body);
+      res.<span class="fn">end</span>(<span class="str">"Data received"</span>);
+    });
+  }
+});</code></pre>
+        </div>
+        <div class="info-box box-note"><strong>Use case:</strong> this is exactly what <code>express.json()</code> does behind the scenes.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">📡</span><h4>Making HTTP Requests (Client Side)</h4></div>
+      <div class="card-sub-content">
+        <h3>GET Request</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">client.js</span></div>
+          <pre><code><span class="kw">const</span> http = <span class="fn">require</span>(<span class="str">"http"</span>);
+
+http.<span class="fn">get</span>(<span class="str">"http://example.com"</span>, (res) =&gt; {
+  <span class="kw">let</span> data = <span class="str">""</span>;
+
+  res.<span class="fn">on</span>(<span class="str">"data"</span>, (chunk) =&gt; {
+    data += chunk;
+  });
+
+  res.<span class="fn">on</span>(<span class="str">"end"</span>, () =&gt; {
+    <span class="fn">console</span>.log(data);
+  });
+});</code></pre>
+        </div>
+        <div class="info-box box-note"><strong>Use case:</strong> fetch data from another API/server without external libraries like <code>axios</code>.</div>
+
+        <h3>POST Request</h3>
+        <p><code>http.get()</code> only handles GET requests. For POST (or any other method), use <code>http.request()</code> and write the body yourself:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">client-post.js</span></div>
+          <pre><code><span class="kw">const</span> http = <span class="fn">require</span>(<span class="str">"http"</span>);
+
+<span class="kw">const</span> postData = JSON.<span class="fn">stringify</span>({ name: <span class="str">"Shivam"</span> });
+
+<span class="kw">const</span> options = {
+  hostname: <span class="str">"example.com"</span>,
+  path: <span class="str">"/users"</span>,
+  method: <span class="str">"POST"</span>,
+  headers: {
+    <span class="str">"Content-Type"</span>: <span class="str">"application/json"</span>,
+    <span class="str">"Content-Length"</span>: Buffer.<span class="fn">byteLength</span>(postData),
+  },
+};
+
+<span class="kw">const</span> req = http.<span class="fn">request</span>(options, (res) =&gt; {
+  <span class="kw">let</span> data = <span class="str">""</span>;
+  res.<span class="fn">on</span>(<span class="str">"data"</span>, (chunk) =&gt; (data += chunk));
+  res.<span class="fn">on</span>(<span class="str">"end"</span>, () =&gt; <span class="fn">console</span>.log(data));
+});
+
+req.<span class="fn">on</span>(<span class="str">"error"</span>, (err) =&gt; <span class="fn">console</span>.error(err));
+
+req.<span class="fn">write</span>(postData);
+req.<span class="fn">end</span>();</code></pre>
+        </div>
+        <div class="info-box box-note"><strong>Use case:</strong> send data to another API/server (e.g. form submissions, webhooks) without <code>axios</code>.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4 no-left">
+      <div class="card-sub-title"><span class="card-sub-num">🔑</span><h4>Key Things to Know</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Concept</th><th>Why it matters</th></tr>
+          <tr><td><code>req</code> is a <strong>Readable stream</strong></td><td>Body data arrives in chunks, not all at once</td></tr>
+          <tr><td><code>res</code> is a <strong>Writable stream</strong></td><td>You can <code>.write()</code> multiple times before <code>.end()</code></td></tr>
+          <tr><td>No built-in routing, body parsing, or JSON handling</td><td>This is exactly why Express/Koa/Fastify exist</td></tr>
+          <tr><td><code>http.createServer()</code></td><td>The core method — everything else builds on it</td></tr>
+          <tr><td>No automatic error handling</td><td>An uncaught error thrown inside the request callback can crash the whole process — always wrap risky logic in try/catch</td></tr>
+          <tr><td>Header names are lowercased</td><td><code>req.headers['content-type']</code>, not <code>req.headers['Content-Type']</code></td></tr>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== HTTPS ==================== -->
+    <div class="section-divider" id="https"><span>HTTPS</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-3">
+        <div class="card-sub-title"><span class="card-sub-num">🔒</span><h4>The https Module</h4></div>
+        <div class="card-sub-content">
+          <p>The <code>https</code> module has an <strong>identical API</strong> to <code>http</code> — same <code>createServer()</code>, <code>req</code>, <code>res</code> — but requires an SSL/TLS certificate and key to run.</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">https-server.js</span></div>
+            <pre><code><span class="kw">const</span> https = <span class="fn">require</span>(<span class="str">"https"</span>);
+<span class="kw">const</span> fs = <span class="fn">require</span>(<span class="str">"fs"</span>);
+
+<span class="kw">const</span> options = {
+  key: fs.<span class="fn">readFileSync</span>(<span class="str">"key.pem"</span>),
+  cert: fs.<span class="fn">readFileSync</span>(<span class="str">"cert.pem"</span>),
+};
+
+https.<span class="fn">createServer</span>(options, (req, res) =&gt; {
+  res.<span class="fn">end</span>(<span class="str">"Secure Hello World"</span>);
+}).<span class="fn">listen</span>(<span class="num">443</span>);</code></pre>
+          </div>
+          <div class="info-box box-note">💡 <strong>Use case:</strong> serving traffic over SSL/TLS (HTTPS) directly from Node, without a reverse proxy handling encryption.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="interview-qa"><span>Interview Questions</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-item">
+          <div class="qa-question">Why do we need the http module?</div>
+          <div class="qa-answer">It allows Node.js to communicate over the web — create a web server, handle client requests, send responses, and build APIs (before Express existed as an abstraction on top of it).</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why do we need the http module if Express exists?</div>
+          <div class="qa-answer">Express is built directly on top of <code>http</code> — it just adds routing, middleware, and body parsing. Understanding raw <code>http</code> shows you what's actually happening under the hood, and lets you build a server or API without any framework at all.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How do you read a POST request body in raw Node.js?</div>
+          <div class="qa-answer">Since <code>req</code> is a Readable stream, you listen for <code>"data"</code> events to accumulate Buffer chunks into a string, then listen for the <code>"end"</code> event to know the full body has arrived — this is exactly what <code>express.json()</code> automates.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between res.write() and res.end()?</div>
+          <div class="qa-answer"><code>res.write()</code> sends a chunk of data and can be called multiple times since <code>res</code> is a Writable stream. <code>res.end()</code> sends the final chunk (optional) and signals that the response is complete — it must always be called or the client hangs waiting for more data.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How do you make an outgoing HTTP request from a Node.js server?</div>
+          <div class="qa-answer">Use <code>http.get(url, callback)</code> for GET requests, or <code>http.request(options, callback)</code> for POST/PUT/DELETE — writing the request body with <code>req.write()</code> and finishing with <code>req.end()</code>. Collect the response body via the <code>"data"</code> and <code>"end"</code> events on the returned response stream.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why does manual routing with the http module get messy?</div>
+          <div class="qa-answer">Because every route requires checking <code>req.method</code> and <code>req.url</code> manually with a chain of <code>if...else</code> statements. As routes grow, this becomes hard to read and maintain — which is exactly the problem frameworks like Express solve with clean route definitions like <code>app.get()</code> and <code>app.post()</code>.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Create an HTTP server that handles both GET and POST requests.</div>
+          <div class="qa-answer">
+            Check <code>req.method</code> to branch logic. For GET, respond immediately. For POST, collect the body via the <code>"data"</code>/<code>"end"</code> events (since <code>req</code> is a stream) before responding.
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">get-post-server.js</span></div>
+              <pre><code><span class="kw">const</span> http = <span class="fn">require</span>(<span class="str">"http"</span>);
+
+<span class="kw">const</span> server = http.<span class="fn">createServer</span>((req, res) =&gt; {
+  <span class="cmt">// Handle GET request</span>
+  <span class="kw">if</span> (req.method === <span class="str">"GET"</span> &amp;&amp; req.url === <span class="str">"/"</span>) {
+    res.<span class="fn">writeHead</span>(<span class="num">200</span>, { <span class="str">"Content-Type"</span>: <span class="str">"text/plain"</span> });
+    res.<span class="fn">end</span>(<span class="str">"GET request received — Home Page"</span>);
+
+  <span class="cmt">// Handle POST request</span>
+  } <span class="kw">else if</span> (req.method === <span class="str">"POST"</span> &amp;&amp; req.url === <span class="str">"/users"</span>) {
+    <span class="kw">let</span> body = <span class="str">""</span>;
+
+    req.<span class="fn">on</span>(<span class="str">"data"</span>, (chunk) =&gt; {
+      body += chunk.<span class="fn">toString</span>();
+    });
+
+    req.<span class="fn">on</span>(<span class="str">"end"</span>, () =&gt; {
+      <span class="kw">let</span> parsedData;
+      <span class="kw">try</span> {
+        parsedData = JSON.<span class="fn">parse</span>(body);
+      } <span class="kw">catch</span> (err) {
+        res.<span class="fn">writeHead</span>(<span class="num">400</span>, { <span class="str">"Content-Type"</span>: <span class="str">"application/json"</span> });
+        <span class="kw">return</span> res.<span class="fn">end</span>(JSON.<span class="fn">stringify</span>({ error: <span class="str">"Invalid JSON"</span> }));
+      }
+
+      res.<span class="fn">writeHead</span>(<span class="num">201</span>, { <span class="str">"Content-Type"</span>: <span class="str">"application/json"</span> });
+      res.<span class="fn">end</span>(JSON.<span class="fn">stringify</span>({
+        message: <span class="str">"User created"</span>,
+        data: parsedData,
+      }));
+    });
+
+  <span class="cmt">// Fallback for unknown routes</span>
+  } <span class="kw">else</span> {
+    res.<span class="fn">writeHead</span>(<span class="num">404</span>, { <span class="str">"Content-Type"</span>: <span class="str">"text/plain"</span> });
+    res.<span class="fn">end</span>(<span class="str">"Not Found"</span>);
+  }
+});
+
+server.<span class="fn">listen</span>(<span class="num">3000</span>, () =&gt; {
+  <span class="fn">console</span>.log(<span class="str">"Server running on http://localhost:3000"</span>);
+});</code></pre>
+            </div>
+            <p><strong>Testing it:</strong></p>
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+              <pre><code><span class="cmt"># GET request</span>
+curl http://localhost:3000/
+
+<span class="cmt"># POST request</span>
+curl -X POST http://localhost:3000/users \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"name":"Shivam","age":25}'</span></code></pre>
+            </div>
+            <p><strong>Expected POST output:</strong></p>
+            <div class="diagram">{
+  "message": "User created",
+  "data": { "name": "Shivam", "age": 25 }
+}</div>
+            <div class="info-box box-extra">⚡ <strong>Interview talking point:</strong> Notice GET is handled synchronously in one step, while POST requires an asynchronous two-step flow (<code>"data"</code> → <code>"end"</code>) because the body arrives as a stream. This asymmetry — and having to hand-roll JSON parsing and routing — is precisely why frameworks like Express exist.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

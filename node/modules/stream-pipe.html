@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Streams in Node.js - Complete Interview Notes</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* ═══════════ THEME VARIABLES ═══════════ */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#f97316; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-5 { --accent-dark:#0e7490; --accent:#0891b2; --accent-light:#22d3ee; --content-bg:#ecfeff; --heading:#0e7490; --shadow-rgb:8,145,178; }
+
+/* ═══════════ HEADER ═══════════ */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* ═══════════ CARDS (used by Interview Q&A section) ═══════════ */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+
+/* ═══════════ KEY TERMS SUMMARY ═══════════ */
+.intro-summary { margin:0 0 32px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* ═══════════ SECTION DIVIDER ═══════════ */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* ═══════════ CODE BLOCK ═══════════ */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* ═══════════ DIAGRAM ═══════════ */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+.svg-diagram { background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; margin:14px 0; box-shadow:0 4px 14px rgba(0,0,0,0.05); overflow-x:auto; }
+.svg-diagram svg { display:block; width:100%; height:auto; }
+
+/* ═══════════ INFO BOXES ═══════════ */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* ═══════════ SHORT ANSWER ═══════════ */
+.short-answer { position:relative; background:linear-gradient(160deg,#ffffff 0%, var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),0.16); border-left:4px solid var(--accent); border-radius:12px; padding:18px 22px 20px; margin-bottom:14px; font-size:17px; line-height:1.75; font-weight:500; color:#293244; box-shadow:0 6px 18px rgba(var(--shadow-rgb),0.1); }
+.short-answer::before { content:"QUICK ANSWER"; display:block; width:fit-content; font-size:11px; font-weight:800; letter-spacing:.8px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; margin-bottom:12px; box-shadow:0 3px 8px rgba(var(--shadow-rgb),0.35); }
+.short-answer strong { color: var(--heading); }
+.short-answer code { background:rgba(var(--shadow-rgb),0.1); color:var(--heading); padding:2px 6px; border-radius:5px; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+
+/* ═══════════ SUBSECTIONS (card-sub) ═══════════ */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); border-left:5px solid var(--accent); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-left { border-left: 1px solid rgba(var(--shadow-rgb),0.18); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-num { flex-shrink:0; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-badge { font-size:11px; font-weight:800; letter-spacing:.5px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; }
+.step-connector { display:flex; justify-content:center; align-items:center; margin:-6px 0 10px; font-size:24px; color:#94a3b8; line-height:1; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .code-block:last-child { margin-bottom:0; }
+
+/* ═══════════ TABLE ═══════════ */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(37,99,235,0.12); }
+table th { background:linear-gradient(120deg,#1e3a8a,#2563eb); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:500; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background:#eff6ff; }
+table tr:hover td { background:#dbeafe; transition:background .15s ease; }
+table td code { background:rgba(37,99,235,0.1); color:#1e3a8a; padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+/* ═══════════ ORIGINAL Q&A STYLES ═══════════ */
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item {
+    background: #ffffff;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+.qa-question {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.qa-question::before {
+    content: "Q";
+    background: var(--accent);
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 800;
+}
+.qa-answer {
+     background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 17px;
+    line-height: 1.9;
+    color: #000000;
+    font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #e11d48;
+    font-weight: 600;
+}
+.qa-answer .code-block { margin-top:12px; }
+.qa-answer .code-block code { background:transparent; padding:0; color:#d4d4d4; font-weight:400; border-radius:0; }
+.qa-answer .diagram { margin-top:12px; }
+.qa-answer table { margin-top:10px; box-shadow:0 4px 12px rgba(0,0,0,0.08); }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header theme-blue">
+      <h1>🌊 Streams in Node.js</h1>
+      <p>Readable &amp; Writable streams, how pipe() really works, backpressure, and the interview questions that come up every time</p>
+      <div class="toc">
+        <a href="#concept" onclick="document.getElementById('concept').scrollIntoView({behavior:'smooth'});return false;">The Concept</a>
+        <a href="#readable" onclick="document.getElementById('readable').scrollIntoView({behavior:'smooth'});return false;">Readable Stream</a>
+        <a href="#writable" onclick="document.getElementById('writable').scrollIntoView({behavior:'smooth'});return false;">Writable Stream</a>
+        <a href="#pipe-internals" onclick="document.getElementById('pipe-internals').scrollIntoView({behavior:'smooth'});return false;">How pipe() Works</a>
+        <a href="#pipe-vs-manual" onclick="document.getElementById('pipe-vs-manual').scrollIntoView({behavior:'smooth'});return false;">pipe() vs Manual</a>
+        <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> A <strong>Stream</strong> processes data <strong>chunk by chunk</strong> instead of loading everything into memory at once — ideal for large files and real-time data. <code>fs.createReadStream()</code> reads chunks, <code>fs.createWriteStream()</code> writes chunks, and <code>.pipe()</code> connects the two automatically, handling <strong>backpressure</strong> so the writable side is never overwhelmed.</div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🌊</div>
+          <div class="summary-text"><strong>Stream:</strong> An object that processes data in small chunks instead of loading the entire data into memory at once.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">📥</div>
+          <div class="summary-text"><strong>Readable Stream:</strong> Reads data (e.g. from a file) chunk by chunk — created with <code>fs.createReadStream()</code>.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">📤</div>
+          <div class="summary-text"><strong>Writable Stream:</strong> Writes data chunk by chunk — created with <code>fs.createWriteStream()</code>.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🔗</div>
+          <div class="summary-text"><strong>pipe():</strong> Automatically moves chunks from a Readable stream to a Writable stream, handling backpressure for you.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== THE CONCEPT ==================== -->
+    <div class="section-divider" id="concept"><span>The Concept — What is a Stream?</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-1 no-left">
+        <div class="card-sub-title"><h4>Definition</h4></div>
+        <div class="card-sub-content">
+          <div class="short-answer">
+            A <strong>stream</strong> is an object that processes data <strong>chunk by chunk</strong> instead of loading the entire data into memory, making it memory-efficient and ideal for large files and real-time data processing.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Why Use Streams Instead of fs.readFile()?</h4></div>
+        <div class="card-sub-content">
+          <ul>
+            <li><code>fs.readFile()</code> loads the entire file into memory.</li>
+            <li>Streams process data in chunks.</li>
+            <li>Streams use less memory.</li>
+            <li>Streams start processing immediately without waiting for the complete file.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card-sub cat-1 no-left">
+        <div class="card-sub-title"><h4>Buffer vs Stream</h4></div>
+        <div class="card-sub-content">
+          <table>
+            <tr><th>Buffer</th><th>Stream</th></tr>
+            <tr><td>Loads complete data</td><td>Processes data in chunks</td></tr>
+            <tr><td>Higher memory usage</td><td>Lower memory usage</td></tr>
+            <tr><td>Suitable for small files</td><td>Suitable for large files</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>The Four Types of Streams</h4></div>
+        <div class="card-sub-content">
+          <ul>
+            <li><strong>Readable</strong> — data flows out (e.g. reading a file)</li>
+            <li><strong>Writable</strong> — data flows in (e.g. writing a file)</li>
+            <li><strong>Duplex</strong> — both readable and writable (e.g. a TCP socket)</li>
+            <li><strong>Transform</strong> — a duplex stream that modifies data as it passes through (e.g. compression)</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== READABLE STREAM ==================== -->
+    <div class="section-divider" id="readable"><span>Readable Stream — fs.createReadStream()</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>Creating a Readable Stream</h4></div>
+        <div class="card-sub-content">
+          <p><code>fs.createReadStream()</code> creates and returns a <strong>Readable Stream</strong> that reads a file <strong>chunk by chunk</strong> instead of loading the entire file into memory.</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">read-stream.js</span></div>
+            <pre><code><span class="kw">const</span> fs = <span class="fn">require</span>(<span class="str">"fs"</span>);
+
+<span class="kw">const</span> readStream = fs.<span class="fn">createReadStream</span>(<span class="str">"input.txt"</span>);</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-2 no-left">
+        <div class="card-sub-title"><h4>The "data" Event</h4></div>
+        <div class="card-sub-content">
+          <p>Triggered whenever a new chunk of data is available.</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">on-data.js</span></div>
+            <pre><code>readStream.<span class="fn">on</span>(<span class="str">"data"</span>, (chunk) => {
+    console.<span class="fn">log</span>(chunk.<span class="fn">toString</span>());
+});</code></pre>
+          </div>
+          <p>Example output:</p>
+          <div class="diagram">Chunk 1
+Chunk 2
+Chunk 3
+...</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-2 no-left">
+        <div class="card-sub-title"><h4>The "end" Event</h4></div>
+        <div class="card-sub-content">
+          <p>Triggered after the entire file has been read.</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">on-end.js</span></div>
+            <pre><code>readStream.<span class="fn">on</span>(<span class="str">"end"</span>, () => {
+    console.<span class="fn">log</span>(<span class="str">"File reading completed."</span>);
+});</code></pre>
+          </div>
+          <p>Use <code>end</code> when you want to perform an action after all data has been read.</p>
+          <div class="info-box box-note">💡 <strong>Examples:</strong> Log "Reading completed" · Close a database connection · Send a final response.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== WRITABLE STREAM ==================== -->
+    <div class="section-divider" id="writable"><span>Writable Stream — fs.createWriteStream()</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-5">
+        <div class="card-sub-title"><h4>Creating a Writable Stream</h4></div>
+        <div class="card-sub-content">
+          <p><code>fs.createWriteStream()</code> creates and returns a <strong>Writable Stream</strong> that writes data to a file in chunks.</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">write-stream.js</span></div>
+            <pre><code><span class="kw">const</span> fs = <span class="fn">require</span>(<span class="str">"fs"</span>);
+
+<span class="kw">const</span> writeStream = fs.<span class="fn">createWriteStream</span>(<span class="str">"output.txt"</span>);</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-5 no-left">
+        <div class="card-sub-title"><h4>.write()</h4></div>
+        <div class="card-sub-content">
+          <p>Writes data into the file.</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">write-call.js</span></div>
+            <pre><code>writeStream.<span class="fn">write</span>(<span class="str">"Hello "</span>);
+writeStream.<span class="fn">write</span>(<span class="str">"Node.js"</span>);</code></pre>
+          </div>
+          <div class="info-box box-note">💡 <strong>Output:</strong> <code>Hello Node.js</code></div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-5">
+        <div class="card-sub-title"><h4>Does .write() Replace or Append?</h4></div>
+        <div class="card-sub-content">
+          <p><code>createWriteStream()</code> uses the <strong><code>w</code> flag</strong> by default.</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">default-flag.js</span></div>
+            <pre><code><span class="kw">const</span> writeStream = fs.<span class="fn">createWriteStream</span>(<span class="str">"output.txt"</span>);</code></pre>
+          </div>
+          <ul>
+            <li>If the file <strong>does not exist</strong>, it is created.</li>
+            <li>If the file <strong>already exists</strong>, its existing content is <strong>replaced (overwritten)</strong>.</li>
+          </ul>
+          <p><strong>Example</strong> — existing file contains <code>Hello World</code>:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">overwrite-example.js</span></div>
+            <pre><code>writeStream.<span class="fn">write</span>(<span class="str">"Node.js"</span>);</code></pre>
+          </div>
+          <div class="info-box box-warning">⚠️ <strong>Output:</strong> <code>Node.js</code> — the old content (<code>Hello World</code>) is removed.</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-5">
+        <div class="card-sub-title"><h4>How to Append Instead of Replace</h4></div>
+        <div class="card-sub-content">
+          <p>Use the <strong><code>a</code> flag</strong>.</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">append-flag.js</span></div>
+            <pre><code><span class="kw">const</span> writeStream = fs.<span class="fn">createWriteStream</span>(<span class="str">"output.txt"</span>, {
+    flags: <span class="str">"a"</span>
+});</code></pre>
+          </div>
+          <p><strong>Example</strong> — existing file contains <code>Hello</code>:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">append-example.js</span></div>
+            <pre><code>writeStream.<span class="fn">write</span>(<span class="str">" Node.js"</span>);</code></pre>
+          </div>
+          <div class="info-box box-benefit">✅ <strong>Output:</strong> <code>Hello Node.js</code> — the new content is appended instead of replacing the existing content.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== HOW PIPE WORKS ==================== -->
+    <div class="section-divider" id="pipe-internals"><span>🔗 How pipe() Works Internally</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-4 no-left">
+        <div class="card-sub-title"><span class="card-sub-num">🔗</span><h4>Connecting the Two Streams</h4></div>
+        <div class="card-sub-content">
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">pipe-example.js</span></div>
+            <pre><code><span class="kw">const</span> fs = <span class="fn">require</span>(<span class="str">"fs"</span>);
+
+<span class="kw">const</span> readStream = fs.<span class="fn">createReadStream</span>(<span class="str">"input.txt"</span>);
+<span class="kw">const</span> writeStream = fs.<span class="fn">createWriteStream</span>(<span class="str">"output.txt"</span>);
+
+readStream.<span class="fn">pipe</span>(writeStream);</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><span class="card-sub-num">🪜</span><h4>The 4 Steps — As a Diagram</h4></div>
+        <div class="card-sub-content">
+          <div class="svg-diagram">
+            <svg viewBox="0 0 720 900" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="arrowStep" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+                  <path d="M0,0 L10,5 L0,10 Z" fill="#7c3aed"/>
+                </marker>
+              </defs>
+
+              <!-- STEP 1 -->
+              <rect x="40" y="20" width="640" height="130" rx="16" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+              <circle cx="86" cy="66" r="26" fill="#5b21b6"/>
+              <text x="86" y="74" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="20" font-weight="800" fill="#fff">1</text>
+              <text x="128" y="60" font-family="Segoe UI, sans-serif" font-size="18" font-weight="800" fill="#5b21b6">Import the File System Module</text>
+              <rect x="70" y="88" width="580" height="42" rx="8" fill="#1e1b2e"/>
+              <text x="86" y="115" font-family="Fira Code, monospace" font-size="15" fill="#c3e88d">const fs = require("fs");</text>
+
+              <!-- arrow 1->2 -->
+              <line x1="360" y1="150" x2="360" y2="188" stroke="#7c3aed" stroke-width="3" marker-end="url(#arrowStep)"/>
+
+              <!-- STEP 2 -->
+              <rect x="40" y="190" width="640" height="170" rx="16" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+              <circle cx="86" cy="236" r="26" fill="#5b21b6"/>
+              <text x="86" y="244" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="20" font-weight="800" fill="#fff">2</text>
+              <text x="128" y="230" font-family="Segoe UI, sans-serif" font-size="18" font-weight="800" fill="#5b21b6">Create a Readable Stream</text>
+              <rect x="70" y="258" width="580" height="42" rx="8" fill="#1e1b2e"/>
+              <text x="86" y="285" font-family="Fira Code, monospace" font-size="14.5" fill="#c3e88d">const readStream = fs.createReadStream("input.txt");</text>
+              <text x="86" y="322" font-family="Segoe UI, sans-serif" font-size="14" fill="#44337a">Opens input.txt and reads it chunk by chunk:</text>
+              <text x="86" y="344" font-family="Fira Code, monospace" font-size="13" fill="#6d28d9">input.txt (1 MB) → Chunk 1 (64KB), Chunk 2 (64KB) ... Chunk 16</text>
+
+              <!-- arrow 2->3 -->
+              <line x1="360" y1="360" x2="360" y2="398" stroke="#7c3aed" stroke-width="3" marker-end="url(#arrowStep)"/>
+
+              <!-- STEP 3 -->
+              <rect x="40" y="400" width="640" height="150" rx="16" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+              <circle cx="86" cy="446" r="26" fill="#5b21b6"/>
+              <text x="86" y="454" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="20" font-weight="800" fill="#fff">3</text>
+              <text x="128" y="440" font-family="Segoe UI, sans-serif" font-size="18" font-weight="800" fill="#5b21b6">Create a Writable Stream</text>
+              <rect x="70" y="468" width="580" height="42" rx="8" fill="#1e1b2e"/>
+              <text x="86" y="495" font-family="Fira Code, monospace" font-size="14.5" fill="#c3e88d">const writeStream = fs.createWriteStream("output.txt");</text>
+              <text x="86" y="532" font-family="Segoe UI, sans-serif" font-size="14" fill="#44337a">Creates/opens output.txt and waits to receive chunks — starts empty.</text>
+
+              <!-- arrow 3->4 -->
+              <line x1="360" y1="550" x2="360" y2="588" stroke="#7c3aed" stroke-width="3" marker-end="url(#arrowStep)"/>
+
+              <!-- STEP 4 -->
+              <rect x="40" y="590" width="640" height="150" rx="16" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+              <circle cx="86" cy="636" r="26" fill="#5b21b6"/>
+              <text x="86" y="644" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="20" font-weight="800" fill="#fff">4</text>
+              <text x="128" y="630" font-family="Segoe UI, sans-serif" font-size="18" font-weight="800" fill="#5b21b6">Connect Both Streams</text>
+              <rect x="70" y="658" width="580" height="42" rx="8" fill="#1e1b2e"/>
+              <text x="86" y="685" font-family="Fira Code, monospace" font-size="15" fill="#c3e88d">readStream.pipe(writeStream);</text>
+              <text x="86" y="722" font-family="Segoe UI, sans-serif" font-size="14" fill="#44337a">pipe() transfers each chunk: Read Chunk → pipe() → Write Chunk</text>
+
+              <!-- final loop note -->
+              <line x1="360" y1="740" x2="360" y2="778" stroke="#7c3aed" stroke-width="3" marker-end="url(#arrowStep)"/>
+              <rect x="40" y="780" width="640" height="70" rx="16" fill="#d1fae5" stroke="#059669" stroke-width="2"/>
+              <text x="360" y="812" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="15.5" font-weight="800" fill="#065f46">✅ Repeats automatically until the entire file has been copied</text>
+              <text x="360" y="832" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="13" fill="#065f46">pipe() also handles backpressure — no manual .on("data")/.on("end") needed</text>
+            </svg>
+          </div>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">all-4-steps.js</span></div>
+            <pre><code><span class="cmt">// Step 1</span>
+<span class="kw">const</span> fs = <span class="fn">require</span>(<span class="str">"fs"</span>);
+
+<span class="cmt">// Step 2</span>
+<span class="kw">const</span> readStream = fs.<span class="fn">createReadStream</span>(<span class="str">"input.txt"</span>);
+
+<span class="cmt">// Step 3</span>
+<span class="kw">const</span> writeStream = fs.<span class="fn">createWriteStream</span>(<span class="str">"output.txt"</span>);
+
+<span class="cmt">// Step 4</span>
+readStream.<span class="fn">pipe</span>(writeStream);</code></pre>
+          </div>
+          <div class="info-box box-note">💡 Each step hands off to the next — by the time <code>pipe()</code> runs, both streams already exist and are just waiting to be connected.</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><span class="card-sub-num">🗺️</span><h4>Internal Flow — Full Picture</h4></div>
+        <div class="card-sub-content">
+          <div class="svg-diagram">
+            <svg viewBox="0 0 720 460" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="arrowFlow" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+                  <path d="M0,0 L10,5 L0,10 Z" fill="#7c3aed"/>
+                </marker>
+              </defs>
+
+              <!-- input.txt -->
+              <rect x="30" y="20" width="180" height="56" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+              <text x="120" y="54" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="15" font-weight="800" fill="#1e3a8a">📄 input.txt</text>
+
+              <!-- createReadStream -->
+              <rect x="30" y="110" width="180" height="56" rx="12" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+              <text x="120" y="135" text-anchor="middle" font-family="Fira Code, monospace" font-size="12.5" font-weight="700" fill="#5b21b6">createReadStream()</text>
+              <text x="120" y="153" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="11" fill="#5b21b6">reads chunk by chunk</text>
+
+              <line x1="120" y1="76" x2="120" y2="104" stroke="#7c3aed" stroke-width="2.5" marker-end="url(#arrowFlow)"/>
+
+              <!-- Chunk box -->
+              <rect x="30" y="200" width="180" height="46" rx="10" fill="#0f172a"/>
+              <text x="120" y="228" text-anchor="middle" font-family="Fira Code, monospace" font-size="13" fill="#a5f3fc">Chunk N</text>
+              <line x1="120" y1="166" x2="120" y2="194" stroke="#7c3aed" stroke-width="2.5" marker-end="url(#arrowFlow)"/>
+
+              <!-- arrow to pipe -->
+              <line x1="212" y1="223" x2="288" y2="223" stroke="#7c3aed" stroke-width="2.5" marker-end="url(#arrowFlow)"/>
+
+              <!-- pipe() -->
+              <circle cx="360" cy="223" r="62" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"/>
+              <text x="360" y="218" text-anchor="middle" font-family="Fira Code, monospace" font-size="17" font-weight="800" fill="#5b21b6">pipe()</text>
+              <text x="360" y="238" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="10.5" fill="#5b21b6">handles backpressure</text>
+
+              <!-- arrow to write chunk -->
+              <line x1="432" y1="223" x2="508" y2="223" stroke="#7c3aed" stroke-width="2.5" marker-end="url(#arrowFlow)"/>
+
+              <!-- Write chunk -->
+              <rect x="510" y="200" width="180" height="46" rx="10" fill="#0f172a"/>
+              <text x="600" y="228" text-anchor="middle" font-family="Fira Code, monospace" font-size="13" fill="#a5f3fc">Write Chunk</text>
+
+              <!-- createWriteStream -->
+              <rect x="510" y="110" width="180" height="56" rx="12" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+              <text x="600" y="135" text-anchor="middle" font-family="Fira Code, monospace" font-size="12.5" font-weight="700" fill="#5b21b6">createWriteStream()</text>
+              <text x="600" y="153" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="11" fill="#5b21b6">writes chunk by chunk</text>
+              <line x1="600" y1="166" x2="600" y2="194" stroke="#7c3aed" stroke-width="2.5" marker-end="url(#arrowFlow)"/>
+
+              <!-- output.txt -->
+              <rect x="510" y="20" width="180" height="56" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+              <text x="600" y="54" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="15" font-weight="800" fill="#1e3a8a">📄 output.txt</text>
+              <line x1="600" y1="110" x2="600" y2="82" stroke="#7c3aed" stroke-width="2.5" marker-end="url(#arrowFlow)"/>
+
+              <!-- Repeat loop -->
+              <rect x="140" y="300" width="440" height="90" rx="16" fill="#d1fae5" stroke="#059669" stroke-width="2"/>
+              <text x="360" y="332" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="15" font-weight="800" fill="#065f46">🔁 Repeat: Chunk 2, Chunk 3 ... until End of File</text>
+              <text x="360" y="356" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="12.5" fill="#065f46">Same read → pipe → write cycle runs for every chunk</text>
+              <text x="360" y="376" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="12.5" fill="#065f46">automatically, with no manual .on()/.write() calls needed</text>
+
+              <line x1="360" y1="246" x2="360" y2="294" stroke="#059669" stroke-width="2.5" stroke-dasharray="5,4" marker-end="url(#arrowFlow)"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><span class="card-sub-num">⚙️</span><h4>What Does pipe() Do Automatically?</h4></div>
+        <div class="card-sub-content">
+          <p>Instead of writing this:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">manual.js</span></div>
+            <pre><code>readStream.<span class="fn">on</span>(<span class="str">"data"</span>, (chunk) => {
+    writeStream.<span class="fn">write</span>(chunk);
+});
+
+readStream.<span class="fn">on</span>(<span class="str">"end"</span>, () => {
+    writeStream.<span class="fn">end</span>();
+});</code></pre>
+          </div>
+          <p>You can simply write:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">pipe.js</span></div>
+            <pre><code>readStream.<span class="fn">pipe</span>(writeStream);</code></pre>
+          </div>
+          <p><code>pipe()</code> automatically:</p>
+          <ul>
+            <li>Reads each chunk.</li>
+            <li>Writes each chunk.</li>
+            <li>Handles <strong>backpressure</strong>.</li>
+            <li>Ends the writable stream when reading is complete.</li>
+            <li>Reduces boilerplate code.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== PIPE VS MANUAL ==================== -->
+    <div class="section-divider" id="pipe-vs-manual"><span>pipe() vs Manual Streaming</span></div>
+
+    <div class="categories-wrap">
+      <div class="card-sub cat-1 no-left">
+        <div class="card-sub-title"><h4>A Very Common Interview Question</h4></div>
+        <div class="card-sub-content">
+          <p><strong>Without pipe():</strong></p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">without-pipe.js</span></div>
+            <pre><code>readStream.<span class="fn">on</span>(<span class="str">"data"</span>, chunk => {
+    writeStream.<span class="fn">write</span>(chunk);
+});</code></pre>
+          </div>
+          <p><strong>With pipe():</strong></p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">with-pipe.js</span></div>
+            <pre><code>readStream.<span class="fn">pipe</span>(writeStream);</code></pre>
+          </div>
+          <table>
+            <tr><th>pipe()</th><th>Manual</th></tr>
+            <tr><td>Handles backpressure</td><td>You handle it yourself</td></tr>
+            <tr><td>Less code</td><td>More code</td></tr>
+            <tr><td>Automatic</td><td>Manual</td></tr>
+            <tr><td>Recommended</td><td>Only when you need fine-grained control</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="qa"><span>Stream Interview Questions</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-item">
+          <div class="qa-question">What is a Stream in Node.js?</div>
+          <div class="qa-answer">A stream is an object that processes data chunk by chunk instead of loading the entire data into memory, making it memory-efficient and ideal for large files and real-time data processing.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why use Streams instead of fs.readFile()?</div>
+          <div class="qa-answer"><code>fs.readFile()</code> loads the entire file into memory. Streams process data in chunks, use less memory, and start processing immediately without waiting for the complete file.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What are the four types of Streams?</div>
+          <div class="qa-answer">Readable, Writable, Duplex, and Transform.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is fs.createReadStream()?</div>
+          <div class="qa-answer"><code>fs.createReadStream()</code> is an <code>fs</code> module function that creates and returns a Readable stream to read a file chunk by chunk.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is fs.createWriteStream()?</div>
+          <div class="qa-answer"><code>fs.createWriteStream()</code> is an <code>fs</code> module function that creates and returns a Writable stream to write data to a file chunk by chunk.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is the difference between createReadStream() and ReadStream?</div>
+          <div class="qa-answer">
+            <code>createReadStream()</code> is a <strong>factory function</strong> that creates and returns a Readable stream. <code>ReadStream</code> is the <strong>underlying class (constructor)</strong>. In practice, always use the factory function:
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">preferred.js</span></div>
+              <pre><code>fs.<span class="fn">createReadStream</span>(<span class="str">"file.txt"</span>);</code></pre>
+            </div>
+            instead of:
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">avoid.js</span></div>
+              <pre><code><span class="kw">new</span> fs.ReadStream(<span class="str">"file.txt"</span>);</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is pipe() in Node.js?</div>
+          <div class="qa-answer"><code>pipe()</code> is a method of a Readable stream that automatically transfers data from a Readable stream to a Writable (or compatible Transform/Duplex) stream. It also handles backpressure automatically.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Is pipe() a stream?</div>
+          <div class="qa-answer">No. <code>pipe()</code> is a method used to connect streams. It is not a type of stream.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is Backpressure?</div>
+          <div class="qa-answer">Backpressure occurs when the Readable stream produces data faster than the Writable stream can consume it. <code>pipe()</code> automatically pauses and resumes the Readable stream to prevent excessive memory usage.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is the difference between Buffer and Stream?</div>
+          <div class="qa-answer">
+            <table>
+              <tr><th>Buffer</th><th>Stream</th></tr>
+              <tr><td>Loads complete data</td><td>Processes data in chunks</td></tr>
+              <tr><td>Higher memory usage</td><td>Lower memory usage</td></tr>
+              <tr><td>Suitable for small files</td><td>Suitable for large files</td></tr>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

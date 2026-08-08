@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Buffer &amp; Encoding in Node.js</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* THEME VARIABLES */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#0e7490; --accent:#0891b2; --accent-light:#22d3ee; --content-bg:#ecfeff; --heading:#0e7490; --shadow-rgb:8,145,178; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+
+/* HEADER */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* KEY TERMS SUMMARY */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#ecfeff,#cffafe); color:#0e7490; } .summary-orange .summary-text strong { color:#0891b2; }
+
+/* SECTION DIVIDER */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* CODE BLOCK */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* OUTPUT BLOCK */
+.output-block { background:#0f172a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.output-bar { background:#0b1220; padding:6px 14px; font-size:11px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; color:#64748b; border-bottom:1px solid #1e293b; }
+.output-block pre { padding:16px 18px; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14.5px; overflow-x:auto; white-space:pre; }
+
+/* DIAGRAM */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+/* INFO BOXES */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* SUBSECTIONS */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .output-block:last-child,
+.card-sub-content .code-block:last-child { margin-bottom:0; }
+
+/* TABLE */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:700; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.15); transition:background .15s ease; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+/* INTERVIEW Q&A */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+.qa-answer:hover { background: #bfffea !important; }
+</style>
+<body>
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="header theme-blue">
+      <h1>Buffer &amp; Encoding in Node.js</h1>
+      <p>Node's built-in tools for handling raw binary data and converting it to/from readable text</p>
+      <div class="toc">
+        <a href="#what-is-buffer" onclick="document.getElementById('what-is-buffer').scrollIntoView({behavior:'smooth'});return false;">What is Buffer</a>
+        <a href="#reading-files" onclick="document.getElementById('reading-files').scrollIntoView({behavior:'smooth'});return false;">Reading Files</a>
+        <a href="#encoding" onclick="document.getElementById('encoding').scrollIntoView({behavior:'smooth'});return false;">Encoding</a>
+        <a href="#creating" onclick="document.getElementById('creating').scrollIntoView({behavior:'smooth'});return false;">Creating Buffers</a>
+        <a href="#combining" onclick="document.getElementById('combining').scrollIntoView({behavior:'smooth'});return false;">Combining &amp; Slicing</a>
+        <a href="#comparing" onclick="document.getElementById('comparing').scrollIntoView({behavior:'smooth'});return false;">Comparing</a>
+        <a href="#more-facts" onclick="document.getElementById('more-facts').scrollIntoView({behavior:'smooth'});return false;">More Facts</a>
+        <a href="#summary" onclick="document.getElementById('summary').scrollIntoView({behavior:'smooth'});return false;">Summary</a>
+        <a href="#interview-qa" onclick="document.getElementById('interview-qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> A <code>Buffer</code> is Node's built-in object for storing and manipulating raw binary data (bytes) — files, network data, streams, images, and encrypted data are all bytes, not strings. When you read a file without specifying an encoding, Node.js returns a <code>Buffer</code> to avoid corrupting binary data. An <code>encoding</code> like <code>utf8</code> tells Node.js how to decode those raw bytes into a readable JavaScript string.</div>
+
+    <!-- KEY TERMS SUMMARY -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🧱</div>
+          <div class="summary-text"><strong>Buffer:</strong> A built-in Node.js object that stores and manipulates raw binary data (bytes).</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">📦</div>
+          <div class="summary-text"><strong>Raw bytes:</strong> The actual on-disk/on-wire representation of files, images, video, and network data — not JavaScript strings.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🔤</div>
+          <div class="summary-text"><strong>Encoding:</strong> A rule (like utf8) that tells Node.js how to decode a Buffer's bytes into readable text.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">⚙️</div>
+          <div class="summary-text"><strong>Default behavior:</strong> Without an encoding, fs.readFile() always returns a Buffer — never assumes the bytes are text.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== WHAT IS BUFFER (blue) ==================== -->
+    <div class="section-divider" id="what-is-buffer"><span>What is a Buffer?</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Definition</h4></div>
+      <div class="card-sub-content">
+        <p>A <strong>Buffer</strong> is a built-in Node.js object used to <strong>store and manipulate raw binary data (bytes)</strong>. JavaScript normally works with strings and objects, but files, network communication, streams, images, videos, and encrypted data are all stored as <strong>binary data</strong>. Buffer allows Node.js to work with this binary data efficiently.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">buffer-basic.js</span></div>
+          <pre><code><span class="kw">const</span> buffer = Buffer.<span class="fn">from</span>(<span class="str">"Hello"</span>);
+
+<span class="fn">console</span>.log(buffer);
+<span class="cmt">// &lt;Buffer 48 65 6c 6c 6f&gt;</span>
+
+<span class="fn">console</span>.log(buffer.<span class="fn">toString</span>());
+<span class="cmt">// Hello</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Why Do We Need Buffer?</h4></div>
+      <div class="card-sub-content">
+        <p>Node.js frequently works with:</p>
+        <ul>
+          <li>Files (<code>fs</code>)</li>
+          <li>Network requests (<code>http</code>, <code>tcp</code>)</li>
+          <li>Streams</li>
+          <li>Images, videos, PDFs</li>
+          <li>Encryption (<code>crypto</code>)</li>
+        </ul>
+        <div class="info-box box-note">💡 All of these deal with <strong>raw bytes</strong>, not JavaScript strings. Buffer provides a temporary memory area to store these bytes without modifying them.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Common Buffer Methods</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Method</th><th>Purpose</th></tr>
+          <tr><td><code>Buffer.from(data)</code></td><td>Creates a buffer from a string, array, or another buffer</td></tr>
+          <tr><td><code>Buffer.alloc(size)</code></td><td>Creates a buffer of a fixed size filled with zeros</td></tr>
+          <tr><td><code>Buffer.isBuffer(obj)</code></td><td>Checks whether a value is a Buffer instance</td></tr>
+          <tr><td><code>Buffer.byteLength(string, encoding)</code></td><td>Returns the byte length of a string under a given encoding — not the same as <code>string.length</code> for non-ASCII text</td></tr>
+          <tr><td><code>buffer.toString()</code></td><td>Converts the buffer back into a string</td></tr>
+          <tr><td><code>buffer.write(string)</code></td><td>Writes a string into an existing buffer at a given offset</td></tr>
+          <tr><td><code>buffer.length</code></td><td>Returns the size of the buffer in bytes</td></tr>
+        </table>
+        <div class="info-box box-warning">⚠️ <strong>Deprecated &amp; unsafe:</strong> <code>new Buffer(string)</code> / <code>new Buffer(size)</code> still work in older code but are deprecated and considered a security risk — <code>new Buffer(size)</code> behaved like <code>allocUnsafe()</code> without warning, and interviewers may ask why. Always use <code>Buffer.from()</code> or <code>Buffer.alloc()</code> instead.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Why Buffer.byteLength() Matters</h4></div>
+      <div class="card-sub-content">
+        <p><code>string.length</code> counts <strong>characters</strong>, not bytes — for multi-byte UTF-8 characters (emoji, accented letters, non-Latin scripts) these differ. This trips people up when manually setting a <code>Content-Length</code> header.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">byte-length.js</span></div>
+          <pre><code><span class="kw">const</span> str = <span class="str">"héllo"</span>;
+
+<span class="fn">console</span>.log(str.length);                 <span class="cmt">// 5 (characters)</span>
+<span class="fn">console</span>.log(Buffer.<span class="fn">byteLength</span>(str));      <span class="cmt">// 6 (bytes — 'é' takes 2 bytes in UTF-8)</span></code></pre>
+        </div>
+        <div class="info-box box-note">💡 <strong>Use Case:</strong> Always use <code>Buffer.byteLength()</code>, not <code>.length</code>, when setting <code>Content-Length</code> in raw <code>http</code> responses.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== READING FILES (green) ==================== -->
+    <div class="section-divider" id="reading-files"><span>Why Node Uses Buffer When Reading Files</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Files Are Read as Raw Bytes by Default</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">read-image.js</span></div>
+          <pre><code><span class="kw">const</span> fs = <span class="fn">require</span>(<span class="str">"fs"</span>);
+
+fs.<span class="fn">readFile</span>(<span class="str">"image.png"</span>, (err, data) =&gt; {
+    <span class="fn">console</span>.log(Buffer.<span class="fn">isBuffer</span>(data)); <span class="cmt">// true</span>
+});</code></pre>
+        </div>
+        <p><code>data</code> is returned as a <strong>Buffer</strong>, not a string.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Why?</h4></div>
+      <div class="card-sub-content">
+        <p>A file on disk is stored as <strong>raw bytes</strong>. Node.js doesn't know whether those bytes represent text, an image, a video, a PDF, or encrypted data.</p>
+        <div class="info-box box-benefit">✅ So, by default, it returns the bytes exactly as they are inside a <strong>Buffer</strong>, preventing any corruption of binary data.</div>
+        <p>Suppose an image begins with these bytes:</p>
+        <div class="diagram">89 50 4E 47 0D 0A 1A 0A</div>
+        <p>Node.js returns:</p>
+        <div class="output-block">
+          <div class="output-bar">Output</div>
+          <pre>&lt;Buffer 89 50 4e 47 0d 0a 1a 0a&gt;</pre>
+        </div>
+        <div class="info-box box-note">💡 These are the exact bytes stored in the file.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== ENCODING (green) ==================== -->
+    <div class="section-divider" id="encoding"><span>What Does Encoding Do?</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Definition</h4></div>
+      <div class="card-sub-content">
+        <p>An <strong>encoding</strong> tells Node.js <strong>how to convert a Buffer (raw bytes) into readable text</strong>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Without Encoding</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">no-encoding.js</span></div>
+          <pre><code><span class="kw">const</span> fs = <span class="fn">require</span>(<span class="str">"fs"</span>);
+
+fs.<span class="fn">readFile</span>(<span class="str">"text.txt"</span>, (err, data) =&gt; {
+    <span class="fn">console</span>.log(data);
+});</code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ <strong>Output:</strong> <code>&lt;Buffer 48 65 6c 6c 6f&gt;</code> — Node.js returns the raw bytes inside a Buffer.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>With UTF-8 Encoding</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">with-encoding.js</span></div>
+          <pre><code><span class="kw">const</span> fs = <span class="fn">require</span>(<span class="str">"fs"</span>);
+
+fs.<span class="fn">readFile</span>(<span class="str">"text.txt"</span>, <span class="str">"utf8"</span>, (err, data) =&gt; {
+    <span class="fn">console</span>.log(data);
+});</code></pre>
+        </div>
+        <div class="info-box box-benefit">✅ <strong>Output:</strong> <code>Hello</code> — Node.js automatically decodes the Buffer into a JavaScript string using UTF-8.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>What Actually Happens?</h4></div>
+      <div class="card-sub-content">
+        <p>Suppose the file contains <code>Hello</code>. Internally, the computer stores it as bytes:</p>
+        <div class="diagram">48 65 6C 6C 6F</div>
+        <p>The flow looks like this:</p>
+        <div class="diagram">File
+   │
+   ▼
+48 65 6C 6C 6F (Bytes)
+   │
+   ├── Without Encoding
+   │       ▼
+   │   &lt;Buffer 48 65 6c 6c 6f&gt;
+   │
+   └── With "utf8"
+           ▼
+      "Hello"
+      (JavaScript String)</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Why is Encoding Needed?</h4></div>
+      <div class="card-sub-content">
+        <p>A computer stores everything as <strong>bytes</strong>. Encoding defines <strong>how those bytes should be interpreted as characters</strong>.</p>
+        <div class="diagram">Bytes:
+48 65 6C 6C 6F
+
+UTF-8 Decodes To:
+Hello</div>
+        <div class="info-box box-note">💡 Without an encoding, Node.js simply returns the Buffer because it cannot assume the bytes represent text.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Common Encodings</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Encoding</th><th>Purpose</th></tr>
+          <tr><td><code>utf8</code></td><td>Most common encoding for text files</td></tr>
+          <tr><td><code>ascii</code></td><td>English characters only</td></tr>
+          <tr><td><code>base64</code></td><td>Represents binary data as text</td></tr>
+          <tr><td><code>base64url</code></td><td>URL-safe variant of base64 (no +, /, or padding =) — used in JWTs, URLs</td></tr>
+          <tr><td><code>hex</code></td><td>Represents bytes as hexadecimal values</td></tr>
+          <tr><td><code>latin1</code> (<code>binary</code>)</td><td>One byte per character (0–255) — legacy encoding, rarely needed today</td></tr>
+        </table>
+        <p>Check if an encoding is valid with <code>Buffer.isEncoding()</code>:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">is-encoding.js</span></div>
+          <pre><code><span class="fn">console</span>.log(Buffer.<span class="fn">isEncoding</span>(<span class="str">"utf8"</span>));   <span class="cmt">// true</span>
+<span class="fn">console</span>.log(Buffer.<span class="fn">isEncoding</span>(<span class="str">"utf9"</span>));   <span class="cmt">// false</span></code></pre>
+        </div>
+        <div class="info-box box-note">💡 <strong>Modern alternative:</strong> Outside of Node-specific APIs, the web-standard <code>TextEncoder</code>/<code>TextDecoder</code> classes (also available globally in Node) do string ↔ bytes conversion using <code>Uint8Array</code> instead of <code>Buffer</code> — useful if you want code portable to the browser.</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">text-encoder.js</span></div>
+          <pre><code><span class="kw">const</span> encoder = <span class="kw">new</span> <span class="fn">TextEncoder</span>();
+<span class="kw">const</span> bytes = encoder.<span class="fn">encode</span>(<span class="str">"Hello"</span>); <span class="cmt">// Uint8Array</span>
+<span class="kw">const</span> decoder = <span class="kw">new</span> <span class="fn">TextDecoder</span>();
+<span class="fn">console</span>.log(decoder.<span class="fn">decode</span>(bytes));    <span class="cmt">// "Hello"</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== CREATING BUFFERS (cyan) ==================== -->
+    <div class="section-divider" id="creating"><span>Creating Buffers</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Buffer.from() — Different Sources</h4></div>
+      <div class="card-sub-content">
+        <p><code>Buffer.from()</code> can build a buffer from a string, an array of byte values, another buffer, or an <code>ArrayBuffer</code>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">buffer-from.js</span></div>
+          <pre><code><span class="cmt">// From a string (utf8 by default)</span>
+Buffer.<span class="fn">from</span>(<span class="str">"Hello"</span>);
+<span class="cmt">// &lt;Buffer 48 65 6c 6c 6f&gt;</span>
+
+<span class="cmt">// From an array of byte values</span>
+Buffer.<span class="fn">from</span>([<span class="num">72</span>, <span class="num">101</span>, <span class="num">108</span>, <span class="num">108</span>, <span class="num">111</span>]);
+<span class="cmt">// &lt;Buffer 48 65 6c 6c 6f&gt;</span>
+
+<span class="cmt">// From a string with an explicit encoding</span>
+Buffer.<span class="fn">from</span>(<span class="str">"SGVsbG8="</span>, <span class="str">"base64"</span>);
+<span class="cmt">// &lt;Buffer 48 65 6c 6c 6f&gt;</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Buffer.alloc() vs Buffer.allocUnsafe()</h4></div>
+      <div class="card-sub-content">
+        <p><code>Buffer.alloc(size)</code> creates a buffer of the given size and <strong>fills it with zeros</strong> — safe, but slightly slower since it has to zero out memory first.</p>
+        <p><code>Buffer.allocUnsafe(size)</code> creates a buffer of the given size <strong>without initializing the memory</strong> — faster, but the buffer may contain old, leftover data from previous memory usage until you overwrite it.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">alloc.js</span></div>
+          <pre><code><span class="kw">const</span> safe = Buffer.<span class="fn">alloc</span>(<span class="num">10</span>);
+<span class="fn">console</span>.log(safe);
+<span class="cmt">// &lt;Buffer 00 00 00 00 00 00 00 00 00 00&gt; — always zeroed</span>
+
+<span class="kw">const</span> unsafe = Buffer.<span class="fn">allocUnsafe</span>(<span class="num">10</span>);
+<span class="fn">console</span>.log(unsafe);
+<span class="cmt">// &lt;Buffer ?? ?? ?? ...&gt; — may contain old memory contents</span></code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ <strong>Security note:</strong> Never send an <code>allocUnsafe()</code> buffer over a network or write it to disk before fully overwriting it — it can leak sensitive leftover memory from other parts of the process.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== COMBINING & SLICING (cyan) ==================== -->
+    <div class="section-divider" id="combining"><span>Combining &amp; Slicing Buffers</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Buffer.concat()</h4></div>
+      <div class="card-sub-content">
+        <p>Joins an array of buffers into a single new buffer.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">concat.js</span></div>
+          <pre><code><span class="kw">const</span> buf1 = Buffer.<span class="fn">from</span>(<span class="str">"Hello "</span>);
+<span class="kw">const</span> buf2 = Buffer.<span class="fn">from</span>(<span class="str">"World"</span>);
+
+<span class="kw">const</span> combined = Buffer.<span class="fn">concat</span>([buf1, buf2]);
+
+<span class="fn">console</span>.log(combined.<span class="fn">toString</span>());
+<span class="cmt">// Hello World</span></code></pre>
+        </div>
+        <div class="info-box box-note">💡 <strong>Use Case:</strong> Reassembling chunks of data received from a stream (e.g. an HTTP request body arriving in pieces).</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>buffer.subarray() / buffer.slice()</h4></div>
+      <div class="card-sub-content">
+        <p>Returns a portion of a buffer. Unlike an array slice, this does <strong>not copy the data</strong> — it returns a view into the same underlying memory, so changes to the slice affect the original.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">subarray.js</span></div>
+          <pre><code><span class="kw">const</span> buf = Buffer.<span class="fn">from</span>(<span class="str">"Hello World"</span>);
+
+<span class="kw">const</span> hello = buf.<span class="fn">subarray</span>(<span class="num">0</span>, <span class="num">5</span>);
+<span class="fn">console</span>.log(hello.<span class="fn">toString</span>()); <span class="cmt">// Hello</span>
+
+hello[<span class="num">0</span>] = <span class="num">74</span>; <span class="cmt">// 'J'</span>
+<span class="fn">console</span>.log(buf.<span class="fn">toString</span>()); <span class="cmt">// Jello World — original buffer changed too!</span></code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ This is a common interview trap — buffer slices share memory with the original, they don't copy it.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== COMPARING (cyan) ==================== -->
+    <div class="section-divider" id="comparing"><span>Comparing Buffers</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Buffer.compare() &amp; buffer.equals()</h4></div>
+      <div class="card-sub-content">
+        <p>Buffers can't be compared with <code>===</code> the way strings can, since two separate buffer objects are always different object references even with identical bytes.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">compare.js</span></div>
+          <pre><code><span class="kw">const</span> a = Buffer.<span class="fn">from</span>(<span class="str">"abc"</span>);
+<span class="kw">const</span> b = Buffer.<span class="fn">from</span>(<span class="str">"abc"</span>);
+
+<span class="fn">console</span>.log(a === b);          <span class="cmt">// false — different object references</span>
+<span class="fn">console</span>.log(a.<span class="fn">equals</span>(b));      <span class="cmt">// true — same bytes</span>
+<span class="fn">console</span>.log(Buffer.<span class="fn">compare</span>(a, b)); <span class="cmt">// 0 — equal (like a sort comparator)</span></code></pre>
+        </div>
+        <div class="info-box box-note">💡 <code>Buffer.compare()</code> returns <code>-1</code>, <code>0</code>, or <code>1</code>, making it useful for sorting an array of buffers.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== MORE FACTS (purple) ==================== -->
+    <div class="section-divider" id="more-facts"><span>More Interview Facts About Buffer</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4 accent-left">
+      <div class="card-sub-title"><h4>Buffer is a Subclass of Uint8Array</h4></div>
+      <div class="card-sub-content">
+        <p>Node.js's <code>Buffer</code> class extends JavaScript's built-in <code>Uint8Array</code>, adding Node-specific methods like <code>.toString()</code>, <code>.write()</code>, and encoding support on top of the standard typed array behavior.</p>
+        <div class="info-box box-note">💡 This is why a Buffer can be indexed like an array (<code>buf[0]</code>) and iterated with a <code>for...of</code> loop, just like any typed array.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><h4>Buffer Length is Fixed</h4></div>
+      <div class="card-sub-content">
+        <p>Once a Buffer is created, its size <strong>cannot be resized</strong>. You can overwrite the bytes it holds, but you can't grow or shrink it in place — to get a different size, you create a new buffer (often via <code>Buffer.concat()</code>).</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4 accent-left">
+      <div class="card-sub-title"><h4>JSON.stringify() on a Buffer</h4></div>
+      <div class="card-sub-content">
+        <p>When you serialize a Buffer to JSON (e.g. sending it in an API response), it doesn't become a string — it becomes an object with a <code>type</code> and a <code>data</code> array of byte values.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">json-stringify.js</span></div>
+          <pre><code><span class="kw">const</span> buf = Buffer.<span class="fn">from</span>(<span class="str">"Hi"</span>);
+
+<span class="fn">console</span>.log(JSON.<span class="fn">stringify</span>(buf));
+<span class="cmt">// {"type":"Buffer","data":[72,105]}</span></code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ A common bug: accidentally sending a raw Buffer in a JSON API response instead of calling <code>.toString()</code> first — the client receives this <code>{type, data}</code> shape instead of readable text.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><h4>Complete Flow — From File on Disk to JavaScript String</h4></div>
+      <div class="card-sub-content">
+        <div class="diagram">                File on Disk
+                     │
+                     ▼
+          Raw Binary Data (Bytes)
+                     │
+          fs.readFile("file.txt")
+                     │
+                     ▼
+          Returns Buffer by Default
+                     │
+     &lt;Buffer 48 65 6c 6c 6f&gt;
+                     │
+        If "utf8" Encoding is Provided
+                     │
+                     ▼
+      Decode Buffer Using UTF-8
+                     │
+                     ▼
+      JavaScript String ("Hello")</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4 accent-left">
+      <div class="card-sub-title"><h4>How Do Buffers Relate to Streams?</h4></div>
+      <div class="card-sub-content">
+        <p>Node's Readable and Writable streams (used by <code>fs</code>, <code>http</code>, <code>net</code>, etc.) emit and accept data as Buffer chunks by default. When you listen to a stream's <code>"data"</code> event without setting an encoding, each chunk arrives as a Buffer — which is why patterns like <code>req.on("data", chunk =&gt; body += chunk)</code> implicitly call <code>Buffer.prototype.toString()</code> during the string concatenation. <code>Buffer.concat()</code> is the standard way to reassemble multiple chunks into one buffer once a stream ends.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== SUMMARY (blue) ==================== -->
+    <div class="section-divider" id="summary"><span>Summary</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Summary Table</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Concept</th><th>Purpose</th><th>Common Use</th></tr>
+          <tr><td><code>Buffer</code></td><td>Stores raw binary data (bytes)</td><td>Files, streams, network data, images, encryption</td></tr>
+          <tr><td><code>Encoding (utf8)</code></td><td>Decodes bytes into readable text</td><td>Reading text files, parsing string data</td></tr>
+          <tr><td><code>Buffer.alloc()</code></td><td>Creates a zero-filled buffer</td><td>Safe, predictable buffer creation</td></tr>
+          <tr><td><code>Buffer.concat()</code></td><td>Joins multiple buffers</td><td>Reassembling streamed chunks</td></tr>
+          <tr><td><code>buffer.equals()</code></td><td>Compares buffer contents</td><td>Verifying data integrity</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Bottom Line</h4></div>
+      <div class="card-sub-content">
+        <div class="info-box box-benefit"><strong>Bottom line:</strong> Buffer exists because not everything Node.js handles is text — files, streams, and network data are raw bytes first. Encoding is the bridge that turns those bytes into readable strings only when you explicitly ask for it, keeping binary data safe from corruption by default.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="interview-qa"><span>Interview Questions</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-item">
+          <div class="qa-question">What is a Buffer?</div>
+          <div class="qa-answer">A Buffer is a built-in Node.js object used to store and manipulate raw binary data (bytes). It is commonly used while working with files, streams, network communication, and binary data.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why does Node.js use Buffer?</div>
+          <div class="qa-answer">Node.js uses Buffer because files, streams, and network data are handled as raw bytes. Returning a Buffer preserves the exact binary data without corruption and allows efficient processing.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is Encoding?</div>
+          <div class="qa-answer">Encoding tells Node.js how to convert a Buffer (raw bytes) into readable text. Without an encoding, Node.js returns a Buffer. With an encoding such as <code>utf8</code>, it returns a JavaScript string.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">If you read the same file twice — once without encoding and once with "utf8" — what changes?</div>
+          <div class="qa-answer">The underlying bytes on disk never change — only what Node.js hands back to your callback changes. Without an encoding you get the raw <code>Buffer</code> object; with <code>"utf8"</code> you get those same bytes decoded into a plain JavaScript string.<br><br><code>fs.readFile("text.txt", cb) → &lt;Buffer 48 65 6c 6c 6f&gt;</code><br><code>fs.readFile("text.txt", "utf8", cb) → "Hello"</code></div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why can't Node.js just always decode file contents into a string automatically?</div>
+          <div class="qa-answer">Because not every file is text. Images, videos, PDFs, and encrypted data are binary — forcing a text decoding on them would corrupt the data (bytes that don't map to valid UTF-8 characters would be mangled or lost). Returning a Buffer by default keeps the data intact regardless of what type of file it is; you opt in to decoding only when you know the content is text.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between Buffer.alloc() and Buffer.allocUnsafe()?</div>
+          <div class="qa-answer"><code>Buffer.alloc(size)</code> zero-fills the memory before handing it to you, so it's always safe and predictable. <code>Buffer.allocUnsafe(size)</code> skips that zeroing step for speed, which means the buffer may contain leftover data from previous memory usage until you overwrite every byte — never expose an unsafe buffer externally before fully writing to it.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">If you slice a Buffer with .subarray(), and then modify the slice, does the original change?</div>
+          <div class="qa-answer">Yes — this is a classic interview trap. <code>subarray()</code>/<code>slice()</code> returns a view into the same underlying memory rather than a copy, so writing to the sliced buffer also changes the original buffer's bytes at that position.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Can you compare two Buffers with ===?</div>
+          <div class="qa-answer">No. <code>===</code> compares object references, and two separately created buffers are always different objects even with identical byte contents. Use <code>buffer.equals(otherBuffer)</code> for a boolean equality check, or <code>Buffer.compare(a, b)</code> if you need an ordering result (-1, 0, 1) for sorting.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Is Buffer related to Uint8Array?</div>
+          <div class="qa-answer">Yes — Node's <code>Buffer</code> class is a subclass of JavaScript's standard <code>Uint8Array</code>. It inherits typed-array behavior (indexing, iteration, fixed length) and adds Node-specific conveniences on top, like <code>.toString(encoding)</code> and built-in support for encodings such as <code>utf8</code>, <code>base64</code>, and <code>hex</code>.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between string.length and Buffer.byteLength(string)?</div>
+          <div class="qa-answer"><code>string.length</code> counts JavaScript characters (UTF-16 code units), while <code>Buffer.byteLength()</code> counts the actual bytes the string would occupy once encoded (UTF-8 by default). They're identical for plain ASCII text but diverge for emoji, accented characters, or non-Latin scripts, where a single character can take 2–4 bytes. This matters when manually setting a <code>Content-Length</code> header in raw <code>http</code> responses.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why shouldn't you use new Buffer()?</div>
+          <div class="qa-answer"><code>new Buffer(string)</code> and <code>new Buffer(size)</code> are deprecated. The size-based form behaved like <code>Buffer.allocUnsafe()</code> without any indication that the memory wasn't zeroed — a real security foot-gun if that buffer was ever exposed before being fully overwritten. Modern code should always use <code>Buffer.from()</code> (from existing data) or <code>Buffer.alloc()</code> (for a new zeroed buffer) instead.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How do Buffers relate to Streams?</div>
+          <div class="qa-answer">Node's Readable and Writable streams (used by <code>fs</code>, <code>http</code>, <code>net</code>, etc.) emit and accept data as Buffer chunks by default. When you listen to a stream's <code>"data"</code> event without setting an encoding, each chunk arrives as a Buffer. <code>Buffer.concat()</code> is the standard way to reassemble multiple chunks into one buffer once a stream ends.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

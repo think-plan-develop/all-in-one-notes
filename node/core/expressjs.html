@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Express.js — Interview Notes</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* THEME VARIABLES */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#0e7490; --accent:#0891b2; --accent-light:#22d3ee; --content-bg:#ecfeff; --heading:#0e7490; --shadow-rgb:8,145,178; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+
+/* HEADER */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* KEY TERMS SUMMARY */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#ecfeff,#cffafe); color:#0e7490; } .summary-orange .summary-text strong { color:#0891b2; }
+
+/* SECTION DIVIDER */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* CODE BLOCK */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* OUTPUT BLOCK */
+.output-block { background:#0f172a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.output-bar { background:#0b1220; padding:6px 14px; font-size:11px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; color:#64748b; border-bottom:1px solid #1e293b; }
+.output-block pre { padding:16px 18px; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14.5px; overflow-x:auto; white-space:pre; }
+
+/* DIAGRAM */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+/* INFO BOXES */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* SUBSECTIONS */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #ecfeff 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); border-left:5px solid var(--accent); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .output-block:last-child,
+.card-sub-content .code-block:last-child { margin-bottom:0; }
+
+/* TABLE */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); border:1px solid rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:700; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.15); transition:background .15s ease; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+/* INTERVIEW Q&A */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+<body>
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="header theme-blue">
+      <h1>🚂 Express.js — Interview Notes</h1>
+      <p>Why Express exists, middleware, routing, the Router, and the full request lifecycle</p>
+      <div class="toc">
+        <a href="#why-express" onclick="document.getElementById('why-express').scrollIntoView({behavior:'smooth'});return false;">Why Express?</a>
+        <a href="#core-features" onclick="document.getElementById('core-features').scrollIntoView({behavior:'smooth'});return false;">Core Features</a>
+        <a href="#middleware" onclick="document.getElementById('middleware').scrollIntoView({behavior:'smooth'});return false;">Middleware</a>
+        <a href="#what-is-express" onclick="document.getElementById('what-is-express').scrollIntoView({behavior:'smooth'});return false;">What Is Express?</a>
+        <a href="#params" onclick="document.getElementById('params').scrollIntoView({behavior:'smooth'});return false;">Route vs Query Params</a>
+        <a href="#router" onclick="document.getElementById('router').scrollIntoView({behavior:'smooth'});return false;">Express Router</a>
+        <a href="#lifecycle" onclick="document.getElementById('lifecycle').scrollIntoView({behavior:'smooth'});return false;">Request Lifecycle</a>
+        <a href="#interview-qa" onclick="document.getElementById('interview-qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> Express.js is a lightweight web framework built on top of Node.js's <code>http</code> module. It replaces manual routing, body parsing, query parsing, and error handling with ready-made features — routing, middleware, body parsing, centralized error handling, static file serving, and cookie parsing — making applications cleaner, more scalable, and easier to maintain.</div>
+
+    <!-- KEY TERMS SUMMARY -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🧩</div>
+          <div class="summary-text"><strong>Middleware:</strong> A function that runs after a request reaches the app but before the final route handler — can modify <code>req</code>/<code>res</code>, end the request, or call <code>next()</code>.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🗺️</div>
+          <div class="summary-text"><strong>Router:</strong> An Express feature that organizes related routes into separate files instead of one giant file.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🎯</div>
+          <div class="summary-text"><strong>Route Parameter:</strong> A dynamic value in the URL path (<code>req.params</code>) used to identify a specific resource, e.g. <code>/users/101</code>.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🔍</div>
+          <div class="summary-text"><strong>Query Parameter:</strong> An optional key-value pair after <code>?</code> (<code>req.query</code>) used for filtering, searching, sorting, or pagination.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== WHY EXPRESS (blue) ==================== -->
+    <div class="section-divider" id="why-express"><span>1. Why Did Express Come Into the Picture?</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">🌐</span><h4>Building a Server With Just the HTTP Module</h4></div>
+      <div class="card-sub-content">
+        <p>Node.js already provides the <strong>HTTP module</strong>, so a web server can be built without Express.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">http-server.js</span></div>
+          <pre><code><span class="kw">import</span> http <span class="kw">from</span> <span class="str">"http"</span>;
+
+<span class="kw">const</span> server = http.<span class="fn">createServer</span>((req, res) =&gt; {
+    <span class="kw">if</span> (req.url === <span class="str">"/"</span>) {
+        res.<span class="fn">end</span>(<span class="str">"Home"</span>);
+    } <span class="kw">else if</span> (req.url === <span class="str">"/about"</span>) {
+        res.<span class="fn">end</span>(<span class="str">"About"</span>);
+    } <span class="kw">else</span> {
+        res.statusCode = <span class="num">404</span>;
+        res.<span class="fn">end</span>(<span class="str">"Not Found"</span>);
+    }
+});
+
+server.<span class="fn">listen</span>(<span class="num">3000</span>);</code></pre>
+        </div>
+        <div class="info-box box-warning">This works fine for small apps, but as applications grow (100+ APIs, authentication, validation, file uploads, etc.), writing everything with the raw HTTP module becomes repetitive and hard to maintain.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">⚠️</span><h4>Problems With the HTTP Module</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Problem</th><th>Description</th></tr>
+          <tr><td>❌ Manual routing</td><td><code>if/else</code> chains for every URL</td></tr>
+          <tr><td>❌ Manual body parsing</td><td><code>req.on("data")</code> / <code>req.on("end")</code> boilerplate</td></tr>
+          <tr><td>❌ Manual query parsing</td><td>Have to build a <code>URL</code> object and read <code>searchParams</code></td></tr>
+          <tr><td>❌ Manual error handling</td><td>Custom try/catch logic scattered everywhere</td></tr>
+          <tr><td>❌ Repeated common logic</td><td>Auth → validation → logging → body parsing repeated per route</td></tr>
+        </table>
+        <p>Common logic flow that gets duplicated:</p>
+        <div class="diagram">Check Authentication
+        ↓
+Validate Request
+        ↓
+Log Request
+        ↓
+Read Request Body
+        ↓
+Route Logic</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== CORE FEATURES (green) ==================== -->
+    <div class="section-divider" id="core-features"><span>2. Express Solves These Problems</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">🧰</span><h4>Ready-Made Features</h4></div>
+      <div class="card-sub-content">
+        <p>Express is built on top of the HTTP module and provides ready-made features:</p>
+        <ul>
+          <li>Routing</li>
+          <li>Middleware</li>
+          <li>Body parsing</li>
+          <li>Error handling</li>
+          <li>Static file serving</li>
+          <li>Cookie parsing</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">🧭</span><h4>3. Routing</h4></div>
+      <div class="card-sub-content">
+        <p>HTTP module (manual):</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">routing-http.js</span></div>
+          <pre><code><span class="kw">if</span> (req.url === <span class="str">"/users"</span>) {}
+<span class="kw">else if</span> (req.url === <span class="str">"/products"</span>) {}</code></pre>
+        </div>
+        <p>Express (built-in matching):</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">routing-express.js</span></div>
+          <pre><code>app.<span class="fn">get</span>(<span class="str">"/users"</span>, (req, res) =&gt; {
+    res.<span class="fn">send</span>(<span class="str">"Users"</span>);
+});
+
+app.<span class="fn">get</span>(<span class="str">"/products"</span>, (req, res) =&gt; {
+    res.<span class="fn">send</span>(<span class="str">"Products"</span>);
+});</code></pre>
+        </div>
+        <div class="info-box box-note">Express automatically matches the incoming URL to the correct route — no long <code>if...else</code> chains needed.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== MIDDLEWARE (teal) ==================== -->
+    <div class="section-divider" id="middleware"><span>4. Middleware, Body Parsing, Error Handling &amp; More</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">🧩</span><h4>4. Middleware</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Definition:</strong> A function that runs <em>after</em> a request reaches the Express app but <em>before</em> the final route handler sends a response.</p>
+        <p><strong>Used for:</strong> logging, authentication, validation, request/response modification.</p>
+        <p>A middleware can:</p>
+        <ul>
+          <li>Execute common logic</li>
+          <li>Modify <code>req</code> or <code>res</code></li>
+          <li>End the request</li>
+          <li>Pass control forward via <code>next()</code></li>
+        </ul>
+        <div class="diagram">Client
+   │
+   ▼
+HTTP Request
+   │
+   ▼
+Express App
+   │
+   ▼
+Middleware
+   │
+   ▼
+Route Handler
+   │
+   ▼
+Response</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">middleware.js</span></div>
+          <pre><code><span class="kw">import</span> express <span class="kw">from</span> <span class="str">"express"</span>;
+
+<span class="kw">const</span> app = <span class="fn">express</span>();
+
+<span class="kw">const</span> logger = (req, res, next) =&gt; {
+    <span class="fn">console</span>.log(`${req.method} ${req.url}`);
+    <span class="fn">next</span>();
+};
+
+app.<span class="fn">use</span>(logger);
+
+app.<span class="fn">get</span>(<span class="str">"/"</span>, (req, res) =&gt; {
+    res.<span class="fn">send</span>(<span class="str">"Home Page"</span>);
+});
+
+app.<span class="fn">listen</span>(<span class="num">3000</span>);</code></pre>
+        </div>
+        <div class="info-box box-warning">Without calling <code>next()</code>, the request stops at the middleware and never reaches the route handler.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">📦</span><h4>5. Body Parsing</h4></div>
+      <div class="card-sub-content">
+        <p>Instead of manually reading data via <code>req.on("data")</code>, Express parses JSON automatically once enabled:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">enable-json.js</span></div>
+          <pre><code>app.<span class="fn">use</span>(express.<span class="fn">json</span>());</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">login-route.js</span></div>
+          <pre><code>app.<span class="fn">post</span>(<span class="str">"/login"</span>, (req, res) =&gt; {
+    <span class="fn">console</span>.log(req.body);
+    res.<span class="fn">send</span>(<span class="str">"Success"</span>);
+});</code></pre>
+        </div>
+        <p>Request body:</p>
+        <div class="output-block">
+          <div class="output-bar">JSON</div>
+          <pre>{ "email": "abc@gmail.com", "password": "12345" }</pre>
+        </div>
+        <p>Parsed output (<code>req.body</code>):</p>
+        <div class="output-block">
+          <div class="output-bar">req.body</div>
+          <pre>{ email: "abc@gmail.com", password: "12345" }</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">🛑</span><h4>6. Error Handling</h4></div>
+      <div class="card-sub-content">
+        <p>Express supports centralized error handling instead of per-route try/catch:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">error-handling.js</span></div>
+          <pre><code>app.<span class="fn">get</span>(<span class="str">"/user"</span>, (req, res, next) =&gt; {
+    <span class="kw">try</span> {
+        <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"Something went wrong"</span>);
+    } <span class="kw">catch</span> (err) {
+        <span class="fn">next</span>(err);
+    }
+});
+
+app.<span class="fn">use</span>((err, req, res, next) =&gt; {
+    res.<span class="fn">status</span>(<span class="num">500</span>).<span class="fn">json</span>({ message: err.message });
+});</code></pre>
+        </div>
+        <p>Response:</p>
+        <div class="output-block">
+          <div class="output-bar">JSON</div>
+          <pre>{ "message": "Something went wrong" }</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">🗂️</span><h4>7. Static Files</h4></div>
+      <div class="card-sub-content">
+        <p>Serve HTML, CSS, JS, images, or videos without defining routes for each:</p>
+        <div class="diagram">public/
+    logo.png
+    style.css</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">static.js</span></div>
+          <pre><code>app.<span class="fn">use</span>(express.<span class="fn">static</span>(<span class="str">"public"</span>));</code></pre>
+        </div>
+        <p>Accessible directly at:</p>
+        <div class="output-block">
+          <div class="output-bar">URLs</div>
+          <pre>http://localhost:3000/logo.png
+http://localhost:3000/style.css</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">🍪</span><h4>8. Cookie Parsing</h4></div>
+      <div class="card-sub-content">
+        <p>Instead of manually parsing the <code>Cookie</code> header, use <code>cookie-parser</code>:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>npm install cookie-parser</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">cookies.js</span></div>
+          <pre><code><span class="kw">import</span> cookieParser <span class="kw">from</span> <span class="str">"cookie-parser"</span>;
+
+app.<span class="fn">use</span>(<span class="fn">cookieParser</span>());
+
+app.<span class="fn">get</span>(<span class="str">"/"</span>, (req, res) =&gt; {
+    <span class="fn">console</span>.log(req.cookies);
+    res.<span class="fn">send</span>(<span class="str">"Home"</span>);
+});</code></pre>
+        </div>
+        <p>Browser sends:</p>
+        <div class="output-block">
+          <div class="output-bar">Header</div>
+          <pre>Cookie: token=abc123; theme=dark</pre>
+        </div>
+        <p>Parsed output (<code>req.cookies</code>):</p>
+        <div class="output-block">
+          <div class="output-bar">req.cookies</div>
+          <pre>{ token: "abc123", theme: "dark" }</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">💬</span><h4>Interview Summary — "Why Express?"</h4></div>
+      <div class="card-sub-content">
+        <div class="info-box box-benefit">"Node.js provides the HTTP module to create servers, but building large applications using only the HTTP module requires manual routing, body parsing, query parsing, error handling, and repeated common logic. Express is a lightweight framework built on top of the HTTP module that simplifies all these tasks by providing features like routing, middleware, body parsing, centralized error handling, static file serving, and cookie parsing, making applications cleaner, more scalable, and easier to maintain."</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== WHAT IS EXPRESS (purple) ==================== -->
+    <div class="section-divider" id="what-is-express"><span>9. What Is Express.js?</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><span class="card-sub-num">📖</span><h4>Definition</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Definition:</strong> Express.js is a minimal and flexible web framework built on top of Node.js's HTTP module that simplifies building web servers and REST APIs.</p>
+        <p>It provides:</p>
+        <ul>
+          <li>Routing</li>
+          <li>Middleware</li>
+          <li>Request parsing</li>
+          <li>Response helpers</li>
+          <li>Error handling</li>
+        </ul>
+        <p>...without hiding Node.js.</p>
+        <p><strong>Why is it called a framework?</strong> Because it gives structure:</p>
+        <div class="diagram">App
+ ↓
+Middleware
+ ↓
+Router
+ ↓
+Controllers
+ ↓
+Response</div>
+        <div class="info-box box-tip"><strong>Interview Definition:</strong> "Express.js is a lightweight web framework for Node.js that simplifies server-side development by providing routing, middleware, and utilities for handling HTTP requests and responses."</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== ROUTE VS QUERY PARAMS (blue) ==================== -->
+    <div class="section-divider" id="params"><span>10. Route Parameters vs Query Parameters</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">🎯</span><h4>Definitions</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li><strong>Route parameter:</strong> a dynamic value in the URL path, used to identify a specific resource. Accessed via <code>req.params</code>.</li>
+          <li><strong>Query parameter:</strong> an optional key-value pair after <code>?</code> in the URL, used for filtering, searching, sorting, pagination. Accessed via <code>req.query</code>.</li>
+        </ul>
+        <table>
+          <tr><th>Feature</th><th>Route Parameter</th><th>Query Parameter</th></tr>
+          <tr><td>Location</td><td>Inside the URL path</td><td>After <code>?</code> in the URL</td></tr>
+          <tr><td>Express Property</td><td><code>req.params</code></td><td><code>req.query</code></td></tr>
+          <tr><td>Purpose</td><td>Identify a specific resource</td><td>Filter, search, sort, paginate</td></tr>
+          <tr><td>Required</td><td>Usually Yes</td><td>Usually Optional</td></tr>
+          <tr><td>Example</td><td><code>/users/101</code></td><td><code>/users?page=2&amp;limit=10</code></td></tr>
+          <tr><td>Example Value</td><td><code>id = 101</code></td><td><code>page = 2</code>, <code>limit = 10</code></td></tr>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== EXPRESS ROUTER (green) ==================== -->
+    <div class="section-divider" id="router"><span>11. Express Router</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">🗺️</span><h4>Definition &amp; Benefits</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Definition:</strong> A built-in Express feature that organizes related routes into separate files instead of one giant file.</p>
+        <p><strong>Benefits:</strong> modular, easy to maintain, scalable, easier for teams to work on.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">❓</span><h4>Why Do We Need It?</h4></div>
+      <div class="card-sub-content">
+        <p>Imagine an app with 50 User APIs, 40 Product APIs, and 30 Order APIs — all in one file:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app.js (before)</span></div>
+          <pre><code>app.<span class="fn">get</span>(<span class="str">"/users"</span>, ...);
+app.<span class="fn">post</span>(<span class="str">"/users"</span>, ...);
+app.<span class="fn">put</span>(<span class="str">"/users/:id"</span>, ...);
+app.<span class="fn">delete</span>(<span class="str">"/users/:id"</span>, ...);
+
+app.<span class="fn">get</span>(<span class="str">"/products"</span>, ...);
+app.<span class="fn">post</span>(<span class="str">"/products"</span>, ...);
+
+app.<span class="fn">get</span>(<span class="str">"/orders"</span>, ...);
+app.<span class="fn">post</span>(<span class="str">"/orders"</span>, ...);
+<span class="cmt">// Hundreds of routes...</span></code></pre>
+        </div>
+        <div class="info-box box-warning">This becomes difficult to read and maintain.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><span class="card-sub-num">🧱</span><h4>Router Solution</h4></div>
+      <div class="card-sub-content">
+        <div class="diagram">project/
+│
+├── app.js
+│
+├── routes/
+│     ├── users.js
+│     ├── products.js
+│     └── orders.js</div>
+
+        <h3>Step 1 — Create Router (routes/users.js)</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">routes/users.js</span></div>
+          <pre><code><span class="kw">import</span> express <span class="kw">from</span> <span class="str">"express"</span>;
+
+<span class="kw">const</span> router = express.<span class="fn">Router</span>();
+
+router.<span class="fn">get</span>(<span class="str">"/"</span>, (req, res) =&gt; {
+    res.<span class="fn">send</span>(<span class="str">"All Users"</span>);
+});
+
+router.<span class="fn">post</span>(<span class="str">"/"</span>, (req, res) =&gt; {
+    res.<span class="fn">send</span>(<span class="str">"Create User"</span>);
+});
+
+router.<span class="fn">get</span>(<span class="str">"/:id"</span>, (req, res) =&gt; {
+    res.<span class="fn">send</span>(`User ID: ${req.params.id}`);
+});
+
+<span class="kw">export default</span> router;</code></pre>
+        </div>
+
+        <h3>Step 2 — Use Router (app.js)</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app.js</span></div>
+          <pre><code><span class="kw">import</span> express <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> userRoutes <span class="kw">from</span> <span class="str">"./routes/users.js"</span>;
+
+<span class="kw">const</span> app = <span class="fn">express</span>();
+
+app.<span class="fn">use</span>(<span class="str">"/users"</span>, userRoutes);
+
+app.<span class="fn">listen</span>(<span class="num">3000</span>);</code></pre>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== LIFECYCLE (teal) ==================== -->
+    <div class="section-divider" id="lifecycle"><span>12. The Express Lifecycle</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><span class="card-sub-num">🔄</span><h4>Request → Response Flow</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Definition:</strong> The sequence of steps a request follows from reaching the Express server to a response being sent back to the client.</p>
+        <div class="diagram">Client
+   │
+   ▼
+HTTP Request
+   │
+   ▼
+Express App
+   │
+   ▼
+Global Middleware
+(express.json(), logger)
+   │
+   ▼
+Route Matching
+(app.get(), app.post(), Router)
+   │
+   ▼
+Route Middleware (Optional)
+(auth, validation)
+   │
+   ▼
+Controller / Route Handler
+   │
+   ▼
+Business Logic
+   │
+   ▼
+Database (Optional)
+   │
+   ▼
+Response
+(res.send(), res.json())
+   │
+   ▼
+Client</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="interview-qa"><span>Interview Questions</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-item">
+          <div class="qa-question">Why do we use Express if Node.js already has the http module?</div>
+          <div class="qa-answer">Building large applications with only the HTTP module requires manual routing, body parsing, query parsing, error handling, and repeated common logic. Express is a lightweight framework built on top of the HTTP module that provides routing, middleware, body parsing, centralized error handling, static file serving, and cookie parsing out of the box — making applications cleaner, more scalable, and easier to maintain.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is middleware in Express?</div>
+          <div class="qa-answer">A function that runs after a request reaches the Express app but before the final route handler sends a response. It can execute common logic (like logging or auth), modify <code>req</code> or <code>res</code>, end the request, or pass control forward by calling <code>next()</code> — without calling <code>next()</code>, the request never reaches the route handler.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between a route parameter and a query parameter?</div>
+          <div class="qa-answer">A route parameter is a dynamic value embedded in the URL path (e.g. <code>/users/101</code>), accessed via <code>req.params</code>, and is usually required to identify a specific resource. A query parameter is an optional key-value pair after <code>?</code> (e.g. <code>/users?page=2</code>), accessed via <code>req.query</code>, and is typically used for filtering, searching, sorting, or pagination.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is the Express Router and why is it useful?</div>
+          <div class="qa-answer">A built-in Express feature that organizes related routes into separate files instead of cramming everything into one giant <code>app.js</code>. It's created with <code>express.Router()</code>, exported from its own file, and mounted in the main app with <code>app.use("/path", router)</code> — making the codebase modular, easier to maintain, and easier for teams to divide work on.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How does Express handle errors centrally?</div>
+          <div class="qa-answer">Instead of wrapping every route in its own try/catch, a route can call <code>next(err)</code> to forward an error, which Express routes to a special error-handling middleware defined with four parameters: <code>(err, req, res, next)</code>. That single middleware can format and send a consistent error response for the whole app.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Walk through the Express request lifecycle.</div>
+          <div class="qa-answer">A request arrives at the Express app, passes through global middleware (like <code>express.json()</code> or a logger), gets matched to a route via <code>app.get()</code>/<code>app.post()</code>/a Router, optionally passes through route-specific middleware (like auth or validation), reaches the controller/route handler which runs business logic and optionally talks to a database, and finally sends a response back to the client with <code>res.send()</code> or <code>res.json()</code>.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

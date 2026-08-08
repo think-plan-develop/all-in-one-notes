@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Node.js util &amp; url Modules</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* THEME VARIABLES */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#f97316; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+
+/* HEADER */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* KEY TERMS SUMMARY */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+
+/* SECTION DIVIDER */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* CODE BLOCK */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* INFO BOXES */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* SUBSECTIONS */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 50%, #fff7ed 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); border-left:5px solid var(--accent); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-left { border-left: 1px solid rgba(var(--shadow-rgb),0.18); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .code-block:last-child { margin-bottom:0; }
+
+/* URL MODULE GRID — 2 columns on desktop, stacked on mobile */
+.grid-2col { display:grid; grid-template-columns:1fr; gap:16px; }
+.grid-2col .card-sub { margin-bottom:0; height:100%; }
+.grid-2col .card-sub-content { display:flex; flex-direction:column; height:100%; }
+.grid-2col .card-sub-content .code-block:last-child,
+.grid-2col .card-sub-content .info-box:last-child { margin-top:auto; }
+.grid-2col .full-span { grid-column: 1 / -1; }
+
+/* IMPORTANT WRAPPER */
+.important-wrap { position:relative; border-radius:20px; padding:4px; margin-bottom:30px; background:linear-gradient(135deg,#2563eb,#3b82f6,#60a5fa); box-shadow:0 14px 34px rgba(37,99,235,0.22); }
+.important-wrap-inner { background: linear-gradient(120deg, #eff6ff 0%, #f5f9ff 100%); border-radius:16px; padding:22px; }
+.important-flag { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:#fff; background:linear-gradient(120deg,#1e3a8a,#2563eb); padding:6px 14px; border-radius:20px; margin-bottom:16px; box-shadow:0 4px 12px rgba(37,99,235,0.35); }
+
+/* TABLE */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); border:1px solid rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:700; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.15); transition:background .15s ease; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+/* INTERVIEW Q&A */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+
+/* USE-CASE GRID (crypto) */
+.usecase-table td:first-child { font-weight:700; color:var(--heading); }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+.qa-answer:hover { background: #bfffea !important; }
+</style>
+<body>
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="header theme-blue">
+      <h1>🔄 Node.js util &amp; url Modules</h1>
+      <p><code style="color:#fff;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:6px;">util</code> · <code style="color:#fff;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:6px;">url</code> — complete interview-ready reference</p>
+      <div class="toc">
+        <a href="#util" onclick="document.getElementById('util').scrollIntoView({behavior:'smooth'});return false;">util Module</a>
+        <a href="#url" onclick="document.getElementById('url').scrollIntoView({behavior:'smooth'});return false;">url Module</a>
+        <a href="#interview-qa" onclick="document.getElementById('interview-qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> Use <code>util</code> to bridge callback-style and Promise-based code (<code>promisify()</code> / <code>callbackify()</code>), and <code>url</code> to parse a URL string into its component parts — protocol, host, pathname, query params — or read/write query parameters safely with <code>searchParams</code>.</div>
+
+    <!-- KEY TERMS SUMMARY -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🔄</div>
+          <div class="summary-text"><strong>util:</strong> Utility functions like <code>promisify()</code> and <code>callbackify()</code> for converting between callback-style and Promise-based code.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🔗</div>
+          <div class="summary-text"><strong>url:</strong> Parses and constructs URLs into their component parts — protocol, host, pathname, query params, and more.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="util"><span>util Module</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-left">
+      <div class="card-sub-title"><span class="card-sub-num">🔄</span><h4>Core Methods</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Method</th><th>Purpose</th></tr>
+          <tr><td><code>util.promisify()</code></td><td>Converts callback functions to Promise-based</td></tr>
+          <tr><td><code>util.inspect()</code></td><td>Prints complex objects for debugging</td></tr>
+          <tr><td><code>util.callbackify()</code></td><td>Converts Promise functions to callback style</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">1️⃣</span><h4>util.promisify()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">promisify.js</span></div>
+          <pre><code><span class="kw">const</span> util = <span class="fn">require</span>(<span class="str">"util"</span>);
+<span class="kw">const</span> fs = <span class="fn">require</span>(<span class="str">"fs"</span>);
+
+<span class="kw">const</span> readFile = util.<span class="fn">promisify</span>(fs.readFile);
+
+<span class="kw">const</span> data = <span class="kw">await</span> <span class="fn">readFile</span>(<span class="str">"file.txt"</span>, <span class="str">"utf8"</span>);
+<span class="fn">console</span>.log(data);</code></pre>
+        </div>
+        <p>How it works internally:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">internal.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">readFile</span>(path, encoding) {
+  <span class="kw">return new</span> <span class="fn">Promise</span>((resolve, reject) =&gt; {
+    fs.<span class="fn">readFile</span>(path, encoding, (err, data) =&gt; {
+      <span class="kw">if</span> (err) <span class="fn">reject</span>(err);
+      <span class="kw">else</span> <span class="fn">resolve</span>(data);
+    });
+  });
+}</code></pre>
+        </div>
+        <div class="diagram" style="padding:12px;">
+          <svg viewBox="0 0 620 720" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+            <defs>
+              <marker id="arrowP" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 Z" fill="#3b82f6"/>
+              </marker>
+            </defs>
+            <!-- connectors -->
+            <line x1="310" y1="60" x2="310" y2="100" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowP)"/>
+            <line x1="310" y1="150" x2="310" y2="190" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowP)"/>
+            <line x1="310" y1="240" x2="310" y2="280" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowP)"/>
+            <line x1="310" y1="330" x2="310" y2="370" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowP)"/>
+            <!-- branch split -->
+            <line x1="310" y1="420" x2="310" y2="440" stroke="#3b82f6" stroke-width="2"/>
+            <line x1="150" y1="440" x2="470" y2="440" stroke="#3b82f6" stroke-width="2"/>
+            <line x1="150" y1="440" x2="150" y2="470" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowP)"/>
+            <line x1="470" y1="440" x2="470" y2="470" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowP)"/>
+            <!-- branch merge -->
+            <line x1="150" y1="520" x2="150" y2="550" stroke="#3b82f6" stroke-width="2"/>
+            <line x1="470" y1="520" x2="470" y2="550" stroke="#3b82f6" stroke-width="2"/>
+            <line x1="150" y1="550" x2="470" y2="550" stroke="#3b82f6" stroke-width="2"/>
+            <line x1="310" y1="550" x2="310" y2="580" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowP)"/>
+            <line x1="310" y1="630" x2="310" y2="660" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowP)"/>
+
+            <!-- Step 1 -->
+            <rect x="110" y="10" width="400" height="50" rx="10" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1.5"/>
+            <text x="310" y="40" text-anchor="middle" fill="#e0f2fe" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="700">await readFile("file.txt")</text>
+
+            <!-- Step 2 -->
+            <rect x="150" y="100" width="320" height="50" rx="10" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+            <text x="310" y="130" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="600">Promise Created</text>
+
+            <!-- Step 3 -->
+            <rect x="150" y="190" width="320" height="50" rx="10" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+            <text x="310" y="220" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="600">fs.readFile(...)</text>
+
+            <!-- Step 4 -->
+            <rect x="150" y="280" width="320" height="50" rx="10" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+            <text x="310" y="310" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="600">OS reads file</text>
+
+            <!-- Step 5 -->
+            <rect x="150" y="370" width="320" height="50" rx="10" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+            <text x="310" y="400" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="600">Callback executes</text>
+
+            <!-- Error branch -->
+            <rect x="30" y="470" width="240" height="50" rx="10" fill="#3f1a1a" stroke="#f87171" stroke-width="1.5"/>
+            <text x="150" y="495" text-anchor="middle" fill="#fca5a5" font-family="Fira Code, Consolas, monospace" font-size="14" font-weight="700">Error</text>
+            <text x="150" y="513" text-anchor="middle" fill="#fca5a5" font-family="Fira Code, Consolas, monospace" font-size="12">reject(err)</text>
+
+            <!-- Success branch -->
+            <rect x="350" y="470" width="240" height="50" rx="10" fill="#0f2f22" stroke="#34d399" stroke-width="1.5"/>
+            <text x="470" y="495" text-anchor="middle" fill="#6ee7b7" font-family="Fira Code, Consolas, monospace" font-size="14" font-weight="700">Success</text>
+            <text x="470" y="513" text-anchor="middle" fill="#6ee7b7" font-family="Fira Code, Consolas, monospace" font-size="12">resolve(data)</text>
+
+            <!-- Step 6 -->
+            <rect x="150" y="580" width="320" height="50" rx="10" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+            <text x="310" y="610" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="600">await resumes</text>
+
+            <!-- Step 7 -->
+            <rect x="90" y="660" width="440" height="50" rx="10" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1.5"/>
+            <text x="310" y="690" text-anchor="middle" fill="#e0f2fe" font-family="Fira Code, Consolas, monospace" font-size="14.5" font-weight="700">data variable gets file content</text>
+          </svg>
+        </div>
+        <div class="info-box box-benefit"><strong>Interview answer:</strong> <code>util.promisify()</code> wraps a callback-style function <code>(err, data)</code> inside a Promise — <code>resolve(data)</code> on success, <code>reject(err)</code> on failure — allowing <code>async/await</code> instead of nested callbacks.</div>
+        <p>Modern alternative: for file operations specifically, you usually don't need this — Node ships a Promise-based API directly.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">modern.js</span></div>
+          <pre><code><span class="kw">import</span> { readFile } <span class="kw">from</span> <span class="str">"fs/promises"</span>;
+<span class="kw">const</span> data = <span class="kw">await</span> <span class="fn">readFile</span>(<span class="str">"file.txt"</span>, <span class="str">"utf8"</span>);</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">🔍</span><h4>util.inspect()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">inspect.js</span></div>
+          <pre><code><span class="kw">const</span> util = <span class="fn">require</span>(<span class="str">"util"</span>);
+<span class="fn">console</span>.log(util.<span class="fn">inspect</span>(obj));</code></pre>
+        </div>
+        <div class="info-box box-note"><strong>Use case:</strong> debugging deeply nested objects that <code>console.log()</code> truncates or displays poorly.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><span class="card-sub-num">↩️</span><h4>util.callbackify()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">callbackify.js</span></div>
+          <pre><code><span class="kw">const</span> util = <span class="fn">require</span>(<span class="str">"util"</span>);
+
+<span class="kw">async function</span> <span class="fn">getData</span>() {
+  <span class="kw">return</span> <span class="str">"Hello Node.js"</span>;
+}
+
+<span class="kw">const</span> getDataCallback = util.<span class="fn">callbackify</span>(getData);
+
+<span class="fn">getDataCallback</span>((err, data) =&gt; {
+  <span class="kw">if</span> (err) <span class="kw">return</span> <span class="fn">console</span>.log(err);
+  <span class="fn">console</span>.log(data); <span class="cmt">// "Hello Node.js"</span>
+});</code></pre>
+        </div>
+        <p>How it works internally:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">internal.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">getDataCallback</span>(callback) {
+  <span class="fn">getData</span>()
+    .<span class="fn">then</span>((result) =&gt; <span class="fn">callback</span>(<span class="kw">null</span>, result))
+    .<span class="fn">catch</span>((err) =&gt; <span class="fn">callback</span>(err));
+}</code></pre>
+        </div>
+        <div class="info-box box-note"><strong>Use case:</strong> making a modern <code>async</code> function compatible with old callback-only code.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 no-left">
+      <div class="card-sub-title"><span class="card-sub-num">⚖️</span><h4>promisify() vs callbackify()</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th></th><th>util.promisify()</th><th>util.callbackify()</th></tr>
+          <tr><td>Direction</td><td>Callback → Promise</td><td>Promise → Callback</td></tr>
+          <tr><td>Converts</td><td><code>fs.readFile(path, cb)</code></td><td><code>async function getData()</code></td></tr>
+          <tr><td>Into</td><td><code>await readFile(path)</code></td><td><code>getDataCallback((err, data) =&gt; {})</code></td></tr>
+          <tr><td>Used for</td><td>Modernizing old callback APIs</td><td>Making async code work with legacy callback consumers</td></tr>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- IMPORTANT: fs vs fs/promises vs util.promisify() -->
+    <div class="important-wrap">
+      <div class="important-wrap-inner">
+        <span class="important-flag">⭐ Important — Interview Favorite</span>
+        <div class="card-sub cat-1" style="margin-bottom:0;">
+          <div class="card-sub-title"><span class="card-sub-num">📂</span><h4>fs vs fs/promises vs util.promisify()</h4></div>
+          <div class="card-sub-content">
+            <p><strong>No, <code>fs/promises</code> is not a separate package.</strong> It's a built-in Node.js module — no installation needed — and it's the Promise-based version of the <code>fs</code> module.</p>
+            <h3 style="font-size:16px;margin:16px 0 6px;font-weight:800;color:var(--heading);">1. fs (Callback API)</h3>
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">fs-callback.js</span></div>
+              <pre><code><span class="kw">import</span> fs <span class="kw">from</span> <span class="str">"fs"</span>;
+
+fs.<span class="fn">readFile</span>(<span class="str">"file.txt"</span>, <span class="str">"utf8"</span>, (err, data) =&gt; {
+  <span class="fn">console</span>.log(data);
+});</code></pre>
+            </div>
+            <ul><li>Uses callbacks</li><li>Older API</li></ul>
+
+            <h3 style="font-size:16px;margin:16px 0 6px;font-weight:800;color:var(--heading);">2. fs/promises (Promise API)</h3>
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">fs-promises.js</span></div>
+              <pre><code><span class="kw">import</span> { readFile } <span class="kw">from</span> <span class="str">"fs/promises"</span>;
+
+<span class="kw">const</span> data = <span class="kw">await</span> <span class="fn">readFile</span>(<span class="str">"file.txt"</span>, <span class="str">"utf8"</span>);
+<span class="fn">console</span>.log(data);</code></pre>
+            </div>
+            <ul><li>Uses Promises</li><li>Works directly with <code>async/await</code></li><li>Recommended in modern Node.js</li></ul>
+
+            <h3 style="font-size:16px;margin:16px 0 6px;font-weight:800;color:var(--heading);">3. util.promisify()</h3>
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">util-promisify.js</span></div>
+              <pre><code><span class="kw">import</span> fs <span class="kw">from</span> <span class="str">"fs"</span>;
+<span class="kw">import</span> util <span class="kw">from</span> <span class="str">"util"</span>;
+
+<span class="kw">const</span> readFile = util.<span class="fn">promisify</span>(fs.readFile);
+
+<span class="kw">const</span> data = <span class="kw">await</span> <span class="fn">readFile</span>(<span class="str">"file.txt"</span>, <span class="str">"utf8"</span>);</code></pre>
+            </div>
+            <ul><li>Converts a callback API into a Promise API</li><li>Mainly needed for <strong>other</strong> callback-based functions or third-party libraries that don't provide a Promise version — <code>fs</code> already has <code>fs/promises</code>, so you rarely need this specifically for file operations</li></ul>
+
+            <div class="diagram" style="padding:12px;">
+              <svg viewBox="0 0 620 480" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+                <defs>
+                  <marker id="arrowFs" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                    <path d="M0,0 L8,4 L0,8 Z" fill="#3b82f6"/>
+                  </marker>
+                </defs>
+                <!-- connectors -->
+                <line x1="310" y1="60" x2="310" y2="100" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowFs)"/>
+                <line x1="310" y1="150" x2="310" y2="180" stroke="#3b82f6" stroke-width="2"/>
+                <line x1="150" y1="180" x2="470" y2="180" stroke="#3b82f6" stroke-width="2"/>
+                <line x1="150" y1="180" x2="150" y2="210" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowFs)"/>
+                <line x1="470" y1="180" x2="470" y2="210" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowFs)"/>
+
+                <!-- left branch down to promisify -->
+                <line x1="150" y1="290" x2="150" y2="380" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowFs)"/>
+                <!-- right branch down to async/await -->
+                <line x1="470" y1="290" x2="470" y2="330" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowFs)"/>
+
+                <!-- Node.js -->
+                <rect x="210" y="10" width="200" height="50" rx="10" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1.5"/>
+                <text x="310" y="40" text-anchor="middle" fill="#e0f2fe" font-family="Fira Code, Consolas, monospace" font-size="16" font-weight="700">Node.js</text>
+
+                <!-- fs module -->
+                <rect x="150" y="100" width="320" height="50" rx="10" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+                <text x="310" y="130" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="600">fs module</text>
+
+                <!-- Callback API -->
+                <rect x="30" y="210" width="240" height="80" rx="10" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+                <text x="150" y="240" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="700">Callback API</text>
+                <text x="150" y="264" text-anchor="middle" fill="#93c5fd" font-family="Fira Code, Consolas, monospace" font-size="14">fs</text>
+
+                <!-- Promise API -->
+                <rect x="350" y="210" width="240" height="80" rx="10" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+                <text x="470" y="240" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="700">Promise API</text>
+                <text x="470" y="264" text-anchor="middle" fill="#93c5fd" font-family="Fira Code, Consolas, monospace" font-size="14">fs/promises</text>
+
+                <!-- async/await -->
+                <rect x="350" y="330" width="240" height="50" rx="10" fill="#0f2f22" stroke="#34d399" stroke-width="1.5"/>
+                <text x="470" y="360" text-anchor="middle" fill="#6ee7b7" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="700">async/await</text>
+
+                <!-- util.promisify() -->
+                <rect x="20" y="380" width="260" height="80" rx="10" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1.5"/>
+                <text x="150" y="410" text-anchor="middle" fill="#e0f2fe" font-family="Fira Code, Consolas, monospace" font-size="14.5" font-weight="700">util.promisify()</text>
+                <text x="150" y="432" text-anchor="middle" fill="#bfdbfe" font-family="Fira Code, Consolas, monospace" font-size="11.5">(Convert callback → Promise)</text>
+              </svg>
+            </div>
+
+            <table>
+              <tr><th>Module</th><th>Built-in?</th><th>Uses</th></tr>
+              <tr><td><code>fs</code></td><td>✅ Yes</td><td>Callback-based file operations</td></tr>
+              <tr><td><code>fs/promises</code></td><td>✅ Yes</td><td>Promise-based file operations</td></tr>
+              <tr><td><code>util</code></td><td>✅ Yes</td><td>Utility functions like <code>promisify()</code> and <code>callbackify()</code></td></tr>
+            </table>
+            <div class="info-box box-benefit"><strong>Rule of thumb:</strong> use <code>fs/promises</code> directly for file work. Reach for <code>util.promisify()</code> only when wrapping a callback-based API (often third-party) that has no native Promise version.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== URL (green) — 2-column grid, no icons ==================== -->
+    <div class="section-divider" id="url"><span>url Module</span></div>
+
+    <div class="categories-wrap">
+    <div class="grid-2col">
+
+    <div class="card-sub cat-2 full-span no-left">
+      <div class="card-sub-title"><h4>Anatomy of a URL</h4></div>
+      <div class="card-sub-content">
+        <div class="diagram">https://example.com:8080/users/profile?id=10&name=John#about
+│
+├── protocol  → "https:"
+├── hostname  → "example.com"
+├── port      → "8080"
+├── host      → "example.com:8080"
+├── pathname  → "/users/profile"
+├── search    → "?id=10&name=John"
+├── hash      → "#about"
+├── origin    → "https://example.com:8080"
+└── href      → full URL string</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>⭐ new URL()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">new-url.js</span></div>
+          <pre><code><span class="kw">const</span> url = <span class="kw">new</span> <span class="fn">URL</span>(<span class="str">"https://example.com:3000/products?id=5&category=shoes"</span>);</code></pre>
+        </div>
+        <div class="info-box box-note">Creates the URL object — the starting point for everything below.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>searchParams.get()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">search-params.js</span></div>
+          <pre><code>url.searchParams.<span class="fn">get</span>(<span class="str">"id"</span>);       <span class="cmt">// "5"</span>
+url.searchParams.<span class="fn">get</span>(<span class="str">"category"</span>); <span class="cmt">// "shoes"</span></code></pre>
+        </div>
+        <div class="info-box box-note">Reads individual query parameters. Other methods: <code>.set()</code>, <code>.append()</code>, <code>.delete()</code>, <code>.has()</code>.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>pathname</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">pathname.js</span></div>
+          <pre><code>url.pathname; <span class="cmt">// "/products/shoes"</span></code></pre>
+        </div>
+        <div class="info-box box-note">Path only — no domain, no query string. Used for routing.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>protocol</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">protocol.js</span></div>
+          <pre><code>url.protocol; <span class="cmt">// "https:"</span></code></pre>
+        </div>
+        <div class="info-box box-note">Scheme used — check if a request is secure.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>port</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">port.js</span></div>
+          <pre><code><span class="kw">const</span> url = <span class="kw">new</span> <span class="fn">URL</span>(<span class="str">"https://example.com:8080/products"</span>);
+url.port; <span class="cmt">// "8080"</span></code></pre>
+        </div>
+        <div class="info-box box-note">Just the port number, as a string. Empty string if none specified.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>hostname vs host</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>hostname</th><th>host</th></tr>
+          <tr><td>Domain only: <code>example.com</code></td><td>Domain + port: <code>example.com:8080</code></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>origin</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">origin.js</span></div>
+          <pre><code>url.origin; <span class="cmt">// "https://example.com:3000"</span></code></pre>
+        </div>
+        <div class="info-box box-note">Protocol + hostname + port combined. Used for CORS checks.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>search vs searchParams</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>search</th><th>searchParams</th></tr>
+          <tr><td>Raw query string: <code>"?id=10&name=John"</code></td><td>Parsed object with <code>.get()</code>, <code>.set()</code>, <code>.append()</code>, <code>.delete()</code>, <code>.has()</code></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>href</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">href.js</span></div>
+          <pre><code>url.href; <span class="cmt">// "https://example.com:3000/products?id=5"</span></code></pre>
+        </div>
+        <div class="info-box box-note">The complete, reconstructed URL string — equivalent to the original input.</div>
+      </div>
+    </div>
+
+    </div>
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="interview-qa"><span>Interview Questions</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-item">
+          <div class="qa-question">What does util.promisify() do?</div>
+          <div class="qa-answer">It wraps a callback-style function that follows the <code>(err, data)</code> pattern inside a Promise — calling <code>resolve(data)</code> on success and <code>reject(err)</code> on failure — so it can be used with <code>async/await</code> instead of nested callbacks.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Do you need util.promisify() for fs operations?</div>
+          <div class="qa-answer">Usually not. Node ships a native Promise-based API at <code>fs/promises</code>, so you can <code>import { readFile } from "fs/promises"</code> directly. <code>util.promisify()</code> is mainly useful for other callback-based APIs — often third-party — that don't offer a Promise version.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between promisify() and callbackify()?</div>
+          <div class="qa-answer">They go in opposite directions. <code>util.promisify()</code> converts a callback-based function into one that returns a Promise. <code>util.callbackify()</code> does the reverse — it converts an <code>async</code> function into one that accepts a Node-style <code>(err, data)</code> callback, useful for making modern code compatible with legacy callback consumers.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Is fs/promises a separate package?</div>
+          <div class="qa-answer">No — it's a built-in Node.js module, no installation needed. It's simply the Promise-based version of the <code>fs</code> module, and is the recommended way to do file operations in modern Node.js.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is util.inspect() used for?</div>
+          <div class="qa-answer">It's used for debugging deeply nested objects that <code>console.log()</code> truncates or displays poorly, producing a more complete and readable string representation.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How do you parse a URL and read its query parameters in Node.js?</div>
+          <div class="qa-answer">Create a <code>new URL(urlString)</code> instance, then use its <code>searchParams</code> property — e.g. <code>url.searchParams.get("id")</code> — to read individual query parameters, or properties like <code>pathname</code>, <code>protocol</code>, and <code>hostname</code> for the other parts.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Difference between url.host and url.hostname?</div>
+          <div class="qa-answer"><code>hostname</code> returns just the domain (e.g. <code>example.com</code>), while <code>host</code> returns the domain plus the port if one is specified (e.g. <code>example.com:8080</code>).</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Difference between url.search and url.searchParams?</div>
+          <div class="qa-answer"><code>search</code> is the raw query string as text (e.g. <code>"?id=10&name=John"</code>), while <code>searchParams</code> is a parsed, mutable object with methods like <code>.get()</code>, <code>.set()</code>, <code>.append()</code>, <code>.delete()</code>, and <code>.has()</code> for working with individual parameters.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What does url.origin return, and what is it used for?</div>
+          <div class="qa-answer">It returns the protocol, hostname, and port combined (e.g. <code>"https://example.com:3000"</code>), without the path or query string. It's commonly used for CORS origin checks.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

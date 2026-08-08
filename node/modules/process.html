@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Node.js process Module</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* THEME VARIABLES */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#0e7490; --accent:#0891b2; --accent-light:#22d3ee; --content-bg:#ecfeff; --heading:#0e7490; --shadow-rgb:8,145,178; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+
+/* HEADER */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* KEY TERMS SUMMARY */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#ecfeff,#cffafe); color:#0e7490; } .summary-orange .summary-text strong { color:#0891b2; }
+
+/* SECTION DIVIDER */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* CODE BLOCK */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* OUTPUT BLOCK */
+.output-block { background:#0f172a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.output-bar { background:#0b1220; padding:6px 14px; font-size:11px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; color:#64748b; border-bottom:1px solid #1e293b; }
+.output-block pre { padding:16px 18px; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14.5px; overflow-x:auto; white-space:pre; }
+
+/* DIAGRAM */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+
+/* INFO BOXES */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* SUBSECTIONS */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .output-block:last-child,
+.card-sub-content .code-block:last-child { margin-bottom:0; }
+
+/* TABLE */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:700; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.15); transition:background .15s ease; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+/* INTERVIEW Q&A */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+.qa-answer:hover { background: #bfffea !important; }
+</style>
+<body>
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="header theme-blue">
+      <h1>Node.js process Module</h1>
+      <p>A global object — no <code style="color:#fff;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:6px;">require()</code> needed — for inspecting and controlling the running Node.js process</p>
+      <div class="toc">
+        <a href="#overview" onclick="document.getElementById('overview').scrollIntoView({behavior:'smooth'});return false;">Overview</a>
+        <a href="#exit-vs-return" onclick="document.getElementById('exit-vs-return').scrollIntoView({behavior:'smooth'});return false;">exit() vs return</a>
+        <a href="#env" onclick="document.getElementById('env').scrollIntoView({behavior:'smooth'});return false;">process.env</a>
+        <a href="#argv" onclick="document.getElementById('argv').scrollIntoView({behavior:'smooth'});return false;">process.argv</a>
+        <a href="#cwd" onclick="document.getElementById('cwd').scrollIntoView({behavior:'smooth'});return false;">process.cwd()</a>
+        <a href="#summary" onclick="document.getElementById('summary').scrollIntoView({behavior:'smooth'});return false;">Summary</a>
+        <a href="#interview-qa" onclick="document.getElementById('interview-qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> <code>process</code> is a global object that gives access to and control over the currently running Node.js process. <code>process.env</code> and <code>process.argv</code> are the two you'll use constantly; <code>process.exit()</code> and <code>process.cwd()</code> come up situationally but are essential to recognize.</div>
+
+    <!-- KEY TERMS SUMMARY -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🌱</div>
+          <div class="summary-text"><strong>process.env:</strong> Read environment variables — config and secrets that shouldn't be hardcoded.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">⌨️</div>
+          <div class="summary-text"><strong>process.argv:</strong> Array of command-line arguments passed when the script was run.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🛑</div>
+          <div class="summary-text"><strong>process.exit():</strong> Immediately terminates the entire Node.js process, not just the current function.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">📁</div>
+          <div class="summary-text"><strong>process.cwd():</strong> Returns the folder the process was started from — not where the current file lives.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== OVERVIEW (blue) ==================== -->
+    <div class="section-divider" id="overview"><span>Overview</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>Definition</h4></div>
+      <div class="card-sub-content">
+        <p>A <strong>global object</strong> (no <code>require()</code> needed) that gives access to information about, and control over, the currently running Node.js process.</p>
+        <div class="info-box box-tip"><strong>Interview Definition:</strong> <code>process</code> is a built-in global object in Node.js that provides information about, and control over, the current process — environment variables, command-line arguments, working directory, and the ability to terminate execution.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== EXIT VS RETURN (blue) ==================== -->
+    <div class="section-divider" id="exit-vs-return"><span>process.exit() vs return</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>The Key Difference</h4></div>
+      <div class="card-sub-content">
+        <p>That's a very common interview question. The key difference is <strong>return exits a function</strong>, while <strong>process.exit() exits the entire Node.js process</strong>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Using return</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">return-example.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">startApp</span>() {
+    <span class="kw">if</span> (!fs.<span class="fn">existsSync</span>(<span class="str">"config.json"</span>)) {
+        <span class="fn">console</span>.log(<span class="str">"Configuration file not found"</span>);
+        <span class="kw">return</span>;
+    }
+
+    <span class="fn">console</span>.log(<span class="str">"Application Started"</span>);
+}
+
+<span class="fn">startApp</span>();
+
+<span class="fn">console</span>.log(<span class="str">"Program End"</span>);</code></pre>
+        </div>
+        <div class="output-block">
+          <div class="output-bar">Output</div>
+          <pre>Configuration file not found
+Program End</pre>
+        </div>
+        <p><strong>What happened?</strong></p>
+        <ul>
+          <li><code>return</code> exited only <code>startApp()</code>.</li>
+          <li>The Node.js process continued.</li>
+          <li>Remaining code still executed.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Using process.exit()</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">exit-example.js</span></div>
+          <pre><code><span class="kw">if</span> (!fs.<span class="fn">existsSync</span>(<span class="str">"config.json"</span>)) {
+    <span class="fn">console</span>.log(<span class="str">"Configuration file not found"</span>);
+    process.<span class="fn">exit</span>(<span class="num">1</span>);
+}
+
+<span class="fn">console</span>.log(<span class="str">"Application Started"</span>);
+
+<span class="fn">console</span>.log(<span class="str">"Program End"</span>);</code></pre>
+        </div>
+        <div class="output-block">
+          <div class="output-bar">Output</div>
+          <pre>Configuration file not found</pre>
+        </div>
+        <p>The entire Node.js process stops.</p>
+        <ul>
+          <li><code>"Application Started"</code> is never printed.</li>
+          <li><code>"Program End"</code> is never printed.</li>
+          <li>Any remaining code is skipped.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Real-World Example</h4></div>
+      <div class="card-sub-content">
+        <p>Imagine your server requires a database connection before starting.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">server-start.js</span></div>
+          <pre><code><span class="fn">connectToDatabase</span>()
+    .<span class="fn">then</span>(() =&gt; {
+        app.<span class="fn">listen</span>(<span class="num">3000</span>);
+    })
+    .<span class="fn">catch</span>(() =&gt; {
+        <span class="fn">console</span>.log(<span class="str">"Database connection failed"</span>);
+        process.<span class="fn">exit</span>(<span class="num">1</span>);
+    });</code></pre>
+        </div>
+        <p>If the database isn't available:</p>
+        <ul>
+          <li>There is no point in keeping the application running.</li>
+          <li><code>process.exit(1)</code> terminates the process, allowing tools like Docker, PM2, or Kubernetes to detect the failure and potentially restart it.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Why Not Just Use return?</h4></div>
+      <div class="card-sub-content">
+        <p>Suppose your application looks like this:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">init-return.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">init</span>() {
+    <span class="kw">if</span> (!fs.<span class="fn">existsSync</span>(<span class="str">"config.json"</span>)) {
+        <span class="fn">console</span>.log(<span class="str">"Missing config"</span>);
+        <span class="kw">return</span>;
+    }
+}
+
+<span class="fn">init</span>();
+
+<span class="fn">setInterval</span>(() =&gt; {
+    <span class="fn">console</span>.log(<span class="str">"Server is running..."</span>);
+}, <span class="num">1000</span>);</code></pre>
+        </div>
+        <div class="output-block">
+          <div class="output-bar">Output</div>
+          <pre>Missing config
+Server is running...
+Server is running...
+Server is running...</pre>
+        </div>
+        <p>Even though initialization failed, the process is still alive because <code>return</code> only exited <code>init()</code>.</p>
+        <p>Using <code>process.exit(1)</code> instead:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">init-exit.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">init</span>() {
+    <span class="kw">if</span> (!fs.<span class="fn">existsSync</span>(<span class="str">"config.json"</span>)) {
+        <span class="fn">console</span>.log(<span class="str">"Missing config"</span>);
+        process.<span class="fn">exit</span>(<span class="num">1</span>);
+    }
+}
+
+<span class="fn">init</span>();
+
+<span class="fn">setInterval</span>(() =&gt; {
+    <span class="fn">console</span>.log(<span class="str">"Server is running..."</span>);
+}, <span class="num">1000</span>);</code></pre>
+        </div>
+        <div class="output-block">
+          <div class="output-bar">Output</div>
+          <pre>Missing config</pre>
+        </div>
+        <p>The process ends immediately.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>When to Use Each</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Use return when:</strong></p>
+        <ul>
+          <li>You only want to stop the current function.</li>
+          <li>The rest of the application should continue.</li>
+        </ul>
+        <p><strong>Use process.exit() when:</strong></p>
+        <ul>
+          <li>A fatal error occurs (missing configuration, database connection failure, invalid startup state).</li>
+          <li>The application cannot continue safely.</li>
+          <li>You intentionally want to terminate the entire Node.js process.</li>
+        </ul>
+        <div class="info-box box-benefit"><strong>Interview Answer (30 seconds):</strong> <code>return</code> only exits the current function, so the Node.js process continues running and other code may still execute. <code>process.exit()</code> terminates the entire Node.js process immediately. It's typically used for unrecoverable startup errors, such as missing configuration files or failed database connections, where continuing to run the application doesn't make sense.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== PROCESS.ENV (green) ==================== -->
+    <div class="section-divider" id="env"><span>process.env</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>What is it?</h4></div>
+      <div class="card-sub-content">
+        <p><code>process.env</code> is an object containing all <strong>environment variables</strong>. Environment variables store configuration values like a database URL, API keys, JWT secret, or port number.</p>
+        <div class="info-box box-tip"><strong>Interview Definition:</strong> <code>process.env</code> provides access to environment variables, allowing applications to store configuration outside the source code.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Basic Usage</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">env-basic.js</span></div>
+          <pre><code><span class="fn">console</span>.log(process.env.NODE_ENV);    <span class="cmt">// "development" / "production"</span>
+<span class="fn">console</span>.log(process.env.PORT);        <span class="cmt">// "3000" (or undefined if not set)</span>
+<span class="fn">console</span>.log(process.env.DB_PASSWORD); <span class="cmt">// your secret, loaded from .env</span></code></pre>
+        </div>
+        <div class="info-box box-note"><strong>Use case:</strong> store API keys, database URLs, port numbers — usually loaded via a <code>.env</code> file with the <code>dotenv</code> package.</div>
+        <p>Logging the whole object returns something like:</p>
+        <div class="output-block">
+          <div class="output-bar">process.env</div>
+          <pre>{
+  PATH: "...",
+  HOME: "...",
+  PORT: "5000"
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Using a .env File</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">.env</span></div>
+          <pre><code>PORT=5000
+DB_URL=mongodb://localhost
+JWT_SECRET=mysecret</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">index.js</span></div>
+          <pre><code><span class="kw">import</span> <span class="str">"dotenv/config"</span>;
+
+<span class="fn">console</span>.log(process.env.PORT);
+<span class="fn">console</span>.log(process.env.DB_URL);</code></pre>
+        </div>
+        <div class="output-block">
+          <div class="output-bar">Output</div>
+          <pre>5000
+mongodb://localhost</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Why Use Environment Variables?</h4></div>
+      <div class="card-sub-content">
+        <div class="info-box box-warning"><strong>❌ Hardcoding:</strong> <code>const password = "mypassword";</code></div>
+        <div class="info-box box-benefit"><strong>✅ Better:</strong> <code>const password = process.env.DB_PASSWORD;</code></div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== PROCESS.ARGV (orange) ==================== -->
+    <div class="section-divider" id="argv"><span>process.argv</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Simple Explanation</h4></div>
+      <div class="card-sub-content">
+        <p><code>process.argv</code> is an array that stores the values passed to a Node.js program from the command line.</p>
+        <p>When you run:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>node app.js Shivam <span class="num">25</span></code></pre>
+        </div>
+        <p>Node automatically creates this array:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">argv.js</span></div>
+          <pre><code>[
+  <span class="str">"path/to/node"</span>,   <span class="cmt">// process.argv[0]</span>
+  <span class="str">"path/to/app.js"</span>, <span class="cmt">// process.argv[1]</span>
+  <span class="str">"Shivam"</span>,         <span class="cmt">// process.argv[2]</span>
+  <span class="str">"25"</span>              <span class="cmt">// process.argv[3]</span>
+]</code></pre>
+        </div>
+        <ul>
+          <li><strong><code>process.argv[0]</code></strong> → Path of the Node.js executable.</li>
+          <li><strong><code>process.argv[1]</code></strong> → Path of the JavaScript file being executed.</li>
+          <li><strong><code>process.argv[2]</code> onwards</strong> → Arguments provided by the user.</li>
+        </ul>
+        <div class="info-box box-note">This allows your program to accept input at runtime without changing the code.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>Quick Summary</h4></div>
+      <div class="card-sub-content">
+        <p>Command:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>node app.js Shivam <span class="num">25</span></code></pre>
+        </div>
+        <div class="diagram">process.argv
+
+[0] node executable
+[1] app.js
+[2] Shivam
+[3] 25</div>
+        <div class="info-box box-benefit"><strong>Remember:</strong> Your own command-line arguments always begin at <code>process.argv[2]</code>.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== PROCESS.CWD() (purple) ==================== -->
+    <div class="section-divider" id="cwd"><span>process.cwd()</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>What is it?</h4></div>
+      <div class="card-sub-content">
+        <p>Returns the <strong>Current Working Directory (CWD)</strong>. It tells you from which folder the Node.js process was started, not necessarily where the current file is located.</p>
+        <div class="info-box box-tip"><strong>Interview Definition:</strong> <code>process.cwd()</code> returns the absolute path of the current working directory from which the Node.js process was executed.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Example</h4></div>
+      <div class="card-sub-content">
+        <p>Project structure:</p>
+        <div class="diagram">project/
+│
+├── app.js
+└── data.txt</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app.js</span></div>
+          <pre><code><span class="fn">console</span>.log(process.<span class="fn">cwd</span>());</code></pre>
+        </div>
+        <div class="output-block">
+          <div class="output-bar">Output</div>
+          <pre>C:\Users\Shivam\project</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>cwd() vs __dirname</h4></div>
+      <div class="card-sub-content">
+        <p>Suppose:</p>
+        <div class="diagram">project/
+│
+├── app.js
+└── src/
+    └── index.js</div>
+        <p>Run:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>node src/index.js</code></pre>
+        </div>
+        <p>Inside <code>index.js</code>:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">index.js</span></div>
+          <pre><code><span class="fn">console</span>.log(process.<span class="fn">cwd</span>());
+<span class="cmt">// "project"</span>
+
+<span class="fn">console</span>.log(__dirname);
+<span class="cmt">// "project/src"</span></code></pre>
+        </div>
+        <table>
+          <tr><th>process.cwd()</th><th>__dirname</th></tr>
+          <tr><td>Where Node was started</td><td>Folder containing the current file</td></tr>
+          <tr><td>Can change</td><td>Fixed for that file</td></tr>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== SUMMARY (blue) ==================== -->
+    <div class="section-divider" id="summary"><span>Summary</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Summary Table</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Method</th><th>Purpose</th><th>Common Use</th></tr>
+          <tr><td><code>process.exit(code)</code></td><td>Terminates the Node.js process</td><td>Stop the application on success or error</td></tr>
+          <tr><td><code>process.env</code></td><td>Reads environment variables</td><td>Configuration (PORT, DB URL, API keys, secrets)</td></tr>
+          <tr><td><code>process.cwd()</code></td><td>Returns the current working directory</td><td>Resolve files relative to where the app was started</td></tr>
+          <tr><td><code>process.argv</code></td><td>Returns command-line arguments</td><td>CLI tools and passing runtime inputs</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>More Properties &amp; Methods</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Property/Method</th><th>Purpose</th></tr>
+          <tr><td><code>process.env</code></td><td>Read environment variables/config</td></tr>
+          <tr><td><code>process.argv</code></td><td>Read CLI arguments</td></tr>
+          <tr><td><code>process.exit()</code></td><td>Stop the process manually</td></tr>
+          <tr><td><code>process.cwd()</code></td><td>Get current working directory</td></tr>
+          <tr><td><code>process.platform</code></td><td>Detect the OS</td></tr>
+          <tr><td><code>process.on()</code></td><td>Listen for process events (exit, errors)</td></tr>
+          <tr><td><code>process.memoryUsage()</code></td><td>Check memory consumption</td></tr>
+        </table>
+        <div class="info-box box-benefit"><strong>Bottom line:</strong> <code>process.env</code> and <code>process.argv</code> are the two you'll use constantly — nearly every real Node project reads config from <code>process.env</code>. The rest (exit, cwd, platform, events) come up situationally but are worth recognizing.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="interview-qa"><span>Interview Questions</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between return and process.exit()?</div>
+          <div class="qa-answer"><code>return</code> only exits the current function, so the Node.js process continues running and other code may still execute. <code>process.exit()</code> terminates the entire Node.js process immediately — used for unrecoverable startup errors like a missing config file or a failed database connection.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What status codes does process.exit() accept?</div>
+          <div class="qa-answer"><code>0</code> indicates success, while any non-zero value (commonly <code>1</code>) indicates an error. Tools like Docker, PM2, or Kubernetes read this exit code to decide whether to restart the process.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is process.env used for?</div>
+          <div class="qa-answer">It's an object containing all environment variables, used to store configuration like database URLs, API keys, and secrets outside the source code — typically loaded from a <code>.env</code> file via the <code>dotenv</code> package.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why are the first two elements of process.argv reserved?</div>
+          <div class="qa-answer">Because Node.js automatically includes <code>process.argv[0]</code> (the path to the Node.js executable) and <code>process.argv[1]</code> (the path to the script being executed). Your own custom arguments always start from <code>process.argv[2]</code>.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why is process.argv useful?</div>
+          <div class="qa-answer">It lets you pass input to your program at runtime without modifying the source code, making scripts flexible, reusable, and ideal for building CLI (Command Line Interface) applications.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between process.cwd() and __dirname?</div>
+          <div class="qa-answer"><code>process.cwd()</code> returns the directory from which the Node.js process was started, while <code>__dirname</code> returns the directory of the current JavaScript file. They can differ if you run the application from a different location or from inside nested folders.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
