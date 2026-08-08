@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Password Hashing — Interview Notes</title>
+  <style>
+    :root, [data-theme="dark"] {
+      --primary: #3b82f6; --primary-dark: #1e3a8a; --accent: #10b981; --accent-dark: #065f46;
+      --success: #34d399; --warning: #fbbf24; --danger: #f87171;
+      --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --muted: #cbd5e1; --border: #334155;
+      --code-bg: #0d1117; --code-text: #e6edf3; --code-comment: #94a3b8;
+      --code-keyword: #c792ea; --code-string: #c3e88d; --code-func: #82aaff; --code-number: #f78c6c;
+      --toggle-bg: #475569; --toggle-knob: #f1f5f9; --shadow: rgba(0,0,0,0.35);
+      --example-bg: rgba(59,130,246,0.1); --tag-bg: rgba(59,130,246,0.15);
+      --memory-bg: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(16,185,129,0.12));
+      --oneliner-bg: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(16,185,129,0.15));
+      --table-header-bg: rgba(30,58,138,0.5); --check-bg: rgba(16,185,129,0.12); --check-border: rgba(16,185,129,0.3);
+      --hover-bg: rgba(16,185,129,0.16); --hover-text: #5eead4; --hover-border: rgba(16,185,129,0.45);
+    }
+    [data-theme="light"] {
+      --primary: #2563eb; --primary-dark: #1e3a8a; --accent: #059669; --accent-dark: #065f46;
+      --success: #16a34a; --warning: #d97706; --danger: #dc2626;
+      --bg: #f6f7fb; --card: #ffffff; --text: #000000; --muted: #1a1a1a; --border: #e2e8f0;
+      --code-bg: #1a1a1a; --code-text: #d4d4d4; --code-comment: #7a7a7a;
+      --code-keyword: #c792ea; --code-string: #c3e88d; --code-func: #82aaff; --code-number: #f78c6c;
+      --toggle-bg: #cbd5e1; --toggle-knob: #ffffff; --shadow: rgba(37,99,235,0.1);
+      --example-bg: rgba(37,99,235,0.06); --tag-bg: rgba(37,99,235,0.1);
+      --memory-bg: linear-gradient(135deg, rgba(37,99,235,0.08), rgba(5,150,105,0.08));
+      --oneliner-bg: linear-gradient(135deg, rgba(37,99,235,0.1), rgba(5,150,105,0.1));
+      --table-header-bg: linear-gradient(120deg, #1e3a8a, #2563eb);
+      --check-bg: rgba(5,150,105,0.08); --check-border: rgba(5,150,105,0.25);
+      --hover-bg: rgba(5,150,105,0.1); --hover-text: #000000; --hover-border: rgba(5,150,105,0.35);
+    }
+    [data-theme="light"] body { font-weight: 500; }
+    [data-theme="light"] .card p, [data-theme="light"] .highlight, [data-theme="light"] .flow-step,
+    [data-theme="light"] td, [data-theme="light"] header p { color: #000; font-weight: 600; }
+    [data-theme="light"] .card strong, [data-theme="light"] .definition, [data-theme="light"] .section-title,
+    [data-theme="light"] .takeaway p, [data-theme="light"] .flow-step strong, [data-theme="light"] td:first-child,
+    [data-theme="light"] .checklist li { color: #000; font-weight: 700; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text);
+      line-height: 1.7; font-size: 16px; padding: 2rem 1rem; transition: background 0.3s, color 0.3s; -webkit-font-smoothing: antialiased; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .theme-toggle-wrapper { display: flex; justify-content: flex-end; margin-bottom: 1.5rem; }
+    .theme-toggle { display: flex; align-items: center; gap: 0.6rem; background: var(--card); border: 1px solid var(--border);
+      border-radius: 999px; padding: 0.4rem 0.75rem 0.4rem 0.9rem; cursor: pointer; font-size: 0.9rem; color: var(--muted);
+      transition: all 0.25s; box-shadow: 0 1px 3px var(--shadow); }
+    .theme-toggle:hover { border-color: var(--primary); color: var(--text); }
+    .theme-toggle .icon { font-size: 1.1rem; line-height: 1; }
+    .toggle-switch { width: 40px; height: 22px; background: var(--toggle-bg); border-radius: 999px; position: relative; transition: background 0.3s; }
+    .toggle-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: var(--toggle-knob);
+      border-radius: 50%; transition: transform 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    [data-theme="light"] .toggle-switch::after { transform: translateX(18px); }
+    header { text-align: center; margin-bottom: 2.5rem; }
+    header h1 { font-size: 2.1rem; font-weight: 700; background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.5rem; }
+    header p { color: var(--muted); font-size: 1.1rem; font-weight: 450; }
+    .section { margin-bottom: 2.4rem; }
+    .section-title { display: flex; align-items: center; gap: 0.6rem; font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; color: var(--text); }
+    .section-title .num { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--primary), var(--accent)); color: #ecfdf5; border-radius: 8px; font-size: 0.85rem; font-weight: 700; flex-shrink: 0; padding: 0 6px; }
+    .card { background: var(--card); border-radius: 14px; padding: 1.4rem 1.5rem; border: 1px solid var(--border);
+      box-shadow: 0 4px 12px var(--shadow); transition: background 0.25s, border-color 0.25s, box-shadow 0.25s, transform 0.2s; }
+    .card p { color: var(--muted); font-size: 1rem; font-weight: 450; margin-bottom: 0.75rem; }
+    .card p:last-child { margin-bottom: 0; }
+    .card strong { color: var(--text); font-weight: 600; }
+    .card.hoverable:hover { background: var(--hover-bg); border-color: var(--hover-border); box-shadow: 0 4px 14px rgba(16,185,129,0.12); transform: translateY(-1px); }
+    .card.hoverable:hover p, .card.hoverable:hover strong { font-weight: 650; color: var(--hover-text); }
+    .highlight { background: var(--example-bg); border-left: 3px solid var(--primary); border-radius: 0 10px 10px 0;
+      padding: 0.9rem 1.1rem; font-size: 0.98rem; font-weight: 450; margin: 1rem 0; color: var(--muted);
+      transition: background 0.25s, border-color 0.25s, color 0.25s; cursor: default; }
+    .highlight strong { color: var(--text); font-weight: 600; }
+    .highlight:hover { background: var(--hover-bg); border-color: var(--hover-border); color: var(--hover-text); }
+    .highlight:hover strong { color: var(--hover-text); }
+    .definition { background: var(--memory-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.05rem 1.3rem;
+      margin: 1rem 0; font-size: 1.02rem; font-weight: 550; color: var(--text);
+      transition: background 0.25s, border-color 0.25s, color 0.25s, transform 0.2s, box-shadow 0.25s; cursor: default; }
+    .definition::before { content: '📌 '; }
+    .definition:hover { background: var(--hover-bg); border-color: var(--hover-border); color: var(--hover-text); font-weight: 650;
+      box-shadow: 0 4px 14px rgba(16,185,129,0.12); transform: translateY(-1px); }
+    table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden;
+      border: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); margin: 1rem 0; }
+    th, td { padding: 0.9rem 1.15rem; text-align: left; font-size: 0.95rem; }
+    th { background: var(--table-header-bg); font-weight: 650; color: #e0f2fe; }
+    [data-theme="dark"] th { background: rgba(30,58,138,0.6); }
+    td { border-top: 1px solid var(--border); color: var(--muted); font-weight: 450; }
+    td:first-child { color: var(--text); font-weight: 600; }
+    table tbody tr { transition: background 0.2s; }
+    table tbody tr:hover { background: var(--hover-bg); }
+    table tbody tr:hover td { color: var(--hover-text); }
+    pre { background: var(--code-bg); border-radius: 12px; padding: 1.2rem 1.3rem; overflow-x: auto; border: 1px solid var(--border);
+      font-size: 0.9rem; line-height: 1.6; margin: 1rem 0; }
+    code { font-family: 'Fira Code', Consolas, monospace; color: var(--code-text); }
+    .comment { color: var(--code-comment); } .keyword { color: var(--code-keyword); } .string { color: var(--code-string); }
+    .func { color: var(--code-func); } .number { color: var(--code-number); }
+    .inline-code { background: var(--tag-bg); padding: 0.15rem 0.45rem; border-radius: 5px;
+      font-family: 'Fira Code', Consolas, monospace; font-size: 0.85em; color: var(--primary); }
+    .flow { display: flex; flex-direction: column; gap: 0.35rem; margin: 1rem 0; }
+    .flow-step { display: flex; align-items: flex-start; gap: 0.75rem; background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.8rem 1.05rem; font-size: 0.96rem; font-weight: 450; color: var(--muted);
+      transition: background 0.25s, border-color 0.25s, color 0.25s, transform 0.2s; cursor: default; }
+    .flow-step .arrow { color: var(--primary); font-weight: 700; flex-shrink: 0; min-width: 1.2rem; }
+    .flow-step strong { color: var(--text); font-weight: 600; }
+    .flow-step:hover { background: var(--hover-bg); border-color: var(--hover-border); color: var(--hover-text); transform: translateX(3px); }
+    .flow-step:hover strong { color: var(--hover-text); }
+    .checklist { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+    .checklist li { display: flex; align-items: flex-start; gap: 0.7rem; background: var(--check-bg); border: 1px solid var(--check-border);
+      border-radius: 10px; padding: 0.75rem 1.05rem; font-size: 0.97rem; font-weight: 500; color: var(--text);
+      transition: background 0.25s, border-color 0.25s, transform 0.2s, color 0.25s; cursor: default; }
+    .checklist li::before { content: '✓'; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+    .checklist li:hover { background: var(--hover-bg); border-color: var(--hover-border); transform: translateX(3px); color: var(--hover-text); }
+    .takeaway { background: var(--oneliner-bg); border: 2px solid var(--primary); border-radius: 14px; padding: 1.5rem 1.6rem;
+      margin-top: 0.5rem; box-shadow: 0 4px 16px rgba(37,99,235,0.15); }
+    .takeaway h3 { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--primary); font-weight: 800; margin-bottom: 0.85rem; }
+    .takeaway p { font-size: 1.12rem; font-weight: 700; line-height: 1.7; color: var(--text); }
+    .mini-diagram { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 0.85rem;
+      margin: 1rem 0; box-shadow: 0 2px 10px var(--shadow); overflow-x: auto; display: flex; justify-content: center; }
+    .mini-diagram svg { display: block; max-width: 320px; width: 100%; height: auto; }
+    .svg-box { fill: var(--card); stroke-width: 2; }
+    .svg-title { fill: var(--text); font-weight: 650; font-size: 13px; }
+    .svg-sub { fill: var(--muted); font-size: 11.5px; font-weight: 500; }
+    .svg-label { fill: var(--muted); font-size: 11px; font-weight: 500; }
+    .svg-line { stroke: var(--muted); stroke-width: 2; }
+    .svg-badge-text { fill: #ecfdf5; font-weight: 700; font-size: 13px; }
+    .tag { display: inline-block; background: var(--tag-bg); padding: 0.2rem 0.55rem; border-radius: 6px;
+      font-size: 0.8rem; font-family: 'Fira Code', monospace; color: var(--primary); }
+    footer { text-align: center; margin-top: 3rem; color: var(--muted); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="theme-toggle-wrapper">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+        <span class="icon" id="themeIcon">🌙</span>
+        <span id="themeLabel">Dark</span>
+        <div class="toggle-switch"></div>
+      </button>
+    </div>
+    <header>
+      <h1>Password Hashing</h1>
+      <p>Interview notes — why, how, and the gotchas that matter</p>
+    </header>
+
+    <div class="section">
+      <h2 class="section-title"><span class="num">1</span> Why Password Hashing?</h2>
+      <div class="card hoverable">
+        <p>Never store a user's password as plain text (<span class="inline-code">password: "MyPassword123"</span>). If the database is ever compromised, the attacker gets every user's real password instantly.</p>
+        <p>Instead, the password is run through a <strong>hashing step</strong> before being saved:</p>
+        <div class="highlight"><span class="tag">$2b$12$N9qo8uLOickgx2ZMRZoMye........</span> — not the original password.</div>
+      </div>
+      <div class="definition">Password hashing protects passwords if the database is compromised.</div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title"><span class="num">2</span> Hashing vs Encryption</h2>
+      <table>
+        <thead><tr><th></th><th>Hashing</th><th>Encryption</th></tr></thead>
+        <tbody>
+          <tr><td>Direction</td><td>One-way — cannot recover original</td><td>Reversible — decrypt with a key</td></tr>
+          <tr><td>Used for</td><td>Passwords</td><td>Data that needs to be read again</td></tr>
+          <tr><td>Algorithms</td><td>bcrypt, Argon2id</td><td>AES, RSA</td></tr>
+        </tbody>
+      </table>
+      <div class="card" style="margin-top:1rem">
+        <p><strong>Hashing:</strong> Password → Hash function → Hash (no way back)</p>
+        <p><strong>Encryption:</strong> Data → Encrypt → Encrypted → Decrypt → Original</p>
+        <p>Passwords should be <strong>hashed, not encrypted</strong> — the app only needs to verify, never see the real password again.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title"><span class="num">3</span> Salt</h2>
+      <div class="card hoverable">
+        <p>A <strong>salt</strong> is random data mixed into the password before hashing, so two users with the same password get completely different stored hashes.</p>
+        <p>This defeats <strong>rainbow table attacks</strong> — precomputed lookup tables of common password hashes.</p>
+      </div>
+      <div class="highlight">
+        Salt is <strong>not a secret</strong> — it's stored alongside the hash.<br>
+        With bcrypt you don't manage it yourself: <span class="inline-code">bcrypt.hash()</span> creates it automatically and bakes it into the returned string.
+      </div>
+      <div class="definition">Salt makes hashes unique even for identical passwords.</div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title"><span class="num">4</span> Salt + bcrypt in Node.js</h2>
+      <pre><code><span class="keyword">import</span> bcrypt <span class="keyword">from</span> <span class="string">"bcrypt"</span>;
+
+<span class="keyword">const</span> password = <span class="string">"MyPassword123"</span>;
+<span class="keyword">const</span> hashedPassword = <span class="keyword">await</span> bcrypt.<span class="func">hash</span>(password, <span class="number">12</span>);
+
+console.<span class="func">log</span>(hashedPassword);
+<span class="comment">// $2b$12$N9qo8uLOickgx2ZMRZoMye........</span>
+
+<span class="keyword">await</span> User.<span class="func">create</span>({ email, password: hashedPassword });</code></pre>
+      <div class="card">
+        <p>The output packs three things: <span class="tag">$2b</span> (version) · <span class="tag">$12</span> (cost) · salt + hash. Store the whole string as-is.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title"><span class="num">5</span> Salt Rounds / Cost Factor</h2>
+      <div class="card hoverable">
+        <p>The <span class="inline-code">12</span> in <span class="inline-code">bcrypt.hash(password, 12)</span> is the <strong>cost factor</strong> — how computationally expensive hashing is.</p>
+        <p>Lower cost → faster · Higher cost → slower for attackers to brute-force.</p>
+      </div>
+      <table>
+        <thead><tr><th>Cost</th><th>Iterations</th><th>Approx. Time</th></tr></thead>
+        <tbody>
+          <tr><td>8</td><td>2⁸ = 256</td><td>~10 ms</td></tr>
+          <tr><td>10</td><td>2¹⁰ = 1,024</td><td>~50–80 ms</td></tr>
+          <tr><td><strong>12</strong></td><td>2¹² = 4,096</td><td><strong>~200–300 ms</strong></td></tr>
+          <tr><td>14</td><td>2¹⁴ = 16,384</td><td>~800 ms – 1.2 s</td></tr>
+        </tbody>
+      </table>
+      <div class="highlight">For one login, ~200–300 ms is unnoticeable. For an attacker trying millions of guesses, that delay makes large-scale brute-forcing impractical.</div>
+      <div class="definition">Salt = random value. Cost factor = computational work. Independent concepts inside the same bcrypt call.</div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title"><span class="num">6</span> Why bcrypt Cannot Be Decrypted</h2>
+      <div class="card hoverable">
+        <p>bcrypt is a <strong>hashing</strong> algorithm, not encryption. There is no <span class="inline-code">bcrypt.decrypt()</span>.</p>
+        <p>Password → bcrypt → Hash (one way only).</p>
+        <p>To verify during login you <strong>re-hash the input</strong> and compare with <span class="inline-code">bcrypt.compare()</span>.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title"><span class="num">7</span> bcrypt.compare() During Login</h2>
+      <pre><code><span class="keyword">const</span> isValid = <span class="keyword">await</span> bcrypt.<span class="func">compare</span>(<span class="string">"MyPassword123"</span>, user.password);
+
+<span class="keyword">if</span> (!isValid) {
+  <span class="keyword">return</span> res.<span class="func">status</span>(<span class="number">401</span>).<span class="func">json</span>({ message: <span class="string">"Invalid credentials"</span> });
+}</code></pre>
+      <div class="card">
+        <p><span class="inline-code">bcrypt.compare()</span> extracts the salt from the stored hash, re-hashes the entered password with that salt, and checks if it matches — returns <span class="inline-code">true</span> / <span class="inline-code">false</span>.</p>
+        <p>Still <strong>Hash → Password ❌</strong>. Only <strong>Password + Stored Hash → true/false</strong>.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title"><span class="num">8</span> Why Password Hashing Should Be Slow</h2>
+      <div class="card hoverable">
+        <p>Password hashing is deliberately <strong>computationally expensive on purpose</strong>.</p>
+        <p>If hashing were fast, an attacker with a stolen DB could try millions of guesses per second. Higher cost makes each guess slower and large-scale brute-forcing far more expensive.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title"><span class="num">9</span> bcrypt vs Argon2id</h2>
+      <table>
+        <thead><tr><th></th><th>bcrypt</th><th>Argon2id</th></tr></thead>
+        <tbody>
+          <tr><td>Password hashing</td><td>✅</td><td>✅</td></tr>
+          <tr><td>One-way</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Salt</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Configurable cost</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Memory-hard</td><td>❌</td><td>✅</td></tr>
+          <tr><td>Modern choice</td><td>Good, established</td><td>Preferred for new systems</td></tr>
+        </tbody>
+      </table>
+      <div class="card" style="margin-top:1rem">
+        <p><strong>Argon2id</strong> is expensive in both compute <em>and</em> memory — harder to crack with GPUs/ASICs. Prefer Argon2id for new apps; bcrypt remains solid when already in use.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title"><span class="num">10</span> Complete Registration + Login Flow</h2>
+      <div class="mini-diagram">
+        <svg viewBox="0 0 300 380" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, system-ui, sans-serif">
+          <defs>
+            <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#10b981"/>
+            </linearGradient>
+            <marker id="a1" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L7,3 z" style="fill:var(--muted)"/>
+            </marker>
+          </defs>
+          <text x="150" y="18" text-anchor="middle" class="svg-title" style="font-size:14px;font-weight:700">REGISTER</text>
+          <rect x="50" y="30" width="200" height="32" rx="8" class="svg-box" style="stroke:var(--primary)"/>
+          <text x="150" y="51" text-anchor="middle" class="svg-sub">password → bcrypt.hash()</text>
+          <line x1="150" y1="62" x2="150" y2="78" class="svg-line" marker-end="url(#a1)"/>
+          <rect x="50" y="82" width="200" height="32" rx="8" class="svg-box" style="stroke:var(--accent)"/>
+          <text x="150" y="103" text-anchor="middle" class="svg-sub">hash → stored in DB</text>
+          <text x="150" y="150" text-anchor="middle" class="svg-title" style="font-size:14px;font-weight:700">LOGIN</text>
+          <rect x="40" y="162" width="220" height="32" rx="8" class="svg-box" style="stroke:var(--primary)"/>
+          <text x="150" y="183" text-anchor="middle" class="svg-sub">entered password + stored hash</text>
+          <line x1="150" y1="194" x2="150" y2="210" class="svg-line" marker-end="url(#a1)"/>
+          <rect x="50" y="214" width="200" height="32" rx="8" class="svg-box" style="stroke:var(--accent)"/>
+          <text x="150" y="235" text-anchor="middle" class="svg-sub">bcrypt.compare()</text>
+          <line x1="150" y1="246" x2="150" y2="262" class="svg-line" marker-end="url(#a1)"/>
+          <rect x="70" y="266" width="160" height="28" rx="8" fill="var(--border)"/>
+          <text x="150" y="285" text-anchor="middle" class="svg-title" style="font-size:12px">Valid?</text>
+          <line x1="110" y1="294" x2="70" y2="320" class="svg-line" marker-end="url(#a1)"/>
+          <text x="70" y="314" class="svg-label">No</text>
+          <rect x="25" y="324" width="80" height="30" rx="8" fill="#ef4444"/>
+          <text x="65" y="344" text-anchor="middle" class="svg-badge-text" style="font-size:12px">Reject</text>
+          <line x1="190" y1="294" x2="230" y2="320" class="svg-line" marker-end="url(#a1)"/>
+          <text x="220" y="314" class="svg-label">Yes</text>
+          <rect x="195" y="324" width="80" height="30" rx="8" fill="url(#g1)"/>
+          <text x="235" y="344" text-anchor="middle" class="svg-badge-text" style="font-size:12px">Continue</text>
+        </svg>
+      </div>
+      <p style="font-weight:600;margin-bottom:0.5rem;color:var(--text)">Registration</p>
+      <div class="flow">
+        <div class="flow-step"><span class="arrow">1</span> password → <span class="inline-code">bcrypt.hash()</span> (salt + cost factor)</div>
+        <div class="flow-step"><span class="arrow">2</span> password hash → stored in DB</div>
+      </div>
+      <pre><code><span class="keyword">const</span> hashedPassword = <span class="keyword">await</span> bcrypt.<span class="func">hash</span>(password, <span class="number">12</span>);
+<span class="keyword">await</span> User.<span class="func">create</span>({ email, password: hashedPassword });</code></pre>
+      <p style="font-weight:600;margin:1.25rem 0 0.5rem;color:var(--text)">Login</p>
+      <div class="flow">
+        <div class="flow-step"><span class="arrow">1</span> entered password → find user → get stored hash</div>
+        <div class="flow-step"><span class="arrow">2</span> <span class="inline-code">bcrypt.compare()</span> → valid? → continue / reject</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title"><span class="num">11</span> Where Password Hashing Fits</h2>
+      <div class="card hoverable">
+        <p><strong>Register:</strong> password → hashed (bcrypt / Argon2id) → stored in DB</p>
+        <p><strong>Login:</strong> email + password → <span class="inline-code">bcrypt.compare()</span> → authentication → JWT generated → protected API → authorization → allow / deny</p>
+      </div>
+      <div class="highlight">
+        <strong>Important:</strong> Password hashing and JWT solve different problems. Hashing protects the password in the DB. JWT represents auth state after login.<br>
+        <strong>Never put the password or hash inside a JWT.</strong>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title"><span class="num">★</span> Interview Points to Remember</h2>
+      <ul class="checklist">
+        <li>Never store plain-text passwords.</li>
+        <li>Use password hashing, not encryption.</li>
+        <li>bcrypt and Argon2id are password-hashing algorithms.</li>
+        <li>Salt makes hashes unique even for identical passwords.</li>
+        <li>bcrypt automatically generates and incorporates the salt.</li>
+        <li>Cost factor controls computational work — separate from salt.</li>
+        <li><span class="inline-code">bcrypt.hash()</span> → registration / password change.</li>
+        <li><span class="inline-code">bcrypt.compare()</span> → login.</li>
+        <li>bcrypt cannot be decrypted — only re-hashed and compared.</li>
+        <li>Argon2id is a strong, memory-hard modern choice for new apps.</li>
+        <li>Hashing protects stored credentials; JWT handles session — keep them separate.</li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <h3>One-liner</h3>
+      <p>Hash passwords with a slow, salted algorithm (bcrypt / Argon2id), never encrypt them, never store plain text, and verify with compare — never decrypt.</p>
+    </div>
+
+    <footer>Quick interview notes • Password Hashing • Blue &amp; Green</footer>
+  </div>
+  <script>
+    const toggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeLabel = document.getElementById('themeLabel');
+    const html = document.documentElement;
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setTheme(savedTheme);
+    toggle.addEventListener('click', () => {
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      setTheme(next);
+      localStorage.setItem('theme', next);
+    });
+    function setTheme(theme) {
+      html.setAttribute('data-theme', theme);
+      themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
+      themeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light';
+    }
+  </script>
+</body>
+</html>
