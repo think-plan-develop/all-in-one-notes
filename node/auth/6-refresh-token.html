@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JWT Access + Refresh Token Authentication Flow</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* THEME VARIABLES */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#0e7490; --accent:#0891b2; --accent-light:#22d3ee; --content-bg:#ecfeff; --heading:#0e7490; --shadow-rgb:8,145,178; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-5 { --accent-dark:#9f1239; --accent:#e11d48; --accent-light:#fb7185; --content-bg:#fff1f2; --heading:#9f1239; --shadow-rgb:225,29,72; }
+
+/* HEADER */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* KEY TERMS SUMMARY */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#ecfeff,#cffafe); color:#0e7490; } .summary-orange .summary-text strong { color:#0891b2; }
+.summary-rose   { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#9f1239; } .summary-rose .summary-text strong { color:#e11d48; }
+
+/* SECTION DIVIDER */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* CODE / TOKEN (original refresh-token doc style) */
+code, .token {
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+  font-size: 0.88em;
+  background: rgba(0,0,0,0.06);
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: #4338ca;
+}
+pre {
+  background: #0d1117;
+  border: 1px solid #2d3a4f;
+  border-radius: 10px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 14px 0;
+  color: #e6edf3;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+
+/* FLOW STEPS (original refresh-token doc style) */
+.flow { display:flex; flex-direction:column; align-items:center; gap:0; margin:16px 0; font-size:0.95rem; background:#1a2332; border-radius:14px; padding:24px 20px; }
+.flow-step { background:#243044; border:1px solid #34435c; border-radius:10px; padding:11px 20px; text-align:center; min-width:200px; max-width:340px; color:#e7ecf3; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.25); }
+.flow-arrow { color:#60a5fa; font-size:1.3rem; line-height:1.4; }
+.flow-row { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin:16px 0; background:#1a2332; border-radius:14px; padding:22px 20px; }
+.flow-row .flow-step { min-width:150px; }
+.pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:0.78rem; font-weight:700; }
+.pill.short { background:#d1fae5; color:#065f46; }
+.pill.long { background:#fef3c7; color:#92400e; }
+.pill.danger { background:#fecdd3; color:#9f1239; }
+
+.pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:800; }
+
+
+/* INFO BOXES */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+
+/* COMPARE (good/bad) */
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box { background:#fff; border-radius:14px; padding:18px 20px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.05); }
+.compare-box.bad { border-left:5px solid #e11d48; }
+.compare-box.good { border-left:5px solid #059669; }
+.compare-box h4 { font-size:15px; margin-bottom:10px; font-weight:800; }
+.compare-box.bad h4 { color:#be123c; }
+.compare-box.good h4 { color:#047857; }
+
+/* SUBSECTIONS */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-title .stars { margin-left:auto; color:#f59e0b; font-size:13px; letter-spacing:1px; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + pre { margin-top:14px; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content pre:last-child,
+.card-sub-content .compare:last-child { margin-bottom:0; }
+
+/* TABLE (from process.html) */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:700; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.15); transition:background .15s ease; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+/* INTERVIEW Q&A */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+.qa-answer:hover { background: #bfffea !important; }
+.qa-group-title { font-size:16px; font-weight:800; color:var(--heading); margin: 6px 0 -6px; }
+
+/* Final summary */
+.summary-box { background: linear-gradient(120deg, #1e3a8a, #5b21b6); border-radius:16px; padding:28px 32px; margin-top:10px; box-shadow: 0 12px 30px rgba(30,58,138,0.25); }
+.summary-box h3 { color:#fff; font-size:19px; margin-bottom:14px; }
+.summary-box p { color:#e6e9ff; font-size:15.5px; line-height:1.8; font-weight:500; }
+.summary-box p code { background:rgba(255,255,255,0.15); color:#fff; padding:2px 6px; border-radius:5px; }
+.summary-box .foot { margin-top:16px; color:#c7d2fe; font-size:14px; }
+
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="header theme-blue">
+      <h1>JWT Access + Refresh Token Flow</h1>
+      <p>A complete, interview-ready guide to the authentication lifecycle — from short-lived access tokens to secure refresh-token rotation and revocation.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">Why Access Tokens Expire</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">Why Refresh Tokens Exist</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">Access vs Refresh</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">Refresh Token Lifetime</a>
+        <a href="#s5" onclick="document.getElementById('s5').scrollIntoView({behavior:'smooth'});return false;">/refresh Endpoint</a>
+        <a href="#s6" onclick="document.getElementById('s6').scrollIntoView({behavior:'smooth'});return false;">Generate Access Token</a>
+        <a href="#s7" onclick="document.getElementById('s7').scrollIntoView({behavior:'smooth'});return false;">Token Rotation</a>
+        <a href="#s8" onclick="document.getElementById('s8').scrollIntoView({behavior:'smooth'});return false;">Revocation</a>
+        <a href="#s9" onclick="document.getElementById('s9').scrollIntoView({behavior:'smooth'});return false;">Logout</a>
+        <a href="#s10" onclick="document.getElementById('s10').scrollIntoView({behavior:'smooth'});return false;">Token Theft</a>
+        <a href="#s11" onclick="document.getElementById('s11').scrollIntoView({behavior:'smooth'});return false;">Complete Flow</a>
+        <a href="#s12" onclick="document.getElementById('s12').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> Short-lived <strong>access tokens</strong> authorize API calls; longer-lived <strong>refresh tokens</strong> silently obtain new access tokens. Rotation, revocation, and reuse detection are what keep this system secure.</div>
+
+    <!-- KEY TERMS SUMMARY -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🔑</div>
+          <div class="summary-text"><strong>Access Token:</strong> Short-lived JWT (e.g. 15 min) sent with every API request to prove identity.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🔄</div>
+          <div class="summary-text"><strong>Refresh Token:</strong> Long-lived credential (e.g. 7–30 days) used only to obtain a new access token.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🛡️</div>
+          <div class="summary-text"><strong>Rotation:</strong> Every refresh issues a brand-new refresh token and invalidates the old one.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🚫</div>
+          <div class="summary-text"><strong>Revocation:</strong> Server-side invalidation of a refresh token on logout, password change, or suspected theft.</div>
+        </div>
+        <div class="summary-item summary-rose">
+          <div class="summary-icon">🚨</div>
+          <div class="summary-text"><strong>Reuse Detection:</strong> Sending an already-rotated refresh token signals theft and revokes the whole token family.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1: WHY ACCESS TOKENS EXPIRE ==================== -->
+    <div class="section-divider" id="s1"><span>1. Why Access Tokens Expire</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>What an Access Token Is</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>An access token is used to access protected APIs.</p>
+        <pre><code>GET /api/profile
+Authorization: Bearer &lt;access_token&gt;</code></pre>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>What's Inside a JWT</h4></div>
+      <div class="card-sub-content">
+        <p>A JWT has three parts: <code>header.payload.signature</code></p>
+        <div class="flow-row">
+          <div class="flow-step"><strong>Header</strong><br>Algorithm + type<br>(e.g. HS256, JWT)</div>
+          <div class="flow-step"><strong>Payload</strong><br>Claims: userId, role,<br>exp (expiry)</div>
+          <div class="flow-step"><strong>Signature</strong><br>Signed with secret<br>or private key</div>
+        </div>
+        <div class="info-box box-tip">The signature lets the server trust the payload <strong>without a DB lookup</strong>. Any tampering invalidates the signature — this is why JWTs are useful for access tokens.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Short Lifetime, Bounded Damage</h4></div>
+      <div class="card-sub-content">
+        <p>Access tokens should have a <strong>short lifetime</strong>: <span class="pill short">15 min</span></p>
+        <div class="compare">
+          <div class="compare-box bad">
+            <h4>❌ Without expiration</h4>
+            <div class="flow">
+              <div class="flow-step">Attacker steals token</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">Can access APIs</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">Valid for months/years</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step" style="border-color:#f87171;color:#fca5a5">Very dangerous</div>
+            </div>
+          </div>
+          <div class="compare-box good">
+            <h4>✅ With short expiration</h4>
+            <div class="flow">
+              <div class="flow-step">Attacker steals token</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">Can access APIs</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">Expires after 15 min</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">Limited damage</div>
+            </div>
+          </div>
+        </div>
+        <div class="info-box box-warning"><strong>⚠️ Important nuance:</strong> Expiry doesn't prevent misuse during the valid window — it only bounds the blast radius. A stolen token still works for those 15 minutes. Short expiry limits <em>how long</em> damage can occur, not whether it can occur.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 2: WHY REFRESH TOKENS EXIST ==================== -->
+    <div class="section-divider" id="s2"><span>2. Why Refresh Tokens Exist</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>The Problem They Solve</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>If access tokens expire quickly, the user shouldn't have to log in every 15 minutes. That's where the <strong>refresh token</strong> comes in.</p>
+        <div class="flow">
+          <div class="flow-step">User Login</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Access Token <span class="pill short">15 min</span> + Refresh Token <span class="pill long">7 days</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>When the Access Token Expires</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step">Client detects access token expired</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Send refresh token → <code>POST /refresh</code></div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Server validates refresh token</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">New access token issued</div>
+        </div>
+        <div class="compare">
+          <div class="compare-box bad">
+            <h4>❌ Without refresh token</h4>
+            <p style="margin-bottom:0">Access Token expires → User must log in again</p>
+          </div>
+          <div class="compare-box good">
+            <h4>✅ With refresh token</h4>
+            <p style="margin-bottom:0">Access Token expires → Silent refresh → New Access Token</p>
+          </div>
+        </div>
+        <div class="info-box box-benefit"><strong>✅ Key takeaway:</strong> Refresh tokens allow short-lived access tokens without forcing frequent logins.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 3: ACCESS VS REFRESH ==================== -->
+    <div class="section-divider" id="s3"><span>3. Access Token vs Refresh Token</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>Side-by-Side Comparison</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th></th><th>Access Token</th><th>Refresh Token</th></tr>
+          <tr><td>Purpose</td><td>Access protected APIs</td><td>Get new access token</td></tr>
+          <tr><td>Lifetime</td><td><code>Short (e.g. 15 min)</code></td><td><code>Long (e.g. 7–30 days)</code></td></tr>
+          <tr><td>Sent to APIs?</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Used with</td><td>Protected endpoints</td><td><code>/refresh</code> only</td></tr>
+          <tr><td>Exposed frequently?</td><td>Yes, as needed</td><td>No</td></tr>
+          <tr><td>If stolen</td><td>Attacker can access APIs until expiry</td><td>Much more serious</td></tr>
+          <tr><td>Typical storage</td><td>Memory / secure mechanism</td><td>HttpOnly Secure cookie</td></tr>
+        </table>
+        <div class="info-box box-tip"><strong>Don't think:</strong> "Refresh token is just a longer access token."<br><strong>Think:</strong> Access Token → "I want to access this API". Refresh Token → "I want a new access token".</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Where Each One Should Live</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Access token:</strong> Often kept in memory (a JS variable), <em>not</em> localStorage. localStorage is readable by any injected script — a single XSS bug means instant token theft.</p>
+        <p style="margin-bottom:0"><strong>Refresh token:</strong> Kept in an <code>HttpOnly</code> cookie so client-side JS can't read it. This limits XSS impact, but opens the door to CSRF (browsers auto-attach cookies). Mitigate with <code>SameSite=Strict/Lax</code> and sometimes an anti-CSRF token.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 4: REFRESH TOKEN LIFETIME ==================== -->
+    <div class="section-divider" id="s4"><span>4. Refresh Token Lifetime</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4 no-border">
+      <div class="card-sub-title"><h4>Typical Lifetimes</h4><span class="stars">★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Refresh tokens live much longer than access tokens. Exact lifetime depends on the application's security requirements.</p>
+        <div class="flow-row">
+          <div class="flow-step">Access Token<br><span class="pill short">15 minutes</span></div>
+          <div class="flow-step">Refresh Token<br><span class="pill long">7–30 days</span></div>
+        </div>
+        <div class="info-box box-warning"><strong>⚠️</strong> Longer refresh-token lifetime = longer convenience <strong>+</strong> longer potential exposure. If stolen, an attacker may continuously obtain new access tokens.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4 accent-left">
+      <div class="card-sub-title"><h4>Sliding vs Absolute Expiration</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box">
+            <h4 style="color:var(--heading)">🔄 Sliding</h4>
+            <p style="margin-bottom:0">Every refresh extends the refresh token's expiry. An active user is never forced to log out.</p>
+          </div>
+          <div class="compare-box">
+            <h4 style="color:var(--heading)">⏳ Absolute</h4>
+            <p style="margin-bottom:0">Hard ceiling (e.g. 30 days from original login) regardless of activity. Forces periodic re-login.</p>
+          </div>
+        </div>
+        <p style="margin-bottom:0;color:#6b7280">Many systems combine both — sliding expiry with an absolute cap.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 5: /refresh ENDPOINT ==================== -->
+    <div class="section-divider" id="s5"><span>5. /refresh Endpoint</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>How It Works</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>The <code>/refresh</code> endpoint issues a new access token. The refresh token is commonly sent via an HttpOnly Secure cookie.</p>
+        <pre><code>POST /auth/refresh</code></pre>
+        <div class="flow">
+          <div class="flow-step">Client sends refresh token</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Server validates token</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Check expiration · revocation · session</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">Generate new Access Token</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>CSRF Protection</h4></div>
+      <div class="card-sub-content">
+        <div class="info-box box-danger"><strong>🛡️</strong> Because the refresh token rides in a cookie, the browser attaches it automatically — including to requests from malicious sites. Use <code>SameSite=Strict/Lax</code> + anti-CSRF token or custom header that cross-site requests can't replicate.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 6: GENERATE NEW ACCESS TOKEN ==================== -->
+    <div class="section-divider" id="s6"><span>6. Generate New Access Token</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>Flow</h4><span class="stars">★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step">Access Token A expires</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step"><code>POST /auth/refresh</code></div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Server validates refresh token</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">Access Token B issued</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Example (Node.js)</h4></div>
+      <div class="card-sub-content">
+        <pre><code>const accessToken = jwt.sign(
+  {
+    userId: user.id,
+    role: user.role
+  },
+  process.env.ACCESS_TOKEN_SECRET,
+  { expiresIn: "15m" }
+);</code></pre>
+        <p>Response:</p>
+        <pre>{
+  "accessToken": "new-access-token"
+}</pre>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 7: REFRESH TOKEN ROTATION ==================== -->
+    <div class="section-divider" id="s7"><span>7. Refresh Token Rotation</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>What Rotation Means</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Instead of reusing the same refresh token forever, <strong>rotate</strong> it on every refresh.</p>
+        <div class="compare">
+          <div class="compare-box bad">
+            <h4>❌ No rotation</h4>
+            <div class="flow">
+              <div class="flow-step">RT-A → new Access Token</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">RT-A again → new Access Token</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">… forever</div>
+            </div>
+          </div>
+          <div class="compare-box good">
+            <h4>✅ With rotation</h4>
+            <div class="flow">
+              <div class="flow-step">RT-A → Access-B + RT-B</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">RT-B → Access-C + RT-C</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">… each refresh is unique</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Why It Matters</h4></div>
+      <div class="card-sub-content">
+        <div class="info-box box-danger">Suppose an attacker steals <strong>RT-A</strong>. The legitimate user uses it first → server issues <strong>RT-B</strong> and invalidates RT-A. When the attacker later tries RT-A, the server detects <strong>reuse of an already-rotated token</strong> → strong signal of theft.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>Token Families</h4></div>
+      <div class="card-sub-content">
+        <p>Rotated tokens are grouped into a family (linked by a shared <code>familyId</code>):</p>
+        <div class="flow">
+          <div class="flow-step">Login → RT1 (family F1)</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">RT2 (family F1)</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">RT3 (family F1)</div>
+        </div>
+        <p style="margin-bottom:0">If reuse of <em>any</em> token in the family is detected, the server revokes the <strong>entire family</strong> — because the attacker may have already rotated forward.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 8: REVOCATION ==================== -->
+    <div class="section-divider" id="s8"><span>8. Refresh Token Revocation</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4 no-border">
+      <div class="card-sub-title"><h4>Server-Side State</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>JWTs are often called "stateless", but refresh-token systems commonly keep server-side state for revocation and session management.</p>
+        <pre><code>id | user_id | token_hash | expires_at | revoked_at | created_at</code></pre>
+        <p style="margin-bottom:0">On logout (or password change, etc.) set <code>revoked_at</code> → token can no longer be used.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4 accent-left">
+      <div class="card-sub-title"><h4>When to Revoke</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li>User logs out</li>
+          <li>User changes password</li>
+          <li>Admin disables account</li>
+          <li>Suspicious activity detected</li>
+          <li>Refresh-token reuse detected</li>
+          <li>Session manually terminated</li>
+        </ul>
+        <div class="info-box box-tip">Revocation checks happen at the <code>/refresh</code> call (DB/Redis lookup by token hash) — <em>not</em> on every API request. This preserves the benefit of stateless JWTs for access tokens.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><h4>Revoking an Already-Issued Access Token</h4></div>
+      <div class="card-sub-content">
+        <p>Harder, because access JWTs are normally trusted purely via signature. Common approaches:</p>
+        <ul style="margin-bottom:0">
+          <li><strong>Token versioning:</strong> Store a <code>tokenVersion</code> per user; embed it in the JWT. Bump the DB value to invalidate all previously issued tokens instantly.</li>
+          <li><strong>Short-lived denylist:</strong> Store revoked token IDs (<code>jti</code>) in Redis until natural expiry and check against it.</li>
+        </ul>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 9: LOGOUT ==================== -->
+    <div class="section-divider" id="s9"><span>9. Logout</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-5 no-border">
+      <div class="card-sub-title"><h4>What Logout Actually Does</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Logout is more than deleting the access token on the frontend. A proper logout must invalidate the refresh-token/session.</p>
+        <div class="flow">
+          <div class="flow-step">User clicks Logout</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step"><code>POST /auth/logout</code></div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Server revokes refresh token</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Clear refresh-token cookie</div>
+        </div>
+        <pre><code>app.post("/auth/logout", async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+  if (refreshToken) {
+    await revokeRefreshToken(refreshToken);
+  }
+  res.clearCookie("refreshToken");
+  res.json({ message: "Logged out successfully" });
+});</code></pre>
+        <div class="info-box box-tip"><strong>What about the access token?</strong> If it's a JWT, the server generally doesn't delete it. It simply expires soon. The important part is that the refresh token is revoked, so the attacker cannot obtain another access token.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-5 accent-left">
+      <div class="card-sub-title"><h4>Single-Device vs All-Device Logout</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box">
+            <h4 style="color:var(--heading)">This session only</h4>
+            <p style="margin-bottom:0">Revoke just the one refresh token/family tied to the current device.</p>
+          </div>
+          <div class="compare-box">
+            <h4 style="color:var(--heading)">All devices</h4>
+            <p style="margin-bottom:0">Revoke every refresh token belonging to the user (or bump a global <code>tokenVersion</code>). Useful for "log out everywhere" or after password change.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 10: TOKEN THEFT ==================== -->
+    <div class="section-divider" id="s10"><span>10. Token Theft Considerations</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>Access Token Theft</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step">Attacker gets Access Token</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Calls protected APIs</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Token expires after ~15 min</div>
+        </div>
+        <p style="margin-bottom:0"><strong>Protections:</strong> short lifetime, HTTPS, avoid unnecessary exposure, secure storage (memory, not localStorage).</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Signing Key / Algorithm</h4></div>
+      <div class="card-sub-content">
+        <div class="info-box box-warning"><strong>🔑</strong> HS256 (symmetric) — if the secret leaks, an attacker can forge tokens for any user. RS256 (asymmetric) — only the server holds the private key; verifiers use the public key. Preferred when multiple services verify but only one issues tokens.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-5">
+      <div class="card-sub-title"><h4>Refresh Token Theft</h4></div>
+      <div class="card-sub-content">
+        <p>More dangerous because refresh tokens are long-lived.</p>
+        <div class="flow">
+          <div class="flow-step">Attacker gets Refresh Token</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step"><code>/refresh</code> → New Access Token</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Continue accessing APIs</div>
+        </div>
+        <p style="margin-bottom:0"><strong>Protections:</strong> HttpOnly + Secure cookies, rotation, reuse detection, server-side revocation.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-5 accent-left">
+      <div class="card-sub-title"><h4>Detecting Refresh-Token Reuse</h4></div>
+      <div class="card-sub-content">
+        <p>RT1 → <code>/refresh</code> → RT2. Now RT1 is invalid.</p>
+        <p>If someone later sends RT1 → server detects reuse 🚨 → revoke the whole token family and force re-authentication.</p>
+        <div class="info-box box-note" style="margin-bottom:0"><em>Interview line:</em> "With rotation, every refresh generates a new refresh token and invalidates the previous one. Reuse of an old token indicates possible theft, so we revoke the associated session/family."</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 11: COMPLETE FLOW ==================== -->
+    <div class="section-divider" id="s11"><span>11. Complete Access + Refresh Token Flow</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>End-to-End Lifecycle</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step"><strong>LOGIN</strong><br>Verify email/password</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Generate Access Token <span class="pill short">15 min</span> + Refresh Token <span class="pill long">7 days</span></div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Access Token used for APIs</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Access Token expires</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step"><code>POST /refresh</code><br>Validate → Rotate → New Access + New Refresh</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Continue using APIs</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step"><strong>LOGOUT</strong><br>Revoke Refresh Token + Clear Cookie</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>The Four Pillars</h4></div>
+      <div class="card-sub-content">
+        <div class="flow-row">
+          <div class="flow-step"><strong>Access Token</strong><br>Access APIs<br><span class="pill short">Short-lived</span></div>
+          <div class="flow-step"><strong>Refresh Token</strong><br>Get new Access Token<br><span class="pill long">Long-lived · Protected</span></div>
+          <div class="flow-step"><strong>/refresh</strong><br>Validate · Rotate · Issue<br>Guard against CSRF</div>
+          <div class="flow-step"><strong>/logout</strong><br>Revoke (session or all)<br>Clear cookie</div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 12: INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="s12"><span>12. Important Interview Questions</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-group-title">Basic</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why do access tokens expire?</div>
+          <div class="qa-answer">To limit the damage if an access token is stolen.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why do we need refresh tokens?</div>
+          <div class="qa-answer">To obtain new access tokens without forcing the user to log in again.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is the difference between access and refresh tokens?</div>
+          <div class="qa-answer">Access Token → Access APIs. Refresh Token → Get new Access Token.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why is the refresh token longer-lived?</div>
+          <div class="qa-answer">Because it is not sent to normal APIs; it is used specifically to obtain new access tokens.</div>
+        </div>
+
+        <div class="qa-group-title">Scenario-Based</div>
+
+        <div class="qa-item">
+          <div class="qa-question">What happens when the access token expires?</div>
+          <div class="qa-answer">Client calls <code>POST /refresh</code> → Server validates refresh token → Issues new access token.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What happens if the refresh token is stolen?</div>
+          <div class="qa-answer">Attacker may generate new access tokens. Therefore refresh tokens need secure storage, rotation, and revocation.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What happens when the user logs out?</div>
+          <div class="qa-answer">Revoke the refresh token + clear the cookie. The already-issued access token may remain valid until it expires (unless extra invalidation is implemented).</div>
+        </div>
+
+        <div class="qa-group-title">Tricky Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">If JWT is stateless, how can you revoke a refresh token?</div>
+          <div class="qa-answer">Access tokens can stay stateless. Refresh-token/session state is stored in a DB or Redis and looked up only at <code>/refresh</code> time.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why not make the access token valid for 30 days?</div>
+          <div class="qa-answer">A stolen access token would give an attacker API access for 30 days. Short-lived tokens reduce that exposure.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why rotate refresh tokens?</div>
+          <div class="qa-answer">To reduce the impact of theft and detect reuse of an already-consumed token — then revoke the whole token family.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Which is more dangerous to steal: access or refresh token?</div>
+          <div class="qa-answer">Generally the refresh token, because it can be exchanged for multiple new access tokens during its lifetime.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Can logout immediately invalidate a JWT access token?</div>
+          <div class="qa-answer">Not automatically if the server treats the JWT as stateless. Use short expiration, token versioning, or a short-lived denylist if immediate invalidation is required.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why use RS256 instead of HS256?</div>
+          <div class="qa-answer">HS256 shares one secret for signing and verifying. If any verifier leaks the secret, tokens can be forged. RS256 keeps the private key only on the issuer; verifiers use the public key.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Sliding vs absolute refresh-token expiration — which would you choose?</div>
+          <div class="qa-answer">Depends on the product. Sliding favors convenience for active users; absolute bounds how long a stolen-and-reused token stays valid. Many systems combine both.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="summary-box">
+      <h3>One-line Interview Summary</h3>
+      <p>
+        "I use short-lived access tokens for API authorization and longer-lived refresh tokens for maintaining the user's session.
+        When the access token expires, the client calls <code>/refresh</code>; the server validates and rotates the refresh token
+        (as part of a token family) and issues a new access token. On logout, the refresh token is revoked and the cookie is cleared.
+        Rotation, secure storage (HttpOnly cookies + SameSite), reuse detection, and family-level revocation help mitigate
+        refresh-token theft, while RS256 and token versioning address access-token forgery and revocation."
+      </p>
+      <div class="foot">This is the core flow you should be able to explain on a whiteboard in a JWT interview.</div>
+    </div>
+
+  </div>
+
+  <footer>JWT Access + Refresh Token Authentication Lifecycle · Interview-ready reference</footer>
+
+</body>
+</html>

