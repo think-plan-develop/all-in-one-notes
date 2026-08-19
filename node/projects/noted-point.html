@@ -1,0 +1,105 @@
+app.js = what the server does (routes, middleware, logic)
+server.js = that the server runs (listening, port, startup)
+
+
+
+npm i mongoose express -D tsx @types/express @types/node
+
+npx tsc --init
+
+tsconfig changes 
+
+"target": "es2020", //*
+"module": "NodeNext", //*                              
+"rootDir": "./src", 
+"include": ["src"],
+"exclude": ["node_modules", "dist"]
+
+npm install -D tsx (tsx is a tool that lets Node.js run TypeScript files directly during development.)
+
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  }
+
+npm run dev
+
+dotenv
+dotenv.config();
+
+always use pre hook for password hash
+
+userSchema.pre("save", async function  (next) {
+    if(!this.isModified("password")){
+        return 
+    }
+    this.password= await argon2.hash(this.password);
+})
+
+
+
+# 📝 Notes — Express + JWT TypeScript Gotchas
+
+---
+
+### 1️⃣ Request type vs request data ⭐⭐⭐⭐⭐
+- `req: Request` → the Express request **object**
+- `req.body` → the request **payload**
+
+```ts
+const data = registerSchema.parse(req.body);
+```
+
+---
+
+### 2️⃣ `req.user` needs Express augmentation
+- `user` is **not** a built-in Express property
+- Using `req.user.userId` requires a custom type declaration:
+
+```ts
+interface Request {
+  user: {
+    userId: string;
+  };
+}
+```
+
+---
+
+### 3️⃣ `jwt.verify()` type assertion ⭐⭐⭐⭐⭐
+```ts
+const decoded = jwt.verify(
+  token,
+  process.env.JWT_SECRET!
+) as JwtPayload;
+
+decoded.userId
+```
+> ⚠️ `as JwtPayload` = **TypeScript-only** type assertion — **not** runtime validation.
+
+---
+
+### 4️⃣ `!` after environment variable
+```ts
+process.env.JWT_SECRET!
+```
+> Tells TypeScript: *"assume this exists."*
+> ❌ It does **not** create the env variable — just silences the type error.
+
+---
+
+### 5️⃣ Cookie vs Authorization header ⭐⭐⭐⭐⭐
+
+**Cookie-based:**
+```ts
+const token = req.cookies.accessToken;
+```
+
+**Bearer-based:**
+```ts
+const authHeader = req.headers.authorization;
+const [scheme, token] = authHeader.split(" ");
+```
+
+> 🚫 Don't mix the two approaches in one project.

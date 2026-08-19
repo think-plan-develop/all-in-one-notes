@@ -1,839 +1,557 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cookie vs Local Storage — Interview Notes</title>
-  <style>
-    :root, [data-theme="dark"] {
-      --primary: #3b82f6;
-      --primary-dark: #1e3a8a;
-      --accent: #10b981;
-      --accent-dark: #065f46;
-      --success: #34d399;
-      --warning: #fbbf24;
-      --danger: #f87171;
-      --bg: #0f172a;
-      --card: #1e293b;
-      --text: #f1f5f9;
-      --muted: #cbd5e1;
-      --border: #334155;
-      --code-bg: #0d1117;
-      --code-text: #e6edf3;
-      --code-comment: #94a3b8;
-      --code-keyword: #c792ea;
-      --code-string: #c3e88d;
-      --code-func: #82aaff;
-      --code-number: #f78c6c;
-      --toggle-bg: #475569;
-      --toggle-knob: #f1f5f9;
-      --shadow: rgba(0, 0, 0, 0.35);
-      --example-bg: rgba(59, 130, 246, 0.1);
-      --tag-bg: rgba(59, 130, 246, 0.15);
-      --memory-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.12));
-      --oneliner-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(16, 185, 129, 0.15));
-      --table-header-bg: rgba(30, 58, 138, 0.5);
-      --check-bg: rgba(16, 185, 129, 0.12);
-      --check-border: rgba(16, 185, 129, 0.3);
-      --star: #fbbf24;
-      --hover-bg: rgba(16, 185, 129, 0.16);
-      --hover-text: #5eead4;
-      --hover-border: rgba(16, 185, 129, 0.45);
-    }
-
-    [data-theme="light"] {
-      --primary: #2563eb;
-      --primary-dark: #1e3a8a;
-      --accent: #059669;
-      --accent-dark: #065f46;
-      --success: #16a34a;
-      --warning: #d97706;
-      --danger: #dc2626;
-      --bg: #f6f7fb;
-      --card: #ffffff;
-      --text: #000000;
-      --muted: #1a1a1a;
-      --border: #e2e8f0;
-      --code-bg: #1a1a1a;
-      --code-text: #d4d4d4;
-      --code-comment: #7a7a7a;
-      --code-keyword: #c792ea;
-      --code-string: #c3e88d;
-      --code-func: #82aaff;
-      --code-number: #f78c6c;
-      --toggle-bg: #cbd5e1;
-      --toggle-knob: #ffffff;
-      --shadow: rgba(37, 99, 235, 0.1);
-      --example-bg: rgba(37, 99, 235, 0.06);
-      --tag-bg: rgba(37, 99, 235, 0.1);
-      --memory-bg: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(5, 150, 105, 0.08));
-      --oneliner-bg: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(5, 150, 105, 0.1));
-      --table-header-bg: linear-gradient(120deg, #1e3a8a, #2563eb);
-      --check-bg: rgba(5, 150, 105, 0.08);
-      --check-border: rgba(5, 150, 105, 0.25);
-      --star: #d97706;
-      --hover-bg: rgba(5, 150, 105, 0.1);
-      --hover-text: #000000;
-      --hover-border: rgba(5, 150, 105, 0.35);
-    }
-
-    [data-theme="light"] body { font-weight: 500; }
-    [data-theme="light"] .card p,
-    [data-theme="light"] .highlight,
-    [data-theme="light"] .flow-step,
-    [data-theme="light"] .compare-card p,
-    [data-theme="light"] td,
-    [data-theme="light"] header p {
-      color: #000000;
-      font-weight: 600;
-    }
-    [data-theme="light"] .card strong,
-    [data-theme="light"] .definition,
-    [data-theme="light"] .section-title,
-    [data-theme="light"] .interview-def p,
-    [data-theme="light"] .takeaway p,
-    [data-theme="light"] .flow-step strong,
-    [data-theme="light"] .compare-card h4,
-    [data-theme="light"] td:first-child {
-      color: #000000;
-      font-weight: 700;
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.7;
-      font-size: 16px;
-      padding: 2rem 1rem;
-      transition: background 0.3s ease, color 0.3s ease;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    .container { max-width: 1100px; margin: 0 auto; }
-
-    .theme-toggle-wrapper {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 1.5rem;
-    }
-
-    .theme-toggle {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 0.4rem 0.75rem 0.4rem 0.9rem;
-      cursor: pointer;
-      font-size: 0.9rem;
-      color: var(--muted);
-      transition: all 0.25s ease;
-      box-shadow: 0 1px 3px var(--shadow);
-
-    }
-
-    .theme-toggle:hover {
-      border-color: var(--primary);
-      color: var(--text);
-    }
-
-    .theme-toggle .icon { font-size: 1.1rem; line-height: 1; }
-
-    .toggle-switch {
-      width: 40px;
-      height: 22px;
-      background: var(--toggle-bg);
-      border-radius: 999px;
-      position: relative;
-      transition: background 0.3s ease;
-    }
-
-    .toggle-switch::after {
-      content: '';
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 16px;
-      height: 16px;
-      background: var(--toggle-knob);
-      border-radius: 50%;
-      transition: transform 0.3s ease;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    }
-
-    [data-theme="light"] .toggle-switch::after {
-      transform: translateX(18px);
-    }
-
-    header {
-      text-align: center;
-      margin-bottom: 2.5rem;
-    }
-
-    header h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 0.5rem;
-    }
-
-    header p { color: var(--muted); font-size: 1.1rem; font-weight: 450; }
-
-    .section { margin-bottom: 2.4rem; }
-
-    .section-title {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-size: 1.25rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      color: var(--text);
-    }
-
-    .section-title .num {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 28px;
-      height: 28px;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      color: #ecfdf5;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 700;
-      flex-shrink: 0;
-      padding: 0 6px;
-    }
-
-    .stars { color: var(--star); font-size: 0.85rem; letter-spacing: -1px; }
-
-    .card {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 1.4rem 1.5rem;
-      border: 1px solid var(--border);
-      box-shadow: 0 4px 12px var(--shadow);
-      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
-    }
-
-    .card p {
-      color: var(--muted);
-      font-size: 1rem;
-      font-weight: 450;
-      margin-bottom: 0.75rem;
-    }
-
-    .card p:last-child { margin-bottom: 0; }
-    .card strong { color: var(--text); font-weight: 650; }
-
-    .card.hoverable:hover {
-      background: var(--hover-bg);
-      border-color: var(--hover-border);
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
-      transform: translateY(-1px);
-    }
-
-    .card.hoverable:hover p,
-    .card.hoverable:hover strong {
-      font-weight: 650;
-      color: var(--hover-text);
-    }
-
-    .highlight {
-      background: var(--example-bg);
-      border-left: 3px solid var(--primary);
-      border-radius: 0 10px 10px 0;
-      padding: 0.9rem 1.1rem;
-      font-size: 0.98rem;
-      font-weight: 450;
-      margin: 1rem 0;
-      color: var(--muted);
-      transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
-      cursor: default;
-    }
-
-    .highlight strong { color: var(--text); font-weight: 650; }
-
-    .highlight:hover {
-      background: var(--hover-bg);
-      border-color: var(--hover-border);
-      color: var(--hover-text);
-    }
-
-    .highlight:hover strong { color: var(--hover-text); }
-
-    .definition {
-      background: var(--memory-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.05rem 1.3rem;
-      margin: 1rem 0;
-      font-size: 1.02rem;
-      font-weight: 550;
-      color: var(--text);
-      transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
-      cursor: default;
-    }
-
-    .definition::before { content: '📌 '; }
-
-    .definition:hover {
-      background: var(--hover-bg);
-      border-color: var(--hover-border);
-      color: var(--hover-text);
-      font-weight: 650;
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
-      transform: translateY(-1px);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--card);
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      box-shadow: 0 4px 12px var(--shadow);
-      margin: 1rem 0;
-    }
-
-    th, td {
-      padding: 0.9rem 1.15rem;
-      text-align: left;
-      font-size: 0.95rem;
-    }
-
-    th {
-      background: var(--table-header-bg);
-      font-weight: 650;
-      color: #e0f2fe;
-    }
-
-    [data-theme="dark"] th { background: rgba(30, 58, 138, 0.6); }
-
-    td {
-      border-top: 1px solid var(--border);
-      color: var(--muted);
-      font-weight: 450;
-    }
-
-    td:first-child {
-      color: var(--text);
-      font-weight: 600;
-    }
-
-    table tbody tr { transition: background 0.2s ease; }
-    table tbody tr:hover { background: var(--hover-bg); }
-    table tbody tr:hover td { color: var(--hover-text); }
-
-    pre {
-      background: var(--code-bg);
-      border-radius: 12px;
-      padding: 1.2rem 1.3rem;
-      overflow-x: auto;
-      border: 1px solid var(--border);
-      font-size: 0.9rem;
-      line-height: 1.6;
-      margin: 1rem 0;
-    }
-
-    code {
-      font-family: 'Fira Code', 'Consolas', monospace;
-      color: var(--code-text);
-    }
-
-    .comment { color: var(--code-comment); }
-    .keyword { color: var(--code-keyword); }
-    .string { color: var(--code-string); }
-    .func { color: var(--code-func); }
-    .number { color: var(--code-number); }
-
-    .inline-code {
-      background: var(--tag-bg);
-      padding: 0.15rem 0.45rem;
-      border-radius: 5px;
-      font-family: 'Fira Code', 'Consolas', monospace;
-      font-size: 0.85em;
-      color: var(--primary);
-    }
-
-    .flow {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      margin: 1rem 0;
-    }
-
-    .flow-step {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.75rem;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.8rem 1.05rem;
-      font-size: 0.96rem;
-      font-weight: 450;
-      color: var(--muted);
-      transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.2s ease;
-      cursor: default;
-    }
-
-    .flow-step .arrow {
-      color: var(--primary);
-      font-weight: 700;
-      flex-shrink: 0;
-      min-width: 1.2rem;
-    }
-
-    .flow-step strong { color: var(--text); font-weight: 650; }
-
-    .flow-step:hover {
-      background: var(--hover-bg);
-      border-color: var(--hover-border);
-      color: var(--hover-text);
-      transform: translateX(3px);
-    }
-
-    .flow-step:hover strong { color: var(--hover-text); }
-
-    .compare-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-      margin: 1rem 0;
-    }
-
-    @media (max-width: 640px) {
-      .compare-row { grid-template-columns: 1fr; }
-    }
-
-    .compare-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.15rem;
-      transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
-      cursor: default;
-    }
-
-    .compare-card h4 {
-      font-size: 1rem;
-      margin-bottom: 0.5rem;
-      color: var(--text);
-      font-weight: 650;
-    }
-
-    .compare-card p {
-      font-size: 0.94rem;
-      font-weight: 450;
-      color: var(--muted);
-      margin: 0;
-    }
-
-    .compare-card:hover {
-      background: var(--hover-bg);
-      border-color: var(--hover-border);
-      transform: translateY(-2px);
-    }
-
-    .compare-card:hover h4,
-    .compare-card:hover p { color: var(--hover-text); }
-
-    .interview-def {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 1.6rem 1.75rem;
-      box-shadow: 0 4px 16px var(--shadow);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .interview-def::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 5px;
-      height: 100%;
-      background: linear-gradient(180deg, var(--primary), var(--accent));
-    }
-
-    .interview-def .label {
-      font-size: 0.82rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-      font-weight: 650;
-      margin-bottom: 0.85rem;
-    }
-
-    .interview-def p {
-      font-size: 1.05rem;
-      line-height: 1.8;
-      color: var(--text);
-      font-weight: 450;
-      margin: 0;
-    }
-
-    .interview-def .key { color: var(--primary); font-weight: 600; }
-    .interview-def .key2 { color: var(--accent); font-weight: 600; }
-
-    .diagram {
-      background: #0f172a;
-      color: #a5f3fc;
-      font-family: 'Fira Code', Consolas, monospace;
-      font-size: 0.85rem;
-      line-height: 1.65;
-      padding: 1.1rem 1.25rem;
-      border-radius: 12px;
-      margin: 1rem 0;
-      overflow-x: auto;
-      white-space: pre;
-      border: 1px solid var(--border);
-    }
-
-    .tag {
-      display: inline-block;
-      background: var(--tag-bg);
-      padding: 0.2rem 0.55rem;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      font-family: 'Fira Code', monospace;
-      color: var(--primary);
-    }
-
-    footer {
-      text-align: center;
-      margin-top: 3rem;
-      color: var(--muted);
-      font-size: 0.85rem;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cookie vs Local Storage — Interview Notes</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* THEME VARIABLES */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#0e7490; --accent:#0891b2; --accent-light:#22d3ee; --content-bg:#ecfeff; --heading:#0e7490; --shadow-rgb:8,145,178; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-5 { --accent-dark:#9f1239; --accent:#e11d48; --accent-light:#fb7185; --content-bg:#fff1f2; --heading:#9f1239; --shadow-rgb:225,29,72; }
+
+/* HEADER */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* KEY TERMS SUMMARY */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#ecfeff,#cffafe); color:#0e7490; } .summary-orange .summary-text strong { color:#0891b2; }
+.summary-rose   { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#9f1239; } .summary-rose .summary-text strong { color:#e11d48; }
+.summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple .summary-text strong { color:#7c3aed; }
+
+/* SECTION DIVIDER */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* CODE / TOKEN */
+code, .token {
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+  font-size: 0.88em;
+  background: rgba(0,0,0,0.06);
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: #4338ca;
+}
+pre {
+  background: #0d1117;
+  border: 1px solid #2d3a4f;
+  border-radius: 10px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 14px 0;
+  color: #e6edf3;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+
+/* CODE BLOCK (mac-window style) */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* FLOW STEPS */
+.flow { display:flex; flex-direction:column; align-items:center; gap:0; margin:16px 0; font-size:0.95rem; background:#1a2332; border-radius:14px; padding:24px 20px; }
+.flow-step { background:#243044; border:1px solid #34435c; border-radius:10px; padding:11px 20px; text-align:center; min-width:200px; max-width:340px; color:#e7ecf3; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.25); }
+.flow-arrow { color:#60a5fa; font-size:1.3rem; line-height:1.4; user-select:none; }
+.flow-row { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin:16px 0; background:#1a2332; border-radius:14px; padding:22px 20px; }
+.flow-row .flow-step { min-width:150px; }
+.pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:0.78rem; font-weight:700; }
+.pill.short { background:#d1fae5; color:#065f46; }
+.pill.long { background:#fef3c7; color:#92400e; }
+.pill.danger { background:#fecdd3; color:#9f1239; }
+.pill.indigo { background:#e0e7ff; color:#3730a3; }
+
+/* INFO BOXES */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+
+/* COMPARE (good/bad) */
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box { background:#fff; border-radius:14px; padding:18px 20px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.05); }
+.compare-box.bad { border-left:5px solid #e11d48; }
+.compare-box.good { border-left:5px solid #059669; }
+.compare-box h4 { font-size:15px; margin-bottom:10px; font-weight:800; }
+.compare-box.bad h4 { color:#be123c; }
+.compare-box.good h4 { color:#047857; }
+.compare-box pre { font-size:0.78rem; margin:0; }
+.compare-box p { margin:8px 0 0; font-size:0.85rem; }
+
+/* SUBSECTIONS */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-title .stars { margin-left:auto; color:#f59e0b; font-size:13px; letter-spacing:1px; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + pre,
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content pre:last-child,
+.card-sub-content .code-block:last-child,
+.card-sub-content .compare:last-child,
+.card-sub-content .flow:last-child,
+.card-sub-content .flow-row:last-child { margin-bottom:0; }
+
+/* TABLE */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:700; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.15); transition:background .15s ease; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+/* INTERVIEW ANSWER CARD */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+.qa-answer pre { margin: 10px 0 0; }
+.qa-answer .code-block code { background:none; padding:0; color:#d4d4d4; font-weight:400; }
+.qa-answer .code-block pre { margin:0; }
+.qa-answer:hover { background: #bfffea !important; }
+.qa-group-title { font-size:16px; font-weight:800; color:var(--heading); margin: 6px 0 -6px; }
+
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
 </head>
 <body>
   <div class="container">
-    <div class="theme-toggle-wrapper">
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
-        <span class="icon" id="themeIcon">🌙</span>
-        <span id="themeLabel">Dark</span>
-        <div class="toggle-switch"></div>
-      </button>
-    </div>
 
-    <header>
+    <!-- HEADER -->
+    <div class="header theme-blue">
       <h1>Cookie vs Local Storage</h1>
-      <p>Where should you store the JWT? Security trade-offs explained</p>
-    </header>
-
-    <div class="section">
-      <div class="card hoverable">
-        <p>When you use JWT authentication, an important question is:</p>
-        <p><strong>"Where should I store the token in the browser?"</strong></p>
-        <p>Two common options: <span class="inline-code">localStorage</span> and <span class="inline-code">Cookie</span>.</p>
-        <p>From the Node.js/backend perspective, the key is understanding <strong>how the browser sends the token to Express</strong> and <strong>what security risks each option creates</strong>.</p>
+      <p>Where should you store the JWT? Security trade-offs, explained from the Node.js/backend perspective.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">What is localStorage</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">How It Reaches Node.js</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">XSS Risk</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">Cookie vs localStorage</a>
+        <a href="#s5" onclick="document.getElementById('s5').scrollIntoView({behavior:'smooth'});return false;">Code Patterns</a>
+        <a href="#interview" onclick="document.getElementById('interview').scrollIntoView({behavior:'smooth'});return false;">Interview Answer</a>
       </div>
     </div>
 
-    <!-- 1. localStorage -->
-    <div class="section">
-      <h2 class="section-title"><span class="num">1</span> What is localStorage?</h2>
-      <div class="card hoverable">
-        <p><span class="inline-code">localStorage</span> is a browser storage mechanism from the Web Storage API.</p>
-        <pre style="margin: 0.75rem 0;"><code>localStorage.<span class="func">setItem</span>(<span class="string">"accessToken"</span>, token);
-<span class="keyword">const</span> token = localStorage.<span class="func">getItem</span>(<span class="string">"accessToken"</span>);</code></pre>
-      </div>
+    <div class="info-box box-tip"><strong>💡 The question:</strong> When you use JWT authentication, where should the token live in the browser — <code>localStorage</code> or a <code>Cookie</code>? The key is understanding <strong>how the browser sends the token to Express</strong> and <strong>what security risks each option creates</strong>.</div>
 
-      <div class="diagram">Node.js / Express
-       ↓
-    JWT token
-       ↓
-     Browser
-       ↓
- localStorage
-       ↓
-accessToken = JWT</div>
+    <!-- KEY TERMS SUMMARY -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">💾</div>
+          <div class="summary-text"><strong>localStorage:</strong> Browser storage from the Web Storage API, readable and writable by any same-origin JavaScript.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🍪</div>
+          <div class="summary-text"><strong>HttpOnly Cookie:</strong> A cookie flagged so client-side JavaScript cannot read it — only the browser can attach it to requests.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">📤</div>
+          <div class="summary-text"><strong>Authorization Header:</strong> How localStorage tokens reach Node.js — JS must manually attach <code>Bearer &lt;token&gt;</code> to each request.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">⚔️</div>
+          <div class="summary-text"><strong>XSS:</strong> Malicious same-origin JavaScript that can read anything JS-accessible — including a token sitting in localStorage.</div>
+        </div>
+        <div class="summary-item summary-rose">
+          <div class="summary-icon">🛡️</div>
+          <div class="summary-text"><strong>CSRF:</strong> The trade-off cookies introduce — browsers auto-send cookies, so cross-site requests need separate protection.</div>
+        </div>
+      </div>
     </div>
 
-    <!-- 2. How it works with Node -->
-    <div class="section">
-      <h2 class="section-title"><span class="num">2</span> How localStorage works with Node.js</h2>
-      <div class="card">
+    <!-- ==================== 1: WHAT IS LOCALSTORAGE ==================== -->
+    <div class="section-divider" id="s1"><span>1. What Is localStorage?</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>The Basics</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p><code>localStorage</code> is a browser storage mechanism from the Web Storage API.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">browser console</span></div>
+          <pre><code>localStorage.<span class="fn">setItem</span>(<span class="str">"accessToken"</span>, token);
+<span class="kw">const</span> token = localStorage.<span class="fn">getItem</span>(<span class="str">"accessToken"</span>);</code></pre>
+        </div>
+        <div class="flow">
+          <div class="flow-step">Node.js / Express</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">JWT token</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Browser</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">localStorage</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">accessToken = JWT</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>How localStorage Works With Node.js</h4></div>
+      <div class="card-sub-content">
         <p>Login API returns a JWT in the response body:</p>
-        <pre style="margin: 0.75rem 0;"><code>app.<span class="func">post</span>(<span class="string">"/login"</span>, <span class="keyword">async</span> (req, res) => {
-  <span class="comment">// Verify email/password...</span>
-  <span class="keyword">const</span> token = jwt.<span class="func">sign</span>(
-    { userId: <span class="number">101</span>, role: <span class="string">"user"</span> },
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">server.js</span></div>
+          <pre><code>app.<span class="fn">post</span>(<span class="str">"/login"</span>, <span class="kw">async</span> (req, res) => {
+  <span class="cmt">// Verify email/password...</span>
+  <span class="kw">const</span> token = jwt.<span class="fn">sign</span>(
+    { userId: <span class="num">101</span>, role: <span class="str">"user"</span> },
     process.env.JWT_SECRET,
-    { expiresIn: <span class="string">"15m"</span> }
+    { expiresIn: <span class="str">"15m"</span> }
   );
 
-  res.<span class="func">json</span>({ token });
+  res.<span class="fn">json</span>({ token });
 });</code></pre>
+        </div>
         <p>Frontend stores it:</p>
-        <pre style="margin: 0.75rem 0;"><code><span class="keyword">const</span> data = <span class="keyword">await</span> response.<span class="func">json</span>();
-localStorage.<span class="func">setItem</span>(<span class="string">"accessToken"</span>, data.token);</code></pre>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">login.js</span></div>
+          <pre><code><span class="kw">const</span> data = <span class="kw">await</span> response.<span class="fn">json</span>();
+localStorage.<span class="fn">setItem</span>(<span class="str">"accessToken"</span>, data.token);</code></pre>
+        </div>
       </div>
     </div>
 
-    <!-- 3. How token reaches Node -->
-    <div class="section">
-      <h2 class="section-title"><span class="num">3</span> How does the token reach Node.js?</h2>
-      <div class="card hoverable">
-        <p><strong>Node.js does not automatically receive localStorage data.</strong></p>
-        <p>Browser JavaScript must read it and explicitly send it:</p>
-        <pre style="margin: 0.75rem 0;"><code><span class="keyword">const</span> token = localStorage.<span class="func">getItem</span>(<span class="string">"accessToken"</span>);
-
-fetch(<span class="string">"/profile"</span>, {
-  headers: {
-    Authorization: <span class="string">`Bearer ${token}`</span>
-  }
-});</code></pre>
-      </div>
-
-      <div class="diagram">Browser
-   │
-   │ localStorage.getItem()
-   ↓
-JWT
-   │
-   │ Authorization header
-   ↓
-Node.js / Express
-   │
-   ↓
-jwt.verify()
-   │
-   ↓
-Authenticated user</div>
-
-      <p style="margin: 1.25rem 0 0.5rem; font-weight: 600; color: var(--text);">Express middleware</p>
-      <pre><code><span class="keyword">function</span> <span class="func">authenticate</span>(req, res, next) {
-  <span class="keyword">const</span> authHeader = req.headers.authorization;
-
-  <span class="keyword">if</span> (!authHeader) {
-    <span class="keyword">return</span> res.<span class="func">status</span>(<span class="number">401</span>).<span class="func">json</span>({ message: <span class="string">"Authentication required"</span> });
-  }
-
-  <span class="keyword">const</span> token = authHeader.<span class="func">split</span>(<span class="string">" "</span>)[<span class="number">1</span>];
-
-  <span class="keyword">try</span> {
-    <span class="keyword">const</span> decoded = jwt.<span class="func">verify</span>(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } <span class="keyword">catch</span> {
-    <span class="keyword">return</span> res.<span class="func">status</span>(<span class="number">401</span>).<span class="func">json</span>({ message: <span class="string">"Invalid or expired token"</span> });
-  }
-}</code></pre>
-    </div>
-
-    <!-- 4. JS can access -->
-    <div class="section">
-      <h2 class="section-title"><span class="num">4</span> JavaScript can access localStorage</h2>
-      <div class="card hoverable">
-        <p>This is the biggest security consideration.</p>
-        <p>Any JavaScript running in the same origin can do:</p>
-        <pre style="margin: 0.75rem 0;"><code><span class="keyword">const</span> token = localStorage.<span class="func">getItem</span>(<span class="string">"accessToken"</span>);
-console.<span class="func">log</span>(token);</code></pre>
-        <p>There is <strong>no HttpOnly protection</strong> for localStorage.</p>
-      </div>
-    </div>
-
-    <!-- 5. XSS -->
-    <div class="section">
-      <h2 class="section-title"><span class="num">5</span> XSS and localStorage <span class="stars">★★★★★</span></h2>
-      <div class="card hoverable">
-        <p>If your app has an <strong>XSS</strong> vulnerability, attacker-controlled JavaScript can run in your origin and steal the token:</p>
-        <div class="diagram">XSS JavaScript
-      ↓
-localStorage.getItem("accessToken")
-      ↓
-JWT stolen
-      ↓
-Attacker uses token until it expires</div>
-      </div>
-
-      <div class="definition">
-        Don't say "localStorage causes XSS." Say: <strong>XSS allows attacker JS to run in your origin. If the token is in localStorage, that JS can read it — making token theft easier.</strong>
-      </div>
-
-      <div class="highlight">
-        The problem isn't that localStorage is "insecure." The problem is: a token in <strong>JavaScript-readable storage</strong> can be stolen by malicious JS in the same origin.
-      </div>
-    </div>
-
-    <!-- 6. Why use localStorage -->
-    <div class="section">
-      <h2 class="section-title"><span class="num">6</span> Why use localStorage at all?</h2>
-      <div class="card">
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Why Use localStorage at All?</h4></div>
+      <div class="card-sub-content">
         <p><strong>Simple to use</strong> and easy to send as a Bearer token:</p>
-        <pre style="margin: 0.75rem 0;"><code>localStorage.<span class="func">setItem</span>(<span class="string">"accessToken"</span>, token);
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">api.js</span></div>
+          <pre><code>localStorage.<span class="fn">setItem</span>(<span class="str">"accessToken"</span>, token);
 
-fetch(<span class="string">"/api/profile"</span>, {
-  headers: { Authorization: <span class="string">`Bearer ${token}`</span> }
+fetch(<span class="str">"/api/profile"</span>, {
+  headers: { Authorization: <span class="str">`Bearer ${token}`</span> }
 });</code></pre>
+        </div>
         <p>Common pattern for APIs — but the security trade-off matters when the token is sensitive.</p>
       </div>
     </div>
 
-    <!-- 7. localStorage vs Cookie -->
-    <div class="section">
-      <h2 class="section-title"><span class="num">7</span> localStorage vs Cookie — Core Difference</h2>
-      <div class="card hoverable">
+    </div>
+
+    <!-- ==================== 2: HOW IT REACHES NODE ==================== -->
+    <div class="section-divider" id="s2"><span>2. How Does the Token Reach Node.js?</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>JS Has to Send It Manually</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p><strong>Node.js does not automatically receive localStorage data.</strong></p>
+        <p>Browser JavaScript must read it and explicitly send it:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">api.js</span></div>
+          <pre><code><span class="kw">const</span> token = localStorage.<span class="fn">getItem</span>(<span class="str">"accessToken"</span>);
+
+fetch(<span class="str">"/profile"</span>, {
+  headers: {
+    Authorization: <span class="str">`Bearer ${token}`</span>
+  }
+});</code></pre>
+        </div>
+        <div class="flow">
+          <div class="flow-step">Browser</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">localStorage.getItem()</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">JWT</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Authorization header</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Node.js / Express</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">jwt.verify()</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">Authenticated user</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Express Middleware</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">authenticate.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">authenticate</span>(req, res, next) {
+  <span class="kw">const</span> authHeader = req.headers.authorization;
+
+  <span class="kw">if</span> (!authHeader) {
+    <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">401</span>).<span class="fn">json</span>({ message: <span class="str">"Authentication required"</span> });
+  }
+
+  <span class="kw">const</span> token = authHeader.<span class="fn">split</span>(<span class="str">" "</span>)[<span class="num">1</span>];
+
+  <span class="kw">try</span> {
+    <span class="kw">const</span> decoded = jwt.<span class="fn">verify</span>(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } <span class="kw">catch</span> {
+    <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">401</span>).<span class="fn">json</span>({ message: <span class="str">"Invalid or expired token"</span> });
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>JavaScript Can Access localStorage</h4></div>
+      <div class="card-sub-content">
+        <p>This is the biggest security consideration. Any JavaScript running in the same origin can do:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">console</span></div>
+          <pre><code><span class="kw">const</span> token = localStorage.<span class="fn">getItem</span>(<span class="str">"accessToken"</span>);
+console.<span class="fn">log</span>(token);</code></pre>
+        </div>
+        <p>There is <strong>no HttpOnly protection</strong> for localStorage.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 3: XSS RISK ==================== -->
+    <div class="section-divider" id="s3"><span>3. XSS and localStorage</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-5 no-border">
+      <div class="card-sub-title"><h4>The Real Threat Model</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>If your app has an <strong>XSS</strong> vulnerability, attacker-controlled JavaScript can run in your origin and steal the token:</p>
+        <div class="flow">
+          <div class="flow-step">XSS JavaScript</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">localStorage.getItem("accessToken")</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#f87171;color:#fca5a5">JWT stolen</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#f87171;color:#fca5a5">Attacker uses token until it expires</div>
+        </div>
+        <div class="info-box box-note">📌 Don't say "localStorage causes XSS." Say: <strong>XSS allows attacker JS to run in your origin. If the token is in localStorage, that JS can read it — making token theft easier.</strong></div>
+        <div class="info-box box-tip">💡 The problem isn't that localStorage is "insecure." The problem is: a token in <strong>JavaScript-readable storage</strong> can be stolen by malicious JS in the same origin.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-5 accent-left">
+      <div class="card-sub-title"><h4>Main Security Problem</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step">JWT</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">localStorage</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">XSS vulnerability</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Attacker JavaScript</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">localStorage.getItem("accessToken")</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#f87171;color:#fca5a5">Token stolen</div>
+        </div>
+        <div class="info-box box-danger">🚨 If that token is long-lived, the impact is worse. Avoid putting highly sensitive, long-lived credentials in JavaScript-readable storage when a safer architecture is available.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 4: COOKIE VS LOCALSTORAGE ==================== -->
+    <div class="section-divider" id="s4"><span>4. localStorage vs Cookie — Core Difference</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>Who Can Access the Token</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
         <p>The biggest difference is <strong>who can access the token</strong> and <strong>how it reaches Node.js</strong>.</p>
-      </div>
-
-      <div class="compare-row">
-        <div class="compare-card">
-          <h4>localStorage</h4>
-          <p>JS reads JWT → sends Authorization header → Node.js<br><br>JS <strong>can</strong> read it · XSS can steal it</p>
+        <div class="compare">
+          <div class="compare-box">
+            <h4 style="color:var(--heading)">localStorage</h4>
+            <p style="margin-bottom:0">JS reads JWT → sends Authorization header → Node.js<br><br>JS <strong>can</strong> read it · XSS can steal it</p>
+          </div>
+          <div class="compare-box">
+            <h4 style="color:var(--heading)">HttpOnly Cookie</h4>
+            <p style="margin-bottom:0">Browser auto-sends cookie → Node.js<br><br>JS <strong>cannot</strong> read it · XSS cannot steal it easily</p>
+          </div>
         </div>
-        <div class="compare-card">
-          <h4>HttpOnly Cookie</h4>
-          <p>Browser auto-sends cookie → Node.js<br><br>JS <strong>cannot</strong> read it · XSS cannot steal it easily</p>
+        <div class="flow">
+          <div class="flow-step">localStorage path:<br>JS → localStorage → Authorization header → Node.js</div>
+          <div class="flow-arrow">vs</div>
+          <div class="flow-step">Cookie path:<br>Node.js → Set-Cookie → Browser storage → auto-sent → Node.js<br>JS cannot read HttpOnly cookie</div>
         </div>
       </div>
-
-      <div class="diagram">localStorage path:
-  JS → localStorage → Authorization header → Node.js
-
-Cookie path:
-  Node.js → Set-Cookie → Browser storage
-  → Browser auto-sends cookie → Node.js
-  → JS cannot read HttpOnly cookie</div>
     </div>
 
-    <!-- 8. Full flow comparison -->
-    <div class="section">
-      <h2 class="section-title"><span class="num">8</span> Side-by-Side Flow</h2>
-      <div class="diagram">                 JWT Storage
-                      │
-             ┌────────┴────────┐
-             ↓                 ↓
-       localStorage          Cookie
-             │                 │
-       JS can read         HttpOnly
-             │                 │
-       XSS can steal     JS can't read
-             │                 │
-       JS sends token    Browser sends
-       in Authorization  automatically
-             │                 │
-             └────────┬────────┘
-                      ↓
-                Node.js / Express
-                      ↓
-                 Verify JWT</div>
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Side-by-Side Flow</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step">JWT Storage</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-row" style="background:transparent;padding:0;margin:0">
+            <div class="flow-step">localStorage<br><span style="font-weight:400;opacity:0.75">JS can read → XSS can steal</span></div>
+            <div class="flow-step">Cookie<br><span style="font-weight:400;opacity:0.75">HttpOnly → JS can't read</span></div>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Node.js / Express</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">Verify JWT</div>
+        </div>
+      </div>
     </div>
 
-    <!-- 9. Code examples -->
-    <div class="section">
-      <h2 class="section-title"><span class="num">9</span> Code: localStorage Pattern</h2>
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>localStorage vs Cookie — At a Glance</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th></th><th>localStorage</th><th>HttpOnly Cookie</th></tr>
+          <tr><td>Readable by JS?</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Sent to server</td><td>Manually, via Authorization header</td><td>Automatically, by the browser</td></tr>
+          <tr><td>XSS token theft</td><td>Easy if XSS exists</td><td>Much harder</td></tr>
+          <tr><td>CSRF exposure</td><td>Not applicable (not auto-sent)</td><td>Needs SameSite / CSRF tokens</td></tr>
+          <tr><td>Typical use</td><td>Simple SPA / API tokens</td><td>Sensitive session/auth tokens</td></tr>
+        </table>
+      </div>
+    </div>
 
-      <p style="margin-bottom: 0.5rem; font-weight: 600; color: var(--text);">Backend</p>
-      <pre><code>app.<span class="func">post</span>(<span class="string">"/login"</span>, (req, res) => {
-  <span class="keyword">const</span> token = jwt.<span class="func">sign</span>(
-    { userId: <span class="number">101</span> },
+    </div>
+
+    <!-- ==================== 5: CODE PATTERNS ==================== -->
+    <div class="section-divider" id="s5"><span>5. Code: localStorage Pattern</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4 no-border">
+      <div class="card-sub-title"><h4>End-to-End Example</h4><span class="stars">★★★★</span></div>
+      <div class="card-sub-content">
+        <h3>Backend</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">server.js</span></div>
+          <pre><code>app.<span class="fn">post</span>(<span class="str">"/login"</span>, (req, res) => {
+  <span class="kw">const</span> token = jwt.<span class="fn">sign</span>(
+    { userId: <span class="num">101</span> },
     process.env.JWT_SECRET,
-    { expiresIn: <span class="string">"15m"</span> }
+    { expiresIn: <span class="str">"15m"</span> }
   );
-  res.<span class="func">json</span>({ token });
+  res.<span class="fn">json</span>({ token });
 });</code></pre>
+        </div>
 
-      <p style="margin: 1.25rem 0 0.5rem; font-weight: 600; color: var(--text);">Frontend — store</p>
-      <pre><code><span class="keyword">const</span> { token } = <span class="keyword">await</span> response.<span class="func">json</span>();
-localStorage.<span class="func">setItem</span>(<span class="string">"accessToken"</span>, token);</code></pre>
+        <h3>Frontend — store</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">login.js</span></div>
+          <pre><code><span class="kw">const</span> { token } = <span class="kw">await</span> response.<span class="fn">json</span>();
+localStorage.<span class="fn">setItem</span>(<span class="str">"accessToken"</span>, token);</code></pre>
+        </div>
 
-      <p style="margin: 1.25rem 0 0.5rem; font-weight: 600; color: var(--text);">Frontend — send</p>
-      <pre><code><span class="keyword">const</span> token = localStorage.<span class="func">getItem</span>(<span class="string">"accessToken"</span>);
-fetch(<span class="string">"/api/profile"</span>, {
-  headers: { Authorization: <span class="string">`Bearer ${token}`</span> }
+        <h3>Frontend — send</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">api.js</span></div>
+          <pre><code><span class="kw">const</span> token = localStorage.<span class="fn">getItem</span>(<span class="str">"accessToken"</span>);
+fetch(<span class="str">"/api/profile"</span>, {
+  headers: { Authorization: <span class="str">`Bearer ${token}`</span> }
 });</code></pre>
+        </div>
 
-      <p style="margin: 1.25rem 0 0.5rem; font-weight: 600; color: var(--text);">Node.js — read</p>
-      <pre><code><span class="keyword">const</span> authHeader = req.headers.authorization;
-<span class="keyword">const</span> token = authHeader.<span class="func">split</span>(<span class="string">" "</span>)[<span class="number">1</span>];
-<span class="keyword">const</span> decoded = jwt.<span class="func">verify</span>(token, process.env.JWT_SECRET);</code></pre>
-    </div>
-
-    <!-- 10. Security problem -->
-    <div class="section">
-      <h2 class="section-title"><span class="num">10</span> Main Security Problem</h2>
-      <div class="diagram">JWT
- ↓
-localStorage
- ↓
-XSS vulnerability
- ↓
-Attacker JavaScript
- ↓
-localStorage.getItem("accessToken")
- ↓
-Token stolen</div>
-
-      <div class="highlight">
-        If that token is long-lived, the impact is worse. Avoid putting highly sensitive, long-lived credentials in JavaScript-readable storage when a safer architecture is available.
+        <h3>Node.js — read</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">authenticate.js</span></div>
+          <pre><code><span class="kw">const</span> authHeader = req.headers.authorization;
+<span class="kw">const</span> token = authHeader.<span class="fn">split</span>(<span class="str">" "</span>)[<span class="num">1</span>];
+<span class="kw">const</span> decoded = jwt.<span class="fn">verify</span>(token, process.env.JWT_SECRET);</code></pre>
+        </div>
       </div>
     </div>
 
-    <!-- Interview answer -->
-    <div class="section">
-      <h2 class="section-title"><span class="num">★</span> Interview Answer</h2>
-      <div class="interview-def">
-        <div class="label">localStorage vs Cookie for JWT</div>
-        <p>
-          With <span class="key">localStorage</span>, the frontend JavaScript stores and reads the JWT and usually sends it through the <span class="key2">Authorization Bearer</span> header. The main security concern is that localStorage is accessible to JavaScript, so if the app has an <span class="key">XSS</span> vulnerability, malicious JS may steal the token.
-        </p>
-        <p style="margin-top: 0.85rem;">
-          That's why sensitive authentication tokens are often kept in <span class="key2">HttpOnly cookies</span> instead, combined with appropriate CSRF protections and other cookie security settings.
-        </p>
-      </div>
+    </div>
 
-      <div class="definition" style="margin-top: 1.25rem;">
-        HttpOnly cookies are not automatically secure. You also need: <strong>HttpOnly · Secure · SameSite · CSRF protection · HTTPS</strong>
+    <!-- ==================== INTERVIEW ANSWER ==================== -->
+    <div class="section-divider" id="interview"><span>★ Interview Answer</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">🎤 localStorage vs Cookie for JWT</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-item">
+          <div class="qa-question">How would you answer this in an interview?</div>
+          <div class="qa-answer">
+            With <code>localStorage</code>, the frontend JavaScript stores and reads the JWT and usually sends it through the <code>Authorization Bearer</code> header. The main security concern is that localStorage is accessible to JavaScript, so if the app has an XSS vulnerability, malicious JS may steal the token.
+            <br><br>
+            That's why sensitive authentication tokens are often kept in <code>HttpOnly cookies</code> instead, combined with appropriate CSRF protections and other cookie security settings.
+          </div>
+        </div>
+
       </div>
     </div>
 
-    <footer>
-      Quick interview notes • Cookie vs Local Storage • Blue &amp; Green
-    </footer>
+    <div class="info-box box-warning">📌 HttpOnly cookies are not automatically secure. You also need: <strong>HttpOnly · Secure · SameSite · CSRF protection · HTTPS</strong></div>
+
   </div>
 
-  <script>
-    const toggle = document.getElementById('themeToggle');
-    const themeIcon = document.getElementById('themeIcon');
-    const themeLabel = document.getElementById('themeLabel');
-    const html = document.documentElement;
+  <footer>Cookie vs Local Storage · JWT Storage Security — Interview Notes</footer>
 
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    setTheme(savedTheme);
-
-    toggle.addEventListener('click', () => {
-      const current = html.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
-      setTheme(next);
-      localStorage.setItem('theme', next);
-    });
-
-    function setTheme(theme) {
-      html.setAttribute('data-theme', theme);
-      if (theme === 'dark') {
-        themeIcon.textContent = '🌙';
-        themeLabel.textContent = 'Dark';
-      } else {
-        themeIcon.textContent = '☀️';
-        themeLabel.textContent = 'Light';
-      }
-    }
-  </script>
 </body>
 </html>

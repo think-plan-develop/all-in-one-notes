@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mongoose Schema — Complete Guide — Interview Notes</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+@media (max-width: 768px) { .container { width: 100%; max-width: 100%; margin: 20px 0 40px; } }
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-4 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#fb923c; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-5 { --accent-dark:#9f1239; --accent:#e11d48; --accent-light:#fb7185; --content-bg:#fff1f2; --heading:#9f1239; --shadow-rgb:225,29,72; }
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#ecfeff,#cffafe); color:#0e7490; } .summary-orange .summary-text strong { color:#0891b2; }
+.summary-rose   { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#9f1239; } .summary-rose .summary-text strong { color:#e11d48; }
+.summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple .summary-text strong { color:#7c3aed; }
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+code, .token { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; font-size: 0.88em; background: rgba(0,0,0,0.06); padding: 2px 7px; border-radius: 5px; color: #4338ca; }
+pre { background: #0d1117; border: 1px solid #2d3a4f; border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; margin: 14px 0; color: #e6edf3; }
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#d4d4d4; font-size:14.5px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; } .ty { color:#67e8f9; } .pl { color:#e2e8f0; }
+.output-block { background:#0f172a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.output-bar { background:#0b1220; padding:6px 14px; font-size:11px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; color:#64748b; border-bottom:1px solid #1e293b; }
+.output-block pre { padding:16px 18px; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; overflow-x:auto; white-space:pre; margin:0; border:none; border-radius:0; background:transparent; }
+.flow { display:flex; flex-direction:column; align-items:center; gap:0; margin:16px 0; font-size:0.95rem; background:#1a2332; border-radius:14px; padding:24px 20px; }
+.flow-step { background:#243044; border:1px solid #34435c; border-radius:10px; padding:11px 20px; text-align:center; min-width:200px; max-width:420px; color:#e7ecf3; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.25); }
+.flow-arrow { color:#60a5fa; font-size:1.3rem; line-height:1.4; user-select:none; }
+.flow-row { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin:16px 0; background:#1a2332; border-radius:14px; padding:22px 20px; }
+.flow-row .flow-step { min-width:150px; }
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box { background:#fff; border-radius:14px; padding:18px 20px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.05); }
+.compare-box.bad { border-left:5px solid #e11d48; }
+.compare-box.good { border-left:5px solid #059669; }
+.compare-box h4 { font-size:15px; margin-bottom:10px; font-weight:800; }
+.compare-box.bad h4 { color:#be123c; }
+.compare-box.good h4 { color:#047857; }
+.compare-box p { margin:8px 0 0; font-size:0.85rem; }
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 30%, #fff7ed 60%, #f5f3ff 85%, #fff1f2 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-title .stars { margin-left:auto; color:#f59e0b; font-size:13px; letter-spacing:1px; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:15px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table td { padding:13px 20px; font-size:14.5px; font-weight:600; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-size:13.5px; }
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+.qa-answer .code-block code { background:none; padding:0; color:#d4d4d4; font-weight:400; }
+.qa-group-title { font-size:16px; font-weight:800; color:var(--heading); margin: 6px 0 -6px; }
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+@media (max-width:768px) { .header h1 { font-size:26px; } .toc a { padding:6px 12px; font-size:12px; } }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header theme-blue">
+      <h1>Mongoose Schema — Complete Guide</h1>
+      <p>Interview notes — schema basics, data types, validation, arrays &amp; refs, methods, middleware.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">Basics &amp; Data Types</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">Validation</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">Arrays, Nested &amp; Refs</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">Virtuals, Methods &amp; Middleware</a>
+        <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-tip"><strong>💡 Important framing:</strong> Schema is the blueprint, Model is the compiled class that talks to MongoDB, and Document is a single record created from a Model.</div>
+
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🏗️</div>
+          <div class="summary-text"><strong>Schema:</strong> Defines the shape, types, and rules of documents in a collection — no DB interaction on its own.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🧬</div>
+          <div class="summary-text"><strong>Mixed:</strong> An "anything goes" type Mongoose won't validate or auto-detect changes on.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🔗</div>
+          <div class="summary-text"><strong>ObjectId + ref:</strong> Store a reference to another document, then join it at query time with <code>populate()</code>.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">👻</div>
+          <div class="summary-text"><strong>Virtual:</strong> A computed field derived at runtime — never stored in MongoDB.</div>
+        </div>
+        <div class="summary-item summary-rose">
+          <div class="summary-icon">🪝</div>
+          <div class="summary-text"><strong>Middleware (hooks):</strong> Functions that run before/after operations like save, find, or delete.</div>
+        </div>
+        <div class="summary-item summary-purple">
+          <div class="summary-icon">🔑</div>
+          <div class="summary-text"><strong>unique: true:</strong> Creates a database index, not a Mongoose validator — failures throw code 11000, not ValidationError.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1: BASICS & DATA TYPES ==================== -->
+    <div class="section-divider" id="s1"><span>1. Schema Basics &amp; Data Types</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>Schema → Model → Document</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>A <strong>Schema</strong> defines the shape of documents in a collection — fields, types, rules. The <strong>Model</strong> is the compiled class you actually use to create/read/update/delete documents.</p>
+        <div class="flow">
+          <div class="flow-step">Schema → defines shape + rules</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Model → compiled class for CRUD</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">Document → a single record / instance</div>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">models/user.model.ts</span></div>
+          <pre><code><span class="kw">import</span> mongoose, <span class="pl">{ Schema, Document, Model }</span> <span class="kw">from</span> <span class="str">'mongoose'</span>
+
+<span class="kw">interface</span> <span class="ty">IUser</span> <span class="kw">extends</span> <span class="ty">Document</span> {
+  name: <span class="ty">string</span>; email: <span class="ty">string</span>; age: <span class="ty">number</span>; isActive: <span class="ty">boolean</span>
+}
+
+<span class="kw">const</span> userSchema = <span class="kw">new</span> <span class="ty">Schema</span>&lt;<span class="ty">IUser</span>&gt;({
+  name:     { type: <span class="ty">String</span>,  required: <span class="kw">true</span> },
+  email:    { type: <span class="ty">String</span>,  required: <span class="kw">true</span>, unique: <span class="kw">true</span> },
+  age:      { type: <span class="ty">Number</span> },
+  isActive: { type: <span class="ty">Boolean</span>, default: <span class="kw">true</span> }
+})
+
+<span class="kw">const</span> User: <span class="ty">Model</span>&lt;<span class="ty">IUser</span>&gt; = mongoose.<span class="fn">model</span>&lt;<span class="ty">IUser</span>&gt;(<span class="str">'User'</span>, userSchema)
+<span class="kw">export default</span> User</code></pre>
+        </div>
+        <div class="info-box box-tip">💡 <code>mongoose.model('User', schema)</code> automatically looks for/creates a collection named <strong>users</strong> (pluralized, lowercased). You never create the collection manually.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>All Schema Types</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Schema Type</th><th>Use Case</th></tr>
+          <tr><td><code>String</code></td><td>Names, emails, text</td></tr>
+          <tr><td><code>Number</code></td><td>Age, price, quantity</td></tr>
+          <tr><td><code>Boolean</code></td><td>Flags, switches</td></tr>
+          <tr><td><code>Date</code></td><td>Timestamps, birthdays</td></tr>
+          <tr><td><code>Buffer</code></td><td>Binary data, files, images</td></tr>
+          <tr><td><code>Mixed</code></td><td>Flexible / unknown shape</td></tr>
+          <tr><td><code>ObjectId</code></td><td>References to other documents</td></tr>
+          <tr><td><code>Array</code></td><td>List of values or subdocs</td></tr>
+          <tr><td><code>Decimal128</code></td><td>High precision decimals (finance)</td></tr>
+          <tr><td><code>Map</code></td><td>Key-value pairs, dynamic keys</td></tr>
+        </table>
+        <div class="compare">
+          <div class="compare-box good">
+            <h4>Mixed</h4>
+            <p style="margin-top:0">Accepts anything — no validation, no cast. Mutating it requires <code>doc.markModified('field')</code> before <code>.save()</code>, or the change is silently lost.</p>
+          </div>
+          <div class="compare-box good">
+            <h4>Decimal128</h4>
+            <p style="margin-top:0">High-precision decimals for money. Use <code>mongoose.Types.Decimal128.fromString('19.99')</code>; read back with <code>.toString()</code>.</p>
+          </div>
+        </div>
+        <div class="info-box box-warning">⚠️ Storing large files as <code>Buffer</code> in MongoDB isn't recommended. Use GridFS for files &gt;16MB, or store in S3 and save only the URL.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Map Type — Dynamic Keys</h4></div>
+      <div class="card-sub-content">
+        <p>Use when a document has dynamic/unknown keys — like user preferences or metadata where key names aren't predefined.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Map example</span></div>
+          <pre><code><span class="kw">const</span> userSchema = <span class="kw">new</span> <span class="ty">Schema</span>({
+  name: <span class="ty">String</span>,
+  preferences: { type: <span class="ty">Map</span>, of: <span class="ty">String</span> }
+})
+
+user.preferences.<span class="fn">set</span>(<span class="str">'theme'</span>, <span class="str">'dark'</span>)
+user.preferences.<span class="fn">get</span>(<span class="str">'theme'</span>) <span class="cmt">// 'dark'</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 2: VALIDATION ==================== -->
+    <div class="section-divider" id="s2"><span>2. Validation — Required, Min/Max, Enum, Custom</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>Required &amp; String Validators</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">required + string validators</span></div>
+          <pre><code><span class="kw">const</span> userSchema = <span class="kw">new</span> <span class="ty">Schema</span>({
+  name: {
+    type: <span class="ty">String</span>, required: <span class="kw">true</span>,
+    trim: <span class="kw">true</span>,          <span class="cmt">// removes leading/trailing spaces before saving</span>
+    minlength: [<span class="num">2</span>, <span class="str">'Min 2 characters'</span>],
+    maxlength: [<span class="num">50</span>, <span class="str">'Max 50 characters'</span>]
+  },
+  email: {
+    type: <span class="ty">String</span>, required: [<span class="kw">true</span>, <span class="str">'Email is required'</span>],
+    trim: <span class="kw">true</span>, lowercase: <span class="kw">true</span>  <span class="cmt">// "USER@Email.COM" → "user@email.com"</span>
+  },
+  companyName: {
+    type: <span class="ty">String</span>,
+    required: <span class="kw">function</span>() { <span class="kw">return</span> <span class="kw">this</span>.role === <span class="str">'business'</span> } <span class="cmt">// conditional</span>
+  }
+})</code></pre>
+        </div>
+        <div class="info-box box-tip">💡 <code>minlength</code>/<code>maxlength</code> are <strong>String</strong> validators. For <strong>Number</strong>, use <code>min</code>/<code>max</code> instead — they're different properties, don't mix them up.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Number Validation, Defaults &amp; Enum</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">number + default + enum</span></div>
+          <pre><code><span class="kw">const</span> productSchema = <span class="kw">new</span> <span class="ty">Schema</span>({
+  price: { type: <span class="ty">Number</span>, required: <span class="kw">true</span>, min: [<span class="num">0</span>, <span class="str">'Cannot be negative'</span>], max: <span class="num">99999</span> },
+  joinedAt: { type: <span class="ty">Date</span>, default: <span class="ty">Date</span>.<span class="fn">now</span> },  <span class="cmt">// pass reference, not Date.now()</span>
+  role: {
+    type: <span class="ty">String</span>,
+    enum: { values: [<span class="str">'user'</span>, <span class="str">'admin'</span>, <span class="str">'moderator'</span>], message: <span class="str">'{VALUE} is not valid'</span> },
+    default: <span class="str">'user'</span>
+  }
+})</code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ <code>default: Date.now</code> — pass the function reference, <strong>not</strong> <code>Date.now()</code>. With parentheses it evaluates once at schema definition time; without, it runs on every document creation.</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">TypeScript enum pattern</span></div>
+          <pre><code><span class="kw">const</span> ROLES = [<span class="str">'user'</span>, <span class="str">'admin'</span>, <span class="str">'moderator'</span>] <span class="kw">as const</span>
+<span class="kw">type</span> <span class="ty">Role</span> = <span class="kw">typeof</span> ROLES[<span class="ty">number</span>]  <span class="cmt">// 'user' | 'admin' | 'moderator'</span>
+
+<span class="kw">const</span> userSchema = <span class="kw">new</span> <span class="ty">Schema</span>&lt;{ role: <span class="ty">Role</span> }&gt;({
+  role: { type: <span class="ty">String</span>, enum: ROLES, default: <span class="str">'user'</span> }
+})</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Unique — Not a Validator</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">handling duplicate key error</span></div>
+          <pre><code><span class="kw">try</span> {
+  <span class="kw">await</span> User.<span class="fn">create</span>({ email: <span class="str">'existing@email.com'</span> })
+} <span class="kw">catch</span> (err: <span class="kw">any</span>) {
+  <span class="kw">if</span> (err.code === <span class="num">11000</span>) {
+    <span class="kw">const</span> field = <span class="ty">Object</span>.<span class="fn">keys</span>(err.keyValue)[<span class="num">0</span>]
+    <span class="kw">throw new</span> <span class="ty">Error</span>(`${field} already exists`)
+  }
+}</code></pre>
+        </div>
+        <div class="info-box box-danger">🚨 <strong><code>unique: true</code> is NOT a Mongoose validator</strong> — it creates a MongoDB index. Violations throw a <strong>MongoServerError code 11000</strong>, not a Mongoose <code>ValidationError</code>. Handle it separately in your error middleware.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Custom Validation</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">custom validators</span></div>
+          <pre><code><span class="kw">import</span> validator <span class="kw">from</span> <span class="str">'validator'</span>
+
+<span class="kw">const</span> userSchema = <span class="kw">new</span> <span class="ty">Schema</span>({
+  age: {
+    type: <span class="ty">Number</span>,
+    validate: { validator: (v: <span class="ty">number</span>) => v >= <span class="num">18</span>, message: <span class="str">'Must be 18+'</span> }
+  },
+  email: {
+    type: <span class="ty">String</span>, required: <span class="kw">true</span>,
+    validate: { validator: (v: <span class="ty">string</span>) => validator.<span class="fn">isEmail</span>(v), message: <span class="str">'Invalid email'</span> }
+  },
+  username: {
+    type: <span class="ty">String</span>,
+    validate: {
+      validator: <span class="kw">async function</span>(v: <span class="ty">string</span>) {
+        <span class="kw">const</span> exists = <span class="kw">await</span> <span class="ty">User</span>.<span class="fn">findOne</span>({ username: v })
+        <span class="kw">return</span> !exists
+      },
+      message: <span class="str">'Username is already taken'</span>
+    }
+  }
+})</code></pre>
+        </div>
+        <p>Custom validators can be sync or <strong>async</strong> — perfect for uniqueness checks that need a DB query, though for reusable business-rule checks the service layer is often a cleaner home.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 3: ARRAYS, NESTED & REFS ==================== -->
+    <div class="section-divider" id="s3"><span>3. Arrays, Nested Objects &amp; ObjectId References</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>Arrays — Primitives &amp; Subdocuments</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">arrays</span></div>
+          <pre><code><span class="kw">const</span> postSchema = <span class="kw">new</span> <span class="ty">Schema</span>({
+  tags: [<span class="ty">String</span>],  <span class="cmt">// shorthand array of primitives</span>
+
+  items: [{  <span class="cmt">// array of subdocuments</span>
+    productId: { type: <span class="ty">Schema</span>.<span class="ty">Types</span>.<span class="ty">ObjectId</span>, ref: <span class="str">'Product'</span> },
+    name: { type: <span class="ty">String</span>, required: <span class="kw">true</span> },
+    quantity: { type: <span class="ty">Number</span>, min: <span class="num">1</span>, required: <span class="kw">true</span> }
+  }]
+})
+
+post.tags.<span class="fn">push</span>(<span class="str">'nodejs'</span>)
+post.tags.<span class="fn">pull</span>(<span class="str">'nodejs'</span>)      <span class="cmt">// Mongoose array method to remove</span>
+post.tags.<span class="fn">addToSet</span>(<span class="str">'react'</span>)  <span class="cmt">// adds only if not already present</span></code></pre>
+        </div>
+        <div class="info-box box-tip">💡 Each item in a subdocument array gets its own <code>_id</code> automatically. Disable with <code>{ _id: false }</code> inside the array's object definition.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Nested Objects vs Reusable Embedded Schemas</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box good">
+            <h4>Inline Nested</h4>
+            <p style="margin-top:0"><code>address: { street, city, zip }</code> defined directly inside the parent schema.</p>
+          </div>
+          <div class="compare-box good">
+            <h4>Reusable Embedded Schema</h4>
+            <p style="margin-top:0">Define <code>addressSchema</code> separately, then reuse it for both <code>address</code> and <code>billingAddress</code>.</p>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">reusable embedded schema</span></div>
+          <pre><code><span class="kw">const</span> addressSchema = <span class="kw">new</span> <span class="ty">Schema</span>({
+  street: { type: <span class="ty">String</span>, required: <span class="kw">true</span> },
+  city:   { type: <span class="ty">String</span>, required: <span class="kw">true</span> },
+  zip:    <span class="ty">String</span>
+}, { _id: <span class="kw">false</span> })
+
+<span class="kw">const</span> userSchema = <span class="kw">new</span> <span class="ty">Schema</span>({
+  name: <span class="ty">String</span>,
+  address: addressSchema,
+  billingAddress: addressSchema  <span class="cmt">// reused!</span>
+})</code></pre>
+        </div>
+        <div class="info-box box-benefit">✅ <strong>Rule of thumb:</strong> embed data that always belongs to the parent (address, profile). Use a <code>ref</code> when data is shared across documents (user → orders, product → category).</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>ObjectId References &amp; populate()</h4></div>
+      <div class="card-sub-content">
+        <p>References link documents across collections. Store just the <code>ObjectId</code>, then use <code>populate()</code> to join the related document at query time.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">populate</span></div>
+          <pre><code><span class="cmt">// Without populate — author is just an ObjectId</span>
+<span class="kw">const</span> post = <span class="kw">await</span> Post.<span class="fn">findById</span>(id)
+post.author  <span class="cmt">// ObjectId("64abc...")</span>
+
+<span class="cmt">// With populate — author is the full User document</span>
+<span class="kw">const</span> post = <span class="kw">await</span> Post.<span class="fn">findById</span>(id).<span class="fn">populate</span>(<span class="str">'author'</span>)
+post.author.name  <span class="cmt">// 'John Doe'</span>
+
+<span class="cmt">// Deep populate — populate inside a populated doc</span>
+<span class="kw">const</span> post = <span class="kw">await</span> Post.<span class="fn">findById</span>(id).<span class="fn">populate</span>({
+  path: <span class="str">'author'</span>,
+  populate: { path: <span class="str">'department'</span>, select: <span class="str">'name'</span> }
+})</code></pre>
+        </div>
+        <div class="info-box box-tip">💡 <code>populate()</code> runs a second query to fetch referenced documents. For large datasets, consider MongoDB's <code>$lookup</code> aggregation instead for better performance.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 4: VIRTUALS, METHODS & MIDDLEWARE ==================== -->
+    <div class="section-divider" id="s4"><span>4. Virtuals, Methods &amp; Middleware</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4 no-border">
+      <div class="card-sub-title"><h4>Timestamps &amp; Virtual Fields</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">timestamps + virtuals</span></div>
+          <pre><code><span class="kw">const</span> userSchema = <span class="kw">new</span> <span class="ty">Schema</span>({
+  firstName: <span class="ty">String</span>, lastName: <span class="ty">String</span>, birthYear: <span class="ty">Number</span>
+}, {
+  timestamps: <span class="kw">true</span>,               <span class="cmt">// adds createdAt + updatedAt automatically</span>
+  toJSON: { virtuals: <span class="kw">true</span> }       <span class="cmt">// include virtuals in JSON.stringify()</span>
+})
+
+userSchema.<span class="fn">virtual</span>(<span class="str">'fullName'</span>).<span class="fn">get</span>(<span class="kw">function</span>() {
+  <span class="kw">return</span> `${<span class="kw">this</span>.firstName} ${<span class="kw">this</span>.lastName}`
+})
+
+userSchema.<span class="fn">virtual</span>(<span class="str">'age'</span>).<span class="fn">get</span>(<span class="kw">function</span>() {
+  <span class="kw">return new</span> <span class="ty">Date</span>().<span class="fn">getFullYear</span>() - <span class="kw">this</span>.birthYear
+})</code></pre>
+        </div>
+        <div class="info-box box-tip">💡 Virtuals are computed properties — never stored in MongoDB. Great for <code>fullName</code>, <code>age</code>, <code>totalPrice</code> — values you want in your API but don't need to persist.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4 accent-left">
+      <div class="card-sub-title"><h4>Instance vs Static Methods vs Query Helpers</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">methods</span></div>
+          <pre><code><span class="cmt">// Instance method — called on a document</span>
+userSchema.methods.<span class="fn">comparePassword</span> = <span class="kw">async function</span>(candidate: <span class="ty">string</span>) {
+  <span class="kw">return</span> bcrypt.<span class="fn">compare</span>(candidate, <span class="kw">this</span>.password)
+}
+<span class="kw">const</span> match = <span class="kw">await</span> user.<span class="fn">comparePassword</span>(<span class="str">'pw'</span>)
+
+<span class="cmt">// Static method — called on the Model</span>
+userSchema.statics.<span class="fn">findByEmail</span> = <span class="kw">function</span>(email: <span class="ty">string</span>) {
+  <span class="kw">return this</span>.<span class="fn">findOne</span>({ email: email.<span class="fn">toLowerCase</span>() })
+}
+<span class="kw">const</span> user = <span class="kw">await</span> User.<span class="fn">findByEmail</span>(<span class="str">'a@b.com'</span>)
+
+<span class="cmt">// Query helper — chainable on a query</span>
+userSchema.<span class="fn">query</span>.<span class="fn">byActive</span> = <span class="kw">function</span>() { <span class="kw">return this</span>.<span class="fn">where</span>({ isActive: <span class="kw">true</span> }) }
+<span class="kw">const</span> admins = <span class="kw">await</span> User.<span class="fn">find</span>().<span class="fn">byActive</span>()</code></pre>
+        </div>
+        <table>
+          <tr><th>Type</th><th>Called on</th><th>Use case</th></tr>
+          <tr><td>Instance method</td><td>Document (<code>user.method()</code>)</td><td>Hashing, formatting, per-doc logic</td></tr>
+          <tr><td>Static method</td><td>Model (<code>User.method()</code>)</td><td>Custom finders, factory methods</td></tr>
+          <tr><td>Query helper</td><td>Query chain (<code>User.find().helper()</code>)</td><td>Reusable query filters</td></tr>
+        </table>
+        <div class="info-box box-warning">⚠️ Always use <code>function</code>, never an arrow function, in schema methods and hooks — arrow functions don't bind their own <code>this</code>, breaking access to <code>this.fieldName</code>.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><h4>Middleware — Pre &amp; Post Hooks</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">pre/post hooks</span></div>
+          <pre><code><span class="cmt">// runs BEFORE every .save()</span>
+userSchema.<span class="fn">pre</span>(<span class="str">'save'</span>, <span class="kw">async function</span>(next) {
+  <span class="kw">if</span> (!<span class="kw">this</span>.<span class="fn">isModified</span>(<span class="str">'password'</span>)) <span class="kw">return</span> <span class="fn">next</span>()
+  <span class="kw">const</span> salt = <span class="kw">await</span> bcrypt.<span class="fn">genSalt</span>(<span class="num">12</span>)
+  <span class="kw">this</span>.password = <span class="kw">await</span> bcrypt.<span class="fn">hash</span>(<span class="kw">this</span>.password, salt)
+  <span class="fn">next</span>()
+})
+
+<span class="cmt">// runs AFTER save completes</span>
+userSchema.<span class="fn">post</span>(<span class="str">'save'</span>, <span class="kw">function</span>(doc) {
+  console.<span class="fn">log</span>(`User saved: ${doc.email}`)
+})
+
+<span class="cmt">// cascade delete — delete related docs before this one</span>
+userSchema.<span class="fn">pre</span>(<span class="str">'deleteOne'</span>, { document: <span class="kw">true</span>, query: <span class="kw">false</span> }, <span class="kw">async function</span>() {
+  <span class="kw">await</span> Post.<span class="fn">deleteMany</span>({ author: <span class="kw">this</span>._id })
+})</code></pre>
+        </div>
+        <table>
+          <tr><th>Hook</th><th>Triggers on</th></tr>
+          <tr><td><code>pre('save')</code></td><td><code>doc.save()</code>, <code>Model.create()</code></td></tr>
+          <tr><td><code>pre('validate')</code></td><td>Before validation runs</td></tr>
+          <tr><td><code>pre('find')</code></td><td><code>Model.find()</code>, <code>findOne()</code></td></tr>
+          <tr><td><code>pre('findOneAndUpdate')</code></td><td><code>findByIdAndUpdate()</code></td></tr>
+          <tr><td><code>post('save')</code></td><td>After save completes</td></tr>
+        </table>
+        <div class="info-box box-danger">🚨 <code>findByIdAndUpdate</code> does <strong>not</strong> trigger <code>pre('save')</code> — it goes straight to MongoDB. Use <code>pre('findOneAndUpdate')</code>, or pass <code>runValidators: true</code> to still run validation.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="qa"><span>Interview Q&amp;A</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-group-title">Standard Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is the difference between a Mongoose Schema and a Model?</div>
+          <div class="qa-answer">A Schema is the blueprint — field types, validation rules, defaults, methods — with no DB interaction on its own. A Model is the compiled version of a schema, the class you actually use for CRUD operations against the collection (<code>User.find()</code>, <code>User.create()</code>).</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why is <code>unique: true</code> not a Mongoose validator?</div>
+          <div class="qa-answer">It tells Mongoose to create a MongoDB unique index — handled at the database level, not by Mongoose's validation pipeline. A duplicate insert throws a MongoServerError with code 11000, not a Mongoose ValidationError, so it needs its own check in your error handler.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between <code>minlength</code> and <code>min</code>?</div>
+          <div class="qa-answer"><code>minlength</code>/<code>maxlength</code> are String validators checking the number of characters. <code>min</code>/<code>max</code> are Number validators checking the numeric value. Using the wrong pair on a field type won't behave as expected.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why should you use the <code>function</code> keyword, not arrow functions, in schema methods and hooks?</div>
+          <div class="qa-answer">Arrow functions don't have their own <code>this</code> binding — they inherit it from the enclosing scope, not the document or query. Mongoose middleware and methods rely on <code>this</code> referring to the current document or query, which arrow functions break entirely.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is a virtual field and when would you use one?</div>
+          <div class="qa-answer">A computed property derived from other fields at runtime, defined with <code>schema.virtual('name').get(fn)</code>, never stored in MongoDB. Useful for <code>fullName</code>, <code>age</code>, or <code>totalPrice</code> — values your API needs but that don't need to be persisted.</div>
+        </div>
+
+        <div class="qa-group-title">Tricky / Follow-Up Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Does <code>findByIdAndUpdate</code> trigger the <code>pre('save')</code> hook?</div>
+          <div class="qa-answer">No. It bypasses Mongoose document middleware entirely and sends the update directly to MongoDB. To run validation on update, pass <code>{ runValidators: true, new: true }</code>; to intercept it with middleware, use <code>pre('findOneAndUpdate')</code> instead.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between embedding a document and using a <code>ref</code>?</div>
+          <div class="qa-answer">Embedding stores child data inside the parent — faster reads (one query) but data duplication if reused elsewhere; good for data that always belongs to one parent, like an address. A reference stores only an ObjectId and needs <code>populate()</code> to join it — better for shared or large data, like user → orders.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is a sparse index and why would you need one?</div>
+          <div class="qa-answer">A sparse index only indexes documents where the field exists. Without it, a <code>unique</code> index on an optional field fails once two documents both have the field as <code>null</code>, since MongoDB treats <code>null</code> as a value subject to the unique constraint. <code>sparse: true</code> excludes documents missing the field from the index.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the catch with using the <code>Mixed</code> type?</div>
+          <div class="qa-answer">Mongoose can't automatically detect changes to a Mixed field. If you mutate it in place, you must call <code>doc.markModified('fieldName')</code> before <code>.save()</code>, or the change silently won't be persisted.</div>
+        </div>
+
+        <div class="qa-group-title">Frequently Asked</div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between instance methods and static methods?</div>
+          <div class="qa-answer">Instance methods (<code>schema.methods.fn</code>) are called on a single document, with <code>this</code> as the document — e.g. <code>user.comparePassword()</code>. Static methods (<code>schema.statics.fn</code>) are called on the Model class itself, with <code>this</code> as the Model — e.g. <code>User.findByEmail()</code>.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why pass <code>Date.now</code> as a default instead of <code>Date.now()</code>?</div>
+          <div class="qa-answer"><code>Date.now()</code> with parentheses evaluates immediately at schema-definition time, so every document would get the same fixed timestamp. Passing the bare function reference <code>Date.now</code> means Mongoose calls it fresh at document-creation time instead.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What does <code>populate()</code> actually do under the hood?</div>
+          <div class="qa-answer">It runs a second query to fetch the documents referenced by an ObjectId field and replaces the ID with the full document. For very large datasets or performance-sensitive joins, MongoDB's <code>$lookup</code> aggregation stage can be a faster single-query alternative.</div>
+        </div>
+
+        <div class="qa-group-title">Coding / Theoretical</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Write a schema with a pre-save password hash hook and an instance method to verify it.</div>
+          <div class="qa-answer">
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">models/User.ts</span></div>
+              <pre><code><span class="kw">import</span> bcrypt <span class="kw">from</span> <span class="str">'bcryptjs'</span>
+<span class="kw">import</span> <span class="pl">{ Schema, model }</span> <span class="kw">from</span> <span class="str">'mongoose'</span>
+
+<span class="kw">const</span> userSchema = <span class="kw">new</span> <span class="ty">Schema</span>({
+  email: { type: <span class="ty">String</span>, required: <span class="kw">true</span>, unique: <span class="kw">true</span>, lowercase: <span class="kw">true</span> },
+  password: { type: <span class="ty">String</span>, required: <span class="kw">true</span>, minlength: <span class="num">8</span> }
+}, { timestamps: <span class="kw">true</span> })
+
+userSchema.<span class="fn">pre</span>(<span class="str">'save'</span>, <span class="kw">async function</span>(next) {
+  <span class="kw">if</span> (!<span class="kw">this</span>.<span class="fn">isModified</span>(<span class="str">'password'</span>)) <span class="kw">return</span> <span class="fn">next</span>()
+  <span class="kw">const</span> salt = <span class="kw">await</span> bcrypt.<span class="fn">genSalt</span>(<span class="num">12</span>)
+  <span class="kw">this</span>.password = <span class="kw">await</span> bcrypt.<span class="fn">hash</span>(<span class="kw">this</span>.password, salt)
+  <span class="fn">next</span>()
+})
+
+userSchema.methods.<span class="fn">comparePassword</span> = <span class="kw">async function</span>(candidate: <span class="ty">string</span>) {
+  <span class="kw">return</span> bcrypt.<span class="fn">compare</span>(candidate, <span class="kw">this</span>.password)
+}
+
+<span class="kw">export const</span> <span class="ty">User</span> = <span class="fn">model</span>(<span class="str">'User'</span>, userSchema)</code></pre>
+            </div>
+            <p style="margin-top:12px"><strong>Why this shape:</strong> <code>isModified('password')</code> avoids re-hashing an already-hashed password on unrelated updates, and the regular <code>function</code> keyword keeps <code>this</code> bound to the document in both the hook and the instance method.</p>
+          </div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Explain, in three layers, why Mongoose schema validation alone doesn't guarantee data integrity for updates.</div>
+          <div class="qa-answer">
+            Each layer has a specific gap: <strong>document validators</strong> (defined on the schema) only run automatically on <code>.save()</code>/<code>.create()</code>, not on query-based updates like <code>findByIdAndUpdate</code>, which go straight to MongoDB. <strong>Explicit <code>runValidators: true</code></strong> re-enables validation for those update queries, but conditional validators using <code>this</code> may still behave differently since <code>this</code> refers to the query, not the document, in update middleware. <strong>Middleware hooks</strong> like <code>pre('findOneAndUpdate')</code> are the way to reliably intercept and enforce logic on update paths that bypass save-based validation.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Mongoose Schema — Complete Guide — Interview Notes</footer>
+
+</body>
+</html>

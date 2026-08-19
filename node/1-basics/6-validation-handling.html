@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Validation — Node + TypeScript + MongoDB — Interview Notes</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+@media (max-width: 768px) { .container { width: 100%; max-width: 100%; margin: 20px 0 40px; } }
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-4 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#fb923c; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-5 { --accent-dark:#9f1239; --accent:#e11d48; --accent-light:#fb7185; --content-bg:#fff1f2; --heading:#9f1239; --shadow-rgb:225,29,72; }
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); font-weight:800; }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#ecfeff,#cffafe); color:#0e7490; } .summary-orange .summary-text strong { color:#0891b2; }
+.summary-rose   { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#9f1239; } .summary-rose .summary-text strong { color:#e11d48; }
+.summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple .summary-text strong { color:#7c3aed; }
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+code, .token { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; font-size: 0.88em; background: rgba(0,0,0,0.06); padding: 2px 7px; border-radius: 5px; color: #4338ca; }
+pre { background: #0d1117; border: 1px solid #2d3a4f; border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; margin: 14px 0; color: #e6edf3; }
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#d4d4d4; font-size:14.5px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; } .ty { color:#67e8f9; } .pl { color:#e2e8f0; }
+.output-block { background:#0f172a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.output-bar { background:#0b1220; padding:6px 14px; font-size:11px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; color:#64748b; border-bottom:1px solid #1e293b; }
+.output-block pre { padding:16px 18px; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; overflow-x:auto; white-space:pre; margin:0; border:none; border-radius:0; background:transparent; }
+.flow { display:flex; flex-direction:column; align-items:center; gap:0; margin:16px 0; font-size:0.95rem; background:#1a2332; border-radius:14px; padding:24px 20px; }
+.flow-step { background:#243044; border:1px solid #34435c; border-radius:10px; padding:11px 20px; text-align:center; min-width:200px; max-width:420px; color:#e7ecf3; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.25); }
+.flow-arrow { color:#60a5fa; font-size:1.3rem; line-height:1.4; user-select:none; }
+.flow-row { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin:16px 0; background:#1a2332; border-radius:14px; padding:22px 20px; }
+.flow-row .flow-step { min-width:150px; }
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box { background:#fff; border-radius:14px; padding:18px 20px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.05); }
+.compare-box.bad { border-left:5px solid #e11d48; }
+.compare-box.good { border-left:5px solid #059669; }
+.compare-box h4 { font-size:15px; margin-bottom:10px; font-weight:800; }
+.compare-box.bad h4 { color:#be123c; }
+.compare-box.good h4 { color:#047857; }
+.compare-box p { margin:8px 0 0; font-size:0.85rem; }
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 30%, #fff7ed 60%, #f5f3ff 85%, #fff1f2 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-title .stars { margin-left:auto; color:#f59e0b; font-size:13px; letter-spacing:1px; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:15px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table td { padding:13px 20px; font-size:14.5px; font-weight:600; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-size:13.5px; }
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+.qa-answer .code-block code { background:none; padding:0; color:#d4d4d4; font-weight:400; }
+.qa-group-title { font-size:16px; font-weight:800; color:var(--heading); margin: 6px 0 -6px; }
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+@media (max-width:768px) { .header h1 { font-size:26px; } .toc a { padding:6px 12px; font-size:12px; } }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header theme-blue">
+      <h1>Validation — Node + TypeScript + MongoDB</h1>
+      <p>Interview notes — Zod input validation, Mongoose schema validation, DTOs, async checks and sanitization.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">Input Validation (Zod)</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">Schema Validation (Mongoose)</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">DTOs, Async Checks &amp; Sanitization</a>
+        <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-tip"><strong>💡 Important framing:</strong> Validation is layered — Zod protects the API boundary, Mongoose is the last line of defense at the database, and sanitization/DTOs tie the two together with type safety.</div>
+
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🧾</div>
+          <div class="summary-text"><strong>Zod:</strong> A TypeScript-first schema library used to validate request data at the middleware layer and infer types from it.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🛢️</div>
+          <div class="summary-text"><strong>Mongoose Schema Validators:</strong> Constraints defined on the model itself — the last safety net, catching data from any source.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">📦</div>
+          <div class="summary-text"><strong>DTO:</strong> A typed contract for data moving between layers, usually inferred from a Zod schema with <code>z.infer</code>.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🔎</div>
+          <div class="summary-text"><strong>Async Validation:</strong> Business-rule checks that require a DB query — e.g. "is this email already taken?"</div>
+        </div>
+        <div class="summary-item summary-rose">
+          <div class="summary-icon">🧼</div>
+          <div class="summary-text"><strong>Sanitization:</strong> Transforming input — trimming, lowercasing, stripping unknown fields and NoSQL operators.</div>
+        </div>
+        <div class="summary-item summary-purple">
+          <div class="summary-icon">🚨</div>
+          <div class="summary-text"><strong>Global Error Handler:</strong> 4-parameter Express middleware that turns Zod, Mongoose, and driver errors into consistent responses.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="s1"><span>1. Input Validation with Zod</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>What It Means</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Every request — body, params, query — must be validated at the <strong>route/middleware level</strong> before your controller or DB ever sees it. Use <strong>Zod</strong> (recommended with TypeScript) to define a schema and reject bad data immediately with a structured error response.</p>
+        <div class="flow">
+          <div class="flow-step">Request</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Zod Middleware</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-row" style="background:transparent;padding:0;margin:0">
+            <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">✅ Valid → Controller → Service → DB</div>
+            <div class="flow-step" style="border-color:#f87171;color:#fca5a5">❌ Invalid → 400 Bad Request</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Define Schema + Infer Type</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schemas/user.schema.ts</span></div>
+          <pre><code><span class="kw">import</span> <span class="pl">{ z }</span> <span class="kw">from</span> <span class="str">'zod'</span>;
+
+<span class="kw">export const</span> <span class="fn">userSchema</span> = z.<span class="fn">object</span>({
+  firstName: z.<span class="fn">string</span>().<span class="fn">trim</span>().<span class="fn">min</span>(<span class="num">2</span>).<span class="fn">max</span>(<span class="num">50</span>),
+  lastName:  z.<span class="fn">string</span>().<span class="fn">trim</span>().<span class="fn">min</span>(<span class="num">1</span>),
+  email:     z.<span class="fn">email</span>().<span class="fn">toLowerCase</span>(),
+  role:      z.<span class="fn">enum</span>([<span class="str">"ADMIN"</span>, <span class="str">"USER"</span>, <span class="str">"MASTER_USER"</span>]).<span class="fn">default</span>(<span class="str">"USER"</span>),
+  isActive:  z.<span class="fn">boolean</span>().<span class="fn">default</span>(<span class="kw">true</span>),
+  age:       z.<span class="fn">number</span>().<span class="fn">int</span>().<span class="fn">min</span>(<span class="num">18</span>).<span class="fn">max</span>(<span class="num">100</span>),
+});
+
+<span class="cmt">// Infer TypeScript type from schema — no duplication!</span>
+<span class="kw">export type</span> <span class="ty">UserInput</span> = z.<span class="ty">infer</span>&lt;<span class="kw">typeof</span> <span class="fn">userSchema</span>&gt;;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Reusable Validate Middleware</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">middleware/validate.ts</span></div>
+          <pre><code><span class="kw">import</span> <span class="kw">type</span> <span class="pl">{ Request, Response, NextFunction }</span> <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> <span class="pl">{ z }</span> <span class="kw">from</span> <span class="str">"zod"</span>;
+
+<span class="kw">export const</span> <span class="fn">validate</span> =
+  (schema: <span class="ty">z.ZodType</span>) =>
+  (req: <span class="ty">Request</span>, res: <span class="ty">Response</span>, next: <span class="ty">NextFunction</span>) => {
+
+    <span class="kw">const</span> result = schema.<span class="fn">safeParse</span>(req.body);
+
+    <span class="kw">if</span> (!result.success) {
+      <span class="kw">const</span> errors = result.error.issues.<span class="fn">map</span>(e => ({
+        field:   e.path.<span class="fn">join</span>(<span class="str">'.'</span>),
+        message: e.message,
+      }));
+      <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">400</span>).<span class="fn">json</span>({ success: <span class="kw">false</span>, errors });
+    }
+
+    req.body = result.data;   <span class="cmt">// replace with sanitised + typed data</span>
+    <span class="fn">next</span>();
+  };</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">routes/user.route.ts</span></div>
+          <pre><code>router.<span class="fn">post</span>(<span class="str">'/users'</span>, <span class="fn">validate</span>(userSchema), <span class="fn">createUser</span>);
+<span class="cmt">// If body is invalid → 400 auto. Never reaches createUser.</span></code></pre>
+        </div>
+        <ul>
+          <li><code>safeParse</code> never throws — returns <code>{ success, data, error }</code> safely</li>
+          <li>Zod <strong>infers TypeScript types</strong> from the schema — write once, types are free</li>
+          <li>Assigning <code>req.body = result.data</code> automatically <strong>strips unknown fields</strong></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>The Curried Middleware Pattern</h4></div>
+      <div class="card-sub-content">
+        <p><code>(schema: z.ZodType) => (req, res, next) => {...}</code> — read it as "a function that returns a function":</p>
+        <ul>
+          <li><strong>Outer function</strong> — takes <code>schema</code> as config. Runs once, when you write <code>validate(userSchema)</code>.</li>
+          <li><strong>Inner function</strong> — the real Express middleware. Runs on every request and "remembers" <code>schema</code> via closure.</li>
+        </ul>
+        <div class="info-box box-tip">💡 This is why you write <code>validate(userSchema)</code> in <code>router.post()</code>, not <code>validate(req, res, next, userSchema)</code>.</div>
+        <table>
+          <tr><th>Piece</th><th>Meaning</th></tr>
+          <tr><td><code>safeParse()</code></td><td>Never throws — always returns <code>{ success, data | error }</code></td></tr>
+          <tr><td><code>result.success</code></td><td>Boolean gate: true → use <code>result.data</code>, false → use <code>result.error</code></td></tr>
+          <tr><td><code>result.error.issues</code></td><td>Array of failed rules, each with <code>.path</code> and <code>.message</code></td></tr>
+          <tr><td><code>e.path.join('.')</code></td><td>Turns a nested path array into a dotted string, e.g. <code>address.zipCode</code></td></tr>
+          <tr><td><code>z.ZodType</code></td><td>Generic "any Zod schema" type — lets <code>validate()</code> be reused everywhere</td></tr>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <div class="section-divider" id="s2"><span>2. Schema-Level Validation (Mongoose)</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>Two Layers of Protection</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Even after input validation, define constraints directly in your <strong>Mongoose schema</strong>. This is a backup layer — it catches invalid data that bypasses the API entirely, such as seeding scripts, admin tools, or internal service calls.</p>
+        <div class="compare">
+          <div class="compare-box good">
+            <h4>Layer 1 — Zod (API layer)</h4>
+            <p style="margin-top:0">Catches bad HTTP request input before it reaches your controller.</p>
+          </div>
+          <div class="compare-box good">
+            <h4>Layer 2 — Mongoose Schema</h4>
+            <p style="margin-top:0">Catches bad data from <strong>any</strong> source — API, scripts, cron jobs, seeds.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Mongoose Schema with Validators</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">models/User.ts</span></div>
+          <pre><code><span class="kw">import</span> <span class="pl">{ Schema, model }</span> <span class="kw">from</span> <span class="str">'mongoose'</span>;
+
+<span class="kw">const</span> userSchema = <span class="kw">new</span> <span class="fn">Schema</span>({
+  name: {
+    type: String,
+    required: [<span class="kw">true</span>, <span class="str">'Name is required'</span>],
+    trim: <span class="kw">true</span>,
+    minlength: [<span class="num">2</span>, <span class="str">'Min 2 characters'</span>],
+    maxlength: [<span class="num">50</span>, <span class="str">'Max 50 characters'</span>],
+  },
+  email: {
+    type: String,
+    required: [<span class="kw">true</span>, <span class="str">'Email is required'</span>],
+    unique: <span class="kw">true</span>,   <span class="cmt">// DB index — NOT a validator</span>
+    lowercase: <span class="kw">true</span>,
+    validate: {
+      validator: (v: <span class="ty">string</span>) => /\S+@\S+\.\S+/.<span class="fn">test</span>(v),
+      message: <span class="str">'Invalid email format'</span>,
+    },
+  },
+  role: {
+    type: String,
+    enum: { values: [<span class="str">'admin'</span>, <span class="str">'user'</span>, <span class="str">'guest'</span>], message: <span class="str">'{VALUE} is not a valid role'</span> },
+    default: <span class="str">'user'</span>,
+  },
+  age: {
+    type: Number,
+    min: [<span class="num">18</span>, <span class="str">'Must be 18 or above'</span>],
+    max: [<span class="num">100</span>, <span class="str">'Must be 100 or below'</span>],
+  },
+}, { timestamps: <span class="kw">true</span> });
+
+<span class="kw">export const</span> <span class="ty">User</span> = <span class="fn">model</span>(<span class="str">'User'</span>, userSchema);</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Flow — How an Error Reaches errorHandler</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step">Controller calls Mongoose: User.create(req.body)</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Mongoose runs schema validators (required, min, max, enum, custom)</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-row" style="background:transparent;padding:0;margin:0">
+            <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">✅ all pass → saved → res.json</div>
+            <div class="flow-step" style="border-color:#f87171;color:#fca5a5">❌ fails → throws ValidationError / CastError / E11000</div>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Controller's try/catch → next(err)</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Express skips normal routes → finds 4-param middleware</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">errorHandler(err, req, res, next) formats the response</div>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">controllers/user.controller.ts</span></div>
+          <pre><code><span class="kw">export const</span> <span class="fn">createUser</span> = <span class="kw">async</span> (req: <span class="ty">Request</span>, res: <span class="ty">Response</span>, next: <span class="ty">NextFunction</span>) => {
+  <span class="kw">try</span> {
+    <span class="kw">const</span> user = <span class="kw">await</span> User.<span class="fn">create</span>(req.body);
+    <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">201</span>).<span class="fn">json</span>({ success: <span class="kw">true</span>, data: user });
+  } <span class="kw">catch</span> (err) {
+    <span class="fn">next</span>(err);  <span class="cmt">// ← hand off to errorHandler, do NOT res.json() here</span>
+  }
+};</code></pre>
+        </div>
+        <div class="info-box box-benefit">✅ <strong>Two different layers, two different catch points:</strong> Zod is caught <em>inside</em> the <code>validate()</code> middleware via <code>safeParse()</code> and responds directly. Mongoose is caught <em>inside the controller's</em> try/catch and forwarded with <code>next(err)</code> to the global error handler.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Global Error Handler</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">middleware/errorHandler.ts</span></div>
+          <pre><code><span class="kw">import</span> <span class="kw">type</span> <span class="pl">{ Request, Response, NextFunction }</span> <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> <span class="pl">{ Error as MongooseError }</span> <span class="kw">from</span> <span class="str">"mongoose"</span>;
+
+<span class="kw">export const</span> <span class="fn">errorHandler</span> = (err: <span class="kw">any</span>, req: <span class="ty">Request</span>, res: <span class="ty">Response</span>, next: <span class="ty">NextFunction</span>) => {
+
+  <span class="kw">if</span> (err <span class="kw">instanceof</span> MongooseError.<span class="ty">ValidationError</span>) {
+    <span class="kw">const</span> errors = <span class="ty">Object</span>.<span class="fn">values</span>(err.errors).<span class="fn">map</span>(error => ({
+      field: error.path, message: error.message,
+    }));
+    <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">400</span>).<span class="fn">json</span>({ success: <span class="kw">false</span>, errors });
+  }
+
+  <span class="kw">if</span> (err.code === <span class="num">11000</span>) {
+    <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">409</span>).<span class="fn">json</span>({
+      success: <span class="kw">false</span>, message: <span class="str">"Duplicate value found"</span>,
+      fields: <span class="ty">Object</span>.<span class="fn">keys</span>(err.keyPattern),
+    });
+  }
+
+  <span class="kw">if</span> (err <span class="kw">instanceof</span> MongooseError.<span class="ty">CastError</span>) {
+    <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">400</span>).<span class="fn">json</span>({ success: <span class="kw">false</span>, message: `Invalid ${err.path}` });
+  }
+
+  <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">500</span>).<span class="fn">json</span>({ success: <span class="kw">false</span>, message: err.message || <span class="str">"Internal Server Error"</span> });
+};</code></pre>
+        </div>
+        <table>
+          <tr><th>Error Type</th><th>Trigger</th><th>Status</th></tr>
+          <tr><td><code>MongooseError.ValidationError</code></td><td>A field fails a schema validator during <code>.save()</code>/<code>.create()</code></td><td><code>400</code></td></tr>
+          <tr><td><code>err.code === 11000</code></td><td>A <code>unique</code> index is violated — duplicate value</td><td><code>409</code></td></tr>
+          <tr><td><code>MongooseError.CastError</code></td><td>A value can't cast to the field's type — e.g. invalid ObjectId in <code>/users/:id</code></td><td><code>400</code></td></tr>
+          <tr><td>Anything else</td><td>Unhandled / unexpected error</td><td><code>500</code></td></tr>
+        </table>
+        <div class="info-box box-warning">⚠️ <strong>Remember:</strong> <code>unique: true</code> in Mongoose creates a <strong>database index</strong>, not a Mongoose validator. It throws a duplicate key error (<code>E11000</code>), not a <code>ValidationError</code> — always handle it separately.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <div class="section-divider" id="s3"><span>3. DTOs, Async Validation &amp; Sanitization</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>DTO Pattern</h4><span class="stars">★★★★</span></div>
+      <div class="card-sub-content">
+        <p>A <strong>DTO (Data Transfer Object)</strong> is a plain typed object that defines the exact shape of data flowing between layers — request → controller → service → DB. In TypeScript, Zod's <code>z.infer</code> gives you DTOs for free.</p>
+        <div class="compare">
+          <div class="compare-box bad">
+            <h4>❌ Without DTO</h4>
+            <p style="margin-top:0">Every function accepts <code>any</code> or raw <code>req.body</code>. No type safety, no autocomplete. A typo silently passes through.</p>
+          </div>
+          <div class="compare-box good">
+            <h4>✅ With DTO</h4>
+            <p style="margin-top:0">Every layer knows the exact shape. TypeScript catches mismatches at compile time. Editor autocompletes every field.</p>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">dtos/user.dto.ts</span></div>
+          <pre><code><span class="kw">import</span> <span class="pl">{ z }</span> <span class="kw">from</span> <span class="str">'zod'</span>;
+
+<span class="kw">export const</span> <span class="fn">createUserSchema</span> = z.<span class="fn">object</span>({
+  name: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="num">2</span>),
+  email: z.<span class="fn">string</span>().<span class="fn">email</span>(),
+  password: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="num">8</span>),
+});
+
+<span class="kw">export type</span> <span class="ty">CreateUserDTO</span> = z.<span class="ty">infer</span>&lt;<span class="kw">typeof</span> <span class="fn">createUserSchema</span>&gt;;
+<span class="cmt">// { name: string; email: string; password: string }</span>
+
+<span class="cmt">// .partial() makes all fields optional — perfect for PATCH</span>
+<span class="kw">export const</span> <span class="fn">updateUserSchema</span> = createUserSchema.<span class="fn">partial</span>();
+<span class="kw">export type</span> <span class="ty">UpdateUserDTO</span> = z.<span class="ty">infer</span>&lt;<span class="kw">typeof</span> <span class="fn">updateUserSchema</span>&gt;;</code></pre>
+        </div>
+        <div class="flow">
+          <div class="flow-step">HTTP req.body (unknown / any)</div>
+          <div class="flow-arrow">↓ validate middleware → Zod parses &amp; strips unknown fields</div>
+          <div class="flow-step">CreateUserDTO (fully typed)</div>
+          <div class="flow-arrow">↓ Controller passes DTO to service</div>
+          <div class="flow-step">createUser(dto: CreateUserDTO)</div>
+          <div class="flow-arrow">↓ Service passes to Mongoose</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">User.create(dto) → MongoDB</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4 accent-left">
+      <div class="card-sub-title"><h4>Async Validation</h4></div>
+      <div class="card-sub-content">
+        <p>Some validation requires hitting the database — "is this email already registered?" These checks cannot live in Zod (Zod handles shape/format only). Async validation belongs in the <strong>service layer</strong>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">services/user.service.ts</span></div>
+          <pre><code><span class="kw">export const</span> <span class="fn">createUser</span> = <span class="kw">async</span> (dto: <span class="ty">CreateUserDTO</span>) => {
+  <span class="kw">const</span> existing = <span class="kw">await</span> User.<span class="fn">findOne</span>({ email: dto.email });
+  <span class="kw">if</span> (existing) <span class="kw">throw new</span> <span class="fn">AppError</span>(<span class="str">'Email already registered'</span>, <span class="num">409</span>);
+
+  <span class="kw">return</span> User.<span class="fn">create</span>(dto);
+};</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">utils/dbValidators.ts</span></div>
+          <pre><code><span class="cmt">// Generic reusable helpers — avoid repeating findOne everywhere</span>
+<span class="kw">export const</span> <span class="fn">mustExist</span> = <span class="kw">async</span> (Model: <span class="kw">any</span>, id: <span class="ty">string</span>, label: <span class="ty">string</span>) => {
+  <span class="kw">const</span> doc = <span class="kw">await</span> Model.<span class="fn">findById</span>(id);
+  <span class="kw">if</span> (!doc) <span class="kw">throw new</span> <span class="fn">AppError</span>(`${label} not found`, <span class="num">404</span>);
+  <span class="kw">return</span> doc;
+};
+
+<span class="kw">export const</span> <span class="fn">mustBeUnique</span> = <span class="kw">async</span> (Model: <span class="kw">any</span>, filter: <span class="kw">object</span>, msg: <span class="ty">string</span>) => {
+  <span class="kw">const</span> doc = <span class="kw">await</span> Model.<span class="fn">findOne</span>(filter);
+  <span class="kw">if</span> (doc) <span class="kw">throw new</span> <span class="fn">AppError</span>(msg, <span class="num">409</span>);
+};</code></pre>
+        </div>
+        <ul>
+          <li><strong>Zod</strong> validates shape and format. <strong>Service layer</strong> validates business rules that need a DB query.</li>
+          <li>Extract common checks into <strong>reusable helpers</strong> — never repeat <code>findOne</code> in every service.</li>
+          <li>Always <strong>throw AppError</strong> with the correct status code and let the global error handler send the response.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub cat-5">
+      <div class="card-sub-title"><h4>Sanitization</h4></div>
+      <div class="card-sub-content">
+        <p>Sanitization is <em>transforming</em> incoming data — trimming whitespace, lowercasing emails, stripping unknown fields, removing <code>$</code> operators that could enable NoSQL injection. Zod handles most of this automatically on parse; pair it with <code>express-mongo-sanitize</code> for full protection.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app.ts</span></div>
+          <pre><code><span class="kw">import</span> mongoSanitize <span class="kw">from</span> <span class="str">'express-mongo-sanitize'</span>;
+
+<span class="cmt">// Removes keys starting with $ or containing a dot
+// Prevents: { "email": { "$gt": "" } } attacks</span>
+app.<span class="fn">use</span>(<span class="fn">mongoSanitize</span>());</code></pre>
+        </div>
+        <table>
+          <tr><th>Problem</th><th>Solution</th><th>Tool</th></tr>
+          <tr><td>NoSQL injection <code>{ $gt: "" }</code></td><td>Strip <code>$</code> operator keys</td><td>express-mongo-sanitize</td></tr>
+          <tr><td>Unknown / extra fields in body</td><td>Zod strips them automatically on parse</td><td>Zod</td></tr>
+          <tr><td>Whitespace in names or emails</td><td><code>.trim()</code> / <code>.toLowerCase()</code></td><td>Zod transform</td></tr>
+          <tr><td>String query param → number</td><td><code>.transform(Number)</code></td><td>Zod transform</td></tr>
+          <tr><td>XSS via stored HTML strings</td><td>Sanitize HTML before saving</td><td>DOMPurify</td></tr>
+        </table>
+        <div class="info-box box-tip">💡 When you assign <code>req.body = result.data</code> after Zod parses, you have already sanitized — only the fields you defined survive. Pair this with <code>express-mongo-sanitize</code> and you cover most sanitization needs with almost no extra effort.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <div class="section-divider" id="qa"><span>Interview Q&amp;A</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-group-title">Standard Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Where should input validation happen — middleware or controller?</div>
+          <div class="qa-answer">Middleware. Controllers should only handle business logic. Validation is a cross-cutting concern — one reusable middleware handles it for all routes without any code repetition.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between <code>.parse()</code> and <code>.safeParse()</code> in Zod?</div>
+          <div class="qa-answer"><code>.parse()</code> throws a <code>ZodError</code> on failure, requiring a try/catch. <code>.safeParse()</code> never throws — it always returns <code>{ success, data | error }</code>, which is exactly what an Express middleware needs since sync throws inside route handlers aren't caught automatically.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">If you already validate with Zod, why also add Mongoose validators?</div>
+          <div class="qa-answer">Zod only protects the HTTP API layer. Data can enter the DB from seed scripts, cron jobs, or internal services that never go through your Express routes. Mongoose validators run on every <code>.save()</code> regardless of source — they're the true last line of defense.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is a DTO and why use it over passing <code>req.body</code> directly?</div>
+          <div class="qa-answer">A DTO is a typed contract for data moving between layers. Passing <code>req.body</code> directly spreads the <code>any</code> type everywhere, so TypeScript can't help you. DTOs give compile-time safety, autocomplete, and safe refactoring across all layers.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is NoSQL injection and how do you prevent it in MongoDB?</div>
+          <div class="qa-answer">An attacker sends something like <code>{ "email": { "$gt": "" } }</code> in the request body; MongoDB treats <code>$gt</code> as a query operator and can return all users, bypassing intended filtering. Prevention: strip <code>$</code>-keyed fields with <code>express-mongo-sanitize</code>, and only accept the exact expected shape via Zod.</div>
+        </div>
+
+        <div class="qa-group-title">Tricky / Follow-Up Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">What happens if you forget try/catch (or <code>next(err)</code>) in an async controller and Mongoose throws?</div>
+          <div class="qa-answer">An unhandled promise rejection — in versions of Express before 5, this isn't automatically caught, so the request hangs and never sends a response. This is why teams wrap async controllers in a helper like <code>asyncHandler(fn)</code> that automatically does <code>.catch(next)</code> for every route.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why check <code>err.code === 11000</code> separately, outside the <code>ValidationError</code> check?</div>
+          <div class="qa-answer">A duplicate-key error is thrown by the MongoDB driver, not Mongoose's validation pipeline — it's not an instance of <code>MongooseError.ValidationError</code>. It only happens when a unique index is violated at the database level, so it needs its own check and its own status code (409 instead of 400).</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">When does a <code>CastError</code> happen, and how is it different from a <code>ValidationError</code>?</div>
+          <div class="qa-answer"><code>CastError</code> happens before validation even runs — when Mongoose tries to convert an incoming value to the schema's declared type and fails, e.g. an invalid ObjectId in <code>/users/:id</code>. <code>ValidationError</code> happens during <code>.save()</code>/<code>.create()</code> when a value is the right type but fails a rule like <code>min</code> or <code>enum</code>.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Can you do async validation inside Zod using <code>.refine()</code>?</div>
+          <div class="qa-answer">Technically yes, but it's not recommended. Zod is for structure and format. Putting DB calls inside Zod middleware creates tight coupling and makes the logic hard to reuse — async business-rule checks belong in the service layer instead.</div>
+        </div>
+
+        <div class="qa-group-title">Frequently Asked</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why reassign <code>req.body = result.data</code> instead of leaving the original <code>req.body</code>?</div>
+          <div class="qa-answer"><code>result.data</code> has defaults applied, transforms run (<code>.trim()</code>, <code>.toLowerCase()</code>), coercions done, and unknown keys stripped. The original <code>req.body</code> is raw and untransformed — using it instead throws away all of Zod's work.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How does Express know a function like <code>errorHandler(err, req, res, next)</code> is an error handler?</div>
+          <div class="qa-answer">Express identifies error-handling middleware purely by arity — exactly four parameters. It must be registered last, after all routes, with <code>app.use(errorHandler)</code>. Any <code>next(err)</code> call skips all normal middleware and jumps straight there.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why does <code>unique: true</code> in a Mongoose schema not count as a validator?</div>
+          <div class="qa-answer">It creates a database-level index, not something Mongoose's validation pipeline checks. Violating it throws a driver-level duplicate key error (<code>E11000</code>) instead of a <code>ValidationError</code>, so it must be handled as its own case in the error handler.</div>
+        </div>
+
+        <div class="qa-group-title">Coding / Theoretical</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Write a generic <code>validate()</code> middleware factory and use it for two different schemas.</div>
+          <div class="qa-answer">
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">middleware/validate.ts</span></div>
+              <pre><code><span class="kw">import</span> <span class="kw">type</span> <span class="pl">{ Request, Response, NextFunction }</span> <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> <span class="pl">{ z }</span> <span class="kw">from</span> <span class="str">"zod"</span>;
+
+<span class="kw">export const</span> <span class="fn">validate</span> =
+  (schema: <span class="ty">z.ZodType</span>) =>
+  (req: <span class="ty">Request</span>, res: <span class="ty">Response</span>, next: <span class="ty">NextFunction</span>) => {
+    <span class="kw">const</span> result = schema.<span class="fn">safeParse</span>(req.body);
+    <span class="kw">if</span> (!result.success) {
+      <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">400</span>).<span class="fn">json</span>({
+        success: <span class="kw">false</span>,
+        errors: result.error.issues.<span class="fn">map</span>(e => ({ field: e.path.<span class="fn">join</span>(<span class="str">'.'</span>), message: e.message })),
+      });
+    }
+    req.body = result.data;
+    <span class="fn">next</span>();
+  };
+
+<span class="cmt">// routes/index.ts</span>
+router.<span class="fn">post</span>(<span class="str">"/users"</span>, <span class="fn">validate</span>(createUserSchema), createUser);
+router.<span class="fn">post</span>(<span class="str">"/login"</span>,  <span class="fn">validate</span>(loginSchema),      login);</code></pre>
+            </div>
+            <p style="margin-top:12px"><strong>Why this shape:</strong> typing the parameter as <code>z.ZodType</code> instead of a specific schema type is what makes <code>validate()</code> reusable across every route — one middleware, any schema.</p>
+          </div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Explain, in three layers, why "Zod + Mongoose + sanitization" is more robust than any single layer alone.</div>
+          <div class="qa-answer">
+            Each layer defeats a different failure mode:<br><br>
+            • <strong>Zod</strong> rejects malformed HTTP input before it ever reaches business logic, and gives you compile-time DTO types for free.<br>
+            • <strong>Mongoose schema validation</strong> catches data written from any source that skips the API — scripts, seeds, internal jobs — since it runs on every <code>.save()</code>.<br>
+            • <strong>Sanitization</strong> (Zod transforms + <code>express-mongo-sanitize</code>) removes dangerous or messy data — NoSQL operators, stray whitespace, unknown fields — that structurally "valid" data could still carry.<br><br>
+            Removing any one layer reopens a specific gap: skip Zod and malformed requests reach the DB layer raw; skip Mongoose validators and non-API writes go unchecked; skip sanitization and structurally valid but malicious payloads (like <code>$gt</code> injection) get through.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Validation — Node + TypeScript + MongoDB — Interview Notes</footer>
+
+</body>
+</html>

@@ -1,681 +1,370 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Authentication vs Authorization</title>
-  <style>
-    :root, [data-theme="dark"] {
-      --auth-color: #3b82f6;
-      --authz-color: #8b5cf6;
-      --bg: #0f172a;
-      --card: #1e293b;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --border: #334155;
-      --code-bg: #0d1117;
-      --code-text: #e6edf3;
-      --code-comment: #8b949e;
-      --code-keyword: #ff7b72;
-      --code-string: #a5d6ff;
-      --code-func: #d2a8ff;
-      --toggle-bg: #334155;
-      --toggle-knob: #e2e8f0;
-      --shadow: rgba(0, 0, 0, 0.3);
-      --status-401: #f87171;
-      --status-403: #fbbf24;
-      --example-bg: rgba(0, 0, 0, 0.25);
-      --tag-bg: rgba(255, 255, 255, 0.06);
-      --memory-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
-      --oneliner-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
-      --table-header-bg: rgba(0, 0, 0, 0.3);
-    }
-
-    [data-theme="light"] {
-      --auth-color: #2563eb;
-      --authz-color: #7c3aed;
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #0f172a;
-      --muted: #64748b;
-      --border: #e2e8f0;
-      --code-bg: #1e293b;
-      --code-text: #e6edf3;
-      --code-comment: #8b949e;
-      --code-keyword: #ff7b72;
-      --code-string: #a5d6ff;
-      --code-func: #d2a8ff;
-      --toggle-bg: #cbd5e1;
-      --toggle-knob: #ffffff;
-      --shadow: rgba(0, 0, 0, 0.08);
-      --status-401: #dc2626;
-      --status-403: #d97706;
-      --example-bg: rgba(0, 0, 0, 0.04);
-      --tag-bg: rgba(0, 0, 0, 0.05);
-      --memory-bg: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(124, 58, 237, 0.08));
-      --oneliner-bg: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(124, 58, 237, 0.1));
-      --table-header-bg: rgba(0, 0, 0, 0.03);
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      padding: 2rem 1rem;
-      transition: background 0.3s ease, color 0.3s ease;
-    }
-
-    .container {
-      max-width: 1150px;
-      margin: 0 auto;
-    }
-
-    /* Theme Toggle */
-    .theme-toggle-wrapper {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 1.5rem;
-    }
-
-    .theme-toggle {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 0.4rem 0.75rem 0.4rem 0.9rem;
-      cursor: pointer;
-      font-size: 0.9rem;
-      color: var(--muted);
-      transition: all 0.25s ease;
-      box-shadow: 0 1px 3px var(--shadow);
-    }
-
-    .theme-toggle:hover {
-      border-color: var(--auth-color);
-      color: var(--text);
-    }
-
-    .theme-toggle .icon {
-      font-size: 1.1rem;
-      line-height: 1;
-    }
-
-    .toggle-switch {
-      width: 40px;
-      height: 22px;
-      background: var(--toggle-bg);
-      border-radius: 999px;
-      position: relative;
-      transition: background 0.3s ease;
-    }
-
-    .toggle-switch::after {
-      content: '';
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 16px;
-      height: 16px;
-      background: var(--toggle-knob);
-      border-radius: 50%;
-      transition: transform 0.3s ease;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    }
-
-    [data-theme="light"] .toggle-switch::after {
-      transform: translateX(18px);
-    }
-
-    header {
-      text-align: center;
-      margin-bottom: 2.5rem;
-    }
-
-    header h1 {
-      font-size: 2.2rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--auth-color), var(--authz-color));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 0.5rem;
-    }
-
-    header p {
-      color: var(--muted);
-      font-size: 1.05rem;
-    }
-
-    .cards {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-      margin-bottom: 2.5rem;
-    }
-
-    @media (max-width: 700px) {
-      .cards {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .card {
-      background: var(--card);
-      border-radius: 16px;
-      padding: 1.75rem;
-      border: 1px solid var(--border);
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 4px 12px var(--shadow);
-      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-    }
-
-    .card.auth::before {
-      background: var(--auth-color);
-    }
-
-    .card.authz::before {
-      background: var(--authz-color);
-    }
-
-    .card h2 {
-      font-size: 1.35rem;
-      margin-bottom: 0.4rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .card .question {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      opacity: 0.9;
-    }
-
-    .card.auth .question { color: var(--auth-color); }
-    .card.authz .question { color: var(--authz-color); }
-
-    .card p {
-      color: var(--muted);
-      margin-bottom: 1.25rem;
-      font-size: 0.95rem;
-    }
-
-    .example {
-      background: var(--example-bg);
-      border-radius: 10px;
-      padding: 0.9rem 1rem;
-      font-size: 0.9rem;
-      margin-bottom: 1.25rem;
-      border-left: 3px solid;
-      transition: background 0.3s ease;
-    }
-
-    .card.auth .example { border-color: var(--auth-color); }
-    .card.authz .example { border-color: var(--authz-color); }
-
-    .mechanisms h3 {
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--muted);
-      margin-bottom: 0.6rem;
-    }
-
-    .mechanisms ul {
-      list-style: none;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .mechanisms li {
-      background: var(--tag-bg);
-      padding: 0.35rem 0.75rem;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      transition: background 0.3s ease;
-    }
-
-    /* Memory Trick */
-    .memory {
-      background: var(--memory-bg);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 1.5rem;
-      margin-bottom: 2.5rem;
-      text-align: center;
-      transition: background 0.3s ease, border-color 0.3s ease;
-    }
-
-    .memory h2 {
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
-    }
-
-    .memory-pair {
-      display: flex;
-      justify-content: center;
-      gap: 2rem;
-      flex-wrap: wrap;
-    }
-
-    .pair {
-      background: var(--card);
-      padding: 1rem 1.5rem;
-      border-radius: 12px;
-      min-width: 200px;
-      border: 1px solid var(--border);
-      box-shadow: 0 2px 8px var(--shadow);
-      transition: background 0.3s ease, border-color 0.3s ease;
-    }
-
-    .pair strong {
-      display: block;
-      font-size: 1.1rem;
-      margin-bottom: 0.25rem;
-    }
-
-    .pair.auth strong { color: var(--auth-color); }
-    .pair.authz strong { color: var(--authz-color); }
-
-    /* Table */
-    .table-section {
-      margin-bottom: 2.5rem;
-    }
-
-    .table-section h2 {
-      font-size: 1.3rem;
-      margin-bottom: 1rem;
-      text-align: center;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--card);
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      box-shadow: 0 4px 12px var(--shadow);
-      transition: background 0.3s ease, border-color 0.3s ease;
-    }
-
-    th, td {
-      padding: 1rem 1.25rem;
-      text-align: left;
-    }
-
-    th {
-      background: var(--table-header-bg);
-      font-weight: 600;
-      font-size: 0.95rem;
-      transition: background 0.3s ease;
-    }
-
-    th:nth-child(2) { color: var(--auth-color); }
-    th:nth-child(3) { color: var(--authz-color); }
-
-    td {
-      border-top: 1px solid var(--border);
-      font-size: 0.92rem;
-      color: var(--muted);
-    }
-
-    td:first-child {
-      color: var(--text);
-      font-weight: 500;
-      width: 22%;
-    }
-
-    .status-401 {
-      color: var(--status-401);
-      font-weight: 600;
-    }
-
-    .status-403 {
-      color: var(--status-403);
-      font-weight: 600;
-    }
-
-    /* Flow */
-    .flow-section {
-      margin-bottom: 2.5rem;
-    }
-
-    .flow-section h2 {
-      font-size: 1.3rem;
-      margin-bottom: 1.25rem;
-      text-align: center;
-    }
-
-    .flow {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .flow-box {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1rem 1.5rem;
-      text-align: center;
-      min-width: 280px;
-      box-shadow: 0 2px 8px var(--shadow);
-      transition: background 0.3s ease, border-color 0.3s ease;
-    }
-
-    .flow-box .label {
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--muted);
-      margin-bottom: 0.3rem;
-    }
-
-    .flow-box .value {
-      font-weight: 600;
-      font-size: 1.1rem;
-    }
-
-    .flow-arrow {
-      font-size: 1.5rem;
-      color: var(--muted);
-    }
-
-    .flow-note {
-      margin-top: 1.25rem;
-      background: var(--example-bg);
-      border-radius: 10px;
-      padding: 1rem 1.25rem;
-      font-size: 0.92rem;
-      color: var(--muted);
-      transition: background 0.3s ease;
-    }
-
-    /* Code */
-    .code-section {
-      margin-bottom: 2.5rem;
-    }
-
-    .code-section h2 {
-      font-size: 1.3rem;
-      margin-bottom: 1rem;
-      text-align: center;
-    }
-
-    pre {
-      background: var(--code-bg);
-      border-radius: 12px;
-      padding: 1.25rem;
-      overflow-x: auto;
-      border: 1px solid var(--border);
-      font-size: 0.9rem;
-      line-height: 1.5;
-      transition: background 0.3s ease, border-color 0.3s ease;
-    }
-
-    code {
-      font-family: 'Fira Code', 'Consolas', monospace;
-      color: var(--code-text);
-    }
-
-    .comment { color: var(--code-comment); }
-    .keyword { color: var(--code-keyword); }
-    .string { color: var(--code-string); }
-    .func { color: var(--code-func); }
-
-    /* One-liner */
-    .oneliner {
-      background: var(--oneliner-bg);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 1.5rem 1.75rem;
-      text-align: center;
-      transition: background 0.3s ease, border-color 0.3s ease;
-    }
-
-    .oneliner h2 {
-      font-size: 1rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-      margin-bottom: 0.75rem;
-    }
-
-    .oneliner p {
-      font-size: 1.15rem;
-      font-weight: 500;
-      line-height: 1.5;
-    }
-
-    .oneliner em {
-      color: var(--auth-color);
-      font-style: normal;
-      font-weight: 600;
-    }
-
-    .oneliner strong {
-      color: var(--authz-color);
-    }
-
-    footer {
-      text-align: center;
-      margin-top: 3rem;
-      color: var(--muted);
-      font-size: 0.85rem;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Authentication vs Authorization — Interview Notes</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* THEME VARIABLES */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#0e7490; --accent:#0891b2; --accent-light:#22d3ee; --content-bg:#ecfeff; --heading:#0e7490; --shadow-rgb:8,145,178; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-5 { --accent-dark:#9f1239; --accent:#e11d48; --accent-light:#fb7185; --content-bg:#fff1f2; --heading:#9f1239; --shadow-rgb:225,29,72; }
+
+/* HEADER */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* KEY TERMS SUMMARY */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#ecfeff,#cffafe); color:#0e7490; } .summary-orange .summary-text strong { color:#0891b2; }
+.summary-rose   { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#9f1239; } .summary-rose .summary-text strong { color:#e11d48; }
+.summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple .summary-text strong { color:#7c3aed; }
+
+/* SECTION DIVIDER */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* CODE / TOKEN */
+code, .token {
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+  font-size: 0.88em;
+  background: rgba(0,0,0,0.06);
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: #4338ca;
+}
+pre {
+  background: #0d1117;
+  border: 1px solid #2d3a4f;
+  border-radius: 10px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 14px 0;
+  color: #e6edf3;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+
+/* CODE BLOCK (mac-window style) */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* FLOW STEPS */
+.flow { display:flex; flex-direction:column; align-items:center; gap:0; margin:16px 0; font-size:0.95rem; background:#1a2332; border-radius:14px; padding:24px 20px; }
+.flow-step { background:#243044; border:1px solid #34435c; border-radius:10px; padding:11px 20px; text-align:center; min-width:200px; max-width:340px; color:#e7ecf3; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.25); }
+.flow-arrow { color:#60a5fa; font-size:1.3rem; line-height:1.4; user-select:none; }
+.flow-row { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin:16px 0; background:#1a2332; border-radius:14px; padding:22px 20px; }
+.flow-row .flow-step { min-width:150px; }
+.pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:0.78rem; font-weight:700; }
+.pill.short { background:#d1fae5; color:#065f46; }
+.pill.long { background:#fef3c7; color:#92400e; }
+.pill.danger { background:#fecdd3; color:#9f1239; }
+.pill.indigo { background:#e0e7ff; color:#3730a3; }
+
+/* INFO BOXES */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+
+/* COMPARE (good/bad) */
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box { background:#fff; border-radius:14px; padding:18px 20px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.05); }
+.compare-box.bad { border-left:5px solid #e11d48; }
+.compare-box.good { border-left:5px solid #059669; }
+.compare-box h4 { font-size:15px; margin-bottom:10px; font-weight:800; }
+.compare-box.bad h4 { color:#be123c; }
+.compare-box.good h4 { color:#047857; }
+.compare-box pre { font-size:0.78rem; margin:0; }
+.compare-box p { margin:8px 0 0; font-size:0.85rem; }
+
+/* SUBSECTIONS */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-title .stars { margin-left:auto; color:#f59e0b; font-size:13px; letter-spacing:1px; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + pre,
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content pre:last-child,
+.card-sub-content .code-block:last-child,
+.card-sub-content .compare:last-child,
+.card-sub-content .flow:last-child,
+.card-sub-content .flow-row:last-child { margin-bottom:0; }
+
+/* TABLE */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:700; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.15); transition:background .15s ease; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+.status-401 { color:#e11d48; font-weight:800; }
+.status-403 { color:#d97706; font-weight:800; }
+
+/* INTERVIEW / ONE-LINER CARD */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+.qa-answer pre { margin: 10px 0 0; }
+.qa-answer .code-block code { background:none; padding:0; color:#d4d4d4; font-weight:400; }
+.qa-answer .code-block pre { margin:0; }
+.qa-answer:hover { background: #bfffea !important; }
+.qa-group-title { font-size:16px; font-weight:800; color:var(--heading); margin: 6px 0 -6px; }
+
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
 </head>
 <body>
   <div class="container">
-    <!-- Theme Toggle -->
-    <div class="theme-toggle-wrapper">
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
-        <span class="icon" id="themeIcon">🌙</span>
-        <span id="themeLabel">Dark</span>
-        <div class="toggle-switch"></div>
-      </button>
-    </div>
 
-    <header>
+    <!-- HEADER -->
+    <div class="header theme-blue">
       <h1>Authentication vs Authorization</h1>
-      <p>Two commonly confused security concepts — clearly explained</p>
-    </header>
+      <p>Two commonly confused security concepts — clearly explained.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">Authentication</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">Authorization</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">Side-by-Side</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">User → Role → Permission</a>
+        <a href="#s5" onclick="document.getElementById('s5').scrollIntoView({behavior:'smooth'});return false;">Code Example</a>
+        <a href="#oneliner" onclick="document.getElementById('oneliner').scrollIntoView({behavior:'smooth'});return false;">Interview One-Liner</a>
+      </div>
+    </div>
 
-    <!-- Main Cards -->
-    <div class="cards">
-      <div class="card auth">
-        <h2>🔐 Authentication</h2>
-        <div class="question">"Who are you?"</div>
+    <div class="info-box box-tip"><strong>💡 The core distinction:</strong> Authentication happens first and answers <strong>"who are you?"</strong> Authorization happens after and answers <strong>"what are you allowed to do?"</strong></div>
+
+    <!-- KEY TERMS SUMMARY -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🔐</div>
+          <div class="summary-text"><strong>Authentication:</strong> Verifying identity — confirming a user is who they claim to be.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🛡️</div>
+          <div class="summary-text"><strong>Authorization:</strong> Checking what actions or resources an already-authenticated user is permitted to access.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🚫</div>
+          <div class="summary-text"><strong>401 Unauthorized:</strong> "I don't know who you are" — an authentication failure.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">⛔</div>
+          <div class="summary-text"><strong>403 Forbidden:</strong> "I know who you are, but you're not allowed" — an authorization failure.</div>
+        </div>
+        <div class="summary-item summary-rose">
+          <div class="summary-icon">🏷️</div>
+          <div class="summary-text"><strong>RBAC:</strong> Role-Based Access Control — the common pattern for bundling permissions into roles.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1: AUTHENTICATION ==================== -->
+    <div class="section-divider" id="s1"><span>1. Authentication — "Who Are You?"</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>🔐 Definition</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
         <p>The process of <strong>verifying identity</strong> — confirming that a user is who they claim to be.</p>
-        
-        <div class="example">
-          Logging in with email + password. If credentials match → <strong>"Yes, you are Shivam."</strong>
-        </div>
-
-        <div class="mechanisms">
-          <h3>Common Mechanisms</h3>
-          <ul>
-            <li>Username / Password</li>
-            <li>OTP Verification</li>
-            <li>JWT / Session Cookies</li>
-            <li>OAuth (Google / GitHub)</li>
-            <li>Biometrics</li>
-          </ul>
-        </div>
+        <div class="info-box box-tip">Logging in with email + password. If credentials match → <strong>"Yes, you are Shivam."</strong></div>
       </div>
+    </div>
 
-      <div class="card authz">
-        <h2>🛡️ Authorization</h2>
-        <div class="question">"What are you allowed to do?"</div>
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Common Mechanisms</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li>Username / Password</li>
+          <li>OTP Verification</li>
+          <li>JWT / Session Cookies</li>
+          <li>OAuth (Google / GitHub)</li>
+          <li>Biometrics</li>
+        </ul>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 2: AUTHORIZATION ==================== -->
+    <div class="section-divider" id="s2"><span>2. Authorization — "What Are You Allowed to Do?"</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4 no-border">
+      <div class="card-sub-title"><h4>🛡️ Definition</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
         <p>Happens <strong>after</strong> authentication. Checks what actions or resources the user is permitted to access.</p>
-        
-        <div class="example">
-          Once logged in → Can this user delete posts? Access admin dashboard? View billing?
-        </div>
+        <div class="info-box box-tip">Once logged in → Can this user delete posts? Access admin dashboard? View billing?</div>
+      </div>
+    </div>
 
-        <div class="mechanisms">
-          <h3>Common Mechanisms</h3>
-          <ul>
-            <li>Role-Based Access (RBAC)</li>
-            <li>Permission Flags</li>
-            <li>Middleware Checks</li>
-            <li>isAdmin / hasPermission</li>
-          </ul>
+    <div class="card-sub cat-4 accent-left">
+      <div class="card-sub-title"><h4>Common Mechanisms</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li>Role-Based Access (RBAC)</li>
+          <li>Permission Flags</li>
+          <li>Middleware Checks</li>
+          <li><code>isAdmin</code> / <code>hasPermission</code></li>
+        </ul>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- QUICK MEMORY TRICK -->
+    <div class="info-box box-note" style="text-align:center">
+      🧠 <strong>Quick Memory Trick:</strong><br><br>
+      <strong>Login</strong> = Authentication — proving who you are<br>
+      <strong>Permission Checking</strong> = Authorization — checking what you can do
+    </div>
+
+    <!-- ==================== 3: SIDE-BY-SIDE ==================== -->
+    <div class="section-divider" id="s3"><span>3. Side-by-Side Comparison</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>Full Comparison</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th></th><th>Authentication</th><th>Authorization</th></tr>
+          <tr><td>Question it answers</td><td>Who are you?</td><td>What can you do?</td></tr>
+          <tr><td>When it happens</td><td>First (before anything else)</td><td>Second (only after auth succeeds)</td></tr>
+          <tr><td>Real example</td><td>Entering email + password to log in</td><td>System checks: "Is this user allowed to open /admin?"</td></tr>
+          <tr><td>If it fails</td><td><span class="status-401">401 Unauthorized</span><br>"I don't know who you are"</td><td><span class="status-403">403 Forbidden</span><br>"I know who you are, but you're not allowed"</td></tr>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 4: USER -> ROLE -> PERMISSION ==================== -->
+    <div class="section-divider" id="s4"><span>4. The Hierarchy: User → Role → Permission</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>How Authorization Is Usually Modeled</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step">User<br>"Shivam"</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Role<br>Admin · Editor · Viewer</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">Permission<br>can delete posts · can edit users</div>
+        </div>
+        <div class="info-box box-note">📌 A <strong>User</strong> is assigned one or more <strong>Roles</strong>. Each Role bundles a set of <strong>Permissions</strong>. Systems usually check "does this user's role include permission X?" — much easier to manage at scale.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 5: CODE EXAMPLE ==================== -->
+    <div class="section-divider" id="s5"><span>5. Code Example (Express Middleware)</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-5 no-border">
+      <div class="card-sub-title"><h4>Auth Check → Authz Check</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">middleware.js</span></div>
+          <pre><code><span class="cmt">// Authentication check</span>
+<span class="kw">if</span> (!req.user) <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">401</span>).<span class="fn">send</span>(<span class="str">"Please log in"</span>);
+
+<span class="cmt">// Authorization check</span>
+<span class="kw">if</span> (req.user.role !== <span class="str">"admin"</span>) <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">403</span>).<span class="fn">send</span>(<span class="str">"Forbidden"</span>);</code></pre>
         </div>
       </div>
     </div>
 
-    <!-- Memory Trick -->
-    <div class="memory">
-      <h2>🧠 Quick Memory Trick</h2>
-      <div class="memory-pair">
-        <div class="pair auth">
-          <strong>Login</strong>
-          = Authentication<br>
-          <span style="color:var(--muted);font-size:0.9rem">Proving who you are</span>
-        </div>
-        <div class="pair authz">
-          <strong>Permission Checking</strong>
-          = Authorization<br>
-          <span style="color:var(--muted);font-size:0.9rem">Checking what you can do</span>
-        </div>
-      </div>
     </div>
 
-    <!-- Comparison Table -->
-    <div class="table-section">
-      <h2>Side-by-Side Comparison</h2>
-      <table>
-        <thead>
-          <tr>
-            <th></th>
-            <th>Authentication</th>
-            <th>Authorization</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Question it answers</td>
-            <td>Who are you?</td>
-            <td>What can you do?</td>
-          </tr>
-          <tr>
-            <td>When it happens</td>
-            <td>First (before anything else)</td>
-            <td>Second (only after auth succeeds)</td>
-          </tr>
-          <tr>
-            <td>Real example</td>
-            <td>Entering email + password to log in</td>
-            <td>System checks: "Is this user allowed to open /admin?"</td>
-          </tr>
-          <tr>
-            <td>If it fails</td>
-            <td><span class="status-401">401 Unauthorized</span><br>"I don't know who you are"</td>
-            <td><span class="status-403">403 Forbidden</span><br>"I know who you are, but you're not allowed"</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <!-- ==================== INTERVIEW ONE-LINER ==================== -->
+    <div class="section-divider" id="oneliner"><span>🎤 Interview One-Liner</span></div>
 
-    <!-- User → Role → Permission Flow -->
-    <div class="flow-section">
-      <h2>The Hierarchy: User → Role → Permission</h2>
-      <div class="flow">
-        <div class="flow-box">
-          <div class="label">User</div>
-          <div class="value">"Shivam"</div>
-        </div>
-        <div class="flow-arrow">↓</div>
-        <div class="flow-box">
-          <div class="label">Role</div>
-          <div class="value">Admin · Editor · Viewer</div>
-        </div>
-        <div class="flow-arrow">↓</div>
-        <div class="flow-box">
-          <div class="label">Permission</div>
-          <div class="value">can delete posts · can edit users</div>
+    <div class="card theme-blue">
+      <div class="card-title">🎤 Interview One-Liner</div>
+      <div class="card-content qa-container">
+        <div class="qa-item">
+          <div class="qa-answer">
+            Authentication verifies <code>identity</code> (who you are), while authorization verifies <code>permissions</code> (what you're allowed to do) — authentication always happens first, and authorization decisions are typically built on top of a <code>User → Role → Permission</code> hierarchy.
+          </div>
         </div>
       </div>
-      <div class="flow-note">
-        A <strong>User</strong> is assigned one or more <strong>Roles</strong>. Each Role bundles a set of <strong>Permissions</strong>.  
-        Systems usually check “does this user’s role include permission X?” — much easier to manage at scale.
-      </div>
     </div>
 
-    <!-- Code Example -->
-    <div class="code-section">
-      <h2>Code Example (Express Middleware)</h2>
-      <pre><code><span class="comment">// Authentication check</span>
-<span class="keyword">if</span> (!req.user) <span class="keyword">return</span> res.status(<span class="string">401</span>).send(<span class="string">"Please log in"</span>);
-
-<span class="comment">// Authorization check</span>
-<span class="keyword">if</span> (req.user.role !== <span class="string">"admin"</span>) <span class="keyword">return</span> res.status(<span class="string">403</span>).send(<span class="string">"Forbidden"</span>);</code></pre>
-    </div>
-
-    <!-- Interview One-liner -->
-    <div class="oneliner">
-      <h2>Interview One-Liner</h2>
-      <p>
-        Authentication verifies <em>identity</em> (who you are), while authorization verifies <strong>permissions</strong> (what you're allowed to do) — authentication always happens first, and authorization decisions are typically built on top of a User → Role → Permission hierarchy.
-      </p>
-    </div>
-
-    <footer>
-      Quick interview notes • Authentication vs Authorization
-    </footer>
   </div>
 
-  <script>
-    const toggle = document.getElementById('themeToggle');
-    const themeIcon = document.getElementById('themeIcon');
-    const themeLabel = document.getElementById('themeLabel');
-    const html = document.documentElement;
+  <footer>Authentication vs Authorization — Interview Notes</footer>
 
-    // Load saved preference or default to dark
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    setTheme(savedTheme);
-
-    toggle.addEventListener('click', () => {
-      const current = html.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
-      setTheme(next);
-      localStorage.setItem('theme', next);
-    });
-
-    function setTheme(theme) {
-      html.setAttribute('data-theme', theme);
-      if (theme === 'dark') {
-        themeIcon.textContent = '🌙';
-        themeLabel.textContent = 'Dark';
-      } else {
-        themeIcon.textContent = '☀️';
-        themeLabel.textContent = 'Light';
-      }
-    }
-  </script>
 </body>
 </html>

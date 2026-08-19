@@ -1,0 +1,439 @@
+Here is the **combined final version** with everything compactly included:
+
+### CommonJS vs ES Modules
+
+| Feature                | CommonJS                     | ES Modules                  |
+| ---------------------- | ---------------------------- | --------------------------- |
+| Import                 | `require()`                  | `import`                    |
+| Export                 | `module.exports` / `exports` | `export` / `export default` |
+| `.js` behavior         | CommonJS by default          | ESM with `"type": "module"` |
+| Explicit extension     | `.cjs`                       | `.mjs`                      |
+| Browser native support | ❌                            | ✅                           |
+| Top-level `await`      | ❌                            | ✅                           |
+| `__dirname`            | ✅ Built-in                   | ❌ Not directly available    |
+| `__filename`           | ✅ Built-in                   | ❌ Not directly available    |
+| `import.meta.url`      | ❌                            | ✅                           |
+
+### `__dirname` and `__filename`
+
+**`__dirname`** gives the **absolute path of the directory containing the current file**.
+
+```js
+console.log(__dirname);
+
+// /Users/shivam/project/src
+```
+
+**`__filename`** gives the **absolute path of the current file, including the filename**.
+
+```js
+console.log(__filename);
+
+// /Users/shivam/project/src/app.js
+```
+
+### What is an absolute path?
+
+An **absolute path** is the complete path from the filesystem root to a file or directory.
+
+```text
+/Users/shivam/project/src/app.js
+```
+
+Here `/` is the filesystem root.
+
+A relative path is:
+
+```text
+./src/app.js
+```
+
+The difference is that an **absolute path does not depend on the current working directory**, while a relative path does.
+
+### ESM replacement for `__dirname` and `__filename`
+
+ES Modules don't directly provide these variables. Use `import.meta.url`:
+
+```js
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+```
+
+Exact replacement:
+
+```text
+CommonJS                         ES Module
+────────────────────────────────────────────────────
+__filename              →       fileURLToPath(import.meta.url)
+
+__dirname               →       path.dirname(
+                                   fileURLToPath(import.meta.url)
+                                 )
+```
+
+`import.meta.url` gives the current module's location as a URL:
+
+```js
+console.log(import.meta.url);
+
+// file:///Users/shivam/project/src/app.js
+```
+
+`fileURLToPath()` converts that URL into a normal filesystem path.
+
+### Top-level `await`
+
+Normally, `await` works only inside an `async` function.
+
+**CommonJS:**
+
+```js
+const data = await fetch(url); // ❌
+```
+
+You need:
+
+```js
+async function main() {
+  const data = await fetch(url);
+  console.log(data);
+}
+
+main();
+```
+
+**ES Modules** allow `await` directly at the top level:
+
+```js
+const response = await fetch("https://example.com");
+
+console.log(response.status);
+```
+
+No wrapper function is required.
+
+### Why Top-level `await`?
+
+It is useful when an application needs asynchronous initialization before starting:
+
+* Database connection
+* Reading configuration
+* Loading secrets
+* Dynamic module loading
+* Initializing external services
+
+CommonJS:
+
+```js
+async function start() {
+  await connectDB();
+  app.listen(3000);
+}
+
+start();
+```
+
+ESM:
+
+```js
+await connectDB();
+
+app.listen(3000);
+```
+
+### Execution flow
+
+**CommonJS:**
+
+```text
+Start module
+    ↓
+Call async function
+    ↓
+await Promise
+    ↓
+Promise resolves
+    ↓
+Continue execution
+```
+
+**ES Module:**
+
+```text
+Start module
+    ↓
+Top-level await
+    ↓
+Module pauses
+    ↓
+Promise resolves
+    ↓
+Module continues
+```
+
+The ES module pauses at the `await` until the Promise settles. Modules that depend on it may also have to wait.
+
+### Node.js configuration
+
+```json
+{
+  "type": "module"
+}
+```
+
+This makes `.js` files in that package **ES Modules**.
+
+```text
+.cjs → CommonJS
+.mjs → ES Module
+```
+
+### Easy way to remember
+
+```text
+CommonJS
+→ require()
+→ module.exports
+→ __dirname
+→ __filename
+→ no top-level await
+
+ES Modules
+→ import
+→ export
+→ import.meta.url
+→ top-level await
+→ static imports
+→ better suited for tree shaking
+```
+
+**`__dirname` → "Which folder is this file in?"**
+
+**`__filename` → "What is the complete path of this file?"**
+
+Both are **absolute filesystem paths** in CommonJS.
+
+
+
+Configuration	Meaning
+"module": "CommonJS"	Use CommonJS
+"module": "ES2020"	Use standard ES modules
+"module": "ESNext"	Use latest ES module behavior
+"module": "Node16"	Follow Node 16 module rules
+"module": "NodeNext"	Follow modern/current Node.js module rules
+
+
+
+target → What JavaScript features should be generated?
+
+module → How should imports/exports work for Node.js?
+
+"module": "NodeNext"
+
+means:
+
+"Follow Node.js's rules for modules."
+
+
+
+login flow
+Client → POST /auth/login
+   ↓
+Find user by email
+   ↓
+User found?
+   ├── No → 401 Invalid credentials
+   │
+   └── Yes
+        ↓
+bcrypt.compare(password, user.password)
+        ↓
+Password valid?
+   ├── No → 401 Invalid credentials
+   │
+   └── Yes
+        ↓
+jwt.sign(
+  { userId, email },
+  SECRET,
+  { expiresIn: "15m" }
+)
+        ↓
+JWT generated
+        ↓
+Set token as HttpOnly + Secure cookie
+        ↓
+200 Login successful
+
+
+**Why JWT is called a "bearer" token**
+
+A bearer token means whoever holds it can use it — the server doesn't verify identity, only validity. It's not tied to *who* sends it, just *whether* it's valid.
+
+**1. Possession = access**
+
+The server only checks "Is this JWT valid?" — not who's holding it.
+
+- Legitimate user → JWT → API → ✅
+- Attacker with stolen JWT → same JWT → API → ✅ (still works)
+
+That's what "bearer" means: possession is enough.
+
+**2. What `HttpOnly` protects against**
+
+If the JWT is stored in an `HttpOnly` cookie, browser JavaScript (`document.cookie`) can't read it directly. This blocks XSS attacks from stealing the token via script injection.
+
+**3. What `HttpOnly` doesn't protect against**
+
+If a token is stolen another way (device compromise, network leak, etc.), `HttpOnly` doesn't help — the server has no way to know the token was stolen. It just sees a valid JWT and grants access.
+
+**4. Why short expiration matters**
+
+A short `expiresIn` (e.g. `"15m"`) limits the damage window. If a token is stolen at 10:00, it's only usable until 10:15 — after that it's dead regardless of who has it.
+
+**5. Logout has limits**
+
+Logout clears the cookie on the legitimate browser — but if an attacker already copied the token, it's still valid until it naturally expires. Clearing your own cookie doesn't invalidate the token elsewhere.
+
+**Key takeaway**
+
+- **Bearer token** = possession is sufficient to use it.
+                    (Bearer token = "if you have it, you can use it."
+
+The server doesn't check who you are — it only checks whether the token itself is valid. No extra proof of identity needed, just the token)
+- **HttpOnly** stops JS from *reading* the token — it doesn't stop a *stolen* token from being *used*.
+
+That gap is exactly what refresh tokens with rotation and reuse detection are designed to close later.
+
+# HttpOnly Cookie vs Bearer Token
+
+| | HttpOnly Cookie | Bearer Header |
+|---|---|---|
+| Token location | Cookie | `Authorization` header |
+| Sent automatically by browser | ✅ Yes | ❌ No |
+| Frontend must handle token value | ❌ No | ✅ Yes |
+| Visible in Network tab as | `Cookie: token=eyJ...` | `Authorization: Bearer eyJ...` |
+| Readable via `document.cookie` | ❌ No (blocked) | N/A |
+| Backend reads from | `req.cookies.token` | `req.headers.authorization` |
+| Uses `Bearer` keyword | ❌ No | ✅ Yes |
+| Who manages transport | Browser | Frontend code |
+
+## Note: Both are visible in the Network tab
+
+`HttpOnly` does **not** mean "hidden from Network tab." It only blocks JavaScript (`document.cookie`) from reading the cookie — it doesn't hide traffic from DevTools. A developer inspecting Request Headers can still see the full token either way, cookie or bearer.
+
+## Which one sends what
+
+- **Cookie approach:** you never manually attach the token — just use `credentials: "include"` and the browser does the rest.
+- **Bearer approach:** you must manually grab the token and attach it yourself on every request: `Authorization: Bearer <token>`.
+
+
+error flow 
+Request
+   ↓
+Route
+   ↓
+Controller
+   ↓
+Error occurs
+   ↓
+next(error)
+   ↓
+errorHandler
+   ↓
+Identify error
+   ├── AppError       → custom status
+   ├── ZodError       → 400
+   ├── Duplicate key  → 409
+   ├── Mongoose error → 400
+   ├── CastError      → 400
+   └── Unknown error  → 500
+   ↓
+JSON response
+
+My bad — here's the actual code, I dropped it by mistake:
+
+```typescript
+import "express";
+
+declare global {
+  namespace Express {
+    interface Request {
+      user: {
+        userId: string;
+      };
+    }
+  }
+}
+
+export {};
+```
+
+**Why this file is needed**
+
+This declaration file exists only because we added a custom `user` property to Express's `req` object.
+
+Normally Express knows:
+```
+req.body
+req.params
+req.query
+req.headers
+```
+
+But it does not know:
+```
+req.user
+```
+because `user` is not a standard Express property.
+
+**Without this**
+
+You write:
+```ts
+req.user.userId
+```
+
+TypeScript says:
+```
+Property 'user' does not exist on type 'Request'
+```
+
+**With this**
+
+```ts
+interface Request {
+  user: {
+    userId: string;
+  };
+}
+```
+
+TypeScript now understands:
+```
+req.user.userId
+       ↓
+     string
+```
+
+**Why do we need `declare global`?**
+
+Because you're telling TypeScript: "Extend the existing Express `Request` interface with my application's custom property."
+
+You're not creating a new request object. You're extending the existing one:
+
+```
+Express Request
+     │
+     ├── body
+     ├── params
+     ├── query
+     ├── headers
+     │
+     └── user       ← your custom property
+           └── userId
+```
+

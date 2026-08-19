@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mongoose — Indexes &amp; Interview Q&amp;A</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+@media (max-width: 768px) { .container { width: 100%; max-width: 100%; margin: 20px 0 40px; } }
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#ecfeff,#cffafe); color:#0e7490; } .summary-orange .summary-text strong { color:#0891b2; }
+.summary-rose   { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#9f1239; } .summary-rose .summary-text strong { color:#e11d48; }
+.summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple .summary-text strong { color:#7c3aed; }
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+code, .token { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; font-size: 0.88em; background: rgba(0,0,0,0.06); padding: 2px 7px; border-radius: 5px; color: #4338ca; }
+pre { background: #0d1117; border: 1px solid #2d3a4f; border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; margin: 14px 0; color: #e6edf3; }
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#d4d4d4; font-size:14.5px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; } .ty { color:#67e8f9; } .pl { color:#e2e8f0; }
+.output-block { background:#0f172a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.output-bar { background:#0b1220; padding:6px 14px; font-size:11px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; color:#64748b; border-bottom:1px solid #1e293b; }
+.output-block pre { padding:16px 18px; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; overflow-x:auto; white-space:pre; margin:0; border:none; border-radius:0; background:transparent; }
+.flow { display:flex; flex-direction:column; align-items:center; gap:0; margin:16px 0; font-size:0.95rem; background:#1a2332; border-radius:14px; padding:24px 20px; }
+.flow-step { background:#243044; border:1px solid #34435c; border-radius:10px; padding:11px 20px; text-align:center; min-width:200px; max-width:420px; color:#e7ecf3; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.25); }
+.flow-arrow { color:#60a5fa; font-size:1.3rem; line-height:1.4; user-select:none; }
+.flow-row { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin:16px 0; background:#1a2332; border-radius:14px; padding:22px 20px; }
+.flow-row .flow-step { min-width:150px; }
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box { background:#fff; border-radius:14px; padding:18px 20px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.05); }
+.compare-box.bad { border-left:5px solid #e11d48; }
+.compare-box.good { border-left:5px solid #059669; }
+.compare-box h4 { font-size:15px; margin-bottom:10px; font-weight:800; }
+.compare-box.bad h4 { color:#be123c; }
+.compare-box.good h4 { color:#047857; }
+.compare-box p { margin:8px 0 0; font-size:0.85rem; }
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-title .stars { margin-left:auto; color:#f59e0b; font-size:13px; letter-spacing:1px; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:15px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table td { padding:13px 20px; font-size:14.5px; font-weight:600; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-size:13.5px; }
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+.qa-answer .code-block code { background:none; padding:0; color:#d4d4d4; font-weight:400; }
+.qa-group-title { font-size:16px; font-weight:800; color:var(--heading); margin: 6px 0 -6px; }
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+@media (max-width:768px) { .header h1 { font-size:26px; } .toc a { padding:6px 12px; font-size:12px; } }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header theme-blue">
+      <h1>Mongoose — Indexes &amp; Interview Q&amp;A</h1>
+      <p>Interview notes — simple, compound, sparse, TTL and text indexes, with explain() output at each step.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">Simple &amp; Compound Indexes</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">Sparse, TTL &amp; Text Indexes</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">Performance &amp; Maintenance</a>
+        <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-tip"><strong>💡 Important framing:</strong> An index turns a full collection scan (COLLSCAN) into a targeted lookup (IXSCAN) — but every index also has a write-time cost, so index what you query, not everything you have.</div>
+
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">📇</div>
+          <div class="summary-text"><strong>Index:</strong> A sorted data structure (B-tree) MongoDB maintains on a field so lookups are O(log n) instead of a full scan.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🔗</div>
+          <div class="summary-text"><strong>Compound Index:</strong> An index across multiple fields together — only usable when the query includes the leading field.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🕳️</div>
+          <div class="summary-text"><strong>Sparse Index:</strong> Only indexes documents where the field actually exists — skips null/missing values.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">⏳</div>
+          <div class="summary-text"><strong>TTL Index:</strong> Auto-deletes documents a set number of seconds after a Date field — no cron job needed.</div>
+        </div>
+        <div class="summary-item summary-rose">
+          <div class="summary-icon">🔤</div>
+          <div class="summary-text"><strong>Text Index:</strong> Enables full-text <code>$text</code> search with stemming and relevance scoring — only one per collection.</div>
+        </div>
+        <div class="summary-item summary-purple">
+          <div class="summary-icon">🔍</div>
+          <div class="summary-text"><strong>explain():</strong> Shows whether MongoDB used <code>IXSCAN</code> (index) or <code>COLLSCAN</code> (full scan) for a query.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1: SIMPLE & COMPOUND ==================== -->
+    <div class="section-divider" id="s1"><span>1. Simple &amp; Compound Indexes</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>Why Indexes Matter</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Indexes make queries faster by letting MongoDB find documents without scanning the entire collection. Without an index on a queried field, MongoDB does a full collection scan — slow on large data.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">indexes on schema fields</span></div>
+          <pre><code><span class="kw">const</span> userSchema = <span class="kw">new</span> <span class="ty">Schema</span>({
+  email:    { type: <span class="ty">String</span>, unique: <span class="kw">true</span>, index: <span class="kw">true</span> },  <span class="cmt">// simple index</span>
+  username: { type: <span class="ty">String</span>, index: <span class="kw">true</span> },
+  phone:    { type: <span class="ty">String</span>, sparse: <span class="kw">true</span>, index: <span class="kw">true</span> }
+})
+
+<span class="cmt">// compound index — defined at schema level</span>
+userSchema.<span class="fn">index</span>({ role: <span class="num">1</span>, createdAt: <span class="num">-1</span> })
+
+<span class="cmt">// text index — for full-text search</span>
+postSchema.<span class="fn">index</span>({ title: <span class="str">'text'</span>, body: <span class="str">'text'</span> })
+
+<span class="cmt">// TTL index — auto-delete after N seconds</span>
+sessionSchema.<span class="fn">index</span>({ createdAt: <span class="num">1</span> }, { expireAfterSeconds: <span class="num">3600</span> })</code></pre>
+        </div>
+        <div class="info-box box-tip">💡 <code>1</code> = ascending, <code>-1</code> = descending. Direction matters for compound indexes depending on query and sort patterns.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Simple Index — B-Tree Lookup</h4></div>
+      <div class="card-sub-content">
+        <p>An index on a single field. MongoDB maintains a sorted B-tree for that field so lookups are O(log n) instead of O(n).</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">simple index — query + explain</span></div>
+          <pre><code><span class="kw">const</span> userSchema = <span class="kw">new</span> <span class="ty">Schema</span>({ email: { type: <span class="ty">String</span>, index: <span class="kw">true</span> } })
+
+<span class="kw">await</span> User.<span class="fn">findOne</span>({ email: <span class="str">'john@example.com'</span> }).<span class="fn">explain</span>(<span class="str">'executionStats'</span>)</code></pre>
+        </div>
+        <div class="output-block">
+          <div class="output-bar">explain() output</div>
+          <pre>winningPlan: { stage: 'FETCH', inputStage: { stage: 'IXSCAN' } }
+executionStats: { totalDocsExamined: 1, totalKeysExamined: 1 }  ← only 1 doc scanned</pre>
+        </div>
+        <div class="flow">
+          <div class="flow-step" style="border-color:#f87171;color:#fca5a5">Without index (COLLSCAN) → scans all 1,000,000 docs → slow</div>
+          <div class="flow-arrow">vs</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">With index (IXSCAN) → scans exactly 1 doc → fast</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Compound Index — the ESR Rule</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">compound index behavior</span></div>
+          <pre><code>userSchema.<span class="fn">index</span>({ role: <span class="num">1</span>, createdAt: <span class="num">-1</span> })
+
+<span class="cmt">// ✅ uses index — leading field 'role' present</span>
+<span class="kw">await</span> User.<span class="fn">find</span>({ role: <span class="str">'admin'</span> })
+
+<span class="cmt">// ✅ uses index — both fields present</span>
+<span class="kw">await</span> User.<span class="fn">find</span>({ role: <span class="str">'admin'</span> }).<span class="fn">sort</span>({ createdAt: <span class="num">-1</span> })
+
+<span class="cmt">// ❌ does NOT use index — createdAt alone, not the leading field</span>
+<span class="kw">await</span> User.<span class="fn">find</span>({}).<span class="fn">sort</span>({ createdAt: <span class="num">-1</span> })</code></pre>
+        </div>
+        <table>
+          <tr><th>Query</th><th>Uses index?</th></tr>
+          <tr><td><code>{ role }</code></td><td>✅ IXSCAN</td></tr>
+          <tr><td><code>{ role, createdAt }</code></td><td>✅ IXSCAN</td></tr>
+          <tr><td><code>{ createdAt }</code> alone</td><td>❌ COLLSCAN</td></tr>
+        </table>
+        <div class="info-box box-benefit">✅ <strong>ESR rule:</strong> put <strong>E</strong>quality fields first, <strong>S</strong>ort fields second, <strong>R</strong>ange fields last in compound indexes. Always put the most selective field first.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 2: SPARSE, TTL, TEXT ==================== -->
+    <div class="section-divider" id="s2"><span>2. Sparse, TTL &amp; Text Indexes</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>Sparse Index — Skip Missing Fields</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Only indexes documents where the field exists. Documents where it's <code>null</code> or missing are excluded from the index entirely.</p>
+        <div class="compare">
+          <div class="compare-box bad">
+            <h4>❌ Without sparse</h4>
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">problem</span></div>
+              <pre><code>phone: { type: <span class="ty">String</span>, unique: <span class="kw">true</span> }
+
+<span class="kw">await</span> User.<span class="fn">create</span>({ name: <span class="str">'Alice'</span> }) <span class="cmt">// phone = null</span>
+<span class="kw">await</span> User.<span class="fn">create</span>({ name: <span class="str">'Bob'</span> })   <span class="cmt">// phone = null</span></code></pre>
+            </div>
+            <p>Throws <code>E11000 duplicate key error</code> — <code>null</code> is treated as a duplicate value.</p>
+          </div>
+          <div class="compare-box good">
+            <h4>✅ With sparse: true</h4>
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">solution</span></div>
+              <pre><code>phone: { type: <span class="ty">String</span>, unique: <span class="kw">true</span>, sparse: <span class="kw">true</span> }
+
+<span class="kw">await</span> User.<span class="fn">create</span>({ name: <span class="str">'Alice'</span> }) <span class="cmt">// ✅ not indexed</span>
+<span class="kw">await</span> User.<span class="fn">create</span>({ name: <span class="str">'Bob'</span> })   <span class="cmt">// ✅ not indexed</span></code></pre>
+            </div>
+            <p>Both succeed — only documents with a real <code>phone</code> value participate in the unique index.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>TTL Index — Auto-Expiry</h4></div>
+      <div class="card-sub-content">
+        <p>Auto-deletes documents after a specified number of seconds from a <code>Date</code> field. Perfect for sessions, OTP tokens, password-reset links.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">TTL index — OTP expires in 5 min</span></div>
+          <pre><code><span class="kw">const</span> otpSchema = <span class="kw">new</span> <span class="ty">Schema</span>({
+  email: <span class="ty">String</span>, otp: <span class="ty">String</span>,
+  createdAt: { type: <span class="ty">Date</span>, default: <span class="ty">Date</span>.<span class="fn">now</span> }
+})
+otpSchema.<span class="fn">index</span>({ createdAt: <span class="num">1</span> }, { expireAfterSeconds: <span class="num">300</span> })</code></pre>
+        </div>
+        <div class="flow">
+          <div class="flow-step">10:00:00 → OTP created</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">10:05:00 → TTL fires (background task, ~every 60s)</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">findOne() → null, document auto-deleted</div>
+        </div>
+        <div class="info-box box-warning">⚠️ TTL deletion isn't instant — MongoDB's background task runs roughly every 60 seconds, so documents may persist briefly past their exact expiry time.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Text Index — Full-Text Search</h4></div>
+      <div class="card-sub-content">
+        <p>Lets you search string content with the <code>$text</code> operator — supports stemming, stop words, and relevance scoring across multiple fields.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">text index — query with score</span></div>
+          <pre><code>postSchema.<span class="fn">index</span>({ title: <span class="str">'text'</span>, body: <span class="str">'text'</span> })
+
+<span class="kw">const</span> results = <span class="kw">await</span> Post.<span class="fn">find</span>(
+  { $text: { $search: <span class="str">'mongoose schema'</span> } },
+  { score: { $meta: <span class="str">'textScore'</span> } }
+).<span class="fn">sort</span>({ score: { $meta: <span class="str">'textScore'</span> } })
+
+<span class="cmt">// exclude a word</span>
+<span class="kw">await</span> Post.<span class="fn">find</span>({ $text: { $search: <span class="str">'mongoose -schema'</span> } })</code></pre>
+        </div>
+        <div class="output-block">
+          <div class="output-bar">Query result, sorted by relevance</div>
+          <pre>[
+  { title: 'Mongoose Schema Guide',    score: 2.5  },
+  { title: 'MongoDB Basics',           score: 0.75 },
+  { title: 'Node.js with Mongoose',    score: 0.5  }
+]</pre>
+        </div>
+        <div class="info-box box-tip">💡 Only <strong>one text index</strong> is allowed per collection. To search multiple fields, put them all in the same text index definition.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 3: PERFORMANCE & MAINTENANCE ==================== -->
+    <div class="section-divider" id="s3"><span>3. Performance &amp; Maintenance</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>COLLSCAN vs IXSCAN — Full Comparison</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">explain() side by side</span></div>
+          <pre><code><span class="cmt">// ❌ NO INDEX on 'email' — full collection scan</span>
+<span class="kw">await</span> User.<span class="fn">findOne</span>({ email: <span class="str">'john@gmail.com'</span> }).<span class="fn">explain</span>(<span class="str">'executionStats'</span>)</code></pre>
+        </div>
+        <div class="output-block">
+          <div class="output-bar">Without index</div>
+          <pre>winningPlan: { stage: 'COLLSCAN' }
+executionStats: { totalDocsExamined: 100000, executionTimeMillis: 340 }</pre>
+        </div>
+        <div class="output-block">
+          <div class="output-bar">With index</div>
+          <pre>winningPlan: { stage: 'FETCH', inputStage: { stage: 'IXSCAN', keyPattern: { email: 1 } } }
+executionStats: { totalDocsExamined: 1, executionTimeMillis: 1 }  ← 340x faster</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Listing &amp; Dropping Indexes</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">inspecting indexes</span></div>
+          <pre><code><span class="kw">const</span> indexes = <span class="kw">await</span> User.collection.<span class="fn">getIndexes</span>()
+console.<span class="fn">log</span>(indexes)
+
+<span class="cmt">// drop a specific index</span>
+<span class="kw">await</span> User.collection.<span class="fn">dropIndex</span>(<span class="str">'username_1'</span>)</code></pre>
+        </div>
+        <div class="output-block">
+          <div class="output-bar">getIndexes() output</div>
+          <pre>{
+  '_id_':                { key: { _id: 1 }, name: '_id_' },
+  'email_1':              { key: { email: 1 }, name: 'email_1', unique: true },
+  'role_1_createdAt_-1':  { key: { role: 1, createdAt: -1 } },
+  'phone_1':              { key: { phone: 1 }, sparse: true }
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>Why Too Many Indexes Slow Down Writes</h4></div>
+      <div class="card-sub-content">
+        <p>Every index is a separate B-tree MongoDB must keep in sync. On every insert, update, or delete, MongoDB must update <em>all</em> indexes on that collection — more indexes means more write work per document change.</p>
+        <div class="flow">
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">1 index → 1 doc write + 2 index updates (fast)</div>
+          <div class="flow-arrow">vs</div>
+          <div class="flow-step" style="border-color:#f87171;color:#fca5a5">6 indexes → 1 doc write + 7 index updates (3–4x slower)</div>
+        </div>
+        <div class="info-box box-warning">⚠️ <strong>Rule of thumb:</strong> index what you query, not every field you have.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="qa"><span>Interview Q&amp;A</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-group-title">Standard Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is the difference between a Mongoose Schema and a Model?</div>
+          <div class="qa-answer">A Schema is the blueprint — field types, validation rules, defaults, methods — with no DB interaction on its own. A Model is the compiled version of a schema, the class you use for CRUD operations (<code>User.find()</code>, <code>User.create()</code>).</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why is <code>unique: true</code> not a Mongoose validator?</div>
+          <div class="qa-answer">It tells Mongoose to create a MongoDB unique index — handled at the database level, not by Mongoose's validation pipeline. A duplicate insert throws a MongoServerError with code 11000, not a ValidationError, so it needs its own check.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between <code>minlength</code> and <code>min</code>?</div>
+          <div class="qa-answer"><code>minlength</code>/<code>maxlength</code> are String validators checking character count. <code>min</code>/<code>max</code> are Number validators checking numeric value — mixing them up on the wrong type won't behave as expected.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is a sparse index and why is it needed?</div>
+          <div class="qa-answer">A sparse index only indexes documents where the field exists (not null/undefined). Without it, a <code>unique</code> index on an optional field fails once two documents both have <code>null</code>, since <code>null</code> is treated as a value subject to the unique constraint.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is the difference between embedded documents and references (<code>ref</code>)?</div>
+          <div class="qa-answer">Embedded data lives inside the parent — faster reads (one query) but duplicated if reused elsewhere; good for data that always belongs to one parent. A reference stores only an ObjectId and needs <code>populate()</code> to join — better for shared or large data.</div>
+        </div>
+
+        <div class="qa-group-title">Tricky / Follow-Up Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">What happens internally when you run a query without an index vs with one?</div>
+          <div class="qa-answer">Without an index, MongoDB does a COLLSCAN (collection scan), reading every document. With an index, it does an IXSCAN (index scan), reading only matching entries. <code>explain('executionStats')</code> shows <code>totalDocsExamined</code> dropping from the full collection size down to just the matches.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Does a compound index <code>{ role: 1, createdAt: -1 }</code> help a query on <code>createdAt</code> alone?</div>
+          <div class="qa-answer">No — a compound index can only be used when the query includes the leading field (<code>role</code>). Querying on <code>createdAt</code> alone results in a COLLSCAN, since the index can't be entered without its leading key.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Is TTL deletion instant the moment a document expires?</div>
+          <div class="qa-answer">No. MongoDB runs a background task roughly every 60 seconds to sweep expired documents, so a document may persist for up to about a minute past its exact TTL expiry before actually being removed.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Can you have more than one text index per collection?</div>
+          <div class="qa-answer">No — MongoDB allows only one text index per collection. To search across multiple fields, include all of them in that single text index definition, e.g. <code>{ title: 'text', body: 'text', tags: 'text' }</code>.</div>
+        </div>
+
+        <div class="qa-group-title">Frequently Asked</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why does adding too many indexes slow down writes?</div>
+          <div class="qa-answer">Every index is a separate B-tree MongoDB must keep synchronized with the collection. Each insert, update, or delete has to update every index on that collection, so more indexes mean more write-time work per document change — index only what you actually query.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What does the ESR rule mean for compound indexes?</div>
+          <div class="qa-answer">Equality fields first, Sort fields second, Range fields last. Ordering a compound index this way maximizes how many query shapes it can serve efficiently, since MongoDB can only use the index's leading prefix of fields.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How would you check what indexes currently exist on a collection?</div>
+          <div class="qa-answer"><code>Model.collection.getIndexes()</code> lists every index with its key pattern and options (unique, sparse, etc.) — useful for debugging whether an expected index was actually created, and for cleaning up unused ones with <code>dropIndex()</code>.</div>
+        </div>
+
+        <div class="qa-group-title">Coding / Theoretical</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Write a schema for password-reset tokens that auto-expire after 15 minutes, and show how you'd verify the index worked.</div>
+          <div class="qa-answer">
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">models/ResetToken.ts</span></div>
+              <pre><code><span class="kw">import</span> <span class="pl">{ Schema, model }</span> <span class="kw">from</span> <span class="str">'mongoose'</span>
+
+<span class="kw">const</span> resetTokenSchema = <span class="kw">new</span> <span class="ty">Schema</span>({
+  userId: { type: <span class="ty">Schema</span>.<span class="ty">Types</span>.<span class="ty">ObjectId</span>, ref: <span class="str">'User'</span>, required: <span class="kw">true</span> },
+  token: { type: <span class="ty">String</span>, required: <span class="kw">true</span> },
+  createdAt: { type: <span class="ty">Date</span>, default: <span class="ty">Date</span>.<span class="fn">now</span> }
+})
+
+resetTokenSchema.<span class="fn">index</span>({ createdAt: <span class="num">1</span> }, { expireAfterSeconds: <span class="num">900</span> }) <span class="cmt">// 15 min</span>
+
+<span class="kw">export const</span> <span class="ty">ResetToken</span> = <span class="fn">model</span>(<span class="str">'ResetToken'</span>, resetTokenSchema)
+
+<span class="cmt">// verify the index exists</span>
+<span class="kw">const</span> indexes = <span class="kw">await</span> <span class="ty">ResetToken</span>.collection.<span class="fn">getIndexes</span>()
+<span class="cmt">// { createdAt_1: { key: { createdAt: 1 }, expireAfterSeconds: 900 } }</span></code></pre>
+            </div>
+            <p style="margin-top:12px"><strong>Why this shape:</strong> <code>createdAt</code> defaults automatically to the moment of creation, and the TTL index needs no application code to enforce expiry — MongoDB's background sweep handles deletion on its own.</p>
+          </div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Explain, in three layers, why indexing strategy needs to balance reads and writes rather than just adding an index for every query.</div>
+          <div class="qa-answer">
+            Each layer trades off differently: a <strong>missing index</strong> on a frequently-queried field means every read is a COLLSCAN — correct but slow, and it gets worse as the collection grows. An <strong>index for every field</strong> fixes reads but means every write now updates one more B-tree, so insert/update/delete throughput degrades, especially on write-heavy collections. The right strategy is a <strong>small set of compound indexes shaped around actual query patterns</strong> (using the ESR rule) — this covers the read paths that matter while keeping the write-time index-maintenance cost bounded.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Mongoose — Indexes &amp; Interview Q&amp;A</footer>
+
+</body>
+</html>

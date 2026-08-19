@@ -1,0 +1,532 @@
+========================================================================
+JWT AUTHENTICATION PROJECT — FULL SOURCE CODE
+(Ordered by dependency: config → types → schema → model → db →
+ service → middleware → controller → route → error handler → app → server)
+========================================================================
+
+
+========================================================================
+FILE: tsconfig.json
+========================================================================
+
+{
+  "compilerOptions": {
+    /* Visit https://aka.ms/tsconfig to read more about this file */
+
+    /* Language and Environment */
+    "target": "es2020",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
+
+    /* Modules */
+    "module": "NodeNext",                                /* Specify what module code is generated. */
+    "rootDir": "./src",                                  /* Specify the root folder within your source files. */
+
+
+    "outDir": "./dist",                                   /* Specify an output folder for all emitted files. */
+
+    "esModuleInterop": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
+    // "preserveSymlinks": true,                         /* Disable resolving symlinks to their realpath. This correlates to the same flag in node. */
+    "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */
+
+    /* Type Checking */
+    "strict": true,                                      /* Enable all strict type-checking options. */
+
+    /* Completeness */
+    // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
+    "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
+  }
+}
+
+// NOTE: the original snippet had an unclosed comment —
+// "strict": true, /* Enable all strict type-checking options. *
+// (missing closing "/") — this would break JSON/JSONC parsing.
+// Fixed above by closing it properly: */
+
+
+========================================================================
+FILE: AppError.ts
+========================================================================
+(No internal dependencies — base custom error class used everywhere else.)
+
+export class AppError extends Error {
+  statusCode: number;
+
+  constructor(message: string, statusCode: number) {
+    super(message);
+
+    this.statusCode = statusCode;
+    this.name = "AppError";
+  }
+}
+
+
+========================================================================
+FILE: express.d.ts
+========================================================================
+(Type augmentation — extends Express's Request type so req.user is
+ recognized everywhere, needed before controllers/middleware reference it.)
+
+import "express";
+
+declare global {
+  namespace Express {
+    interface Request {
+      user: {
+        userId: string;
+      };
+    }
+  }
+}
+
+export {};
+
+
+========================================================================
+FILE: authSchema.ts
+========================================================================
+(Zod validation schemas — no dependency on models/services, but
+ service/controller layers depend on the types inferred here.)
+
+import {z} from "zod";
+
+export const registerSchema= z.object({
+    name:z.string().max(35),
+    password:z.string().min(8),
+    email:z.string().email().endsWith("@techmahindra.com"),
+
+})
+
+export const loginSchema=z.object({
+    email:z.string().endsWith("@techmahindra.com"),
+    password:z.string().min(8)
+})
+
+
+export type registerInput = z.infer<typeof registerSchema>;
+export type loginInput=z.infer<typeof loginSchema>;
+
+
+========================================================================
+FILE: usersModal.ts
+========================================================================
+(Mongoose model — depends only on argon2 for the pre-save hash hook.)
+
+import {model,Schema,InferSchemaType} from "mongoose";
+import argon2 from "argon2";
+
+// email, password, name, timestamps + unique index on email).
+
+const userSchema=new Schema({
+    name:{
+        type:String,
+        maxlength:35,
+        required:true
+    },
+    password:{
+        type:String,
+        required:true
+    },
+    email:{
+        required:true,
+        type:String,
+        unique:true,
+        trim:true,
+        lowercase:true,
+        validate:{
+            validator(value:string){
+                return /^[^\s@]+@techmahindra\.com$/.test(value);
+            },
+            message:"Please enter techmahindra domain email"
+        }
+    }
+},{timestamps:true});
+
+
+userSchema.pre("save", async function  (next) {
+    if(!this.isModified("password")){
+        return 
+    }
+    this.password= await argon2.hash(this.password);
+})
+
+
+export type User = InferSchemaType<typeof userSchema>
+
+
+const userModel=model<User>("User",userSchema);
+
+export default userModel;
+
+
+========================================================================
+FILE: connection.ts
+========================================================================
+(MongoDB connection helper — independent, but conceptually sits right
+ after the model since it's what the model relies on to actually work.)
+
+import mongoose from "mongoose";
+
+
+const connectDB =async()=>{
+    try{
+        const dbUrl=process.env.DB;
+        if(!dbUrl)throw new Error("connection string not found");
+        await mongoose.connect(dbUrl);
+        console.log("db connected");
+    }
+    catch(err){
+        console.log(err);
+        process.exit(0);
+    }
+}
+
+export default connectDB ;
+
+
+========================================================================
+FILE: authService.ts
+========================================================================
+(Business logic layer — depends on: usersModal.ts, authSchema.ts,
+ AppError.ts. Used by authController.ts.)
+
+import userModel from "./usersModal.js";
+import { registerInput, loginInput } from "./authSchema.js";
+import argon2 from "argon2";
+import jwt from "jsonwebtoken";
+import { AppError } from "./AppError.js";
+
+export const registerUser = async (userData: registerInput) => {
+  const existingUser = await userModel.findOne({ email: userData.email });
+
+  if (existingUser) {
+    throw new AppError("User already exists", 409);
+  }
+
+  const hashedPassword = await argon2.hash(userData.password);
+
+  const savedUser = await userModel.create({
+    ...userData,
+    password: hashedPassword,
+  });
+
+  if (!savedUser) {
+    throw new AppError("Failed to create user", 500);
+  }
+
+  return savedUser;
+};
+
+export const loginUser = async (loginData: loginInput) => {
+  const existingUser = await userModel
+    .findOne({ email: loginData.email })
+    .select("+password");
+
+  if (!existingUser) {
+    throw new AppError("User doesn't exist", 404);
+  }
+
+  const isValidPassword = await argon2.verify(
+    existingUser.password,
+    loginData.password
+  );
+
+  if (!isValidPassword) {
+    throw new AppError("Invalid credentials", 401);
+  }
+
+  const SECRET = process.env.JWT_SECRET;
+  if (!SECRET) {
+    throw new AppError("Server configuration error", 500);
+  }
+
+  const token = jwt.sign(
+    { email: existingUser.email, name: existingUser.name, userId:existingUser._id, },
+    SECRET,
+    { expiresIn: "15m" }
+  );
+
+  return token;
+};
+
+
+export const getProfileDetails=async(userId:string)=>{
+    const user= await userModel.find({_id:userId},{password:0}).lean();
+    if(!user) throw new Error("user not found");
+    return user;
+
+
+}
+
+// ## What changed
+
+// | Issue | Fix |
+// |---|---|
+// | Password never hashed before `userModel.create()` | Added `argon2.hash()` before saving — otherwise you're storing plaintext passwords, and `argon2.verify()` on login would always fail |
+// | Mixed `throw new Error(...)` and `throw new AppError(...)` | Standardized on `AppError` everywhere so your `errorHandler` gives correct status codes instead of falling to `500` |
+// | `"fat gya"` | Replaced with a real message: `"Failed to create user"` |
+// | `"User already exists"` had no status code (defaulted to `500` via generic `Error`) | Now `AppError(..., 409)` — Conflict is the correct status |
+// | `"Invalid User!"` on wrong password had no status code | Now `AppError(..., 401)` — Unauthorized |
+// | `expiresIn: "15min"` — **invalid** jsonwebtoken format, would throw at runtime | Fixed to `"15m"` |
+// | `checkUserExit.password` might be `undefined` if your schema has `select: false` on password | Added `.select("+password")` to explicitly include it |
+// | Parameter named `loginUser` shadowing the function name `loginUser` | Renamed to `loginData` |
+// | Generic `Error` for missing `JWT_SECRET` | Now `AppError(..., 500)` for consistency |
+
+// **One thing to verify:** check your `usersModal.js` schema — if `password` has `select: false`, the `.select("+password")` fix above is required or `existingUser.password` will be `undefined` and `argon2.verify()` will throw.
+
+
+========================================================================
+FILE: authMiddleware.ts
+========================================================================
+(Authorization middleware — depends on express.d.ts's Request.user
+ augmentation. Used by authRoute.ts.)
+
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+
+interface JwtPayload {
+  userId: string;
+}
+
+export const authMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const token = req.cookies.token;
+
+  if (!token) {
+    return res.status(401).json({
+      message: "Authentication required",
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET!
+    ) as JwtPayload;
+
+    if(!decoded.userId) throw new Error("invalid token")
+
+    req.user = {
+      userId: decoded.userId,
+    };
+
+    next();
+  } catch {
+    return res.status(401).json({
+      message: "Invalid or expired token",
+    });
+  }
+};
+
+
+========================================================================
+FILE: authController.ts
+========================================================================
+(Controller layer — depends on authSchema.ts and authService.ts.
+ Used by authRoute.ts.)
+
+import { Request, Response, NextFunction } from "express";
+import { loginSchema, registerSchema } from "./authSchema.js";
+import { getProfileDetails, loginUser, registerUser } from "./authService.js";
+
+export const registerController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const requestData = registerSchema.parse(req.body);
+    await registerUser(requestData);
+    res.status(201).json({ message: "User created successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const loginController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const loginData = loginSchema.parse(req.body);
+    const token = await loginUser(loginData);
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+    });
+
+    res.status(200).json({ message: "User logged in successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+export const getUserController=async(req:Request,res:Response,next:NextFunction)=>{
+    try{
+    const userId:string=req.user.userId;
+    if(!userId) throw new Error("userid is missing");
+    const userData=await getProfileDetails(userId);
+     res.status(200).json({ data:userData, message: "User logged in successfully" });
+
+    }
+    catch(err){
+        next(err)
+    }
+
+}
+
+
+
+export const logoutController = (
+  req: Request,
+  res: Response
+) => {
+  res.clearCookie("token");
+
+  res.status(200).json({
+    message: "Logout successful",
+  });
+};
+
+// ## What changed
+
+// | Issue | Fix |
+// |---|---|
+// | `registerController` caught `ZodError` manually instead of using `errorHandler` | Now just `next(err)` — centralized handler covers `ZodError`, `AppError`, unknown errors consistently |
+// | `res.status(400).json(err.message)` — wrong status for unknown errors, `err` typed as `unknown` (would error in strict TS) | Removed — unknown errors now flow to `errorHandler`'s `500` fallback |
+// | `loginUser(req.body)` — used raw body instead of validated `loginData` | Now uses the Zod-parsed `loginData` |
+// | `res.status(200)` on create | Changed to `201 Created`, correct REST status for resource creation |
+// | Unused imports (`express` default, `userModel`, `ZodError`) | Removed |
+// | Inconsiimport { getUserController } from './authController';
+// stent error handling between the two controllers | Both now use `next(err)` uniformly |
+
+// **Note:** since both controllers now rely on `next(err)`, make sure your `errorHandler` is registered last in `app.ts`, as discussed earlier — that's what will actually catch and format these errors instead of falling through to Express's default HTML error page.
+
+
+========================================================================
+FILE: authRoute.ts
+========================================================================
+(Route wiring — depends on authController.ts and authMiddleware.ts.
+ Used by app.ts.)
+
+import express from "express";
+import { getUserController,loginController,logoutController,registerController } from "./authController.js";
+import { authMiddleware } from "./authMiddleware.js";
+
+const router=express.Router();
+
+
+router.post("/register",registerController);
+
+router.post("/login",loginController);
+
+router.get("/get/me", authMiddleware ,getUserController);
+
+router.post("/logout", logoutController);
+
+export default router;
+
+
+========================================================================
+FILE: errorHandlers.ts
+========================================================================
+(Centralized error handler — depends on AppError.ts and zod's ZodError.
+ Registered last in server.ts, after all routes.)
+
+import type { Request, Response, NextFunction } from "express";
+import { ZodError } from "zod";
+import  {AppError} from "./AppError.js";
+
+export const errorHandler = (
+  err: unknown,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  // 1. Custom application error
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+    });
+  }
+
+  // 2. Zod validation error
+  if (err instanceof ZodError) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed",
+      errors: err.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      })),
+    });
+  }
+
+  // 3. Unknown/unexpected error
+  return res.status(500).json({
+    success: false,
+    message: "Internal server error",
+  });
+};
+
+
+========================================================================
+FILE: app.ts
+========================================================================
+(Express app assembly — depends on authRoute.ts. Exports the
+ configured app object; does not start listening.)
+
+import express from "express";
+import authRouter from "./authRoute.js";
+import cookieParser from 'cookie-parser'
+import helmet from "helmet";
+
+const app=express();
+app.use(express.json());
+app.use(cookieParser())
+app.use(helmet())
+
+app.use("/",authRouter);
+
+
+
+
+
+
+export default app;
+
+
+========================================================================
+FILE: server.ts
+========================================================================
+(Entry point — imports app.ts, connection.ts, errorHandlers.ts.
+ Connects to DB, registers the error handler, starts listening.)
+
+import dotenv from "dotenv"
+import app from './app.js';
+import connectDB from "./connection.js";
+import { errorHandler } from "./errorHandlers.js";
+dotenv.config();
+const port=process.env.PORT
+
+connectDB();
+
+app.use(errorHandler);
+
+
+
+app.listen(port,()=>{
+    console.log("server is listing on port",port);
+})
+
+
+========================================================================
+END OF FILE
+========================================================================

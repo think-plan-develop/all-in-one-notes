@@ -1,379 +1,557 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Password Hashing — Interview Notes</title>
-  <style>
-    :root, [data-theme="dark"] {
-      --primary: #3b82f6; --primary-dark: #1e3a8a; --accent: #10b981; --accent-dark: #065f46;
-      --success: #34d399; --warning: #fbbf24; --danger: #f87171;
-      --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --muted: #cbd5e1; --border: #334155;
-      --code-bg: #0d1117; --code-text: #e6edf3; --code-comment: #94a3b8;
-      --code-keyword: #c792ea; --code-string: #c3e88d; --code-func: #82aaff; --code-number: #f78c6c;
-      --toggle-bg: #475569; --toggle-knob: #f1f5f9; --shadow: rgba(0,0,0,0.35);
-      --example-bg: rgba(59,130,246,0.1); --tag-bg: rgba(59,130,246,0.15);
-      --memory-bg: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(16,185,129,0.12));
-      --oneliner-bg: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(16,185,129,0.15));
-      --table-header-bg: rgba(30,58,138,0.5); --check-bg: rgba(16,185,129,0.12); --check-border: rgba(16,185,129,0.3);
-      --hover-bg: rgba(16,185,129,0.16); --hover-text: #5eead4; --hover-border: rgba(16,185,129,0.45);
-    }
-    [data-theme="light"] {
-      --primary: #2563eb; --primary-dark: #1e3a8a; --accent: #059669; --accent-dark: #065f46;
-      --success: #16a34a; --warning: #d97706; --danger: #dc2626;
-      --bg: #f6f7fb; --card: #ffffff; --text: #000000; --muted: #1a1a1a; --border: #e2e8f0;
-      --code-bg: #1a1a1a; --code-text: #d4d4d4; --code-comment: #7a7a7a;
-      --code-keyword: #c792ea; --code-string: #c3e88d; --code-func: #82aaff; --code-number: #f78c6c;
-      --toggle-bg: #cbd5e1; --toggle-knob: #ffffff; --shadow: rgba(37,99,235,0.1);
-      --example-bg: rgba(37,99,235,0.06); --tag-bg: rgba(37,99,235,0.1);
-      --memory-bg: linear-gradient(135deg, rgba(37,99,235,0.08), rgba(5,150,105,0.08));
-      --oneliner-bg: linear-gradient(135deg, rgba(37,99,235,0.1), rgba(5,150,105,0.1));
-      --table-header-bg: linear-gradient(120deg, #1e3a8a, #2563eb);
-      --check-bg: rgba(5,150,105,0.08); --check-border: rgba(5,150,105,0.25);
-      --hover-bg: rgba(5,150,105,0.1); --hover-text: #000000; --hover-border: rgba(5,150,105,0.35);
-    }
-    [data-theme="light"] body { font-weight: 500; }
-    [data-theme="light"] .card p, [data-theme="light"] .highlight, [data-theme="light"] .flow-step,
-    [data-theme="light"] td, [data-theme="light"] header p { color: #000; font-weight: 600; }
-    [data-theme="light"] .card strong, [data-theme="light"] .definition, [data-theme="light"] .section-title,
-    [data-theme="light"] .takeaway p, [data-theme="light"] .flow-step strong, [data-theme="light"] td:first-child,
-    [data-theme="light"] .checklist li { color: #000; font-weight: 700; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text);
-      line-height: 1.7; font-size: 16px; padding: 2rem 1rem; transition: background 0.3s, color 0.3s; -webkit-font-smoothing: antialiased; }
-    .container { max-width: 1100px; margin: 0 auto; }
-    .theme-toggle-wrapper { display: flex; justify-content: flex-end; margin-bottom: 1.5rem; }
-    .theme-toggle { display: flex; align-items: center; gap: 0.6rem; background: var(--card); border: 1px solid var(--border);
-      border-radius: 999px; padding: 0.4rem 0.75rem 0.4rem 0.9rem; cursor: pointer; font-size: 0.9rem; color: var(--muted);
-      transition: all 0.25s; box-shadow: 0 1px 3px var(--shadow); }
-    .theme-toggle:hover { border-color: var(--primary); color: var(--text); }
-    .theme-toggle .icon { font-size: 1.1rem; line-height: 1; }
-    .toggle-switch { width: 40px; height: 22px; background: var(--toggle-bg); border-radius: 999px; position: relative; transition: background 0.3s; }
-    .toggle-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: var(--toggle-knob);
-      border-radius: 50%; transition: transform 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-    [data-theme="light"] .toggle-switch::after { transform: translateX(18px); }
-    header { text-align: center; margin-bottom: 2.5rem; }
-    header h1 { font-size: 2.1rem; font-weight: 700; background: linear-gradient(135deg, var(--primary), var(--accent));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.5rem; }
-    header p { color: var(--muted); font-size: 1.1rem; font-weight: 450; }
-    .section { margin-bottom: 2.4rem; }
-    .section-title { display: flex; align-items: center; gap: 0.6rem; font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; color: var(--text); }
-    .section-title .num { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px;
-      background: linear-gradient(135deg, var(--primary), var(--accent)); color: #ecfdf5; border-radius: 8px; font-size: 0.85rem; font-weight: 700; flex-shrink: 0; padding: 0 6px; }
-    .card { background: var(--card); border-radius: 14px; padding: 1.4rem 1.5rem; border: 1px solid var(--border);
-      box-shadow: 0 4px 12px var(--shadow); transition: background 0.25s, border-color 0.25s, box-shadow 0.25s, transform 0.2s; }
-    .card p { 
-      color: var(--muted);
-       font-size: 1rem; 
-       font-weight: 450;
-        margin-bottom: 0.75rem;
-     }
-    .card p:last-child { margin-bottom: 0; }
-    .card strong { color: var(--text); font-weight: 600; }
-    .card.hoverable:hover { background: var(--hover-bg); border-color: var(--hover-border); box-shadow: 0 4px 14px rgba(16,185,129,0.12); transform: translateY(-1px); }
-    .card.hoverable:hover p, .card.hoverable:hover strong { font-weight: 650; color: var(--hover-text); }
-    .highlight { background: var(--example-bg); border-left: 3px solid var(--primary); border-radius: 0 10px 10px 0;
-      padding: 0.9rem 1.1rem; font-size: 0.98rem; font-weight: 450; margin: 1rem 0; color: var(--muted);
-      transition: background 0.25s, border-color 0.25s, color 0.25s; cursor: default; }
-    .highlight strong { color: var(--text); font-weight: 600; }
-    .highlight:hover { background: var(--hover-bg); border-color: var(--hover-border); color: var(--hover-text); }
-    .highlight:hover strong { color: var(--hover-text); }
-    .definition { background: var(--memory-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.05rem 1.3rem;
-      margin: 1rem 0; font-size: 1.02rem; font-weight: 550; color: var(--text);
-      transition: background 0.25s, border-color 0.25s, color 0.25s, transform 0.2s, box-shadow 0.25s; cursor: default; }
-    .definition::before { content: '📌 '; }
-    .definition:hover { background: var(--hover-bg); border-color: var(--hover-border); color: var(--hover-text); font-weight: 650;
-      box-shadow: 0 4px 14px rgba(16,185,129,0.12); transform: translateY(-1px); }
-    table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden;
-      border: 1px solid var(--border); box-shadow: 0 4px 12px var(--shadow); margin: 1rem 0; }
-    th, td { padding: 0.9rem 1.15rem; text-align: left; font-size: 0.95rem; }
-    th { background: var(--table-header-bg); font-weight: 650; color: #e0f2fe; }
-    [data-theme="dark"] th { background: rgba(30,58,138,0.6); }
-    td { border-top: 1px solid var(--border); color: var(--muted); font-weight: 450; }
-    td:first-child { color: var(--text); font-weight: 600; }
-    table tbody tr { transition: background 0.2s; }
-    table tbody tr:hover { background: var(--hover-bg); }
-    table tbody tr:hover td { color: var(--hover-text); }
-    pre { background: var(--code-bg); border-radius: 12px; padding: 1.2rem 1.3rem; overflow-x: auto; border: 1px solid var(--border);
-      font-size: 0.9rem; line-height: 1.6; margin: 1rem 0; }
-    code { font-family: 'Fira Code', Consolas, monospace; color: var(--code-text); }
-    .comment { color: var(--code-comment); } .keyword { color: var(--code-keyword); } .string { color: var(--code-string); }
-    .func { color: var(--code-func); } .number { color: var(--code-number); }
-    .inline-code { background: var(--tag-bg); padding: 0.15rem 0.45rem; border-radius: 5px;
-      font-family: 'Fira Code', Consolas, monospace; font-size: 0.85em; color: var(--primary); }
-    .flow { display: flex; flex-direction: column; gap: 0.35rem; margin: 1rem 0; }
-    .flow-step { display: flex; align-items: flex-start; gap: 0.75rem; background: var(--card); border: 1px solid var(--border);
-      border-radius: 10px; padding: 0.8rem 1.05rem; font-size: 0.96rem; font-weight: 450; color: var(--muted);
-      transition: background 0.25s, border-color 0.25s, color 0.25s, transform 0.2s; cursor: default; }
-    .flow-step .arrow { color: var(--primary); font-weight: 700; flex-shrink: 0; min-width: 1.2rem; }
-    .flow-step strong { color: var(--text); font-weight: 600; }
-    .flow-step:hover { background: var(--hover-bg); border-color: var(--hover-border); color: var(--hover-text); transform: translateX(3px); }
-    .flow-step:hover strong { color: var(--hover-text); }
-    .checklist { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
-    .checklist li { display: flex; align-items: flex-start; gap: 0.7rem; background: var(--check-bg); border: 1px solid var(--check-border);
-      border-radius: 10px; padding: 0.75rem 1.05rem; font-size: 0.97rem; font-weight: 500; color: var(--text);
-      transition: background 0.25s, border-color 0.25s, transform 0.2s, color 0.25s; cursor: default; }
-    .checklist li::before { content: '✓'; color: var(--accent); font-weight: 700; flex-shrink: 0; }
-    .checklist li:hover { background: var(--hover-bg); border-color: var(--hover-border); transform: translateX(3px); color: var(--hover-text); }
-    .takeaway { background: var(--oneliner-bg); border: 2px solid var(--primary); border-radius: 14px; padding: 1.5rem 1.6rem;
-      margin-top: 0.5rem; box-shadow: 0 4px 16px rgba(37,99,235,0.15); }
-    .takeaway h3 { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--primary); font-weight: 800; margin-bottom: 0.85rem; }
-    .takeaway p { font-size: 1.12rem; font-weight: 700; line-height: 1.7; color: var(--text); }
-    .mini-diagram { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 0.85rem;
-      margin: 1rem 0; box-shadow: 0 2px 10px var(--shadow); overflow-x: auto; display: flex; justify-content: center; }
-    .mini-diagram svg { display: block; max-width: 320px; width: 100%; height: auto; }
-    .svg-box { fill: var(--card); stroke-width: 2; }
-    .svg-title { fill: var(--text); font-weight: 650; font-size: 13px; }
-    .svg-sub { fill: var(--muted); font-size: 11.5px; font-weight: 500; }
-    .svg-label { fill: var(--muted); font-size: 11px; font-weight: 500; }
-    .svg-line { stroke: var(--muted); stroke-width: 2; }
-    .svg-badge-text { fill: #ecfdf5; font-weight: 700; font-size: 13px; }
-    .tag { display: inline-block; background: var(--tag-bg); padding: 0.2rem 0.55rem; border-radius: 6px;
-      font-size: 0.8rem; font-family: 'Fira Code', monospace; color: var(--primary); }
-    footer { text-align: center; margin-top: 3rem; color: var(--muted); font-size: 0.85rem; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Password Hashing — Interview Notes</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* THEME VARIABLES */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+
+/* HEADER */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* KEY TERMS SUMMARY */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#ecfeff,#cffafe); color:#0e7490; } .summary-orange .summary-text strong { color:#0891b2; }
+.summary-rose   { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#9f1239; } .summary-rose .summary-text strong { color:#e11d48; }
+.summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple .summary-text strong { color:#7c3aed; }
+
+/* SECTION DIVIDER */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* CODE / TOKEN */
+code, .token {
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+  font-size: 0.88em;
+  background: rgba(0,0,0,0.06);
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: #4338ca;
+}
+pre {
+  background: #0d1117;
+  border: 1px solid #2d3a4f;
+  border-radius: 10px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 14px 0;
+  color: #e6edf3;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+
+/* CODE BLOCK */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* OUTPUT BLOCK */
+.output-block { background:#0f172a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.output-bar { background:#0b1220; padding:6px 14px; font-size:11px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; color:#64748b; border-bottom:1px solid #1e293b; }
+.output-block pre { padding:16px 18px; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14.5px; overflow-x:auto; white-space:pre; margin:0; border:none; border-radius:0; background:transparent; }
+
+/* FLOW STEPS */
+.flow { display:flex; flex-direction:column; align-items:center; gap:0; margin:16px 0; font-size:0.95rem; background:#1a2332; border-radius:14px; padding:24px 20px; }
+.flow-step { background:#243044; border:1px solid #34435c; border-radius:10px; padding:11px 20px; text-align:center; min-width:200px; max-width:340px; color:#e7ecf3; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.25); }
+.flow-arrow { color:#60a5fa; font-size:1.3rem; line-height:1.4; user-select:none; }
+.flow-row { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin:16px 0; background:#1a2332; border-radius:14px; padding:22px 20px; }
+.flow-row .flow-step { min-width:150px; }
+.pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:0.78rem; font-weight:700; }
+.pill.short { background:#d1fae5; color:#065f46; }
+.pill.long { background:#fef3c7; color:#92400e; }
+.pill.danger { background:#fecdd3; color:#9f1239; }
+.pill.indigo { background:#e0e7ff; color:#3730a3; }
+
+/* INFO BOXES */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+
+/* COMPARE (good/bad) */
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box { background:#fff; border-radius:14px; padding:18px 20px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.05); }
+.compare-box.bad { border-left:5px solid #e11d48; }
+.compare-box.good { border-left:5px solid #059669; }
+.compare-box h4 { font-size:15px; margin-bottom:10px; font-weight:800; }
+.compare-box.bad h4 { color:#be123c; }
+.compare-box.good h4 { color:#047857; }
+.compare-box pre { font-size:0.78rem; margin:0; }
+.compare-box p { margin:8px 0 0; font-size:0.85rem; }
+
+/* SUBSECTIONS */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-title .stars { margin-left:auto; color:#f59e0b; font-size:13px; letter-spacing:1px; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + pre { margin-top:14px; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content pre:last-child,
+.card-sub-content .compare:last-child,
+.card-sub-content .flow:last-child,
+.card-sub-content .flow-row:last-child,
+.card-sub-content .header-grid:last-child { margin-bottom:0; }
+
+/* HEADER GRID */
+.header-grid { display:grid; grid-template-columns:1fr; gap:10px; margin:14px 0; }
+@media (min-width:600px) { .header-grid { grid-template-columns:1fr 1fr; } }
+.header-item { background:var(--content-bg,#eff6ff); border:1px solid rgba(var(--shadow-rgb,37,99,235),0.18); border-radius:10px; padding:12px 16px; font-size:14.5px; color:#333; }
+.header-item strong { display:block; color:var(--heading,#1e3a8a); font-size:14px; margin-bottom:4px; }
+
+/* TABLE */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:700; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.15); transition:background .15s ease; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+/* INTERVIEW Q&A */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+.qa-answer pre { margin: 10px 0 0; }
+.qa-answer .code-block code { background:none; padding:0; color:#d4d4d4; font-weight:400; }
+.qa-answer .code-block pre { margin:0; }
+.qa-answer:hover { background: #bfffea !important; }
+.qa-group-title { font-size:16px; font-weight:800; color:var(--heading); margin: 6px 0 -6px; }
+
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
 </head>
 <body>
   <div class="container">
-    <div class="theme-toggle-wrapper">
-      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
-        <span class="icon" id="themeIcon">🌙</span>
-        <span id="themeLabel">Dark</span>
-        <div class="toggle-switch"></div>
-      </button>
-    </div>
-    <header>
+
+    <!-- HEADER -->
+    <div class="header theme-blue">
       <h1>Password Hashing</h1>
-      <p>Interview notes — why, how, and the gotchas that matter</p>
-    </header>
-
-    <div class="section">
-      <h2 class="section-title"><span class="num">1</span> Why Password Hashing?</h2>
-      <div class="card hoverable">
-        <p>Never store a user's password as plain text (<span class="inline-code">password: "MyPassword123"</span>). If the database is ever compromised, the attacker gets every user's real password instantly.</p>
-        <p>Instead, the password is run through a <strong>hashing step</strong> before being saved:</p>
-        <div class="highlight"><span class="tag">$2b$12$N9qo8uLOickgx2ZMRZoMye........</span> — not the original password.</div>
+      <p>Interview notes — why we hash, how salt and cost factor work, and the gotchas that trip people up.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">Why Hashing &amp; Salt</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">bcrypt in Practice</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">Cost Factor &amp; Argon2id</a>
+        <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
       </div>
-      <div class="definition">Password hashing protects passwords if the database is compromised.</div>
     </div>
 
-    <div class="section">
-      <h2 class="section-title"><span class="num">2</span> Hashing vs Encryption</h2>
-      <table>
-        <thead><tr><th></th><th>Hashing</th><th>Encryption</th></tr></thead>
-        <tbody>
+    <div class="info-box box-tip"><strong>💡 Important framing:</strong> Understand what hashing actually does to a password and why each step exists — don't just memorize "bcrypt good, plaintext bad."</div>
+
+    <!-- KEY TERMS SUMMARY -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🔐</div>
+          <div class="summary-text"><strong>Hashing:</strong> A one-way transformation — a password goes in, a fixed-length hash comes out, and there is no way back.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🧂</div>
+          <div class="summary-text"><strong>Salt:</strong> Random data mixed in before hashing so identical passwords never produce identical hashes.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">⏳</div>
+          <div class="summary-text"><strong>Cost Factor:</strong> Controls how computationally expensive each hash is — deliberately slow to blunt brute-force attacks.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🔍</div>
+          <div class="summary-text"><strong>bcrypt.compare():</strong> Re-hashes the entered password with the stored salt and checks it against the stored hash.</div>
+        </div>
+        <div class="summary-item summary-rose">
+          <div class="summary-icon">🧱</div>
+          <div class="summary-text"><strong>Argon2id:</strong> A modern, memory-hard hashing algorithm — harder to crack at scale with GPUs/ASICs than bcrypt.</div>
+        </div>
+        <div class="summary-item summary-purple">
+          <div class="summary-icon">🎟️</div>
+          <div class="summary-text"><strong>JWT:</strong> Represents auth state after a successful login — never the password or hash itself.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1: WHY HASHING & SALT ==================== -->
+    <div class="section-divider" id="s1"><span>1. Why Password Hashing? &amp; Salt</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>Why Hash Passwords At All</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Never store a user's password as plain text. If the database is ever compromised, the attacker gets every user's real password instantly.</p>
+        <p>Instead, the password is run through a hashing step before being saved:</p>
+        <div class="output-block">
+          <div class="output-bar">Stored value</div>
+          <pre>$2b$12$N9qo8uLOickgx2ZMRZoMye........</pre>
+        </div>
+        <p>That string is <strong>not</strong> the original password — it can't be reversed back into it.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Hashing vs Encryption</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th></th><th>Hashing</th><th>Encryption</th></tr>
           <tr><td>Direction</td><td>One-way — cannot recover original</td><td>Reversible — decrypt with a key</td></tr>
           <tr><td>Used for</td><td>Passwords</td><td>Data that needs to be read again</td></tr>
-          <tr><td>Algorithms</td><td>bcrypt, Argon2id</td><td>AES, RSA</td></tr>
-        </tbody>
-      </table>
-      <div class="card" style="margin-top:1rem">
-        <p><strong>Hashing:</strong> Password → Hash function → Hash (no way back)</p>
-        <p><strong>Encryption:</strong> Data → Encrypt → Encrypted → Decrypt → Original</p>
-        <p>Passwords should be <strong>hashed, not encrypted</strong> — the app only needs to verify, never see the real password again.</p>
+          <tr><td>Algorithms</td><td><code>bcrypt</code>, <code>Argon2id</code></td><td><code>AES</code>, <code>RSA</code></td></tr>
+        </table>
+        <p>Passwords should be <strong>hashed, not encrypted</strong> — the app only ever needs to verify a password, never see the real one again.</p>
+        <div class="info-box box-warning"><strong>⚠️ Common mix-up:</strong> Hashing and encryption sound similar but solve different problems. Reaching for AES on a password field is a frequent interview trap.</div>
       </div>
     </div>
 
-    <div class="section">
-      <h2 class="section-title"><span class="num">3</span> Salt</h2>
-      <div class="card hoverable">
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Salt — Why Identical Passwords Get Different Hashes</h4></div>
+      <div class="card-sub-content">
         <p>A <strong>salt</strong> is random data mixed into the password before hashing, so two users with the same password get completely different stored hashes.</p>
         <p>This defeats <strong>rainbow table attacks</strong> — precomputed lookup tables of common password hashes.</p>
-      </div>
-      <div class="highlight">
-        Salt is <strong>not a secret</strong> — it's stored alongside the hash.<br>
-        With bcrypt you don't manage it yourself: <span class="inline-code">bcrypt.hash()</span> creates it automatically and bakes it into the returned string.
-      </div>
-      <div class="definition">Salt makes hashes unique even for identical passwords.</div>
-    </div>
-
-    <div class="section">
-      <h2 class="section-title"><span class="num">4</span> Salt + bcrypt in Node.js</h2>
-      <pre><code><span class="keyword">import</span> bcrypt <span class="keyword">from</span> <span class="string">"bcrypt"</span>;
-
-<span class="keyword">const</span> password = <span class="string">"MyPassword123"</span>;
-<span class="keyword">const</span> hashedPassword = <span class="keyword">await</span> bcrypt.<span class="func">hash</span>(password, <span class="number">12</span>);
-
-console.<span class="func">log</span>(hashedPassword);
-<span class="comment">// $2b$12$N9qo8uLOickgx2ZMRZoMye........</span>
-
-<span class="keyword">await</span> User.<span class="func">create</span>({ email, password: hashedPassword });</code></pre>
-      <div class="card">
-        <p>The output packs three things: <span class="tag">$2b</span> (version) · <span class="tag">$12</span> (cost) · salt + hash. Store the whole string as-is.</p>
+        <div class="info-box box-tip">💡 Salt is <strong>not a secret</strong> — it's stored alongside the hash. With bcrypt you don't manage it yourself: <code>bcrypt.hash()</code> generates it automatically and bakes it into the returned string.</div>
       </div>
     </div>
 
-    <div class="section">
-      <h2 class="section-title"><span class="num">5</span> Salt Rounds / Cost Factor</h2>
-      <div class="card hoverable">
-        <p>The <span class="inline-code">12</span> in <span class="inline-code">bcrypt.hash(password, 12)</span> is the <strong>cost factor</strong> — how computationally expensive hashing is.</p>
-        <p>Lower cost → faster · Higher cost → slower for attackers to brute-force.</p>
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Salt + Cost Factor Are Independent</h4></div>
+      <div class="card-sub-content">
+        <p>The <code>12</code> in <code>bcrypt.hash(password, 12)</code> is the <strong>cost factor</strong> — how computationally expensive hashing is. It has nothing to do with the salt; they're two separate ingredients baked into the same call.</p>
+        <div class="flow-row">
+          <div class="flow-step">Salt<br><span style="font-weight:400;font-size:0.85rem;opacity:0.75">random value, per-hash</span></div>
+          <div class="flow-step">Cost Factor<br><span style="font-weight:400;font-size:0.85rem;opacity:0.75">work factor, tunable</span></div>
+        </div>
       </div>
-      <table>
-        <thead><tr><th>Cost</th><th>Iterations</th><th>Approx. Time</th></tr></thead>
-        <tbody>
+    </div>
+
+    </div>
+
+    <!-- ==================== 2: BCRYPT IN PRACTICE ==================== -->
+    <div class="section-divider" id="s2"><span>2. bcrypt in Practice</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>Hashing on Registration</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">auth.js</span></div>
+          <pre><code><span class="kw">import</span> bcrypt <span class="kw">from</span> <span class="str">"bcrypt"</span>;
+
+<span class="kw">const</span> password = <span class="str">"MyPassword123"</span>;
+<span class="kw">const</span> hashedPassword = <span class="kw">await</span> bcrypt.<span class="fn">hash</span>(password, <span class="num">12</span>);
+
+<span class="kw">await</span> User.<span class="fn">create</span>({ email, password: hashedPassword });</code></pre>
+        </div>
+        <p>The output packs three things into one string: <code>$2b</code> (version) · <code>$12</code> (cost) · salt + hash. Store the whole string as-is.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Why bcrypt Cannot Be Decrypted</h4></div>
+      <div class="card-sub-content">
+        <p>bcrypt is a <strong>hashing</strong> algorithm, not encryption. There is no <code>bcrypt.decrypt()</code>.</p>
+        <div class="flow">
+          <div class="flow-step">Password</div>
+          <div class="flow-arrow">↓ bcrypt (one-way) ↓</div>
+          <div class="flow-step">Hash — no way back</div>
+        </div>
+        <p>To verify during login you <strong>re-hash the input</strong> and compare it with <code>bcrypt.compare()</code>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>bcrypt.compare() During Login</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">login.js</span></div>
+          <pre><code><span class="kw">const</span> isValid = <span class="kw">await</span> bcrypt.<span class="fn">compare</span>(<span class="str">"MyPassword123"</span>, user.password);
+
+<span class="kw">if</span> (!isValid) {
+  <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">401</span>).<span class="fn">json</span>({ message: <span class="str">"Invalid credentials"</span> });
+}</code></pre>
+        </div>
+        <p><code>bcrypt.compare()</code> extracts the salt from the stored hash, re-hashes the entered password with that salt, and checks whether it matches — returning <span class="pill short">true</span> / <span class="pill danger">false</span>.</p>
+        <div class="info-box box-warning"><strong>⚠️ Still one-directional:</strong> Hash → Password ❌. Only Password + Stored Hash → true/false ✅.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Registration → Login Flow</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step">Register: password → bcrypt.hash() (salt + cost)</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Hash stored in DB</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">Login: entered password + stored hash</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step">bcrypt.compare()</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-row" style="background:transparent;padding:0;margin:0">
+            <div class="flow-step" style="border-color:#f87171;color:#fca5a5">No → 401 Reject</div>
+            <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">Yes → issue JWT</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 3: COST FACTOR & ARGON2ID ==================== -->
+    <div class="section-divider" id="s3"><span>3. Cost Factor &amp; Argon2id</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>Why Password Hashing Should Be Slow</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Password hashing is deliberately <strong>computationally expensive on purpose</strong>. If hashing were fast, an attacker with a stolen DB could try millions of guesses per second.</p>
+        <table>
+          <tr><th>Cost</th><th>Iterations</th><th>Approx. Time</th></tr>
           <tr><td>8</td><td>2⁸ = 256</td><td>~10 ms</td></tr>
           <tr><td>10</td><td>2¹⁰ = 1,024</td><td>~50–80 ms</td></tr>
           <tr><td><strong>12</strong></td><td>2¹² = 4,096</td><td><strong>~200–300 ms</strong></td></tr>
           <tr><td>14</td><td>2¹⁴ = 16,384</td><td>~800 ms – 1.2 s</td></tr>
-        </tbody>
-      </table>
-      <div class="highlight">For one login, ~200–300 ms is unnoticeable. For an attacker trying millions of guesses, that delay makes large-scale brute-forcing impractical.</div>
-      <div class="definition">Salt = random value. Cost factor = computational work. Independent concepts inside the same bcrypt call.</div>
-    </div>
-
-    <div class="section">
-      <h2 class="section-title"><span class="num">6</span> Why bcrypt Cannot Be Decrypted</h2>
-      <div class="card hoverable">
-        <p>bcrypt is a <strong>hashing</strong> algorithm, not encryption. There is no <span class="inline-code">bcrypt.decrypt()</span>.</p>
-        <p>Password → bcrypt → Hash (one way only).</p>
-        <p>To verify during login you <strong>re-hash the input</strong> and compare with <span class="inline-code">bcrypt.compare()</span>.</p>
+        </table>
+        <div class="info-box box-tip">💡 For one login, ~200–300 ms is unnoticeable. For an attacker trying millions of guesses, that delay makes large-scale brute-forcing impractical.</div>
       </div>
     </div>
 
-    <div class="section">
-      <h2 class="section-title"><span class="num">7</span> bcrypt.compare() During Login</h2>
-      <pre><code><span class="keyword">const</span> isValid = <span class="keyword">await</span> bcrypt.<span class="func">compare</span>(<span class="string">"MyPassword123"</span>, user.password);
-
-<span class="keyword">if</span> (!isValid) {
-  <span class="keyword">return</span> res.<span class="func">status</span>(<span class="number">401</span>).<span class="func">json</span>({ message: <span class="string">"Invalid credentials"</span> });
-}</code></pre>
-      <div class="card">
-        <p><span class="inline-code">bcrypt.compare()</span> extracts the salt from the stored hash, re-hashes the entered password with that salt, and checks if it matches — returns <span class="inline-code">true</span> / <span class="inline-code">false</span>.</p>
-        <p>Still <strong>Hash → Password ❌</strong>. Only <strong>Password + Stored Hash → true/false</strong>.</p>
-      </div>
-    </div>
-
-    <div class="section">
-      <h2 class="section-title"><span class="num">8</span> Why Password Hashing Should Be Slow</h2>
-      <div class="card hoverable">
-        <p>Password hashing is deliberately <strong>computationally expensive on purpose</strong>.</p>
-        <p>If hashing were fast, an attacker with a stolen DB could try millions of guesses per second. Higher cost makes each guess slower and large-scale brute-forcing far more expensive.</p>
-      </div>
-    </div>
-
-    <div class="section">
-      <h2 class="section-title"><span class="num">9</span> bcrypt vs Argon2id</h2>
-      <table>
-        <thead><tr><th></th><th>bcrypt</th><th>Argon2id</th></tr></thead>
-        <tbody>
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>bcrypt vs Argon2id</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th></th><th>bcrypt</th><th>Argon2id</th></tr>
           <tr><td>Password hashing</td><td>✅</td><td>✅</td></tr>
           <tr><td>One-way</td><td>✅</td><td>✅</td></tr>
-          <tr><td>Salt</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Salt</td><td>✅ (automatic)</td><td>✅</td></tr>
           <tr><td>Configurable cost</td><td>✅</td><td>✅</td></tr>
           <tr><td>Memory-hard</td><td>❌</td><td>✅</td></tr>
           <tr><td>Modern choice</td><td>Good, established</td><td>Preferred for new systems</td></tr>
-        </tbody>
-      </table>
-      <div class="card" style="margin-top:1rem">
+        </table>
         <p><strong>Argon2id</strong> is expensive in both compute <em>and</em> memory — harder to crack with GPUs/ASICs. Prefer Argon2id for new apps; bcrypt remains solid when already in use.</p>
       </div>
     </div>
 
-    <div class="section">
-      <h2 class="section-title"><span class="num">10</span> Complete Registration + Login Flow</h2>
-      <div class="mini-diagram">
-        <svg viewBox="0 0 300 380" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, system-ui, sans-serif">
-          <defs>
-            <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#10b981"/>
-            </linearGradient>
-            <marker id="a1" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto">
-              <path d="M0,0 L0,6 L7,3 z" style="fill:var(--muted)"/>
-            </marker>
-          </defs>
-          <text x="150" y="18" text-anchor="middle" class="svg-title" style="font-size:14px;font-weight:700">REGISTER</text>
-          <rect x="50" y="30" width="200" height="32" rx="8" class="svg-box" style="stroke:var(--primary)"/>
-          <text x="150" y="51" text-anchor="middle" class="svg-sub">password → bcrypt.hash()</text>
-          <line x1="150" y1="62" x2="150" y2="78" class="svg-line" marker-end="url(#a1)"/>
-          <rect x="50" y="82" width="200" height="32" rx="8" class="svg-box" style="stroke:var(--accent)"/>
-          <text x="150" y="103" text-anchor="middle" class="svg-sub">hash → stored in DB</text>
-          <text x="150" y="150" text-anchor="middle" class="svg-title" style="font-size:14px;font-weight:700">LOGIN</text>
-          <rect x="40" y="162" width="220" height="32" rx="8" class="svg-box" style="stroke:var(--primary)"/>
-          <text x="150" y="183" text-anchor="middle" class="svg-sub">entered password + stored hash</text>
-          <line x1="150" y1="194" x2="150" y2="210" class="svg-line" marker-end="url(#a1)"/>
-          <rect x="50" y="214" width="200" height="32" rx="8" class="svg-box" style="stroke:var(--accent)"/>
-          <text x="150" y="235" text-anchor="middle" class="svg-sub">bcrypt.compare()</text>
-          <line x1="150" y1="246" x2="150" y2="262" class="svg-line" marker-end="url(#a1)"/>
-          <rect x="70" y="266" width="160" height="28" rx="8" fill="var(--border)"/>
-          <text x="150" y="285" text-anchor="middle" class="svg-title" style="font-size:12px">Valid?</text>
-          <line x1="110" y1="294" x2="70" y2="320" class="svg-line" marker-end="url(#a1)"/>
-          <text x="70" y="314" class="svg-label">No</text>
-          <rect x="25" y="324" width="80" height="30" rx="8" fill="#ef4444"/>
-          <text x="65" y="344" text-anchor="middle" class="svg-badge-text" style="font-size:12px">Reject</text>
-          <line x1="190" y1="294" x2="230" y2="320" class="svg-line" marker-end="url(#a1)"/>
-          <text x="220" y="314" class="svg-label">Yes</text>
-          <rect x="195" y="324" width="80" height="30" rx="8" fill="url(#g1)"/>
-          <text x="235" y="344" text-anchor="middle" class="svg-badge-text" style="font-size:12px">Continue</text>
-        </svg>
-      </div>
-      <p style="font-weight:600;margin-bottom:0.5rem;color:var(--text)">Registration</p>
-      <div class="flow">
-        <div class="flow-step"><span class="arrow">1</span> password → <span class="inline-code">bcrypt.hash()</span> (salt + cost factor)</div>
-        <div class="flow-step"><span class="arrow">2</span> password hash → stored in DB</div>
-      </div>
-      <pre><code><span class="keyword">const</span> hashedPassword = <span class="keyword">await</span> bcrypt.<span class="func">hash</span>(password, <span class="number">12</span>);
-<span class="keyword">await</span> User.<span class="func">create</span>({ email, password: hashedPassword });</code></pre>
-      <p style="font-weight:600;margin:1.25rem 0 0.5rem;color:var(--text)">Login</p>
-      <div class="flow">
-        <div class="flow-step"><span class="arrow">1</span> entered password → find user → get stored hash</div>
-        <div class="flow-step"><span class="arrow">2</span> <span class="inline-code">bcrypt.compare()</span> → valid? → continue / reject</div>
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>Where Hashing Fits in the Bigger Picture</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Register:</strong> password → hashed (bcrypt / Argon2id) → stored in DB.</p>
+        <p><strong>Login:</strong> email + password → <code>bcrypt.compare()</code> → authentication → JWT generated → protected API → authorization → allow / deny.</p>
+        <div class="info-box box-danger">🚨 <strong>Never put the password or hash inside a JWT.</strong> Hashing protects the password in the DB; JWT represents auth state after login — they solve different problems and shouldn't overlap.</div>
       </div>
     </div>
 
-    <div class="section">
-      <h2 class="section-title"><span class="num">11</span> Where Password Hashing Fits</h2>
-      <div class="card hoverable">
-        <p><strong>Register:</strong> password → hashed (bcrypt / Argon2id) → stored in DB</p>
-        <p><strong>Login:</strong> email + password → <span class="inline-code">bcrypt.compare()</span> → authentication → JWT generated → protected API → authorization → allow / deny</p>
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Interview Points to Remember</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li>Never store plain-text passwords.</li>
+          <li>Use password hashing, not encryption.</li>
+          <li>bcrypt and Argon2id are password-hashing algorithms.</li>
+          <li>Salt makes hashes unique even for identical passwords, and bcrypt generates it automatically.</li>
+          <li>Cost factor controls computational work — separate concept from salt.</li>
+          <li><code>bcrypt.hash()</code> → registration / password change. <code>bcrypt.compare()</code> → login.</li>
+          <li>bcrypt cannot be decrypted — only re-hashed and compared.</li>
+          <li>Argon2id is a strong, memory-hard modern choice for new apps.</li>
+          <li>Hashing protects stored credentials; JWT handles session state — keep them separate.</li>
+        </ul>
       </div>
-      <div class="highlight">
-        <strong>Important:</strong> Password hashing and JWT solve different problems. Hashing protects the password in the DB. JWT represents auth state after login.<br>
-        <strong>Never put the password or hash inside a JWT.</strong>
+    </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="qa"><span>Interview Q&amp;A</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-group-title">Standard Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why shouldn't you store passwords in plain text?</div>
+          <div class="qa-answer">If the database is ever compromised, an attacker gets every user's real password instantly — and those passwords are often reused elsewhere. Hashing means the database only ever holds a one-way derivative of the password.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between hashing and encryption?</div>
+          <div class="qa-answer">Hashing is one-way — there's no way to recover the original input, which is exactly why it's right for passwords. Encryption is reversible with a key, which is right for data you need to read again later, not for credentials.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is a salt and what does it protect against?</div>
+          <div class="qa-answer">Random data mixed into the password before hashing, so identical passwords produce different stored hashes. It defeats rainbow table attacks — precomputed hash lookup tables — since a fresh salt makes precomputation useless.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is the cost factor in <code>bcrypt.hash(password, 12)</code>?</div>
+          <div class="qa-answer">It controls how computationally expensive each hash operation is — a work factor. Higher cost means slower hashing, which is negligible for a single login but makes large-scale brute-force guessing far more expensive for an attacker.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Can you decrypt a bcrypt hash back into the password?</div>
+          <div class="qa-answer">No — bcrypt is a hashing algorithm, not encryption, so there's no <code>bcrypt.decrypt()</code>. Verification works by re-hashing the entered password with the stored salt and comparing the results with <code>bcrypt.compare()</code>.</div>
+        </div>
+
+        <div class="qa-group-title">Tricky / Follow-Up Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">If two users pick the same password, will their stored hashes match?</div>
+          <div class="qa-answer">No — bcrypt generates a fresh random salt for every call to <code>bcrypt.hash()</code>, so even identical passwords produce completely different stored strings. That's the entire point of salting.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Is a higher cost factor always better?</div>
+          <div class="qa-answer">Not unconditionally. Cost trades off attacker resistance against real login latency and server CPU load. Push it too high and legitimate logins get slow and expensive to serve at scale — pick a value that's slow for attackers but still fast enough for users.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Does hashing the password protect against XSS or a compromised login endpoint?</div>
+          <div class="qa-answer">No. Hashing only protects credentials at rest in the database. If an attacker captures the password in transit or via a compromised client (e.g. XSS reading a login form), hashing on the server never comes into play — that's a different threat entirely.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why is Argon2id sometimes preferred over bcrypt for new systems?</div>
+          <div class="qa-answer">Argon2id is memory-hard — it costs both compute time and memory to compute — which makes it more resistant to parallelized cracking on GPUs and ASICs than bcrypt, which is compute-hard only. bcrypt remains a solid, established choice where it's already in use.</div>
+        </div>
+
+        <div class="qa-group-title">Frequently Asked</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Should the salt be kept secret?</div>
+          <div class="qa-answer">No — the salt isn't a secret and is stored alongside the hash (bcrypt bundles it directly into the output string). Its job is to guarantee uniqueness across hashes, not to add secrecy.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's stored in a bcrypt output string like <code>$2b$12$N9qo8uLOickgx2ZMRZoMye...</code>?</div>
+          <div class="qa-answer">Three parts in one string: the algorithm version (<code>$2b</code>), the cost factor (<code>$12</code>), and the salt concatenated with the resulting hash. The whole string is stored as-is and passed to <code>bcrypt.compare()</code> later.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Should a password or its hash ever be included in a JWT?</div>
+          <div class="qa-answer">Never. A JWT represents authentication state after a successful login — it should carry identity/claims, not credentials. Hashing protects the password in the database; the JWT is a separate mechanism for session/authorization.</div>
+        </div>
+
+        <div class="qa-group-title">Coding / Theoretical</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Write the registration and login handlers using bcrypt correctly.</div>
+          <div class="qa-answer">
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">auth.js</span></div>
+              <pre><code><span class="kw">import</span> bcrypt <span class="kw">from</span> <span class="str">"bcrypt"</span>;
+
+<span class="cmt">// Registration</span>
+app.<span class="fn">post</span>(<span class="str">"/register"</span>, <span class="kw">async</span> (req, res) => {
+  <span class="kw">const</span> { email, password } = req.body;
+  <span class="kw">const</span> hashedPassword = <span class="kw">await</span> bcrypt.<span class="fn">hash</span>(password, <span class="num">12</span>);
+  <span class="kw">await</span> User.<span class="fn">create</span>({ email, password: hashedPassword });
+  res.<span class="fn">status</span>(<span class="num">201</span>).<span class="fn">json</span>({ message: <span class="str">"Registered"</span> });
+});
+
+<span class="cmt">// Login</span>
+app.<span class="fn">post</span>(<span class="str">"/login"</span>, <span class="kw">async</span> (req, res) => {
+  <span class="kw">const</span> { email, password } = req.body;
+  <span class="kw">const</span> user = <span class="kw">await</span> User.<span class="fn">findOne</span>({ email });
+
+  <span class="kw">if</span> (!user) {
+    <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">401</span>).<span class="fn">json</span>({ message: <span class="str">"Invalid credentials"</span> });
+  }
+
+  <span class="kw">const</span> isValid = <span class="kw">await</span> bcrypt.<span class="fn">compare</span>(password, user.password);
+
+  <span class="kw">if</span> (!isValid) {
+    <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">401</span>).<span class="fn">json</span>({ message: <span class="str">"Invalid credentials"</span> });
+  }
+
+  <span class="cmt">// issue JWT here — never include user.password</span>
+  res.<span class="fn">json</span>({ message: <span class="str">"Login successful"</span> });
+});</code></pre>
+            </div>
+            <p style="margin-top:12px"><strong>Why this shape:</strong> registration hashes once at cost 12; login never decrypts anything — it only ever asks bcrypt for a true/false comparison, and the same generic 401 is returned whether the email or the password was wrong.</p>
+          </div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Explain, in three layers, why "hash + salt + slow cost factor" is stronger than any one of them alone.</div>
+          <div class="qa-answer">
+            Each layer defeats a different attack:<br><br>
+            • <strong>Hashing</strong> means a stolen database never contains a usable plaintext password.<br>
+            • <strong>Salting</strong> defeats precomputed rainbow tables and stops identical passwords from being visible as identical hashes.<br>
+            • <strong>A slow cost factor</strong> makes brute-forcing every possible password against a stolen hash computationally expensive, even after salting removes the rainbow-table shortcut.<br><br>
+            Removing any one layer reopens a specific attack path — together they force an attacker into a slow, per-password brute-force with no shortcuts.
+          </div>
+        </div>
+
       </div>
     </div>
 
-    <div class="section">
-      <h2 class="section-title"><span class="num">★</span> Interview Points to Remember</h2>
-      <ul class="checklist">
-        <li>Never store plain-text passwords.</li>
-        <li>Use password hashing, not encryption.</li>
-        <li>bcrypt and Argon2id are password-hashing algorithms.</li>
-        <li>Salt makes hashes unique even for identical passwords.</li>
-        <li>bcrypt automatically generates and incorporates the salt.</li>
-        <li>Cost factor controls computational work — separate from salt.</li>
-        <li><span class="inline-code">bcrypt.hash()</span> → registration / password change.</li>
-        <li><span class="inline-code">bcrypt.compare()</span> → login.</li>
-        <li>bcrypt cannot be decrypted — only re-hashed and compared.</li>
-        <li>Argon2id is a strong, memory-hard modern choice for new apps.</li>
-        <li>Hashing protects stored credentials; JWT handles session — keep them separate.</li>
-      </ul>
-    </div>
-
-    <div class="takeaway">
-      <h3>One-liner</h3>
-      <p>Hash passwords with a slow, salted algorithm (bcrypt / Argon2id), never encrypt them, never store plain text, and verify with compare — never decrypt.</p>
-    </div>
-
-    <footer>Quick interview notes • Password Hashing • Blue &amp; Green</footer>
   </div>
-  <script>
-    const toggle = document.getElementById('themeToggle');
-    const themeIcon = document.getElementById('themeIcon');
-    const themeLabel = document.getElementById('themeLabel');
-    const html = document.documentElement;
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    setTheme(savedTheme);
-    toggle.addEventListener('click', () => {
-      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      setTheme(next);
-      localStorage.setItem('theme', next);
-    });
-    function setTheme(theme) {
-      html.setAttribute('data-theme', theme);
-      themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
-      themeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light';
-    }
-  </script>
+
+  <footer>Password Hashing — Interview Notes</footer>
+
 </body>
 </html>

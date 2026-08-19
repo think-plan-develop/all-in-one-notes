@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Error Handling — Full Flow Reference</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* THEME VARIABLES */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-3 { --accent-dark:#92400e; --accent:#ca8a04; --accent-light:#eab308; --content-bg:#fefce8; --heading:#92400e; --shadow-rgb:202,138,4; }
+.cat-4 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-5 { --accent-dark:#0e7490; --accent:#0891b2; --accent-light:#22d3ee; --content-bg:#ecfeff; --heading:#0e7490; --shadow-rgb:8,145,178; }
+.cat-6 { --accent-dark:#9f1239; --accent:#db2777; --accent-light:#f472b6; --content-bg:#fdf2f8; --heading:#9f1239; --shadow-rgb:219,39,119; }
+.cat-7 { --accent-dark:#9a3412; --accent:#f97316; --accent-light:#fb923c; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:249,115,22; }
+
+/* HEADER */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* KEY TERMS SUMMARY */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+.summary-rose   { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#9f1239; } .summary-rose .summary-text strong { color:#e11d48; }
+.summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple .summary-text strong { color:#7c3aed; }
+.summary-yellow { background:linear-gradient(135deg,#fefce8,#fef9c3); color:#713f12; } .summary-yellow .summary-text strong { color:#a16207; }
+
+/* SECTION DIVIDER */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* CODE / TOKEN */
+code, .token {
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+  font-size: 0.88em;
+  background: rgba(0,0,0,0.06);
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: #4338ca;
+}
+pre {
+  background: #0d1117;
+  border: 1px solid #2d3a4f;
+  border-radius: 10px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 14px 0;
+  color: #e6edf3;
+}
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+
+/* CODE BLOCK (mac-window style) */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#d4d4d4; font-size:14px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; } .tp { color:#67e8f9; } .er { color:#f87171; }
+
+/* FLOW STEPS */
+.flow { display:flex; flex-direction:column; align-items:center; gap:0; margin:16px 0; font-size:0.95rem; background:#1a2332; border-radius:14px; padding:24px 20px; }
+.flow-step { background:#243044; border:1px solid #34435c; border-radius:10px; padding:11px 20px; text-align:center; min-width:200px; max-width:340px; color:#e7ecf3; font-weight:600; box-shadow:0 2px 8px rgba(0,0,0,0.25); }
+.flow-arrow { color:#60a5fa; font-size:1.3rem; line-height:1.4; user-select:none; }
+.flow-row { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin:16px 0; background:#1a2332; border-radius:14px; padding:22px 20px; }
+.flow-row .flow-step { min-width:120px; }
+.pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:0.78rem; font-weight:700; }
+.pill.short { background:#d1fae5; color:#065f46; }
+.pill.long { background:#fef3c7; color:#92400e; }
+.pill.danger { background:#fecdd3; color:#9f1239; }
+.pill.indigo { background:#e0e7ff; color:#3730a3; }
+
+/* HTTP STATUS PILLS */
+.http { display:inline-block; font-family:'Fira Code','Consolas',monospace; font-size:11.5px; font-weight:700; padding:2px 9px; border-radius:5px; }
+.http-400 { background:#fef2f2; color:#dc2626; }
+.http-401 { background:#fefce8; color:#a16207; }
+.http-403 { background:#fff7ed; color:#c2410c; }
+.http-404 { background:#f5f3ff; color:#7c3aed; }
+.http-409 { background:#ecfeff; color:#0891b2; }
+.http-500 { background:#fef2f2; color:#ef4444; }
+
+/* INFO BOXES */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+
+/* CALL-SITE CARDS (replaces WhatsApp bubbles) */
+.callsite-list { display:flex; flex-direction:column; gap:12px; margin:14px 0; }
+.callsite-card { background:#fff; border-radius:12px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 3px 10px rgba(0,0,0,0.05); overflow:hidden; }
+.callsite-head { display:flex; align-items:center; gap:10px; padding:11px 18px; font-weight:800; font-size:14.5px; }
+.callsite-head .cs-icon { font-size:18px; }
+.callsite-head .cs-role { margin-left:auto; font-size:10.5px; font-weight:800; letter-spacing:.05em; padding:3px 11px; border-radius:999px; background:rgba(255,255,255,0.25); color:#fff; border:1px solid rgba(255,255,255,0.4); white-space:nowrap; }
+.callsite-body { padding:12px 18px 16px; font-size:14.5px; line-height:1.8; color:#333; }
+.callsite-body code { font-weight:700; }
+
+/* COMPARE / TAG STRIP */
+.tag-strip { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:12px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; margin:12px 0; font-size:13px; }
+.tag-strip-label { color:#64748b; font-size:11px; font-weight:700; letter-spacing:.06em; font-family:'Fira Code','Consolas',monospace; }
+.ctag { font-family:'Fira Code','Consolas',monospace; font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:6px; border:1px solid; }
+
+/* SUBSECTIONS */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-title .badge-tag { margin-left:auto; font-size:11px; font-weight:800; letter-spacing:.05em; padding:4px 12px; border-radius:999px; background:var(--accent); color:#fff; white-space:nowrap; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + pre,
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content pre:last-child,
+.card-sub-content .code-block:last-child,
+.card-sub-content .flow:last-child,
+.card-sub-content .flow-row:last-child,
+.card-sub-content .callsite-list:last-child { margin-bottom:0; }
+
+/* TABLE */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:15px; font-weight:700; padding:12px 18px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:12px 18px; font-size:14px; font-weight:600; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.15); transition:background .15s ease; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:13px; }
+
+/* LEGEND */
+.legend { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:10px; margin:16px 0; }
+.leg-item { display:flex; align-items:center; gap:10px; font-size:13.5px; padding:10px 14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; color:#333; }
+.leg-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="header theme-blue">
+      <h1>⚡ Error Handling — File by File</h1>
+      <p>Node.js + TypeScript + MongoDB · Every file defined once, then traced exactly where it is imported and called across all layers.</p>
+      <div class="toc">
+        <a href="#pipeline" onclick="document.getElementById('pipeline').scrollIntoView({behavior:'smooth'});return false;">Pipeline Overview</a>
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">01 — AppError.ts</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">02 — errorHandler.ts</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">03 — handleMongooseError.ts</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">04 — asyncHandler.ts</a>
+        <a href="#s5" onclick="document.getElementById('s5').scrollIntoView({behavior:'smooth'});return false;">05 — auth.ts + authorise.ts</a>
+        <a href="#s6" onclick="document.getElementById('s6').scrollIntoView({behavior:'smooth'});return false;">06 — user.service.ts</a>
+        <a href="#s7" onclick="document.getElementById('s7').scrollIntoView({behavior:'smooth'});return false;">07 — user.routes.ts</a>
+      </div>
+    </div>
+
+    <div class="info-box box-tip"><strong>📌 In short:</strong> Every custom error extends one base class (<code>AppError</code>). Middleware and services <strong>throw</strong> it, <code>asyncHandler</code> <strong>catches</strong> it, and a single <code>errorHandler</code> at the bottom of the app <strong>responds</strong> to it. Reading this doc file-by-file traces every throw and every catch in the whole app.</div>
+
+    <!-- KEY TERMS SUMMARY -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-rose">
+          <div class="summary-icon">🔴</div>
+          <div class="summary-text"><strong>AppError.ts:</strong> Base error class, imported everywhere — nothing throws a raw <code>new Error()</code>.</div>
+        </div>
+        <div class="summary-item summary-purple">
+          <div class="summary-icon">🟣</div>
+          <div class="summary-text"><strong>errorHandler.ts:</strong> Single catch-all Express middleware, registered last in the app.</div>
+        </div>
+        <div class="summary-item summary-yellow">
+          <div class="summary-icon">🟡</div>
+          <div class="summary-text"><strong>handleMongooseError.ts:</strong> Normalises DB errors (duplicate keys, validation, bad IDs) that bypass AppError.</div>
+        </div>
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🟢</div>
+          <div class="summary-text"><strong>asyncHandler.ts:</strong> Wraps every async controller so a rejected promise is never lost.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🔵</div>
+          <div class="summary-text"><strong>auth.ts / authorise.ts:</strong> Throw 401 (not authenticated) and 403 (not permitted) before the route runs.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🟠</div>
+          <div class="summary-text"><strong>user.routes.ts:</strong> Wires every middleware into the correct order per endpoint.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PIPELINE OVERVIEW ==================== -->
+    <div class="section-divider" id="pipeline"><span>🔁 Request Error Pipeline</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>The Full Path</h4></div>
+      <div class="card-sub-content">
+        <div class="flow-row">
+          <div class="flow-step" style="border-color:#3b82f6;color:#93c5fd">Route</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step" style="border-color:#22d3ee;color:#67e8f9">Auth MW</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">asyncHandler</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step" style="border-color:#fb923c;color:#fdba74">Controller</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step" style="border-color:#f472b6;color:#f9a8d4">Service</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step" style="border-color:#f87171;color:#fca5a5">throw AppError</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step" style="border-color:#a78bfa;color:#c4b5fd">errorHandler</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step" style="border-color:#34d399;color:#6ee7b7">JSON Response</div>
+        </div>
+
+        <div class="legend">
+          <div class="leg-item"><div class="leg-dot" style="background:#dc2626"></div><span><strong>AppError.ts</strong> — base class, imported everywhere</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#7c3aed"></div><span><strong>errorHandler.ts</strong> — single catch-all at app bottom</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#ca8a04"></div><span><strong>handleMongooseError.ts</strong> — normalises DB errors</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#16a34a"></div><span><strong>asyncHandler.ts</strong> — wraps every async controller</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#0891b2"></div><span><strong>auth.ts</strong> — throws 401 before route runs</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div><span><strong>authorise.ts</strong> — throws 403 for wrong role</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#db2777"></div><span><strong>user.service.ts</strong> — primary business-logic throws</span></div>
+          <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div><span><strong>user.routes.ts</strong> — wires everything together</span></div>
+        </div>
+
+        <div class="info-box box-warning">🧠 <strong>Golden Rule:</strong> Service = business logic errors · Middleware = access errors · Controller = no throws · Route = only wires middleware · Always use asyncHandler — never lose an async error</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 01: AppError.ts ==================== -->
+    <div class="section-divider" id="s1"><span>01 · AppError.ts &amp; Subclasses</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>📁 src/errors/AppError.ts</h4><span class="badge-tag">DEFINED HERE</span></div>
+      <div class="card-sub-content">
+        <p>The <strong>single base error class</strong> for the whole app. Every custom error extends it. Adds <code>statusCode</code>, <code>isOperational</code> (true = known/expected error, not a bug), and an optional <code>errors</code> payload for field-level detail. <strong>Nothing throws raw <code>new Error()</code> — everything uses this.</strong></p>
+
+        <h3>Imported By</h3>
+        <div class="tag-strip">
+          <span class="tag-strip-label">IMPORTED BY →</span>
+          <span class="ctag" style="background:#ecfeff;color:#0891b2;border-color:#a5f3fc">auth.ts</span>
+          <span class="ctag" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe">authorise.ts</span>
+          <span class="ctag" style="background:#fdf4ff;color:#db2777;border-color:#f5d0fe">user.service.ts</span>
+          <span class="ctag" style="background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe">errorHandler.ts</span>
+          <span class="ctag" style="background:#fff7ed;color:#f97316;border-color:#fed7aa">user.routes.ts (via MW)</span>
+          <span class="ctag" style="background:#fefce8;color:#ca8a04;border-color:#fde68a">handleMongooseError.ts</span>
+        </div>
+
+        <h3>Code</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/errors/AppError.ts</span></div>
+          <pre><code><span class="cmt">// DEFINED HERE — imported by every other layer</span>
+
+<span class="cmt">// ── Base class ─────────────────────────────────────────────</span>
+<span class="kw">export class</span> <span class="er">AppError</span> <span class="kw">extends</span> <span class="tp">Error</span> {
+  <span class="kw">public readonly</span> statusCode:    <span class="tp">number</span>;
+  <span class="kw">public readonly</span> isOperational: <span class="tp">boolean</span>;   <span class="cmt">// true = known/expected error</span>
+  <span class="kw">public readonly</span> errors?:       <span class="tp">unknown</span>;
+
+  <span class="kw">constructor</span>(message: <span class="tp">string</span>, statusCode: <span class="tp">number</span> = <span class="num">500</span>, errors?: <span class="tp">unknown</span>) {
+    <span class="kw">super</span>(message);
+    <span class="kw">this</span>.name          = <span class="kw">this</span>.constructor.name;
+    <span class="kw">this</span>.statusCode    = statusCode;
+    <span class="kw">this</span>.isOperational = <span class="kw">true</span>;
+    <span class="kw">this</span>.errors        = errors;
+    <span class="tp">Error</span>.<span class="fn">captureStackTrace</span>(<span class="kw">this</span>, <span class="kw">this</span>.constructor);
+  }
+}
+
+<span class="cmt">// ── Subclasses — no magic status codes needed ──────────────</span>
+<span class="kw">export class</span> <span class="er">NotFoundError</span> <span class="kw">extends</span> <span class="er">AppError</span> {
+  <span class="kw">constructor</span>(resource = <span class="str">"Resource"</span>) { <span class="kw">super</span>(<span class="str">`${resource} not found`</span>, <span class="num">404</span>); }
+}
+
+<span class="kw">export class</span> <span class="er">ValidationError</span> <span class="kw">extends</span> <span class="er">AppError</span> {
+  <span class="kw">constructor</span>(errors: <span class="tp">unknown</span>) { <span class="kw">super</span>(<span class="str">"Validation failed"</span>, <span class="num">400</span>, errors); }
+}
+
+<span class="kw">export class</span> <span class="er">UnauthorizedError</span> <span class="kw">extends</span> <span class="er">AppError</span> {
+  <span class="kw">constructor</span>(message = <span class="str">"Unauthorized"</span>) { <span class="kw">super</span>(message, <span class="num">401</span>); }
+}
+
+<span class="kw">export class</span> <span class="er">ForbiddenError</span> <span class="kw">extends</span> <span class="er">AppError</span> {
+  <span class="kw">constructor</span>(message = <span class="str">"Forbidden"</span>) { <span class="kw">super</span>(message, <span class="num">403</span>); }
+}
+
+<span class="kw">export class</span> <span class="er">ConflictError</span> <span class="kw">extends</span> <span class="er">AppError</span> {
+  <span class="kw">constructor</span>(field: <span class="tp">string</span>) { <span class="kw">super</span>(<span class="str">`${field} already exists`</span>, <span class="num">409</span>); }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>📍 Where Each Class Gets Called</h4></div>
+      <div class="card-sub-content">
+        <div class="callsite-list">
+
+          <div class="callsite-card">
+            <div class="callsite-head" style="background:#0891b2;color:#fff"><span class="cs-icon">🔐</span><span>auth.ts</span><span class="cs-role">THROWS 401</span></div>
+            <div class="callsite-body"><code>throw new UnauthorizedError("No token provided")</code> when the Authorization header is missing entirely. <code>throw new UnauthorizedError("Token expired")</code> when JWT verification fails. Both are passed via <code>next(err)</code> → errorHandler responds <span class="http http-401">401</span>.</div>
+          </div>
+
+          <div class="callsite-card">
+            <div class="callsite-head" style="background:#2563eb;color:#fff"><span class="cs-icon">🛡️</span><span>authorise.ts</span><span class="cs-role">THROWS 403</span></div>
+            <div class="callsite-body"><code>throw new ForbiddenError("Role not allowed")</code> when the authenticated user's role is not in the allowed list → errorHandler → <span class="http http-403">403</span>.</div>
+          </div>
+
+          <div class="callsite-card">
+            <div class="callsite-head" style="background:#db2777;color:#fff"><span class="cs-icon">⚙️</span><span>user.service.ts</span><span class="cs-role">PRIMARY THROW LAYER</span></div>
+            <div class="callsite-body">
+              <code>throw new NotFoundError("User")</code> when findById returns null → <span class="http http-404">404</span><br>
+              <code>throw new ConflictError("email")</code> when email already taken → <span class="http http-409">409</span><br>
+              <code>throw new ForbiddenError(...)</code> on ownership checks → <span class="http http-403">403</span>
+            </div>
+          </div>
+
+          <div class="callsite-card">
+            <div class="callsite-head" style="background:#a16207;color:#fff"><span class="cs-icon">🍃</span><span>handleMongooseError.ts</span><span class="cs-role">BYPASSES AppError</span></div>
+            <div class="callsite-body"><strong>Does NOT import AppError.</strong> Returns a plain <code>{ statusCode, body }</code> object that errorHandler sends directly. Mongoose errors bypass the class hierarchy entirely.</div>
+          </div>
+
+          <div class="callsite-card">
+            <div class="callsite-head" style="background:#7c3aed;color:#fff"><span class="cs-icon">🎯</span><span>errorHandler.ts</span><span class="cs-role">READS AppError</span></div>
+            <div class="callsite-body">Checks <code>err instanceof AppError</code> and reads <code>err.statusCode</code>, <code>err.message</code>, <code>err.errors</code> to build the JSON response. This is the <strong>only consumer that reads AppError</strong> — everyone else only throws it.</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 02: errorHandler.ts ==================== -->
+    <div class="section-divider" id="s2"><span>02 · errorHandler.ts</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>📁 src/middleware/errorHandler.ts</h4><span class="badge-tag">REGISTERED LAST</span></div>
+      <div class="card-sub-content">
+        <p>The <strong>single Express error middleware registered last</strong> in <code>app.ts</code>. Every unhandled error in the app flows here via <code>next(err)</code>. Detects error type in 4 steps and formats a consistent JSON response. <strong>It never throws — it only responds.</strong></p>
+
+        <h3>Receives Errors From</h3>
+        <div class="tag-strip">
+          <span class="tag-strip-label">REGISTERED IN →</span>
+          <span class="ctag" style="background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe">app.ts (LAST middleware)</span>
+          <span class="tag-strip-label">RECEIVES FROM →</span>
+          <span class="ctag" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0">asyncHandler (via next)</span>
+          <span class="ctag" style="background:#ecfeff;color:#0891b2;border-color:#a5f3fc">auth.ts (via next)</span>
+          <span class="ctag" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe">authorise.ts (via next)</span>
+          <span class="ctag" style="background:#fff7ed;color:#f97316;border-color:#fed7aa">validate.ts (via next)</span>
+        </div>
+
+        <h3>Code</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/middleware/errorHandler.ts</span></div>
+          <pre><code><span class="kw">import</span> { Request, Response, NextFunction } <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> { ZodError }           <span class="kw">from</span> <span class="str">"zod"</span>;
+<span class="kw">import</span> { <span class="er">AppError</span> }          <span class="kw">from</span> <span class="str">"../errors/AppError"</span>;
+<span class="kw">import</span> { handleMongooseError } <span class="kw">from</span> <span class="str">"./handleMongooseError"</span>;
+
+<span class="kw">const</span> isDev = process.env.<span class="tp">NODE_ENV</span> === <span class="str">"development"</span>;
+
+<span class="kw">export const</span> <span class="fn">errorHandler</span> = (
+  err: <span class="tp">unknown</span>, _req: <span class="tp">Request</span>, res: <span class="tp">Response</span>, _next: <span class="tp">NextFunction</span>
+): <span class="tp">void</span> => {
+
+  <span class="cmt">// ── Step 1: Zod validation error → 400 ────────────────────</span>
+  <span class="kw">if</span> (err <span class="kw">instanceof</span> <span class="tp">ZodError</span>) {
+    res.<span class="fn">status</span>(<span class="num">400</span>).<span class="fn">json</span>({ success: <span class="kw">false</span>, message: <span class="str">"Validation failed"</span>, errors: err.<span class="fn">flatten</span>().fieldErrors });
+    <span class="kw">return</span>;
+  }
+
+  <span class="cmt">// ── Step 2: Known AppError → its statusCode ────────────────</span>
+  <span class="kw">if</span> (err <span class="kw">instanceof</span> <span class="er">AppError</span>) {
+    res.<span class="fn">status</span>(err.statusCode).<span class="fn">json</span>({
+      success: <span class="kw">false</span>, message: err.message,
+      ...(err.errors &amp;&amp; { errors: err.errors }),
+      ...(isDev      &amp;&amp; { stack:  err.stack  })   <span class="cmt">// only in dev</span>
+    });
+    <span class="kw">return</span>;
+  }
+
+  <span class="cmt">// ── Step 3: Mongoose errors (CastError, ValidationError, 11000) ─</span>
+  <span class="kw">const</span> mongoResult = <span class="fn">handleMongooseError</span>(err);
+  <span class="kw">if</span> (mongoResult) { res.<span class="fn">status</span>(mongoResult.statusCode).<span class="fn">json</span>(mongoResult.body); <span class="kw">return</span>; }
+
+  <span class="cmt">// ── Step 4: Unknown / programmer bug → 500 ─────────────────</span>
+  console.<span class="fn">error</span>(<span class="str">"[UNHANDLED]"</span>, err);
+  res.<span class="fn">status</span>(<span class="num">500</span>).<span class="fn">json</span>({
+    success: <span class="kw">false</span>,
+    message: isDev ? (err <span class="kw">instanceof</span> <span class="tp">Error</span> ? err.message : <span class="str">"Unknown"</span>) : <span class="str">"Internal server error"</span>
+  });
+};
+
+<span class="cmt">// ── src/app.ts — registration order ───────────────────────</span>
+app.<span class="fn">use</span>(<span class="str">"/users"</span>, userRouter);
+app.<span class="fn">use</span>(<span class="fn">notFound</span>);       <span class="cmt">// 404 for unknown routes — AFTER all routes</span>
+app.<span class="fn">use</span>(<span class="fn">errorHandler</span>);  <span class="cmt">// ← MUST be last (4-param signature)</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>📍 Call Sites</h4></div>
+      <div class="card-sub-content">
+        <div class="callsite-list">
+
+          <div class="callsite-card">
+            <div class="callsite-head" style="background:#6d28d9;color:#fff"><span class="cs-icon">🚀</span><span>app.ts</span><span class="cs-role">REGISTERS IT</span></div>
+            <div class="callsite-body"><code>app.use(errorHandler)</code> — registered as the very last middleware. Express recognises the 4-argument <code>(err, req, res, next)</code> signature and routes all <code>next(err)</code> calls here automatically.</div>
+          </div>
+
+          <div class="callsite-card">
+            <div class="callsite-head" style="background:#16a34a;color:#fff"><span class="cs-icon">🔄</span><span>asyncHandler.ts</span><span class="cs-role">AUTO-FORWARDS</span></div>
+            <div class="callsite-body"><code>.catch(next)</code> inside asyncHandler forwards any thrown error from controllers or services directly here — no manual try/catch needed.</div>
+          </div>
+
+          <div class="callsite-card">
+            <div class="callsite-head" style="background:#0891b2;color:#fff"><span class="cs-icon">🔐</span><span>auth.ts</span><span class="cs-role">EXPLICIT next(err)</span></div>
+            <div class="callsite-body"><code>return next(new UnauthorizedError(...))</code> — explicit forwarding from the middleware. Express skips all remaining handlers and jumps straight to errorHandler.</div>
+          </div>
+
+          <div class="callsite-card">
+            <div class="callsite-head" style="background:#f97316;color:#fff"><span class="cs-icon">✅</span><span>validate.ts</span><span class="cs-role">ZOD ERRORS</span></div>
+            <div class="callsite-body"><code>return next(zodError)</code> — Zod errors are passed to <code>next()</code> and Step 1 of errorHandler catches them as <code>ZodError instanceof</code> → formats field-level error map → <span class="http http-400">400</span>.</div>
+          </div>
+
+        </div>
+        <div class="info-box box-warning">⚠️ <strong>Critical:</strong> Express identifies error middleware by <strong>exactly 4 parameters</strong>. If you remove <code>_next</code>, it silently stops working. Order matters — errorHandler must be the absolute last <code>app.use()</code>.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 03: handleMongooseError.ts ==================== -->
+    <div class="section-divider" id="s3"><span>03 · handleMongooseError.ts</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>📁 src/middleware/handleMongooseError.ts</h4><span class="badge-tag">DB ERROR NORMALISER</span></div>
+      <div class="card-sub-content">
+        <p>Mongoose throws its own error types that <strong>don't extend AppError</strong>. This helper detects them by class or error code and converts to a plain <code>{ statusCode, body }</code> object. Called <strong>only by errorHandler</strong>. Returns <code>null</code> when the error isn't a Mongoose error.</p>
+
+        <h3>Called By</h3>
+        <div class="tag-strip">
+          <span class="tag-strip-label">CALLED ONLY BY →</span>
+          <span class="ctag" style="background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe">errorHandler.ts (Step 3 only)</span>
+        </div>
+
+        <h3>Three Mongoose Errors It Handles</h3>
+        <table>
+          <tr><th>Mongoose Error</th><th>Triggered When</th><th>HTTP Response</th></tr>
+          <tr><td><code>MongoServerError 11000</code></td><td>Unique index violated (e.g. duplicate email)</td><td><span class="http http-409">409 Conflict</span></td></tr>
+          <tr><td><code>ValidationError</code></td><td>Schema constraint violated (required, min, max)</td><td><span class="http http-400">400 Bad Request</span></td></tr>
+          <tr><td><code>CastError</code></td><td>Invalid ObjectId format in URL param</td><td><span class="http http-400">400 Bad Request</span></td></tr>
+        </table>
+
+        <h3>Code</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/middleware/handleMongooseError.ts</span></div>
+          <pre><code><span class="kw">import</span> mongoose <span class="kw">from</span> <span class="str">"mongoose"</span>;
+
+<span class="kw">interface</span> <span class="tp">NormalisedError</span> {
+  statusCode: <span class="tp">number</span>;
+  body: { success: <span class="kw">false</span>; message: <span class="tp">string</span>; errors?: <span class="tp">unknown</span> };
+}
+
+<span class="kw">export const</span> <span class="fn">handleMongooseError</span> = (err: <span class="tp">unknown</span>): <span class="tp">NormalisedError</span> | <span class="kw">null</span> => {
+
+  <span class="cmt">// Duplicate key — User.create({ email: "taken@mail.com" }) → code 11000</span>
+  <span class="kw">if</span> (err <span class="kw">instanceof</span> <span class="tp">Error</span> &amp;&amp; <span class="str">"code"</span> <span class="kw">in</span> err &amp;&amp; (err <span class="kw">as</span> <span class="tp">any</span>).code === <span class="num">11000</span>) {
+    <span class="kw">const</span> field = <span class="tp">Object</span>.<span class="fn">keys</span>((err <span class="kw">as</span> <span class="tp">any</span>).keyValue ?? {})[<span class="num">0</span>] ?? <span class="str">"field"</span>;
+    <span class="kw">return</span> { statusCode: <span class="num">409</span>, body: { success: <span class="kw">false</span>, message: <span class="str">`${field} already exists`</span> } };
+  }
+
+  <span class="cmt">// Schema ValidationError — User.create({ age: 5 }) violates min: 18</span>
+  <span class="kw">if</span> (err <span class="kw">instanceof</span> mongoose.<span class="tp">Error</span>.<span class="tp">ValidationError</span>) {
+    <span class="kw">const</span> errors = <span class="tp">Object</span>.<span class="fn">fromEntries</span>(<span class="tp">Object</span>.<span class="fn">entries</span>(err.errors).<span class="fn">map</span>(([k, v]) => [k, v.message]));
+    <span class="kw">return</span> { statusCode: <span class="num">400</span>, body: { success: <span class="kw">false</span>, message: <span class="str">"Validation failed"</span>, errors } };
+  }
+
+  <span class="cmt">// CastError — User.findById("not-a-valid-objectid")</span>
+  <span class="kw">if</span> (err <span class="kw">instanceof</span> mongoose.<span class="tp">Error</span>.<span class="tp">CastError</span>) {
+    <span class="kw">return</span> { statusCode: <span class="num">400</span>, body: { success: <span class="kw">false</span>, message: <span class="str">`Invalid ${err.path}: "${err.value}"`</span> } };
+  }
+
+  <span class="kw">return</span> <span class="kw">null</span>;  <span class="cmt">// not a Mongoose error — fall through to 500</span>
+};</code></pre>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 04: asyncHandler.ts ==================== -->
+    <div class="section-divider" id="s4"><span>04 · asyncHandler.ts</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4 no-border">
+      <div class="card-sub-title"><h4>📁 src/utils/asyncHandler.ts</h4><span class="badge-tag">ASYNC WRAPPER</span></div>
+      <div class="card-sub-content">
+        <p>Wraps every async controller function. Without it, a rejected promise silently disappears — Express doesn't catch async errors. <code>.catch(next)</code> forwards the rejection to <code>errorHandler</code> automatically. <strong>No try/catch boilerplate needed in any controller.</strong></p>
+
+        <h3>Used In</h3>
+        <div class="tag-strip">
+          <span class="tag-strip-label">IMPORTED BY →</span>
+          <span class="ctag" style="background:#fff7ed;color:#f97316;border-color:#fed7aa">user.controller.ts</span>
+          <span class="ctag" style="background:#fff7ed;color:#f97316;border-color:#fed7aa">post.controller.ts</span>
+          <span class="ctag" style="background:#fff7ed;color:#f97316;border-color:#fed7aa">auth.controller.ts</span>
+          <span class="tag-strip-label">FORWARDS ERRORS TO →</span>
+          <span class="ctag" style="background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe">errorHandler.ts</span>
+        </div>
+
+        <h3>Code</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/utils/asyncHandler.ts</span></div>
+          <pre><code><span class="kw">import</span> { <span class="tp">Request</span>, <span class="tp">Response</span>, <span class="tp">NextFunction</span>, <span class="tp">RequestHandler</span> } <span class="kw">from</span> <span class="str">"express"</span>;
+
+<span class="kw">type</span> <span class="tp">AsyncFn</span> = (req: <span class="tp">Request</span>, res: <span class="tp">Response</span>, next: <span class="tp">NextFunction</span>) => <span class="tp">Promise</span>&lt;<span class="tp">void</span>&gt;;
+
+<span class="kw">export const</span> <span class="fn">asyncHandler</span> =
+  (fn: <span class="tp">AsyncFn</span>): <span class="tp">RequestHandler</span> =>
+  (req, res, next) =>
+    fn(req, res, next).<span class="fn">catch</span>(next);
+<span class="cmt">//                    ^^^^^^^^^^^
+//  This one .catch(next) replaces try/catch in EVERY controller</span>
+
+<span class="cmt">// ── WITHOUT asyncHandler (bad) ─────────────────────────────</span>
+router.<span class="fn">get</span>(<span class="str">"/:id"</span>, <span class="kw">async</span> (req, res, next) => {
+  <span class="kw">try</span> {
+    <span class="kw">const</span> user = <span class="kw">await</span> userService.<span class="fn">getUserById</span>(req.params.id);
+    res.<span class="fn">json</span>(user);
+  } <span class="kw">catch</span> (err) { <span class="fn">next</span>(err); }  <span class="cmt">// have to remember every time</span>
+});
+
+<span class="cmt">// ── WITH asyncHandler (good) ───────────────────────────────</span>
+router.<span class="fn">get</span>(<span class="str">"/:id"</span>, <span class="fn">asyncHandler</span>(<span class="kw">async</span> (req, res) => {
+  <span class="kw">const</span> user = <span class="kw">await</span> userService.<span class="fn">getUserById</span>(req.params.id);
+  res.<span class="fn">json</span>(user);
+  <span class="cmt">// throws NotFoundError → .catch(next) → errorHandler → 404</span>
+}));</code></pre>
+        </div>
+
+        <div class="info-box box-note">🎯 <strong>Interview point:</strong> Without asyncHandler, unhandled async errors in Express 4 crash silently or hang the request. Express 5 handles it natively, but Express 4 requires this wrapper on every async handler.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 05: auth.ts + authorise.ts ==================== -->
+    <div class="section-divider" id="s5"><span>05 · auth.ts + authorise.ts</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-5 no-border">
+      <div class="card-sub-title"><h4>📁 src/middleware/auth.ts · authorise.ts</h4><span class="badge-tag">AUTH MIDDLEWARE</span></div>
+      <div class="card-sub-content">
+        <p><strong>authenticate</strong> runs before every protected route. Reads JWT from <code>Authorization: Bearer &lt;token&gt;</code>, verifies it, attaches payload to <code>req.user</code>. <strong>authorise</strong> checks <code>req.user.role</code> is in the allowed list. Both call <code>next(err)</code> — never respond directly.</p>
+
+        <h3>Used In / Throws To</h3>
+        <div class="tag-strip">
+          <span class="tag-strip-label">USED IN →</span>
+          <span class="ctag" style="background:#fff7ed;color:#f97316;border-color:#fed7aa">user.routes.ts</span>
+          <span class="ctag" style="background:#fff7ed;color:#f97316;border-color:#fed7aa">post.routes.ts</span>
+          <span class="tag-strip-label">THROWS TO →</span>
+          <span class="ctag" style="background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe">errorHandler.ts</span>
+        </div>
+
+        <h3>Throw Points</h3>
+        <table>
+          <tr><th>Point</th><th>Condition</th><th>Error Thrown</th><th>Status</th></tr>
+          <tr><td><strong>A</strong></td><td>No Authorization header</td><td><code>UnauthorizedError("No token provided")</code></td><td><span class="http http-401">401</span></td></tr>
+          <tr><td><strong>B</strong></td><td>JWT expired</td><td><code>UnauthorizedError("Token expired")</code></td><td><span class="http http-401">401</span></td></tr>
+          <tr><td><strong>C</strong></td><td>JWT tampered / invalid</td><td><code>UnauthorizedError("Invalid token")</code></td><td><span class="http http-401">401</span></td></tr>
+          <tr><td><strong>D</strong></td><td>User logged in but wrong role</td><td><code>ForbiddenError("Role not allowed")</code></td><td><span class="http http-403">403</span></td></tr>
+        </table>
+
+        <h3>Code</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/middleware/auth.ts + authorise.ts</span></div>
+          <pre><code><span class="cmt">// ── auth.ts — throws UnauthorizedError (401) ──────────────</span>
+<span class="kw">import</span> jwt <span class="kw">from</span> <span class="str">"jsonwebtoken"</span>;
+<span class="kw">import</span> { <span class="er">UnauthorizedError</span> } <span class="kw">from</span> <span class="str">"../errors/AppError"</span>;
+
+<span class="kw">export const</span> <span class="fn">authenticate</span> = (req, _res, next) => {
+  <span class="kw">const</span> token = req.headers.authorization?.<span class="fn">split</span>(<span class="str">" "</span>)[<span class="num">1</span>];
+
+  <span class="cmt">// THROW POINT A — no token</span>
+  <span class="kw">if</span> (!token) <span class="kw">return</span> <span class="fn">next</span>(<span class="kw">new</span> <span class="er">UnauthorizedError</span>(<span class="str">"No token provided"</span>));
+
+  <span class="kw">try</span> {
+    (req <span class="kw">as</span> <span class="tp">any</span>).user = jwt.<span class="fn">verify</span>(token, process.env.<span class="tp">JWT_SECRET</span>!);
+    <span class="fn">next</span>();
+  } <span class="kw">catch</span> (err) {
+    <span class="cmt">// THROW POINT B — expired</span>
+    <span class="kw">if</span> (err <span class="kw">instanceof</span> jwt.<span class="tp">TokenExpiredError</span>)
+      <span class="kw">return</span> <span class="fn">next</span>(<span class="kw">new</span> <span class="er">UnauthorizedError</span>(<span class="str">"Token expired"</span>));
+    <span class="cmt">// THROW POINT C — tampered</span>
+    <span class="kw">return</span> <span class="fn">next</span>(<span class="kw">new</span> <span class="er">UnauthorizedError</span>(<span class="str">"Invalid token"</span>));
+  }
+};
+
+<span class="cmt">// ── authorise.ts — throws ForbiddenError (403) ────────────</span>
+<span class="kw">import</span> { <span class="er">ForbiddenError</span> } <span class="kw">from</span> <span class="str">"../errors/AppError"</span>;
+
+<span class="kw">export const</span> <span class="fn">authorise</span> = (...roles: <span class="tp">UserRole</span>[]) =>
+  (req, _res, next) => {
+    <span class="kw">const</span> role = (req <span class="kw">as</span> <span class="tp">any</span>).user?.role;
+    <span class="cmt">// THROW POINT D — wrong role</span>
+    <span class="kw">if</span> (!roles.<span class="fn">includes</span>(role))
+      <span class="kw">return</span> <span class="fn">next</span>(<span class="kw">new</span> <span class="er">ForbiddenError</span>(<span class="str">`Role '${role}' cannot access this`</span>));
+    <span class="fn">next</span>();
+  };</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-5 accent-left">
+      <div class="card-sub-title"><h4>📍 Call Sites</h4></div>
+      <div class="card-sub-content">
+        <div class="callsite-list">
+
+          <div class="callsite-card">
+            <div class="callsite-head" style="background:#f97316;color:#fff"><span class="cs-icon">🛤️</span><span>user.routes.ts</span><span class="cs-role">CHAINS AUTHENTICATE</span></div>
+            <div class="callsite-body"><code>router.get("/:id", authenticate, controller.getById)</code> — authenticate runs first. If it calls <code>next(err)</code>, Express skips the controller entirely and jumps straight to errorHandler.</div>
+          </div>
+
+          <div class="callsite-card">
+            <div class="callsite-head" style="background:#f97316;color:#fff"><span class="cs-icon">📮</span><span>post.routes.ts</span><span class="cs-role">SAME PATTERN</span></div>
+            <div class="callsite-body"><code>router.delete("/:id", authenticate, authorise("ADMIN","MANAGER"), controller.remove)</code> — three middlewares chain. Only the last one is the controller. All 401/403 errors skip straight to errorHandler.</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 06: user.service.ts ==================== -->
+    <div class="section-divider" id="s6"><span>06 · user.service.ts</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-6 no-border">
+      <div class="card-sub-title"><h4>📁 src/services/user.service.ts</h4><span class="badge-tag">PRIMARY THROW LAYER</span></div>
+      <div class="card-sub-content">
+        <p>Contains all business logic. This is where the <strong>majority of <code>throw new XxxError()</code> calls live</strong>. The controller calls it, <code>asyncHandler</code> catches any throw, and it flows to <code>errorHandler</code>. The service <strong>never touches <code>res</code> or <code>next</code></strong> — it only throws or returns data.</p>
+
+        <h3>Called By / Imports / Throws Reach</h3>
+        <div class="tag-strip">
+          <span class="tag-strip-label">CALLED BY →</span>
+          <span class="ctag" style="background:#fff7ed;color:#f97316;border-color:#fed7aa">user.controller.ts</span>
+          <span class="tag-strip-label">IMPORTS →</span>
+          <span class="ctag" style="background:#fef2f2;color:#dc2626;border-color:#fecaca">AppError / subclasses</span>
+          <span class="tag-strip-label">THROWS REACH →</span>
+          <span class="ctag" style="background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe">errorHandler.ts (via asyncHandler)</span>
+        </div>
+
+        <h3>All Throw Points</h3>
+        <table>
+          <tr><th>#</th><th>Method</th><th>Condition</th><th>Error</th><th>Status</th></tr>
+          <tr><td>1</td><td><code>createUser</code></td><td>Email already registered</td><td><code>ConflictError("email")</code></td><td><span class="http http-409">409</span></td></tr>
+          <tr><td>2</td><td><code>getUserById</code></td><td>findById returns null</td><td><code>NotFoundError("User")</code></td><td><span class="http http-404">404</span></td></tr>
+          <tr><td>3</td><td><code>updateUser</code></td><td>User not found</td><td><code>NotFoundError("User")</code></td><td><span class="http http-404">404</span></td></tr>
+          <tr><td>4</td><td><code>updateUser</code></td><td>Not the owner</td><td><code>ForbiddenError("Own profile only")</code></td><td><span class="http http-403">403</span></td></tr>
+          <tr><td>5</td><td><code>updateUser</code></td><td>Trying to change own role</td><td><code>AppError("Cannot change role", 403)</code></td><td><span class="http http-403">403</span></td></tr>
+          <tr><td>6</td><td><code>deleteUser</code></td><td>Delete target not found</td><td><code>NotFoundError("User")</code></td><td><span class="http http-404">404</span></td></tr>
+        </table>
+
+        <h3>Code</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/services/user.service.ts</span></div>
+          <pre><code><span class="kw">import</span> { <span class="er">NotFoundError</span>, <span class="er">ConflictError</span>, <span class="er">ForbiddenError</span>, <span class="er">AppError</span> } <span class="kw">from</span> <span class="str">"../errors/AppError"</span>;
+
+<span class="kw">export const</span> userService = {
+
+  createUser: <span class="kw">async</span> (dto: <span class="tp">CreateUserDTO</span>) => {
+    <span class="kw">const</span> existing = <span class="kw">await</span> User.<span class="fn">findOne</span>({ email: dto.email });
+    <span class="kw">if</span> (existing) <span class="kw">throw new</span> <span class="er">ConflictError</span>(<span class="str">"email"</span>);          <span class="cmt">// THROW 1 → 409</span>
+
+    <span class="kw">const</span> hashed = <span class="kw">await</span> bcrypt.<span class="fn">hash</span>(dto.password, <span class="num">12</span>);
+    <span class="kw">return</span> User.<span class="fn">create</span>({ ...dto, password: hashed });
+  },
+
+  getUserById: <span class="kw">async</span> (id: <span class="tp">string</span>) => {
+    <span class="kw">const</span> user = <span class="kw">await</span> User.<span class="fn">findById</span>(id);
+    <span class="kw">if</span> (!user) <span class="kw">throw new</span> <span class="er">NotFoundError</span>(<span class="str">"User"</span>);            <span class="cmt">// THROW 2 → 404</span>
+    <span class="kw">return</span> user;
+  },
+
+  updateUser: <span class="kw">async</span> (id, dto, requesterId) => {
+    <span class="kw">const</span> user = <span class="kw">await</span> User.<span class="fn">findById</span>(id);
+    <span class="kw">if</span> (!user) <span class="kw">throw new</span> <span class="er">NotFoundError</span>(<span class="str">"User"</span>);            <span class="cmt">// THROW 3 → 404</span>
+
+    <span class="kw">if</span> (user._id.<span class="fn">toString</span>() !== requesterId)
+      <span class="kw">throw new</span> <span class="er">ForbiddenError</span>(<span class="str">"You can only edit your own profile"</span>); <span class="cmt">// THROW 4 → 403</span>
+
+    <span class="kw">if</span> (dto.role &amp;&amp; dto.role !== user.role)
+      <span class="kw">throw new</span> <span class="er">AppError</span>(<span class="str">"You cannot change your own role"</span>, <span class="num">403</span>);  <span class="cmt">// THROW 5 → 403</span>
+
+    <span class="kw">return</span> User.<span class="fn">findByIdAndUpdate</span>(id, { $<span class="fn">set</span>: dto }, { new: <span class="kw">true</span>, runValidators: <span class="kw">true</span> });
+  },
+
+  deleteUser: <span class="kw">async</span> (id: <span class="tp">string</span>) => {
+    <span class="kw">const</span> deleted = <span class="kw">await</span> User.<span class="fn">findByIdAndDelete</span>(id);
+    <span class="kw">if</span> (!deleted) <span class="kw">throw new</span> <span class="er">NotFoundError</span>(<span class="str">"User"</span>);         <span class="cmt">// THROW 6 → 404</span>
+  },
+};</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-6 accent-left">
+      <div class="card-sub-title"><h4>📍 Call Sites</h4></div>
+      <div class="card-sub-content">
+        <div class="callsite-list">
+          <div class="callsite-card">
+            <div class="callsite-head" style="background:#f97316;color:#fff"><span class="cs-icon">🎮</span><span>user.controller.ts</span><span class="cs-role">CALLS SERVICE</span></div>
+            <div class="callsite-body">Every method calls a service function inside <code>asyncHandler</code>: e.g. <code>const user = await userService.getUserById(req.params.id)</code>. If the service throws, <code>.catch(next)</code> forwards it to <code>errorHandler</code>. <strong>The controller never sees the error at all.</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 07: user.routes.ts ==================== -->
+    <div class="section-divider" id="s7"><span>07 · user.routes.ts</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-7 no-border">
+      <div class="card-sub-title"><h4>📁 src/routes/user.routes.ts</h4><span class="badge-tag">WIRES IT ALL</span></div>
+      <div class="card-sub-content">
+        <p>Connects every error-handling piece in the correct order per route. The route layer <strong>never throws itself</strong> — it just attaches the right middleware chain. Reading this file shows the complete error path for any endpoint at a glance.</p>
+
+        <h3>Imports / Mounted In</h3>
+        <div class="tag-strip">
+          <span class="tag-strip-label">IMPORTS →</span>
+          <span class="ctag" style="background:#fff7ed;color:#f97316;border-color:#fed7aa">validate (Zod MW)</span>
+          <span class="ctag" style="background:#ecfeff;color:#0891b2;border-color:#a5f3fc">authenticate</span>
+          <span class="ctag" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe">authorise</span>
+          <span class="ctag" style="background:#fefce8;color:#ca8a04;border-color:#fde68a">userController</span>
+          <span class="tag-strip-label">MOUNTED IN →</span>
+          <span class="ctag" style="background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe">app.ts</span>
+        </div>
+
+        <h3>Error Path Per Endpoint</h3>
+        <table>
+          <tr><th>Method</th><th>Endpoint</th><th>Middleware Chain → Possible Errors</th></tr>
+          <tr><td><span class="pill short">POST</span></td><td><code>/users</code></td><td>validate → <span class="http http-400">400 Zod</span> &nbsp;|&nbsp; service → <span class="http http-409">409 Conflict</span></td></tr>
+          <tr><td><span class="pill indigo">GET</span></td><td><code>/users/:id</code></td><td>authenticate → <span class="http http-401">401</span> &nbsp;|&nbsp; service → <span class="http http-400">400 BadId</span> / <span class="http http-404">404</span></td></tr>
+          <tr><td><span class="pill long">PATCH</span></td><td><code>/users/:id</code></td><td>authenticate → <span class="http http-401">401</span> &nbsp;|&nbsp; authorise → <span class="http http-403">403</span> &nbsp;|&nbsp; validate → <span class="http http-400">400</span> &nbsp;|&nbsp; service → <span class="http http-404">404</span>/<span class="http http-403">403</span></td></tr>
+          <tr><td><span class="pill danger">DELETE</span></td><td><code>/users/:id</code></td><td>authenticate → <span class="http http-401">401</span> &nbsp;|&nbsp; authorise(ADMIN) → <span class="http http-403">403</span> &nbsp;|&nbsp; service → <span class="http http-404">404</span></td></tr>
+        </table>
+
+        <h3>Code</h3>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/routes/user.routes.ts</span></div>
+          <pre><code><span class="kw">import</span> { Router } <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> { validate }       <span class="kw">from</span> <span class="str">"../middleware/validate"</span>;
+<span class="kw">import</span> { authenticate }   <span class="kw">from</span> <span class="str">"../middleware/auth"</span>;
+<span class="kw">import</span> { authorise }      <span class="kw">from</span> <span class="str">"../middleware/authorise"</span>;
+<span class="kw">import</span> { userController } <span class="kw">from</span> <span class="str">"../controllers/user.controller"</span>;
+<span class="kw">import</span> { createUserSchema, updateUserSchema } <span class="kw">from</span> <span class="str">"../validators/user.validator"</span>;
+
+<span class="kw">const</span> router = <span class="fn">Router</span>();
+
+<span class="cmt">// POST /users — Zod bad body → 400  |  duplicate email → 409</span>
+router.<span class="fn">post</span>(<span class="str">"/"</span>,
+  <span class="fn">validate</span>(createUserSchema),    <span class="cmt">// 1. Zod check → 400</span>
+  userController.<span class="fn">create</span>         <span class="cmt">// 2. service: duplicate → 409</span>
+);
+
+<span class="cmt">// GET /users/:id — no JWT → 401  |  bad ID → 400  |  not found → 404</span>
+router.<span class="fn">get</span>(<span class="str">"/:id"</span>,
+  authenticate,                  <span class="cmt">// 1. JWT missing/bad → 401</span>
+  userController.<span class="fn">getById</span>        <span class="cmt">// 2. service → 404</span>
+);
+
+<span class="cmt">// PATCH /users/:id — 401 → 403 → 400 → 404/403</span>
+router.<span class="fn">patch</span>(<span class="str">"/:id"</span>,
+  authenticate,                        <span class="cmt">// 1. JWT → 401</span>
+  <span class="fn">authorise</span>(<span class="str">"ADMIN"</span>, <span class="str">"MANAGER"</span>, <span class="str">"USER"</span>), <span class="cmt">// 2. role → 403</span>
+  <span class="fn">validate</span>(updateUserSchema),          <span class="cmt">// 3. Zod → 400</span>
+  userController.<span class="fn">update</span>               <span class="cmt">// 4. service → 404/403</span>
+);
+
+<span class="cmt">// DELETE /users/:id — 401 → 403 (ADMIN only) → 404</span>
+router.<span class="fn">delete</span>(<span class="str">"/:id"</span>,
+  authenticate,          <span class="cmt">// 1. JWT → 401</span>
+  <span class="fn">authorise</span>(<span class="str">"ADMIN"</span>),    <span class="cmt">// 2. ADMIN only → 403</span>
+  userController.<span class="fn">remove</span> <span class="cmt">// 3. service → 404</span>
+);
+
+<span class="kw">export</span> { router <span class="kw">as</span> userRouter };</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-7 accent-left">
+      <div class="card-sub-title"><h4>📍 Call Sites</h4></div>
+      <div class="card-sub-content">
+        <div class="callsite-list">
+          <div class="callsite-card">
+            <div class="callsite-head" style="background:#6d28d9;color:#fff"><span class="cs-icon">🚀</span><span>app.ts</span><span class="cs-role">MOUNTS ROUTER</span></div>
+            <div class="callsite-body"><code>app.use("/users", userRouter)</code> — mounts the router. After all routers: <code>app.use(notFound)</code> then <code>app.use(errorHandler)</code>. The order is critical — <code>errorHandler</code> must always be the very last call.</div>
+          </div>
+        </div>
+        <div class="info-box box-warning">🧠 <strong>Remember:</strong> Middleware order in Express is sequential. If <code>authenticate</code> calls <code>next(err)</code>, Express immediately jumps to <code>errorHandler</code> — skipping <code>authorise</code>, <code>validate</code>, and the controller entirely.</div>
+      </div>
+    </div>
+
+    </div>
+
+  </div>
+
+  <footer>Node.js · TypeScript · MongoDB — Error Handling Full Flow · Every file. Every call site.</footer>
+
+</body>
+</html>

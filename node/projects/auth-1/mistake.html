@@ -1,0 +1,352 @@
+### Mistakes to Remember — Mongoose User Schema
+
+1. **`required`, not `require`**
+
+   ```ts
+   required: true
+   ```
+
+   ❌ `require: true`
+
+2. **Use `maxlength` for string length**
+
+   ```ts
+   maxlength: 35
+   ```
+
+   ❌ `maxLength: 35`
+
+3. **Add `unique: true` for unique email**
+
+   ```ts
+   email: {
+     type: String,
+     required: true,
+     unique: true
+   }
+   ```
+
+4. **Schema and Model are different**
+
+   ```text
+   Schema → defines document structure
+   Model  → interacts with MongoDB
+   ```
+
+5. **Create Schema using `mongoose.Schema()`**
+
+   ```ts
+   const userSchema = new mongoose.Schema({...});
+   ```
+
+6. **Create Model using `mongoose.model()`**
+
+   ```ts
+   const User = mongoose.model("User", userSchema);
+   ```
+
+   ❌ Don't use:
+
+   ```ts
+   new mongoose.Model(...)
+   ```
+
+7. **Use a meaningful Model name**
+
+   ```ts
+   const User = mongoose.model("User", userSchema);
+   ```
+
+   Not:
+
+   ```ts
+   const userSchema = ...
+   ```
+
+   for the model variable.
+
+8. **`timestamps: true` is a Schema option**
+
+   ```ts
+   {
+     timestamps: true
+   }
+   ```
+
+   It automatically creates:
+
+   ```text
+   createdAt
+   updatedAt
+   ```
+
+9. **For email fields, commonly use `trim` and `lowercase`**
+
+   ```ts
+   email: {
+     type: String,
+     required: true,
+     unique: true,
+     trim: true,
+     lowercase: true
+   }
+   ```
+
+10. **Password should never be stored as plain text**
+
+    ```text
+    Plain password
+         ↓
+    bcrypt.hash()
+         ↓
+    Hashed password
+         ↓
+    MongoDB
+    ```
+
+### Easy pattern to remember
+
+```text
+mongoose.Schema()
+      ↓
+  Schema definition
+      ↓
+mongoose.model()
+      ↓
+      Model
+      ↓
+MongoDB operations
+```
+
+**Your biggest mistakes were:** `require` → `required`, `new mongoose.Model()` → `mongoose.model()`, and forgetting `unique: true` for email.
+
+
+Mongoose Schema & Model — Mistakes to Remember
+
+Schema starts with capital S
+
+Schema
+
+Because Schema is imported as a constructor/class.
+
+Create a Schema using new Schema()
+
+const userSchema = new Schema({
+  // fields
+});
+
+model starts with small m
+
+model
+
+It is the function used to create a Mongoose model.
+
+Create the Model using model()
+
+const User = model("User", userSchema);
+
+import { Schema, model } from "mongoose";
+
+const userSchema = new Schema({
+  // fields
+});
+
+const User = model("User", userSchema);
+
+export default User;
+
+
+
+
+InferSchemaType common mistakes
+❌ Using it with a TypeScript interface
+
+❌ Forgetting typeof:
+
+InferSchemaType<UserSchema> // ❌
+InferSchemaType<typeof UserSchema> // ✅
+
+write like this 
+const UserModel = model<User>("User", UserSchema);
+
+
+
+# JWT + Cookie Authentication — Common Mistakes
+
+**1. Reading from the wrong place**
+```
+req.headers.authorization // ❌ if using cookies
+req.cookies.accessToken   // ✅
+```
+
+**2. Forgetting `cookie-parser`**
+```
+app.use(cookieParser()); // ✅ otherwise req.cookies is undefined
+```
+
+**3. Forgetting to set the cookie during login**
+```
+res.cookie("accessToken", token); // ✅
+```
+
+**4. Using different cookie names**
+```
+res.cookie("token", token);        // set as "token"
+req.cookies.accessToken;           // ❌ read as "accessToken" — names must match
+```
+
+**5. Putting a cookie token in `Authorization`**
+```
+Authorization: Bearer <token>  // ❌ if middleware expects req.cookies.accessToken
+```
+
+**6. Forgetting `Bearer` prefix**
+```
+Authorization: <token>        ❌
+Authorization: Bearer <token> ✅
+```
+
+**7. Not checking if token exists**
+```
+jwt.verify(undefined, secret); // ❌ crashes
+
+if (!token) return res.status(401).json(...); // ✅ check first
+```
+
+**8. Mismatched JWT secret**
+```
+jwt.sign(payload, SECRET_A);
+jwt.verify(token, SECRET_B); // ❌ must match
+```
+
+**9. Forgetting `JWT_SECRET`**
+```
+process.env.JWT_SECRET // may be undefined if .env not loaded
+```
+
+**10. Misusing `as JwtPayload`**
+```
+const decoded = jwt.verify(...) as JwtPayload;
+// only tells TS the shape — no runtime validation of userId
+```
+
+**11. Not storing user on `req`**
+```
+req.user = { userId: decoded.userId };
+// without this, the controller doesn't know who's authenticated
+```
+
+**12. Wrong property name**
+```
+req.userId       // ❌
+req.user.userId  // ✅
+```
+
+**13. Forgetting Express type augmentation**
+```
+interface Request {
+  user: { userId: string };
+}
+// without it: Property 'user' does not exist on type 'Request'
+```
+
+**14. Returning password from user API**
+```
+UserModel.findById(userId);                    // ⚠️ leaks password
+UserModel.findById(userId).select("-password"); // ✅
+```
+
+
+Got it — you want the **“which part should NOT be added”** in the controller and service.
+
+### Controller — what to add
+
+```ts
+export const registerController = async (
+  req: Request,
+  res: Response
+) => {
+  const requestData = registerSchema.parse(req.body);
+
+  const result = await registerUser(requestData);
+
+  res.status(201).json(result);
+};
+```
+
+### Controller — don't add
+
+```ts
+// ❌ Don't add database queries
+userModel.findOne();
+userModel.create();
+
+// ❌ Don't add password hashing
+argon2.hash();
+
+// ❌ Don't add JWT generation
+jwt.sign();
+
+// ❌ Don't add business logic
+if (existingUser) {
+  // ...
+}
+```
+
+---
+
+### Service — what to add
+
+```ts
+export const registerUser = async (
+  userData: RegisterInput
+) => {
+  const existingUser = await userModel.findOne({
+    email: userData.email,
+  });
+
+  if (existingUser) {
+    throw new Error("User already exists");
+  }
+
+  return await userModel.create(userData);
+};
+```
+
+### Service — don't add
+
+```ts
+// ❌ Don't handle HTTP response
+res.status(201).json();
+
+// ❌ Don't access req/res
+req.body;
+res.json();
+
+// ❌ Don't do request validation
+registerSchema.parse(req.body);
+```
+
+### Simple rule
+
+```text
+Controller
+→ HTTP + request validation + response
+
+Service
+→ Business logic + database operations
+```
+
+So:
+
+```text
+req.body          → Controller
+Zod parse         → Controller
+res.status()      → Controller
+
+findOne()         → Service
+create()          → Service
+argon2.hash()     → Service/model
+jwt.sign()        → Service
+Business rules    → Service
+```
