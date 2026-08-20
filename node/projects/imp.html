@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Express Middleware Essentials</title>
+</head>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#f6f7fb; font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif; color:#1a1a1a; }
+.container { width:92%; max-width:820px; margin:44px auto; }
+@media (max-width:768px){ .container{ width:100%; margin:20px 0 32px; } }
+
+.header { background:linear-gradient(120deg,#1e3a8a,#3b82f6); border-radius:14px; padding:26px 30px; margin-bottom:28px; box-shadow:0 10px 24px rgba(37,99,235,0.28); }
+.header h1 { color:#fff; font-size:24px; font-weight:800; letter-spacing:-.3px; }
+.header p { color:#dbeafe; font-size:14px; margin-top:4px; }
+
+.mw { border-radius:12px; margin-bottom:22px; overflow:hidden; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.05); background:#fff; }
+.mw-1 { --c:#2563eb; --cl:#3b82f6; --bg:#eff6ff; --dk:#1e3a8a; }
+.mw-2 { --c:#059669; --cl:#10b981; --bg:#ecfdf5; --dk:#065f46; }
+.mw-3 { --c:#7c3aed; --cl:#8b5cf6; --bg:#f5f3ff; --dk:#5b21b6; }
+.mw-4 { --c:#dc2626; --cl:#ef4444; --bg:#fef2f2; --dk:#991b1b; }
+.mw-5 { --c:#0891b2; --cl:#06b6d4; --bg:#ecfeff; --dk:#155e75; }
+
+.mw-head { display:flex; align-items:center; gap:10px; padding:14px 20px; background:linear-gradient(120deg,var(--c),var(--cl)); }
+.mw-head .icon { font-size:18px; }
+.mw-head code { background:rgba(255,255,255,0.2); color:#fff; font-family:'Fira Code','Consolas',monospace; font-size:15px; font-weight:700; padding:3px 10px; border-radius:6px; }
+.mw-head .tag { margin-left:auto; font-size:10px; font-weight:800; letter-spacing:.5px; color:#fff; background:rgba(255,255,255,0.22); padding:3px 10px; border-radius:20px; text-transform:uppercase; }
+
+.mw-body { padding:18px 20px; background:var(--bg); }
+.mw-body p { font-size:14.5px; line-height:1.65; color:#28324a; font-weight:500; margin-bottom:10px; }
+.mw-body p:last-child { margin-bottom:0; }
+.mw-body strong { color:var(--dk); }
+
+.row2 { display:flex; gap:12px; flex-wrap:wrap; margin:10px 0; }
+.row2 > div { flex:1 1 220px; min-width:0; }
+
+.panel { background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:9px; padding:10px 14px; }
+.panel-label { font-size:10px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; color:#94a3b8; margin-bottom:6px; }
+
+.code { background:#1a1a1a; border-radius:9px; padding:12px 14px; margin:8px 0; overflow-x:auto; box-shadow:0 4px 12px rgba(0,0,0,0.15); }
+.code code { color:#d4d4d4; font-size:13.5px; font-family:'Fira Code','Consolas',monospace; line-height:1.55; white-space:pre; }
+.code .kw{color:#c792ea;} .code .str{color:#c3e88d;} .code .fn{color:#82aaff;} .code .pr{color:#f78c6c;}
+
+.inline-code { background:rgba(0,0,0,0.06); color:var(--dk); padding:1px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:13px; font-weight:600; }
+
+.pills { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
+.pill { background:#fff; border:1px solid rgba(0,0,0,0.08); color:var(--dk); font-family:'Fira Code','Consolas',monospace; font-size:12px; font-weight:600; padding:4px 10px; border-radius:20px; }
+
+.flow { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:8px 0; font-family:'Fira Code','Consolas',monospace; font-size:12.5px; font-weight:700; }
+.flow .node { background:#fff; border:1px solid rgba(0,0,0,0.08); color:var(--dk); padding:5px 11px; border-radius:7px; }
+.flow .arrow { color:var(--c); font-size:15px; }
+
+.use-box { display:flex; gap:8px; align-items:flex-start; background:#fff; border-left:3px solid var(--c); border-radius:0 8px 8px 0; padding:10px 14px; margin-top:10px; }
+.use-box .emoji { font-size:15px; }
+.use-box p { margin:0; font-size:13.5px; }
+
+.note-box { display:flex; gap:8px; align-items:flex-start; background:#fef3c7; border-left:3px solid #f59e0b; border-radius:0 8px 8px 0; padding:10px 14px; margin-top:8px; }
+.note-box p { margin:0; font-size:13px; color:#92400e; font-weight:600; }
+</style>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>🧩 Express Middleware Essentials</h1>
+    <p>express.json() · helmet() · cookie-parser() — what they do and why you use them</p>
+  </div>
+
+  <!-- ===== express.json() ===== -->
+  <div class="mw mw-1">
+    <div class="mw-head">
+      <span class="icon">📦</span>
+      <code>express.json()</code>
+      <span class="tag">Body Parser</span>
+    </div>
+    <div class="mw-body">
+      <p>Parses incoming JSON request bodies and makes them available on <span class="inline-code">req.body</span>. Without it, <span class="inline-code">req.body</span> stays empty for normal JSON requests.</p>
+
+      <div class="row2">
+        <div class="panel">
+          <div class="panel-label">Frontend sends</div>
+          <div class="code"><code>{
+  <span class="str">"email"</span>: <span class="str">"abc@gmail.com"</span>,
+  <span class="str">"password"</span>: <span class="str">"123456"</span>
+}</code></div>
+        </div>
+        <div class="panel">
+          <div class="panel-label">You access</div>
+          <div class="code"><code>req.body.email
+req.body.password</code></div>
+        </div>
+      </div>
+
+      <div class="code"><code><span class="fn">app</span>.<span class="fn">use</span>(<span class="kw">express</span>.<span class="fn">json</span>());</code></div>
+
+      <div class="use-box">
+        <span class="emoji">✅</span>
+        <p><strong>Use it because</strong> APIs commonly receive JSON data — this is what turns the raw request body into a usable JS object.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== helmet() ===== -->
+  <div class="mw mw-2">
+    <div class="mw-head">
+      <span class="icon">🛡️</span>
+      <code>helmet()</code>
+      <span class="tag">Security Headers</span>
+    </div>
+    <div class="mw-body">
+      <p>Browsers support several security-related HTTP headers. Configuring each one manually is tedious — <strong>Helmet</strong> sets/configures a collection of them with sensible defaults in one call.</p>
+
+      <div class="panel">
+        <div class="panel-label">Headers it manages</div>
+        <div class="pills">
+          <span class="pill">Content-Security-Policy</span>
+          <span class="pill">X-Content-Type-Options</span>
+          <span class="pill">Strict-Transport-Security</span>
+          <span class="pill">X-Frame-Options</span>
+        </div>
+      </div>
+
+      <div class="code"><code><span class="fn">app</span>.<span class="fn">use</span>(<span class="kw">helmet</span>());</code></div>
+
+      <div class="use-box">
+        <span class="emoji">✅</span>
+        <p><strong>Use it because</strong> it provides a basic security-hardening layer for your Express app with one line.</p>
+      </div>
+      <div class="note-box">
+        <span class="emoji">⚠️</span>
+        <p>It does NOT replace authentication, authorization, validation, or rate limiting.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== cookie-parser() ===== -->
+  <div class="mw mw-3">
+    <div class="mw-head">
+      <span class="icon">🍪</span>
+      <code>cookie-parser()</code>
+      <span class="tag">Cookie Access</span>
+    </div>
+    <div class="mw-body">
+      <p>Browsers can send cookies with requests. <span class="inline-code">cookie-parser()</span> parses that header and makes cookies easily available through <span class="inline-code">req.cookies</span>.</p>
+
+      <div class="flow">
+        <span class="node">Cookie: sessionId=abc123</span>
+        <span class="arrow">→</span>
+        <span class="node">req.cookies.sessionId</span>
+        <span class="arrow">→</span>
+        <span class="node">"abc123"</span>
+      </div>
+
+      <div class="panel">
+        <div class="panel-label">Commonly stored in cookies</div>
+        <div class="pills">
+          <span class="pill">session ID</span>
+          <span class="pill">access token</span>
+          <span class="pill">refresh token</span>
+        </div>
+      </div>
+
+      <div class="use-box">
+        <span class="emoji">✅</span>
+        <p><strong>Use it because</strong> it makes reading cookies from incoming requests — key for authentication systems — convenient.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== argon2 ===== -->
+  <div class="mw mw-4">
+    <div class="mw-head">
+      <span class="icon">🔐</span>
+      <code>argon2</code>
+      <span class="tag">Password Hashing</span>
+    </div>
+    <div class="mw-body">
+      <p><strong>Argon2id</strong> is generally the preferred choice for a new password-storage system — it won the Password Hashing Competition and is the current OWASP-recommended algorithm.</p>
+
+      <div class="code"><code><span class="pr">npm install</span> argon2</code></div>
+
+      <div class="row2">
+        <div class="panel">
+          <div class="panel-label">Hash password</div>
+          <div class="code"><code><span class="kw">import</span> argon2 <span class="kw">from</span> <span class="str">"argon2"</span>;
+
+<span class="kw">this</span>.password = <span class="kw">await</span> argon2.<span class="fn">hash</span>(<span class="kw">this</span>.password);</code></div>
+        </div>
+        <div class="panel">
+          <div class="panel-label">Verify password</div>
+          <div class="code"><code><span class="kw">await</span> argon2.<span class="fn">verify</span>(user.password, password);</code></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-label">Why it's a strong choice</div>
+        <div class="pills">
+          <span class="pill">🧠 Memory-hard</span>
+          <span class="pill">🛡️ GPU/ASIC resistant</span>
+          <span class="pill">⚙️ Configurable cost</span>
+          <span class="pill">🧂 Auto salt handling</span>
+        </div>
+      </div>
+
+      <p><strong>Memory-hard:</strong> Argon2 deliberately uses significant memory as well as CPU, making password cracking more expensive for attackers using GPUs or specialized hardware.</p>
+      <p><strong>Resistant to GPU/ASIC attacks:</strong> traditional fast hashes are easier to attack with highly parallel hardware — Argon2's memory requirements shrink that advantage.</p>
+      <p><strong>Configurable cost:</strong> you can tune memory usage, number of iterations, and degree of parallelism:</p>
+
+      <div class="code"><code><span class="kw">const</span> hash = <span class="kw">await</span> argon2.<span class="fn">hash</span>(password, {
+  type: argon2.argon2id,
+  memoryCost: <span class="pr">19456</span>,
+  timeCost: <span class="pr">2</span>,
+  parallelism: <span class="pr">1</span>,
+});</code></div>
+
+      <p><strong>Automatic salt handling:</strong> you don't need to manually create a salt — <span class="inline-code">argon2.hash(password)</span> handles it internally.</p>
+
+      <div class="use-box">
+        <span class="emoji">✅</span>
+        <p><strong>Use it because</strong> it's the current best-practice algorithm for storing passwords securely, with sensible defaults out of the box.</p>
+      </div>
+    </div>
+  </div>
+  <!-- ===== Zod validation ===== -->
+  <div class="mw mw-5">
+    <div class="mw-head">
+      <span class="icon">✅</span>
+      <code>zod</code>
+      <span class="tag">Schema Validation</span>
+    </div>
+    <div class="mw-body">
+      <p>Validates <span class="inline-code">req.body</span> against a schema and infers a matching TypeScript type — common mistakes below.</p>
+
+      <div class="code"><code><span class="kw">import</span> { z } <span class="kw">from</span> <span class="str">"zod"</span>;
+
+<span class="kw">export const</span> registerSchema = z.<span class="fn">object</span>({
+  name: z.<span class="fn">string</span>().<span class="fn">trim</span>().<span class="fn">min</span>(<span class="pr">1</span>, <span class="str">"Name is required"</span>).<span class="fn">max</span>(<span class="pr">35</span>),
+  password: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="pr">8</span>, <span class="str">"Min 8 characters"</span>),
+  email: z.<span class="fn">string</span>().<span class="fn">trim</span>().<span class="fn">toLowerCase</span>().<span class="fn">email</span>().<span class="fn">endsWith</span>(<span class="str">"@techmahindra.com"</span>),
+});
+
+<span class="kw">export type</span> RegisterInput = z.<span class="fn">infer</span>&lt;<span class="kw">typeof</span> registerSchema&gt;;</code></div>
+
+      <div class="row2">
+        <div class="panel">
+          <div class="panel-label">❌ Common mistakes</div>
+          <div class="code"><code>registerSchema(req.body)
+data: registerSchema
+z.string()          <span class="cmt">// "" allowed</span></code></div>
+        </div>
+        <div class="panel">
+          <div class="panel-label">✅ Correct</div>
+          <div class="code"><code>registerSchema.parse(req.body)
+data: RegisterInput
+z.string().min(1)   <span class="cmt">// "" rejected</span></code></div>
+        </div>
+      </div>
+
+      <p><strong>Validation ≠ transformation:</strong> <span class="inline-code">.email()</span> only checks format. Chain <span class="inline-code">.trim().toLowerCase()</span> to actually transform the value.</p>
+
+      <div class="row2">
+        <div class="panel">
+          <div class="panel-label">parse() — throws</div>
+          <div class="code"><code><span class="kw">const</span> data = registerSchema.<span class="fn">parse</span>(req.body);</code></div>
+        </div>
+        <div class="panel">
+          <div class="panel-label">safeParse() — no throw</div>
+          <div class="code"><code><span class="kw">const</span> r = registerSchema.<span class="fn">safeParse</span>(req.body);
+<span class="kw">if</span> (!r.success) <span class="kw">return</span> r.error.issues;</code></div>
+        </div>
+      </div>
+
+      <div class="use-box">
+        <span class="emoji">✅</span>
+        <p><strong>Use <span class="inline-code">parse()</span></strong> with centralized error middleware (throws → converted to JSON). <strong>Use <span class="inline-code">safeParse()</span></strong> when you want to handle success/error inline.</p>
+      </div>
+
+      <div class="code"><code><span class="fn">app</span>.<span class="fn">use</span>(<span class="str">"/auth"</span>, authRouter);
+<span class="fn">app</span>.<span class="fn">use</span>(errorMiddleware);  <span class="cmt">// ZodError → JSON response</span></code></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

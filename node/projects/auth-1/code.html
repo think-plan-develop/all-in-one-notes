@@ -1,532 +1,684 @@
-========================================================================
-JWT AUTHENTICATION PROJECT — FULL SOURCE CODE
-(Ordered by dependency: config → types → schema → model → db →
- service → middleware → controller → route → error handler → app → server)
-========================================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JWT Authentication Project — Full Source Code</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #faf5ff 30%, #ecfdf5 60%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b;
+  min-height: 100vh;
+}
+.container { width: 94%; max-width: 1100px; margin: 40px auto 60px; }
 
-
-========================================================================
-FILE: tsconfig.json
-========================================================================
-
-{
-  "compilerOptions": {
-    /* Visit https://aka.ms/tsconfig to read more about this file */
-
-    /* Language and Environment */
-    "target": "es2020",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
-
-    /* Modules */
-    "module": "NodeNext",                                /* Specify what module code is generated. */
-    "rootDir": "./src",                                  /* Specify the root folder within your source files. */
-
-
-    "outDir": "./dist",                                   /* Specify an output folder for all emitted files. */
-
-    "esModuleInterop": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
-    // "preserveSymlinks": true,                         /* Disable resolving symlinks to their realpath. This correlates to the same flag in node. */
-    "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */
-
-    /* Type Checking */
-    "strict": true,                                      /* Enable all strict type-checking options. */
-
-    /* Completeness */
-    // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
-    "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
-  }
+@media (max-width: 768px) {
+  .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; }
 }
 
-// NOTE: the original snippet had an unclosed comment —
-// "strict": true, /* Enable all strict type-checking options. *
-// (missing closing "/") — this would break JSON/JSONC parsing.
-// Fixed above by closing it properly: */
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px;
+  padding: 36px 34px;
+  margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35);
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  top: -40%; right: -10%;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:26px; margin-bottom:8px; font-weight:800; letter-spacing:-0.4px; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.6; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  transition:all .2s ease; cursor:pointer;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; transform:translateY(-1px); }
 
+.dep-order {
+  background: rgba(255,255,255,0.8);
+  border:1px solid rgba(37,99,235,0.18);
+  border-radius:14px; padding:18px 22px; margin-bottom:32px;
+  box-shadow: 0 6px 18px rgba(37,99,235,0.08);
+}
+.dep-order h3 { font-size:15px; font-weight:800; color:#1e3a8a; margin-bottom:10px; }
+.dep-flow {
+  display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+  font-size:13px; font-weight:600;
+}
+.dep-flow span {
+  background:linear-gradient(135deg,#dbeafe,#bfdbfe);
+  color:#1e3a8a; padding:5px 12px; border-radius:20px;
+  border:1px solid #93c5fd;
+}
+.dep-flow .arrow { background:none; border:none; color:#3b82f6; padding:0 2px; font-size:14px; }
 
-========================================================================
-FILE: AppError.ts
-========================================================================
-(No internal dependencies — base custom error class used everywhere else.)
+.file-section { margin-bottom:28px; }
+.file-header {
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  background: linear-gradient(120deg, #1e3a8a, #2563eb);
+  color:#fff; padding:14px 20px; border-radius:14px 14px 0 0;
+  font-weight:700; font-size:15px;
+}
+.file-header .badge {
+  background:rgba(255,255,255,0.2); padding:3px 10px; border-radius:12px;
+  font-size:11px; font-weight:600; letter-spacing:0.3px;
+}
+.file-header .fname { font-family:'SF Mono','Fira Code',Consolas,monospace; font-size:15px; }
+.file-note {
+  background:linear-gradient(135deg,#e0e7ff,#c7d2fe);
+  color:#3730a3; padding:10px 18px; font-size:13.5px; font-weight:600;
+  line-height:1.55; border-left:4px solid #6366f1;
+}
+.file-body {
+  background:#0f172a; border-radius:0 0 14px 14px; overflow:hidden;
+  box-shadow:0 8px 24px rgba(15,23,42,0.2); border:1px solid #1e293b; border-top:none;
+}
+.file-body pre {
+  padding:18px 20px; overflow-x:auto; margin:0;
+  font-size:13.5px; line-height:1.55;
+  font-family:'Fira Code','Cascadia Code',Consolas,monospace;
+  color:#e2e8f0;
+}
+.kw { color:#c084fc; font-weight:600; }
+.str { color:#86efac; }
+.fn { color:#7dd3fc; }
+.cmt { color:#64748b; font-style:italic; }
+.num { color:#fdba74; }
+.typ { color:#f9a8d4; }
+.op { color:#94a3b8; }
 
-export class AppError extends Error {
-  statusCode: number;
-
-  constructor(message: string, statusCode: number) {
-    super(message);
-
-    this.statusCode = statusCode;
-    this.name = "AppError";
-  }
+.fix-box {
+  background:linear-gradient(135deg,#ecfdf5,#d1fae5);
+  border:1px solid #6ee7b7; border-radius:12px;
+  padding:14px 18px; margin:16px 0; font-size:14px; font-weight:600; color:#065f46; line-height:1.7;
+}
+.warn-box {
+  background:linear-gradient(135deg,#fef3c7,#fde68a);
+  border:1px solid #fcd34d; border-radius:12px;
+  padding:14px 18px; margin:16px 0; font-size:14px; font-weight:600; color:#92400e; line-height:1.7;
 }
 
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb);
+  color:#fff; font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td { padding:10px 14px; font-size:13.5px; font-weight:600; border:none; color:#1e3a8a; background:#eff6ff; }
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a;
+  padding:2px 6px; border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
 
-========================================================================
-FILE: express.d.ts
-========================================================================
-(Type augmentation — extends Express's Request type so req.user is
- recognized everywhere, needed before controllers/middleware reference it.)
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
 
-import "express";
+@media (max-width:768px) {
+  .header h1 { font-size:22px; }
+  .toc a { padding:5px 10px; font-size:11px; }
+}
+</style>
+</head>
+<body>
+  <div class="container">
 
-declare global {
-  namespace Express {
-    interface Request {
+    <div class="header">
+      <h1>JWT Authentication Project — Full Source Code</h1>
+      <p>Ordered by dependency: config → types → schema → model → db → service → middleware → controller → route → error handler → app → server</p>
+      <div class="toc">
+        <a href="#tsconfig">tsconfig.json</a>
+        <a href="#apperror">AppError.ts</a>
+        <a href="#express-d">express.d.ts</a>
+        <a href="#authschema">authSchema.ts</a>
+        <a href="#usersmodal">usersModal.ts</a>
+        <a href="#connection">connection.ts</a>
+        <a href="#authservice">authService.ts</a>
+        <a href="#authmiddleware">authMiddleware.ts</a>
+        <a href="#authcontroller">authController.ts</a>
+        <a href="#authroute">authRoute.ts</a>
+        <a href="#errorhandlers">errorHandlers.ts</a>
+        <a href="#app">app.ts</a>
+        <a href="#server">server.ts</a>
+      </div>
+    </div>
+
+    <div class="dep-order">
+      <h3>Dependency Order</h3>
+      <div class="dep-flow">
+        <span>config</span><span class="arrow">→</span>
+        <span>types</span><span class="arrow">→</span>
+        <span>schema</span><span class="arrow">→</span>
+        <span>model</span><span class="arrow">→</span>
+        <span>db</span><span class="arrow">→</span>
+        <span>service</span><span class="arrow">→</span>
+        <span>middleware</span><span class="arrow">→</span>
+        <span>controller</span><span class="arrow">→</span>
+        <span>route</span><span class="arrow">→</span>
+        <span>error handler</span><span class="arrow">→</span>
+        <span>app</span><span class="arrow">→</span>
+        <span>server</span>
+      </div>
+    </div>
+
+    <!-- tsconfig -->
+    <div class="file-section" id="tsconfig">
+      <div class="file-header">
+        <span class="badge">CONFIG</span>
+        <span class="fname">tsconfig.json</span>
+      </div>
+      <div class="file-body">
+<pre>{
+  <span class="str">"compilerOptions"</span>: {
+    <span class="str">"target"</span>: <span class="str">"es2020"</span>,
+    <span class="str">"module"</span>: <span class="str">"NodeNext"</span>,
+    <span class="str">"rootDir"</span>: <span class="str">"./src"</span>,
+    <span class="str">"outDir"</span>: <span class="str">"./dist"</span>,
+    <span class="str">"esModuleInterop"</span>: <span class="kw">true</span>,
+    <span class="str">"forceConsistentCasingInFileNames"</span>: <span class="kw">true</span>,
+    <span class="str">"strict"</span>: <span class="kw">true</span>,
+    <span class="str">"skipLibCheck"</span>: <span class="kw">true</span>
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- AppError -->
+    <div class="file-section" id="apperror">
+      <div class="file-header">
+        <span class="badge">TYPES</span>
+        <span class="fname">AppError.ts</span>
+      </div>
+      <div class="file-note">No internal dependencies — base custom error class used everywhere else.</div>
+      <div class="file-body">
+<pre><span class="kw">export class</span> <span class="typ">AppError</span> <span class="kw">extends</span> <span class="typ">Error</span> {
+  statusCode: <span class="typ">number</span>;
+
+  <span class="fn">constructor</span>(message: <span class="typ">string</span>, statusCode: <span class="typ">number</span>) {
+    <span class="kw">super</span>(message);
+    <span class="kw">this</span>.statusCode = statusCode;
+    <span class="kw">this</span>.name = <span class="str">"AppError"</span>;
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- express.d.ts -->
+    <div class="file-section" id="express-d">
+      <div class="file-header">
+        <span class="badge">TYPES</span>
+        <span class="fname">express.d.ts</span>
+      </div>
+      <div class="file-note">Type augmentation — extends Express's Request type so <code>req.user</code> is recognized everywhere. Needed before controllers/middleware reference it.</div>
+      <div class="file-body">
+<pre><span class="kw">import</span> <span class="str">"express"</span>;
+
+<span class="kw">declare global</span> {
+  <span class="kw">namespace</span> Express {
+    <span class="kw">interface</span> <span class="typ">Request</span> {
       user: {
-        userId: string;
+        userId: <span class="typ">string</span>;
       };
     }
   }
 }
 
-export {};
+<span class="kw">export</span> {};</pre>
+      </div>
+    </div>
 
+    <!-- authSchema -->
+    <div class="file-section" id="authschema">
+      <div class="file-header">
+        <span class="badge">SCHEMA</span>
+        <span class="fname">authSchema.ts</span>
+      </div>
+      <div class="file-note">Zod validation schemas — no dependency on models/services. Service/controller layers depend on the types inferred here.</div>
+      <div class="file-body">
+<pre><span class="kw">import</span> { z } <span class="kw">from</span> <span class="str">"zod"</span>;
 
-========================================================================
-FILE: authSchema.ts
-========================================================================
-(Zod validation schemas — no dependency on models/services, but
- service/controller layers depend on the types inferred here.)
+<span class="kw">export const</span> registerSchema = z.<span class="fn">object</span>({
+  name: z.<span class="fn">string</span>().<span class="fn">max</span>(<span class="num">35</span>),
+  password: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="num">8</span>),
+  email: z.<span class="fn">string</span>().<span class="fn">email</span>().<span class="fn">endsWith</span>(<span class="str">"@techmahindra.com"</span>),
+});
 
-import {z} from "zod";
+<span class="kw">export const</span> loginSchema = z.<span class="fn">object</span>({
+  email: z.<span class="fn">string</span>().<span class="fn">endsWith</span>(<span class="str">"@techmahindra.com"</span>),
+  password: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="num">8</span>),
+});
 
-export const registerSchema= z.object({
-    name:z.string().max(35),
-    password:z.string().min(8),
-    email:z.string().email().endsWith("@techmahindra.com"),
+<span class="kw">export type</span> <span class="typ">registerInput</span> = z.<span class="fn">infer</span>&lt;<span class="kw">typeof</span> registerSchema&gt;;
+<span class="kw">export type</span> <span class="typ">loginInput</span> = z.<span class="fn">infer</span>&lt;<span class="kw">typeof</span> loginSchema&gt;;</pre>
+      </div>
+    </div>
 
-})
+    <!-- usersModal -->
+    <div class="file-section" id="usersmodal">
+      <div class="file-header">
+        <span class="badge">MODEL</span>
+        <span class="fname">usersModal.ts</span>
+      </div>
+      <div class="file-note">Mongoose model — depends only on argon2 for the pre-save hash hook. Fields: email, password, name, timestamps + unique index on email.</div>
+      <div class="file-body">
+<pre><span class="kw">import</span> { model, Schema, InferSchemaType } <span class="kw">from</span> <span class="str">"mongoose"</span>;
+<span class="kw">import</span> argon2 <span class="kw">from</span> <span class="str">"argon2"</span>;
 
-export const loginSchema=z.object({
-    email:z.string().endsWith("@techmahindra.com"),
-    password:z.string().min(8)
-})
-
-
-export type registerInput = z.infer<typeof registerSchema>;
-export type loginInput=z.infer<typeof loginSchema>;
-
-
-========================================================================
-FILE: usersModal.ts
-========================================================================
-(Mongoose model — depends only on argon2 for the pre-save hash hook.)
-
-import {model,Schema,InferSchemaType} from "mongoose";
-import argon2 from "argon2";
-
-// email, password, name, timestamps + unique index on email).
-
-const userSchema=new Schema({
-    name:{
-        type:String,
-        maxlength:35,
-        required:true
+<span class="kw">const</span> userSchema = <span class="kw">new</span> <span class="fn">Schema</span>({
+  name: {
+    type: String,
+    maxlength: <span class="num">35</span>,
+    required: <span class="kw">true</span>,
+  },
+  password: {
+    type: String,
+    required: <span class="kw">true</span>,
+  },
+  email: {
+    required: <span class="kw">true</span>,
+    type: String,
+    unique: <span class="kw">true</span>,
+    trim: <span class="kw">true</span>,
+    lowercase: <span class="kw">true</span>,
+    validate: {
+      <span class="fn">validator</span>(value: <span class="typ">string</span>) {
+        <span class="kw">return</span> <span class="str">/^[^\s@]+@techmahindra\.com$/</span>.<span class="fn">test</span>(value);
+      },
+      message: <span class="str">"Please enter techmahindra domain email"</span>,
     },
-    password:{
-        type:String,
-        required:true
-    },
-    email:{
-        required:true,
-        type:String,
-        unique:true,
-        trim:true,
-        lowercase:true,
-        validate:{
-            validator(value:string){
-                return /^[^\s@]+@techmahindra\.com$/.test(value);
-            },
-            message:"Please enter techmahindra domain email"
-        }
-    }
-},{timestamps:true});
+  },
+}, { timestamps: <span class="kw">true</span> });
 
+userSchema.<span class="fn">pre</span>(<span class="str">"save"</span>, <span class="kw">async function</span> (next) {
+  <span class="kw">if</span> (!<span class="kw">this</span>.<span class="fn">isModified</span>(<span class="str">"password"</span>)) {
+    <span class="kw">return</span>;
+  }
+  <span class="kw">this</span>.password = <span class="kw">await</span> argon2.<span class="fn">hash</span>(<span class="kw">this</span>.password);
+});
 
-userSchema.pre("save", async function  (next) {
-    if(!this.isModified("password")){
-        return 
-    }
-    this.password= await argon2.hash(this.password);
-})
+<span class="kw">export type</span> <span class="typ">User</span> = InferSchemaType&lt;<span class="kw">typeof</span> userSchema&gt;;
 
+<span class="kw">const</span> userModel = <span class="fn">model</span>&lt;<span class="typ">User</span>&gt;(<span class="str">"User"</span>, userSchema);
 
-export type User = InferSchemaType<typeof userSchema>
+<span class="kw">export default</span> userModel;</pre>
+      </div>
+    </div>
 
+    <!-- connection -->
+    <div class="file-section" id="connection">
+      <div class="file-header">
+        <span class="badge">DB</span>
+        <span class="fname">connection.ts</span>
+      </div>
+      <div class="file-note">MongoDB connection helper — independent, but conceptually sits right after the model since it's what the model relies on to actually work.</div>
+      <div class="file-body">
+<pre><span class="kw">import</span> mongoose <span class="kw">from</span> <span class="str">"mongoose"</span>;
 
-const userModel=model<User>("User",userSchema);
+<span class="kw">const</span> <span class="fn">connectDB</span> = <span class="kw">async</span> () => {
+  <span class="kw">try</span> {
+    <span class="kw">const</span> dbUrl = process.env.DB;
+    <span class="kw">if</span> (!dbUrl) <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"connection string not found"</span>);
+    <span class="kw">await</span> mongoose.<span class="fn">connect</span>(dbUrl);
+    console.<span class="fn">log</span>(<span class="str">"db connected"</span>);
+  } <span class="kw">catch</span> (err) {
+    console.<span class="fn">log</span>(err);
+    process.<span class="fn">exit</span>(<span class="num">0</span>);
+  }
+};
 
-export default userModel;
+<span class="kw">export default</span> connectDB;</pre>
+      </div>
+    </div>
 
+    <!-- authService -->
+    <div class="file-section" id="authservice">
+      <div class="file-header">
+        <span class="badge">SERVICE</span>
+        <span class="fname">authService.ts</span>
+      </div>
+      <div class="file-note">Business logic layer — depends on: usersModal.ts, authSchema.ts, AppError.ts. Used by authController.ts.</div>
+      <div class="file-body">
+<pre><span class="kw">import</span> userModel <span class="kw">from</span> <span class="str">"./usersModal.js"</span>;
+<span class="kw">import</span> { registerInput, loginInput } <span class="kw">from</span> <span class="str">"./authSchema.js"</span>;
+<span class="kw">import</span> argon2 <span class="kw">from</span> <span class="str">"argon2"</span>;
+<span class="kw">import</span> jwt <span class="kw">from</span> <span class="str">"jsonwebtoken"</span>;
+<span class="kw">import</span> { AppError } <span class="kw">from</span> <span class="str">"./AppError.js"</span>;
 
-========================================================================
-FILE: connection.ts
-========================================================================
-(MongoDB connection helper — independent, but conceptually sits right
- after the model since it's what the model relies on to actually work.)
+<span class="kw">export const</span> <span class="fn">registerUser</span> = <span class="kw">async</span> (userData: <span class="typ">registerInput</span>) => {
+  <span class="kw">const</span> existingUser = <span class="kw">await</span> userModel.<span class="fn">findOne</span>({ email: userData.email });
 
-import mongoose from "mongoose";
-
-
-const connectDB =async()=>{
-    try{
-        const dbUrl=process.env.DB;
-        if(!dbUrl)throw new Error("connection string not found");
-        await mongoose.connect(dbUrl);
-        console.log("db connected");
-    }
-    catch(err){
-        console.log(err);
-        process.exit(0);
-    }
-}
-
-export default connectDB ;
-
-
-========================================================================
-FILE: authService.ts
-========================================================================
-(Business logic layer — depends on: usersModal.ts, authSchema.ts,
- AppError.ts. Used by authController.ts.)
-
-import userModel from "./usersModal.js";
-import { registerInput, loginInput } from "./authSchema.js";
-import argon2 from "argon2";
-import jwt from "jsonwebtoken";
-import { AppError } from "./AppError.js";
-
-export const registerUser = async (userData: registerInput) => {
-  const existingUser = await userModel.findOne({ email: userData.email });
-
-  if (existingUser) {
-    throw new AppError("User already exists", 409);
+  <span class="kw">if</span> (existingUser) {
+    <span class="kw">throw new</span> <span class="fn">AppError</span>(<span class="str">"User already exists"</span>, <span class="num">409</span>);
   }
 
-  const hashedPassword = await argon2.hash(userData.password);
+  <span class="kw">const</span> hashedPassword = <span class="kw">await</span> argon2.<span class="fn">hash</span>(userData.password);
 
-  const savedUser = await userModel.create({
+  <span class="kw">const</span> savedUser = <span class="kw">await</span> userModel.<span class="fn">create</span>({
     ...userData,
     password: hashedPassword,
   });
 
-  if (!savedUser) {
-    throw new AppError("Failed to create user", 500);
+  <span class="kw">if</span> (!savedUser) {
+    <span class="kw">throw new</span> <span class="fn">AppError</span>(<span class="str">"Failed to create user"</span>, <span class="num">500</span>);
   }
 
-  return savedUser;
+  <span class="kw">return</span> savedUser;
 };
 
-export const loginUser = async (loginData: loginInput) => {
-  const existingUser = await userModel
-    .findOne({ email: loginData.email })
-    .select("+password");
+<span class="kw">export const</span> <span class="fn">loginUser</span> = <span class="kw">async</span> (loginData: <span class="typ">loginInput</span>) => {
+  <span class="kw">const</span> existingUser = <span class="kw">await</span> userModel
+    .<span class="fn">findOne</span>({ email: loginData.email })
+    .<span class="fn">select</span>(<span class="str">"+password"</span>);
 
-  if (!existingUser) {
-    throw new AppError("User doesn't exist", 404);
+  <span class="kw">if</span> (!existingUser) {
+    <span class="kw">throw new</span> <span class="fn">AppError</span>(<span class="str">"User doesn't exist"</span>, <span class="num">404</span>);
   }
 
-  const isValidPassword = await argon2.verify(
+  <span class="kw">const</span> isValidPassword = <span class="kw">await</span> argon2.<span class="fn">verify</span>(
     existingUser.password,
     loginData.password
   );
 
-  if (!isValidPassword) {
-    throw new AppError("Invalid credentials", 401);
+  <span class="kw">if</span> (!isValidPassword) {
+    <span class="kw">throw new</span> <span class="fn">AppError</span>(<span class="str">"Invalid credentials"</span>, <span class="num">401</span>);
   }
 
-  const SECRET = process.env.JWT_SECRET;
-  if (!SECRET) {
-    throw new AppError("Server configuration error", 500);
+  <span class="kw">const</span> SECRET = process.env.JWT_SECRET;
+  <span class="kw">if</span> (!SECRET) {
+    <span class="kw">throw new</span> <span class="fn">AppError</span>(<span class="str">"Server configuration error"</span>, <span class="num">500</span>);
   }
 
-  const token = jwt.sign(
-    { email: existingUser.email, name: existingUser.name, userId:existingUser._id, },
+  <span class="kw">const</span> token = jwt.<span class="fn">sign</span>(
+    { email: existingUser.email, name: existingUser.name, userId: existingUser._id },
     SECRET,
-    { expiresIn: "15m" }
+    { expiresIn: <span class="str">"15m"</span> }
   );
 
-  return token;
+  <span class="kw">return</span> token;
 };
 
+<span class="kw">export const</span> <span class="fn">getProfileDetails</span> = <span class="kw">async</span> (userId: <span class="typ">string</span>) => {
+  <span class="kw">const</span> user = <span class="kw">await</span> userModel.<span class="fn">find</span>({ _id: userId }, { password: <span class="num">0</span> }).<span class="fn">lean</span>();
+  <span class="kw">if</span> (!user) <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"user not found"</span>);
+  <span class="kw">return</span> user;
+};</pre>
+      </div>
+      <div class="fix-box">
+        <strong>Key fixes applied:</strong><br>
+        • Password hashed with <code>argon2.hash()</code> before create<br>
+        • Standardized on <code>AppError</code> with correct status codes (409, 401, 500)<br>
+        • <code>expiresIn: "15m"</code> (not "15min")<br>
+        • <code>.select("+password")</code> for login verify<br>
+        • Parameter renamed to <code>loginData</code> (no shadowing)
+      </div>
+    </div>
 
-export const getProfileDetails=async(userId:string)=>{
-    const user= await userModel.find({_id:userId},{password:0}).lean();
-    if(!user) throw new Error("user not found");
-    return user;
+    <!-- authMiddleware -->
+    <div class="file-section" id="authmiddleware">
+      <div class="file-header">
+        <span class="badge">MIDDLEWARE</span>
+        <span class="fname">authMiddleware.ts</span>
+      </div>
+      <div class="file-note">Authorization middleware — depends on express.d.ts's Request.user augmentation. Used by authRoute.ts.</div>
+      <div class="file-body">
+<pre><span class="kw">import</span> { Request, Response, NextFunction } <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> jwt <span class="kw">from</span> <span class="str">"jsonwebtoken"</span>;
 
-
+<span class="kw">interface</span> <span class="typ">JwtPayload</span> {
+  userId: <span class="typ">string</span>;
 }
 
-// ## What changed
-
-// | Issue | Fix |
-// |---|---|
-// | Password never hashed before `userModel.create()` | Added `argon2.hash()` before saving — otherwise you're storing plaintext passwords, and `argon2.verify()` on login would always fail |
-// | Mixed `throw new Error(...)` and `throw new AppError(...)` | Standardized on `AppError` everywhere so your `errorHandler` gives correct status codes instead of falling to `500` |
-// | `"fat gya"` | Replaced with a real message: `"Failed to create user"` |
-// | `"User already exists"` had no status code (defaulted to `500` via generic `Error`) | Now `AppError(..., 409)` — Conflict is the correct status |
-// | `"Invalid User!"` on wrong password had no status code | Now `AppError(..., 401)` — Unauthorized |
-// | `expiresIn: "15min"` — **invalid** jsonwebtoken format, would throw at runtime | Fixed to `"15m"` |
-// | `checkUserExit.password` might be `undefined` if your schema has `select: false` on password | Added `.select("+password")` to explicitly include it |
-// | Parameter named `loginUser` shadowing the function name `loginUser` | Renamed to `loginData` |
-// | Generic `Error` for missing `JWT_SECRET` | Now `AppError(..., 500)` for consistency |
-
-// **One thing to verify:** check your `usersModal.js` schema — if `password` has `select: false`, the `.select("+password")` fix above is required or `existingUser.password` will be `undefined` and `argon2.verify()` will throw.
-
-
-========================================================================
-FILE: authMiddleware.ts
-========================================================================
-(Authorization middleware — depends on express.d.ts's Request.user
- augmentation. Used by authRoute.ts.)
-
-import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-
-interface JwtPayload {
-  userId: string;
-}
-
-export const authMiddleware = (
-  req: Request,
-  res: Response,
-  next: NextFunction
+<span class="kw">export const</span> <span class="fn">authMiddleware</span> = (
+  req: <span class="typ">Request</span>,
+  res: <span class="typ">Response</span>,
+  next: <span class="typ">NextFunction</span>
 ) => {
-  const token = req.cookies.token;
+  <span class="kw">const</span> token = req.cookies.token;
 
-  if (!token) {
-    return res.status(401).json({
-      message: "Authentication required",
+  <span class="kw">if</span> (!token) {
+    <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">401</span>).<span class="fn">json</span>({
+      message: <span class="str">"Authentication required"</span>,
     });
   }
 
-  try {
-    const decoded = jwt.verify(
+  <span class="kw">try</span> {
+    <span class="kw">const</span> decoded = jwt.<span class="fn">verify</span>(
       token,
       process.env.JWT_SECRET!
-    ) as JwtPayload;
+    ) <span class="kw">as</span> <span class="typ">JwtPayload</span>;
 
-    if(!decoded.userId) throw new Error("invalid token")
+    <span class="kw">if</span> (!decoded.userId) <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"invalid token"</span>);
 
     req.user = {
       userId: decoded.userId,
     };
 
-    next();
-  } catch {
-    return res.status(401).json({
-      message: "Invalid or expired token",
+    <span class="fn">next</span>();
+  } <span class="kw">catch</span> {
+    <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">401</span>).<span class="fn">json</span>({
+      message: <span class="str">"Invalid or expired token"</span>,
     });
   }
-};
+};</pre>
+      </div>
+    </div>
 
+    <!-- authController -->
+    <div class="file-section" id="authcontroller">
+      <div class="file-header">
+        <span class="badge">CONTROLLER</span>
+        <span class="fname">authController.ts</span>
+      </div>
+      <div class="file-note">Controller layer — depends on authSchema.ts and authService.ts. Used by authRoute.ts.</div>
+      <div class="file-body">
+<pre><span class="kw">import</span> { Request, Response, NextFunction } <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> { loginSchema, registerSchema } <span class="kw">from</span> <span class="str">"./authSchema.js"</span>;
+<span class="kw">import</span> { getProfileDetails, loginUser, registerUser } <span class="kw">from</span> <span class="str">"./authService.js"</span>;
 
-========================================================================
-FILE: authController.ts
-========================================================================
-(Controller layer — depends on authSchema.ts and authService.ts.
- Used by authRoute.ts.)
-
-import { Request, Response, NextFunction } from "express";
-import { loginSchema, registerSchema } from "./authSchema.js";
-import { getProfileDetails, loginUser, registerUser } from "./authService.js";
-
-export const registerController = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
+<span class="kw">export const</span> <span class="fn">registerController</span> = <span class="kw">async</span> (
+  req: <span class="typ">Request</span>,
+  res: <span class="typ">Response</span>,
+  next: <span class="typ">NextFunction</span>
 ) => {
-  try {
-    const requestData = registerSchema.parse(req.body);
-    await registerUser(requestData);
-    res.status(201).json({ message: "User created successfully" });
-  } catch (err) {
-    next(err);
+  <span class="kw">try</span> {
+    <span class="kw">const</span> requestData = registerSchema.<span class="fn">parse</span>(req.body);
+    <span class="kw">await</span> <span class="fn">registerUser</span>(requestData);
+    res.<span class="fn">status</span>(<span class="num">201</span>).<span class="fn">json</span>({ message: <span class="str">"User created successfully"</span> });
+  } <span class="kw">catch</span> (err) {
+    <span class="fn">next</span>(err);
   }
 };
 
-export const loginController = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
+<span class="kw">export const</span> <span class="fn">loginController</span> = <span class="kw">async</span> (
+  req: <span class="typ">Request</span>,
+  res: <span class="typ">Response</span>,
+  next: <span class="typ">NextFunction</span>
 ) => {
-  try {
-    const loginData = loginSchema.parse(req.body);
-    const token = await loginUser(loginData);
+  <span class="kw">try</span> {
+    <span class="kw">const</span> loginData = loginSchema.<span class="fn">parse</span>(req.body);
+    <span class="kw">const</span> token = <span class="kw">await</span> <span class="fn">loginUser</span>(loginData);
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
+    res.<span class="fn">cookie</span>(<span class="str">"token"</span>, token, {
+      httpOnly: <span class="kw">true</span>,
+      secure: <span class="kw">true</span>,
+      sameSite: <span class="str">"strict"</span>,
     });
 
-    res.status(200).json({ message: "User logged in successfully" });
-  } catch (err) {
-    next(err);
+    res.<span class="fn">status</span>(<span class="num">200</span>).<span class="fn">json</span>({ message: <span class="str">"User logged in successfully"</span> });
+  } <span class="kw">catch</span> (err) {
+    <span class="fn">next</span>(err);
   }
 };
 
-
-
-export const getUserController=async(req:Request,res:Response,next:NextFunction)=>{
-    try{
-    const userId:string=req.user.userId;
-    if(!userId) throw new Error("userid is missing");
-    const userData=await getProfileDetails(userId);
-     res.status(200).json({ data:userData, message: "User logged in successfully" });
-
-    }
-    catch(err){
-        next(err)
-    }
-
-}
-
-
-
-export const logoutController = (
-  req: Request,
-  res: Response
+<span class="kw">export const</span> <span class="fn">getUserController</span> = <span class="kw">async</span> (
+  req: <span class="typ">Request</span>,
+  res: <span class="typ">Response</span>,
+  next: <span class="typ">NextFunction</span>
 ) => {
-  res.clearCookie("token");
-
-  res.status(200).json({
-    message: "Logout successful",
-  });
+  <span class="kw">try</span> {
+    <span class="kw">const</span> userId: <span class="typ">string</span> = req.user.userId;
+    <span class="kw">if</span> (!userId) <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"userid is missing"</span>);
+    <span class="kw">const</span> userData = <span class="kw">await</span> <span class="fn">getProfileDetails</span>(userId);
+    res.<span class="fn">status</span>(<span class="num">200</span>).<span class="fn">json</span>({ data: userData, message: <span class="str">"User logged in successfully"</span> });
+  } <span class="kw">catch</span> (err) {
+    <span class="fn">next</span>(err);
+  }
 };
 
-// ## What changed
-
-// | Issue | Fix |
-// |---|---|
-// | `registerController` caught `ZodError` manually instead of using `errorHandler` | Now just `next(err)` — centralized handler covers `ZodError`, `AppError`, unknown errors consistently |
-// | `res.status(400).json(err.message)` — wrong status for unknown errors, `err` typed as `unknown` (would error in strict TS) | Removed — unknown errors now flow to `errorHandler`'s `500` fallback |
-// | `loginUser(req.body)` — used raw body instead of validated `loginData` | Now uses the Zod-parsed `loginData` |
-// | `res.status(200)` on create | Changed to `201 Created`, correct REST status for resource creation |
-// | Unused imports (`express` default, `userModel`, `ZodError`) | Removed |
-// | Inconsiimport { getUserController } from './authController';
-// stent error handling between the two controllers | Both now use `next(err)` uniformly |
-
-// **Note:** since both controllers now rely on `next(err)`, make sure your `errorHandler` is registered last in `app.ts`, as discussed earlier — that's what will actually catch and format these errors instead of falling through to Express's default HTML error page.
-
-
-========================================================================
-FILE: authRoute.ts
-========================================================================
-(Route wiring — depends on authController.ts and authMiddleware.ts.
- Used by app.ts.)
-
-import express from "express";
-import { getUserController,loginController,logoutController,registerController } from "./authController.js";
-import { authMiddleware } from "./authMiddleware.js";
-
-const router=express.Router();
-
-
-router.post("/register",registerController);
-
-router.post("/login",loginController);
-
-router.get("/get/me", authMiddleware ,getUserController);
-
-router.post("/logout", logoutController);
-
-export default router;
-
-
-========================================================================
-FILE: errorHandlers.ts
-========================================================================
-(Centralized error handler — depends on AppError.ts and zod's ZodError.
- Registered last in server.ts, after all routes.)
-
-import type { Request, Response, NextFunction } from "express";
-import { ZodError } from "zod";
-import  {AppError} from "./AppError.js";
-
-export const errorHandler = (
-  err: unknown,
-  req: Request,
-  res: Response,
-  next: NextFunction
+<span class="kw">export const</span> <span class="fn">logoutController</span> = (
+  req: <span class="typ">Request</span>,
+  res: <span class="typ">Response</span>
 ) => {
-  // 1. Custom application error
-  if (err instanceof AppError) {
-    return res.status(err.statusCode).json({
-      success: false,
+  res.<span class="fn">clearCookie</span>(<span class="str">"token"</span>);
+  res.<span class="fn">status</span>(<span class="num">200</span>).<span class="fn">json</span>({ message: <span class="str">"Logout successful"</span> });
+};</pre>
+      </div>
+      <div class="fix-box">
+        <strong>Key fixes:</strong> Controllers use <code>next(err)</code> uniformly · validated data passed to service · <code>201</code> on create · cookie set with <code>httpOnly</code>, <code>secure</code>, <code>sameSite: "strict"</code>
+      </div>
+    </div>
+
+    <!-- authRoute -->
+    <div class="file-section" id="authroute">
+      <div class="file-header">
+        <span class="badge">ROUTE</span>
+        <span class="fname">authRoute.ts</span>
+      </div>
+      <div class="file-note">Route wiring — depends on authController.ts and authMiddleware.ts. Used by app.ts.</div>
+      <div class="file-body">
+<pre><span class="kw">import</span> express <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> {
+  getUserController,
+  loginController,
+  logoutController,
+  registerController,
+} <span class="kw">from</span> <span class="str">"./authController.js"</span>;
+<span class="kw">import</span> { authMiddleware } <span class="kw">from</span> <span class="str">"./authMiddleware.js"</span>;
+
+<span class="kw">const</span> router = express.<span class="fn">Router</span>();
+
+router.<span class="fn">post</span>(<span class="str">"/register"</span>, registerController);
+router.<span class="fn">post</span>(<span class="str">"/login"</span>, loginController);
+router.<span class="fn">get</span>(<span class="str">"/get/me"</span>, authMiddleware, getUserController);
+router.<span class="fn">post</span>(<span class="str">"/logout"</span>, logoutController);
+
+<span class="kw">export default</span> router;</pre>
+      </div>
+    </div>
+
+    <!-- errorHandlers -->
+    <div class="file-section" id="errorhandlers">
+      <div class="file-header">
+        <span class="badge">ERROR</span>
+        <span class="fname">errorHandlers.ts</span>
+      </div>
+      <div class="file-note">Centralized error handler — depends on AppError.ts and ZodError. Registered last in server.ts, after all routes.</div>
+      <div class="file-body">
+<pre><span class="kw">import type</span> { Request, Response, NextFunction } <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> { ZodError } <span class="kw">from</span> <span class="str">"zod"</span>;
+<span class="kw">import</span> { AppError } <span class="kw">from</span> <span class="str">"./AppError.js"</span>;
+
+<span class="kw">export const</span> <span class="fn">errorHandler</span> = (
+  err: <span class="typ">unknown</span>,
+  req: <span class="typ">Request</span>,
+  res: <span class="typ">Response</span>,
+  next: <span class="typ">NextFunction</span>
+) => {
+  <span class="cmt">// 1. Custom application error</span>
+  <span class="kw">if</span> (err <span class="kw">instanceof</span> AppError) {
+    <span class="kw">return</span> res.<span class="fn">status</span>(err.statusCode).<span class="fn">json</span>({
+      success: <span class="kw">false</span>,
       message: err.message,
     });
   }
 
-  // 2. Zod validation error
-  if (err instanceof ZodError) {
-    return res.status(400).json({
-      success: false,
-      message: "Validation failed",
-      errors: err.issues.map((issue) => ({
-        field: issue.path.join("."),
+  <span class="cmt">// 2. Zod validation error</span>
+  <span class="kw">if</span> (err <span class="kw">instanceof</span> ZodError) {
+    <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">400</span>).<span class="fn">json</span>({
+      success: <span class="kw">false</span>,
+      message: <span class="str">"Validation failed"</span>,
+      errors: err.issues.<span class="fn">map</span>((issue) => ({
+        field: issue.path.<span class="fn">join</span>(<span class="str">"."</span>),
         message: issue.message,
       })),
     });
   }
 
-  // 3. Unknown/unexpected error
-  return res.status(500).json({
-    success: false,
-    message: "Internal server error",
+  <span class="cmt">// 3. Unknown/unexpected error</span>
+  <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">500</span>).<span class="fn">json</span>({
+    success: <span class="kw">false</span>,
+    message: <span class="str">"Internal server error"</span>,
   });
-};
+};</pre>
+      </div>
+    </div>
 
+    <!-- app.ts -->
+    <div class="file-section" id="app">
+      <div class="file-header">
+        <span class="badge">APP</span>
+        <span class="fname">app.ts</span>
+      </div>
+      <div class="file-note">Express app assembly — depends on authRoute.ts. Exports the configured app object; does not start listening.</div>
+      <div class="file-body">
+<pre><span class="kw">import</span> express <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> authRouter <span class="kw">from</span> <span class="str">"./authRoute.js"</span>;
+<span class="kw">import</span> cookieParser <span class="kw">from</span> <span class="str">"cookie-parser"</span>;
+<span class="kw">import</span> helmet <span class="kw">from</span> <span class="str">"helmet"</span>;
 
-========================================================================
-FILE: app.ts
-========================================================================
-(Express app assembly — depends on authRoute.ts. Exports the
- configured app object; does not start listening.)
+<span class="kw">const</span> app = <span class="fn">express</span>();
 
-import express from "express";
-import authRouter from "./authRoute.js";
-import cookieParser from 'cookie-parser'
-import helmet from "helmet";
+app.<span class="fn">use</span>(express.<span class="fn">json</span>());
+app.<span class="fn">use</span>(<span class="fn">cookieParser</span>());
+app.<span class="fn">use</span>(<span class="fn">helmet</span>());
 
-const app=express();
-app.use(express.json());
-app.use(cookieParser())
-app.use(helmet())
+app.<span class="fn">use</span>(<span class="str">"/"</span>, authRouter);
 
-app.use("/",authRouter);
+<span class="kw">export default</span> app;</pre>
+      </div>
+    </div>
 
+    <!-- server.ts -->
+    <div class="file-section" id="server">
+      <div class="file-header">
+        <span class="badge">SERVER</span>
+        <span class="fname">server.ts</span>
+      </div>
+      <div class="file-note">Entry point — imports app.ts, connection.ts, errorHandlers.ts. Connects to DB, registers the error handler, starts listening.</div>
+      <div class="file-body">
+<pre><span class="kw">import</span> dotenv <span class="kw">from</span> <span class="str">"dotenv"</span>;
+<span class="kw">import</span> app <span class="kw">from</span> <span class="str">"./app.js"</span>;
+<span class="kw">import</span> connectDB <span class="kw">from</span> <span class="str">"./connection.js"</span>;
+<span class="kw">import</span> { errorHandler } <span class="kw">from</span> <span class="str">"./errorHandlers.js"</span>;
 
+dotenv.<span class="fn">config</span>();
 
+<span class="kw">const</span> port = process.env.PORT;
 
+<span class="fn">connectDB</span>();
 
+app.<span class="fn">use</span>(errorHandler);
 
-export default app;
+app.<span class="fn">listen</span>(port, () => {
+  console.<span class="fn">log</span>(<span class="str">"server is listing on port"</span>, port);
+});</pre>
+      </div>
+      <div class="warn-box">
+        ⚠️ <strong>Remember:</strong> <code>errorHandler</code> must be registered <strong>last</strong> (after all routes). Controllers pass errors via <code>next(err)</code> so this handler can format them correctly.
+      </div>
+    </div>
 
-
-========================================================================
-FILE: server.ts
-========================================================================
-(Entry point — imports app.ts, connection.ts, errorHandlers.ts.
- Connects to DB, registers the error handler, starts listening.)
-
-import dotenv from "dotenv"
-import app from './app.js';
-import connectDB from "./connection.js";
-import { errorHandler } from "./errorHandlers.js";
-dotenv.config();
-const port=process.env.PORT
-
-connectDB();
-
-app.use(errorHandler);
-
-
-
-app.listen(port,()=>{
-    console.log("server is listing on port",port);
-})
-
-
-========================================================================
-END OF FILE
-========================================================================
+    <footer>JWT Authentication Project — Full Source Code</footer>
+  </div>
+</body>
+</html>

@@ -1,105 +1,328 @@
-app.js = what the server does (routes, middleware, logic)
-server.js = that the server runs (listening, port, startup)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — Express + JWT + TypeScript</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; font-size: 15px; line-height: 1.55; }
+.container { width: 94%; max-width: 1200px; margin: 28px auto 40px; }
 
-
-
-npm i mongoose express -D tsx @types/express @types/node
-
-npx tsc --init
-
-tsconfig changes 
-
-"target": "es2020", //*
-"module": "NodeNext", //*                              
-"rootDir": "./src", 
-"include": ["src"],
-"exclude": ["node_modules", "dist"]
-
-npm install -D tsx (tsx is a tool that lets Node.js run TypeScript files directly during development.)
-
-  "scripts": {
-    "dev": "tsx src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js"
-  }
-
-npm run dev
-
-dotenv
-dotenv.config();
-
-always use pre hook for password hash
-
-userSchema.pre("save", async function  (next) {
-    if(!this.isModified("password")){
-        return 
-    }
-    this.password= await argon2.hash(this.password);
-})
-
-
-
-# 📝 Notes — Express + JWT TypeScript Gotchas
-
----
-
-### 1️⃣ Request type vs request data ⭐⭐⭐⭐⭐
-- `req: Request` → the Express request **object**
-- `req.body` → the request **payload**
-
-```ts
-const data = registerSchema.parse(req.body);
-```
-
----
-
-### 2️⃣ `req.user` needs Express augmentation
-- `user` is **not** a built-in Express property
-- Using `req.user.userId` requires a custom type declaration:
-
-```ts
-interface Request {
-  user: {
-    userId: string;
-  };
+@media (max-width: 768px) {
+  .container { width: 100%; margin: 12px 0 24px; padding: 0 10px; }
 }
-```
 
----
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#0e7490; --accent:#0891b2; --accent-light:#22d3ee; --content-bg:#ecfeff; --heading:#0e7490; --shadow-rgb:8,145,178; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-5 { --accent-dark:#9f1239; --accent:#e11d48; --accent-light:#fb7185; --content-bg:#fff1f2; --heading:#9f1239; --shadow-rgb:225,29,72; }
 
-### 3️⃣ `jwt.verify()` type assertion ⭐⭐⭐⭐⭐
-```ts
-const decoded = jwt.verify(
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:12px; padding:22px 24px; margin-bottom:28px; box-shadow: 0 6px 18px rgba(var(--shadow-rgb),0.25); }
+.header h1 { color:#fff; font-size:24px; margin-bottom:4px; font-weight:800; letter-spacing:-0.4px; }
+.header p { color:#fdf6ec; font-size:14px; margin-bottom:14px; }
+.toc { display:flex; flex-wrap:wrap; gap:6px; }
+.toc a { text-decoration:none; padding:5px 12px; border-radius:16px; font-size:12px; font-weight:600; transition:all .15s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.3); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+.section-divider { margin:28px 0 12px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:1.5px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.22; }
+.section-divider span { background:#f6f7fb; padding:0 12px 0 0; position:relative; font-size:17px; font-weight:800; color:#1a1a1a; }
+
+code, .token {
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+  font-size: 0.86em;
+  background: rgba(0,0,0,0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #4338ca;
+}
+
+.code-block { background:#1a1a1a; border-radius:8px; overflow:hidden; margin:8px 0; box-shadow:0 3px 10px rgba(0,0,0,0.15); }
+.code-bar { background:#111; padding:5px 12px; display:flex; align-items:center; gap:5px; border-bottom:1px solid #333; }
+.code-bar .dot { width:8px; height:8px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:11px; margin-left:6px; }
+.code-block pre { padding:12px 14px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#d4d4d4; font-size:13.5px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+.info-box { border-radius:8px; padding:9px 14px; margin:8px 0; font-size:14px; line-height:1.6; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:10px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box { background:#fff; border-radius:10px; padding:12px 14px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 2px 8px rgba(0,0,0,0.04); }
+.compare-box.good { }
+.compare-box h4 { font-size:13px; margin-bottom:6px; font-weight:800; color:#047857; }
+.compare-box p { margin:6px 0 0; font-size:0.82rem; }
+
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.12); border-radius:12px; padding:14px; margin-bottom:18px; box-shadow: 0 4px 14px rgba(37,99,235,0.07); }
+.card-sub { border-radius:10px; margin-bottom:10px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.14); box-shadow:0 2px 8px rgba(var(--shadow-rgb),0.07); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left {  }
+.card-sub-title { display:flex; align-items:center; gap:10px; padding:10px 14px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.12); }
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:var(--heading); }
+.card-sub-title .stars { margin-left:auto; color:#f59e0b; font-size:11px; letter-spacing:0.5px; }
+.card-sub-content { padding:12px 16px; background:#fff; }
+.card-sub-content p { color:#333; font-size:14.5px; line-height:1.6; font-weight:500; margin:0 0 8px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:8px; }
+.card-sub-content ul { margin:4px 0 8px 18px; }
+.card-sub-content li { font-size:14px; line-height:1.7; color:#333; font-weight:500; margin-bottom:2px; }
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .code-block:last-child,
+.card-sub-content .compare:last-child { margin-bottom:0; }
+
+table { width:100%; border-collapse:separate; border-spacing:0; margin:8px 0; border-radius:8px; overflow:hidden; box-shadow:0 4px 12px rgba(var(--shadow-rgb,37,99,235),0.08); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:13px; font-weight:700; padding:8px 12px; text-align:left; }
+table th:first-child { border-top-left-radius:8px; }
+table th:last-child { border-top-right-radius:8px; }
+table td { padding:7px 12px; font-size:13.5px; font-weight:600; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.12); }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:1px 5px; border-radius:4px; font-family:'Fira Code','Consolas',monospace; font-size:12.5px; }
+
+footer { text-align:center; padding:18px 12px; color:#9aa3b5; font-size:12px; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:20px; }
+  .toc a { padding:4px 10px; font-size:11px; }
+}
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header theme-blue">
+      <h1>Notes — Express + JWT + TypeScript — Setup & Gotchas</h1>
+      <p>Project structure, setup, password hashing, and the TypeScript traps that trip most developers.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">app.js vs server.js</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">Project Setup</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">Env Variables</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">Password Hashing</a>
+        <a href="#s5" onclick="document.getElementById('s5').scrollIntoView({behavior:'smooth'});return false;">TypeScript Gotchas</a>
+      </div>
+    </div>
+
+    <!-- 1 -->
+    <div class="section-divider" id="s1"><span>1. app.js vs server.js</span></div>
+    <div class="categories-wrap">
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>Separation of Concerns</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>File</th><th>Responsibility</th></tr>
+          <tr><td><code>app.js</code></td><td>What the server does — routes, middleware, business logic</td></tr>
+          <tr><td><code>server.js</code></td><td>That the server runs — listening, port, startup</td></tr>
+        </table>
+        <div class="info-box box-note">📌 Keeping these separate means <code>app.js</code> can be imported into tests without ever binding to a port.</div>
+      </div>
+    </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="section-divider" id="s2"><span>2. Project Setup</span></div>
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>Install Dependencies</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>npm i mongoose express
+npm i -D tsx @types/express @types/node</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Initialize TypeScript</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>npx tsc --init</code></pre>
+        </div>
+        <p style="margin-top:10px"><strong>tsconfig.json changes</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">tsconfig.json</span></div>
+          <pre><code>{
+  <span class="str">"compilerOptions"</span>: {
+    <span class="str">"target"</span>: <span class="str">"es2020"</span>,
+    <span class="str">"module"</span>: <span class="str">"NodeNext"</span>,
+    <span class="str">"rootDir"</span>: <span class="str">"./src"</span>
+  },
+  <span class="str">"include"</span>: [<span class="str">"src"</span>],
+  <span class="str">"exclude"</span>: [<span class="str">"node_modules"</span>, <span class="str">"dist"</span>]
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Add tsx + Scripts</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>npm install -D tsx</code></pre>
+        </div>
+        <div class="info-box box-tip">💡 <strong>tsx</strong> lets Node.js run TypeScript files directly during development — no manual compile step needed.</div>
+        <p><strong>package.json scripts</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">package.json</span></div>
+          <pre><code>{
+  <span class="str">"scripts"</span>: {
+    <span class="str">"dev"</span>: <span class="str">"tsx src/server.ts"</span>,
+    <span class="str">"build"</span>: <span class="str">"tsc"</span>,
+    <span class="str">"start"</span>: <span class="str">"node dist/server.js"</span>
+  }
+}</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>npm run dev</code></pre>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="section-divider" id="s3"><span>3. Environment Variables</span></div>
+    <div class="categories-wrap">
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>Load dotenv</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">server.ts</span></div>
+          <pre><code><span class="kw">import</span> dotenv <span class="kw">from</span> <span class="str">"dotenv"</span>;
+dotenv.<span class="fn">config</span>();</code></pre>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="section-divider" id="s4"><span>4. Password Hashing — Always Use a pre Hook</span></div>
+    <div class="categories-wrap">
+    <div class="card-sub cat-4 no-border">
+      <div class="card-sub-title"><h4>Hash in the Schema</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Never hash a password manually in the service layer — do it in the schema so it's impossible to forget:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">user.model.ts</span></div>
+          <pre><code>userSchema.<span class="fn">pre</span>(<span class="str">"save"</span>, <span class="kw">async function</span> (next) {
+  <span class="kw">if</span> (!<span class="kw">this</span>.<span class="fn">isModified</span>(<span class="str">"password"</span>)) {
+    <span class="kw">return</span> next();
+  }
+  <span class="kw">this</span>.password = <span class="kw">await</span> argon2.<span class="fn">hash</span>(<span class="kw">this</span>.password);
+  next();
+});</code></pre>
+        </div>
+        <div class="info-box box-benefit">✅ <code>isModified("password")</code> prevents re-hashing an already-hashed password on unrelated updates (e.g. updating name).</div>
+      </div>
+    </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="section-divider" id="s5"><span>5. Notes — Express + JWT TypeScript Gotchas</span></div>
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>5.1 Request Type vs Request Data</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <ul>
+          <li><code>req: Request</code> → the Express request <strong>object</strong></li>
+          <li><code>req.body</code> → the request <strong>payload</strong></li>
+        </ul>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">auth.controller.ts</span></div>
+          <pre><code><span class="kw">const</span> data = registerSchema.<span class="fn">parse</span>(req.body);</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>5.2 req.user Needs Express Augmentation</h4></div>
+      <div class="card-sub-content">
+        <p><code>user</code> is not a built-in Express property. Using <code>req.user.userId</code> requires a custom type declaration:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">types/express.d.ts</span></div>
+          <pre><code><span class="kw">declare global</span> {
+  <span class="kw">namespace</span> Express {
+    <span class="kw">interface</span> Request {
+      user: {
+        userId: <span class="str">string</span>;
+      };
+    }
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-5">
+      <div class="card-sub-title"><h4>5.3 jwt.verify() Type Assertion</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">auth.middleware.ts</span></div>
+          <pre><code><span class="kw">const</span> decoded = jwt.<span class="fn">verify</span>(
   token,
   process.env.JWT_SECRET!
-) as JwtPayload;
+) <span class="kw">as</span> JwtPayload;
 
-decoded.userId
-```
-> ⚠️ `as JwtPayload` = **TypeScript-only** type assertion — **not** runtime validation.
+decoded.userId;</code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ <code>as JwtPayload</code> is a <strong>TypeScript-only</strong> type assertion — not runtime validation. <code>jwt.verify()</code> guarantees the token's signature is valid, not that its payload matches <code>JwtPayload</code>'s shape.</div>
+      </div>
+    </div>
 
----
+    <div class="card-sub cat-5 accent-left">
+      <div class="card-sub-title"><h4>5.4 ! After an Environment Variable</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">any file</span></div>
+          <pre><code>process.env.JWT_SECRET!</code></pre>
+        </div>
+        <div class="info-box box-danger">🚫 Tells TypeScript: <em>"assume this exists."</em> It does <strong>not</strong> create the env variable — it only silences the type error. If the variable is actually missing at runtime, this will fail elsewhere (e.g. <code>jwt.verify</code> throwing), not here.</div>
+      </div>
+    </div>
 
-### 4️⃣ `!` after environment variable
-```ts
-process.env.JWT_SECRET!
-```
-> Tells TypeScript: *"assume this exists."*
-> ❌ It does **not** create the env variable — just silences the type error.
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>5.5 Cookie vs Authorization Header</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box good">
+            <h4>Cookie-based</h4>
+            <div class="code-block" style="margin:6px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">middleware</span></div>
+              <pre><code><span class="kw">const</span> token = req.cookies.accessToken;</code></pre>
+            </div>
+          </div>
+          <div class="compare-box good">
+            <h4>Bearer-based</h4>
+            <div class="code-block" style="margin:6px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">middleware</span></div>
+              <pre><code><span class="kw">const</span> authHeader = req.headers.authorization;
+<span class="kw">const</span> [scheme, token] = authHeader.<span class="fn">split</span>(<span class="str">" "</span>);</code></pre>
+            </div>
+          </div>
+        </div>
+        <div class="info-box box-danger">🚫 Don't mix the two approaches in one project — pick one auth transport and use it consistently across every protected route.</div>
+      </div>
+    </div>
+    </div>
 
----
-
-### 5️⃣ Cookie vs Authorization header ⭐⭐⭐⭐⭐
-
-**Cookie-based:**
-```ts
-const token = req.cookies.accessToken;
-```
-
-**Bearer-based:**
-```ts
-const authHeader = req.headers.authorization;
-const [scheme, token] = authHeader.split(" ");
-```
-
-> 🚫 Don't mix the two approaches in one project.
+    <footer>Notes — Express + JWT + TypeScript · Setup & Gotchas</footer>
+  </div>
+</body>
+</html>

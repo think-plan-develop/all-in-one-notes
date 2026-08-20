@@ -1,352 +1,749 @@
-### Mistakes to Remember — Mongoose User Schema
-
-1. **`required`, not `require`**
-
-   ```ts
-   required: true
-   ```
-
-   ❌ `require: true`
-
-2. **Use `maxlength` for string length**
-
-   ```ts
-   maxlength: 35
-   ```
-
-   ❌ `maxLength: 35`
-
-3. **Add `unique: true` for unique email**
-
-   ```ts
-   email: {
-     type: String,
-     required: true,
-     unique: true
-   }
-   ```
-
-4. **Schema and Model are different**
-
-   ```text
-   Schema → defines document structure
-   Model  → interacts with MongoDB
-   ```
-
-5. **Create Schema using `mongoose.Schema()`**
-
-   ```ts
-   const userSchema = new mongoose.Schema({...});
-   ```
-
-6. **Create Model using `mongoose.model()`**
-
-   ```ts
-   const User = mongoose.model("User", userSchema);
-   ```
-
-   ❌ Don't use:
-
-   ```ts
-   new mongoose.Model(...)
-   ```
-
-7. **Use a meaningful Model name**
-
-   ```ts
-   const User = mongoose.model("User", userSchema);
-   ```
-
-   Not:
-
-   ```ts
-   const userSchema = ...
-   ```
-
-   for the model variable.
-
-8. **`timestamps: true` is a Schema option**
-
-   ```ts
-   {
-     timestamps: true
-   }
-   ```
-
-   It automatically creates:
-
-   ```text
-   createdAt
-   updatedAt
-   ```
-
-9. **For email fields, commonly use `trim` and `lowercase`**
-
-   ```ts
-   email: {
-     type: String,
-     required: true,
-     unique: true,
-     trim: true,
-     lowercase: true
-   }
-   ```
-
-10. **Password should never be stored as plain text**
-
-    ```text
-    Plain password
-         ↓
-    bcrypt.hash()
-         ↓
-    Hashed password
-         ↓
-    MongoDB
-    ```
-
-### Easy pattern to remember
-
-```text
-mongoose.Schema()
-      ↓
-  Schema definition
-      ↓
-mongoose.model()
-      ↓
-      Model
-      ↓
-MongoDB operations
-```
-
-**Your biggest mistakes were:** `require` → `required`, `new mongoose.Model()` → `mongoose.model()`, and forgetting `unique: true` for email.
-
-
-Mongoose Schema & Model — Mistakes to Remember
-
-Schema starts with capital S
-
-Schema
-
-Because Schema is imported as a constructor/class.
-
-Create a Schema using new Schema()
-
-const userSchema = new Schema({
-  // fields
-});
-
-model starts with small m
-
-model
-
-It is the function used to create a Mongoose model.
-
-Create the Model using model()
-
-const User = model("User", userSchema);
-
-import { Schema, model } from "mongoose";
-
-const userSchema = new Schema({
-  // fields
-});
-
-const User = model("User", userSchema);
-
-export default User;
-
-
-
-
-InferSchemaType common mistakes
-❌ Using it with a TypeScript interface
-
-❌ Forgetting typeof:
-
-InferSchemaType<UserSchema> // ❌
-InferSchemaType<typeof UserSchema> // ✅
-
-write like this 
-const UserModel = model<User>("User", UserSchema);
-
-
-
-# JWT + Cookie Authentication — Common Mistakes
-
-**1. Reading from the wrong place**
-```
-req.headers.authorization // ❌ if using cookies
-req.cookies.accessToken   // ✅
-```
-
-**2. Forgetting `cookie-parser`**
-```
-app.use(cookieParser()); // ✅ otherwise req.cookies is undefined
-```
-
-**3. Forgetting to set the cookie during login**
-```
-res.cookie("accessToken", token); // ✅
-```
-
-**4. Using different cookie names**
-```
-res.cookie("token", token);        // set as "token"
-req.cookies.accessToken;           // ❌ read as "accessToken" — names must match
-```
-
-**5. Putting a cookie token in `Authorization`**
-```
-Authorization: Bearer <token>  // ❌ if middleware expects req.cookies.accessToken
-```
-
-**6. Forgetting `Bearer` prefix**
-```
-Authorization: <token>        ❌
-Authorization: Bearer <token> ✅
-```
-
-**7. Not checking if token exists**
-```
-jwt.verify(undefined, secret); // ❌ crashes
-
-if (!token) return res.status(401).json(...); // ✅ check first
-```
-
-**8. Mismatched JWT secret**
-```
-jwt.sign(payload, SECRET_A);
-jwt.verify(token, SECRET_B); // ❌ must match
-```
-
-**9. Forgetting `JWT_SECRET`**
-```
-process.env.JWT_SECRET // may be undefined if .env not loaded
-```
-
-**10. Misusing `as JwtPayload`**
-```
-const decoded = jwt.verify(...) as JwtPayload;
-// only tells TS the shape — no runtime validation of userId
-```
-
-**11. Not storing user on `req`**
-```
-req.user = { userId: decoded.userId };
-// without this, the controller doesn't know who's authenticated
-```
-
-**12. Wrong property name**
-```
-req.userId       // ❌
-req.user.userId  // ✅
-```
-
-**13. Forgetting Express type augmentation**
-```
-interface Request {
-  user: { userId: string };
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — Mongoose & JWT Mistakes</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #faf5ff 30%, #ecfdf5 60%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b;
+  min-height: 100vh;
 }
-// without it: Property 'user' does not exist on type 'Request'
-```
+.container { width: 92%; max-width: 1080px; margin: 48px auto 60px; }
 
-**14. Returning password from user API**
-```
-UserModel.findById(userId);                    // ⚠️ leaks password
-UserModel.findById(userId).select("-password"); // ✅
-```
+@media (max-width: 768px) {
+  .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; }
+}
 
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#60a5fa; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#34d399; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#0e7490; --accent:#0891b2; --accent-light:#22d3ee; --content-bg:#ecfeff; --heading:#0e7490; --shadow-rgb:8,145,178; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#a78bfa; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-5 { --accent-dark:#9f1239; --accent:#e11d48; --accent-light:#fb7185; --content-bg:#fff1f2; --heading:#9f1239; --shadow-rgb:225,29,72; }
 
-Got it — you want the **“which part should NOT be added”** in the controller and service.
+.header {
+  background: linear-gradient(125deg, #2c569e 0%, #2c2cbf 35%, #2563eb 70%, #0891b2 100%);
+  border-radius: 18px;
+  padding: 36px 34px;
+  margin-bottom: 44px;
+  box-shadow: 0 14px 36px rgba(124,58,237,0.3);
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  top: -40%; right: -10%;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:28px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; position:relative; }
+.header p { color:rgba(255,255,255,0.92); font-size:16px; margin-bottom:20px; position:relative; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; position:relative; }
+.toc a {
+  text-decoration:none; padding:7px 15px; border-radius:20px; font-size:13px; font-weight:600;
+  transition:all .2s ease; cursor:pointer;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#7c3aed; transform:translateY(-1px); }
 
-### Controller — what to add
+.section-divider { margin:44px 0 18px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #6366f1, #ec4899, #f59e0b, #10b981);
+  opacity:.35;
+}
+.section-divider span {
+  background: linear-gradient(120deg, #1e3a8a, #2563eb);
+  padding:6px 18px; border-radius:8px; position:relative;
+  font-size:20px; font-weight:800; color:#ffffff;
+}
 
-```ts
-export const registerController = async (
+code, .token {
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+  font-size: 0.88em;
+  background: rgba(99,102,241,0.12);
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: #4338ca;
+}
+
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:14px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.25); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a);
+  padding:9px 16px; display:flex; align-items:center; gap:6px;
+  border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:11px; height:11px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; box-shadow:0 0 6px rgba(248,113,113,0.5); }
+.code-bar .dot-grey { background:#fbbf24; box-shadow:0 0 6px rgba(251,191,36,0.4); }
+.code-bar .dot-green { background:#34d399; box-shadow:0 0 6px rgba(52,211,153,0.4); }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:10px; font-weight:500; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:14px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; } .cmt { color:#64748b; font-style:italic; } .num { color:#fdba74; }
+
+.info-box {
+  border-radius:12px; padding:14px 18px; margin:14px 0;
+  font-size:15px; line-height:1.7; font-weight:600;
+  border:1px solid transparent;
+}
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; border-color:#fda4af; }
+
+/* FLOW */
+.flow {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  margin:18px 0; font-size:0.95rem;
+  background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border-radius:16px; padding:28px 22px;
+  border:1px solid #312e81;
+  box-shadow: 0 10px 30px rgba(30,27,75,0.35);
+}
+.flow-step {
+  background: linear-gradient(135deg, #1e293b, #334155);
+  border: 1.5px solid #475569;
+  border-radius:12px; padding:12px 22px; text-align:center;
+  min-width:200px; max-width:400px; color:#f1f5f9; font-weight:600;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.flow-arrow {
+  color:#818cf8; font-size:1.4rem; line-height:1.6; user-select:none;
+  text-shadow: 0 0 12px rgba(129,140,248,0.5);
+}
+.flow-step.start {
+  background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+  border-color: #60a5fa; color:#fff;
+  box-shadow: 0 4px 16px rgba(59,130,246,0.4);
+}
+.flow-step.success {
+  background: linear-gradient(135deg, #047857, #10b981);
+  border-color: #34d399; color:#fff;
+  box-shadow: 0 4px 16px rgba(16,185,129,0.35);
+}
+.flow-step.danger {
+  background: linear-gradient(135deg, #be123c, #e11d48);
+  border-color: #fb7185; color:#fff;
+  box-shadow: 0 4px 16px rgba(225,29,72,0.35);
+}
+.flow-step.purple {
+  background: linear-gradient(135deg, #5b21b6, #7c3aed);
+  border-color: #a78bfa; color:#fff;
+  box-shadow: 0 4px 16px rgba(124,58,237,0.35);
+}
+.flow-step.cyan {
+  background: linear-gradient(135deg, #0e7490, #06b6d4);
+  border-color: #22d3ee; color:#fff;
+  box-shadow: 0 4px 16px rgba(6,182,212,0.35);
+}
+.flow-step.amber {
+  background: linear-gradient(135deg, #b45309, #f59e0b);
+  border-color: #fbbf24; color:#fff;
+  box-shadow: 0 4px 16px rgba(245,158,11,0.35);
+}
+.flow-step.pink {
+  background: linear-gradient(135deg, #9d174d, #db2777);
+  border-color: #f472b6; color:#fff;
+  box-shadow: 0 4px 16px rgba(219,39,119,0.35);
+}
+
+/* MISTAKE CARDS */
+.mistake-grid { display:flex; flex-direction:column; gap:12px; margin:12px 0; }
+.mistake-card {
+  border-radius:14px; padding:16px 18px;
+  border:1px solid transparent;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+}
+.mistake-card h5 {
+  font-size:15px; font-weight:800; margin-bottom:8px;
+  display:flex; align-items:center; gap:8px;
+}
+.mistake-card p { font-size:14.5px; line-height:1.65; font-weight:500; margin:0 0 8px; color:#334155; }
+.mistake-card .bad { color:#be123c; font-weight:700; }
+.mistake-card .good { color:#047857; font-weight:700; }
+
+.m-blue { background:linear-gradient(135deg,#eff6ff,#dbeafe); border-color:#93c5fd; }
+.m-blue h5 { color:#1e40af; }
+.m-green { background:linear-gradient(135deg,#ecfdf5,#d1fae5); border-color:#6ee7b7; }
+.m-green h5 { color:#065f46; }
+.m-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); border-color:#fdba74; }
+.m-orange h5 { color:#9a3412; }
+.m-purple { background:linear-gradient(135deg,#faf5ff,#ede9fe); border-color:#c4b5fd; }
+.m-purple h5 { color:#5b21b6; }
+.m-rose { background:linear-gradient(135deg,#fff1f2,#ffe4e6); border-color:#fda4af; }
+.m-rose h5 { color:#9f1239; }
+.m-cyan { background:linear-gradient(135deg,#ecfeff,#cffafe); border-color:#67e8f9; }
+.m-cyan h5 { color:#0e7490; }
+.m-amber { background:linear-gradient(135deg,#fefce8,#fef9c3); border-color:#fde047; }
+.m-amber h5 { color:#a16207; }
+.m-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); border-color:#a5b4fc; }
+.m-indigo h5 { color:#3730a3; }
+
+/* COMPARE */
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:18px 20px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 16px rgba(0,0,0,0.05);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box.bad { border-left:5px solid #e11d48; background:linear-gradient(135deg,#fff,#fff1f2); }
+.compare-box h4 { font-size:15px; margin-bottom:10px; font-weight:800; }
+.compare-box.good h4 { color:#047857; }
+.compare-box.bad h4 { color:#be123c; }
+.compare-box p { margin:6px 0 0; font-size:0.9rem; line-height:1.8; color:#334155; }
+
+/* CARDS */
+.categories-wrap {
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(8px);
+  border:1px solid rgba(124,58,237,0.12);
+  border-radius:18px; padding:24px; margin-bottom:28px;
+  box-shadow: 0 10px 28px rgba(124,58,237,0.07);
+}
+.card-sub {
+  border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff;
+  border:1px solid rgba(var(--shadow-rgb),0.14);
+  box-shadow:0 4px 16px rgba(var(--shadow-rgb),0.08);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { }
+.card-sub-title {
+  display:flex; align-items:center; gap:12px; padding:14px 20px;
+  background: linear-gradient(120deg, #1e3a8a, #2563eb);
+  border-bottom:1px solid rgba(var(--shadow-rgb),0.12);
+}
+.card-sub-title h4 { margin:0; font-size:16px; font-weight:800; color:#ffffff; }
+.card-sub-title .stars { margin-left:auto; color:#fde047; font-size:13px; letter-spacing:1px; }
+.card-sub-content { padding:18px 22px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15.5px; line-height:1.7; font-weight:500; margin:0 0 12px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:12px; }
+.card-sub-content ul { margin:6px 0 12px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.75; color:#334155; font-weight:500; margin-bottom:4px; }
+.card-sub-content h3 { font-size:15px; margin:14px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content .info-box:last-child,
+.card-sub-content .code-block:last-child,
+.card-sub-content .compare:last-child,
+.card-sub-content .flow:last-child,
+.card-sub-content .mistake-grid:last-child { margin-bottom:0; }
+
+/* TABLES — blue, no border */
+table { width:100%; border-collapse:collapse; margin:14px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb);
+  color:#fff; font-size:14px; font-weight:700; padding:13px 16px; text-align:left;
+  border:none;
+}
+table th:first-child { border-top-left-radius:12px; }
+table th:last-child { border-top-right-radius:12px; }
+table td { padding:11px 16px; font-size:14.5px; font-weight:600; border:none; color:#1e3a8a; background:#eff6ff; }
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; transition:background .15s ease; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a;
+  padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:13px;
+}
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:22px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <h1>Notes — Mongoose & JWT Mistakes</h1>
+      <p>Schema traps · Model patterns · JWT + Cookie pitfalls · Controller vs Service</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">Mongoose Schema</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">Schema vs Model</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">InferSchemaType</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">JWT + Cookie</a>
+        <a href="#s5" onclick="document.getElementById('s5').scrollIntoView({behavior:'smooth'});return false;">Controller vs Service</a>
+      </div>
+    </div>
+
+    <!-- 1. MONGOOSE USER SCHEMA MISTAKES -->
+    <div class="section-divider" id="s1"><span>1. Mistakes to Remember — Mongoose User Schema</span></div>
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-5 no-border">
+      <div class="card-sub-title"><h4>Common Schema Mistakes</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="mistake-grid">
+
+          <div class="mistake-card m-green">
+            <h5>1. required, not require</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema</span></div>
+              <pre><code>required: <span class="kw">true</span>   <span class="cmt">// ✅</span>
+<span class="cmt">// ❌ require: true</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-green">
+            <h5>2. Use maxlength for string length</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema</span></div>
+              <pre><code>maxlength: <span class="num">35</span>   <span class="cmt">// ✅</span>
+<span class="cmt">// ❌ maxLength: 35</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-green">
+            <h5>3. Add unique: true for unique email</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema</span></div>
+              <pre><code>email: {
+  type: String,
+  required: <span class="kw">true</span>,
+  unique: <span class="kw">true</span>
+}</code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-green">
+            <h5>4. Schema and Model are different</h5>
+            <p><strong>Schema</strong> → defines document structure<br>
+            <strong>Model</strong> → interacts with MongoDB</p>
+          </div>
+
+          <div class="mistake-card m-green">
+            <h5>5. Create Schema using mongoose.Schema()</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">user.model.ts</span></div>
+              <pre><code><span class="kw">const</span> userSchema = <span class="kw">new</span> mongoose.<span class="fn">Schema</span>({...});</code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-green">
+            <h5>6. Create Model using mongoose.model()</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">user.model.ts</span></div>
+              <pre><code><span class="kw">const</span> User = mongoose.<span class="fn">model</span>(<span class="str">"User"</span>, userSchema);
+
+<span class="cmt">// ❌ Don't use: new mongoose.Model(...)</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-green">
+            <h5>7. Use a meaningful Model name</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">user.model.ts</span></div>
+              <pre><code><span class="kw">const</span> User = mongoose.<span class="fn">model</span>(<span class="str">"User"</span>, userSchema);  <span class="cmt">// ✅</span>
+<span class="cmt">// Not: const userSchema = ... for the model variable</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-green">
+            <h5>8. timestamps: true is a Schema option</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema</span></div>
+              <pre><code>{ timestamps: <span class="kw">true</span> }
+
+<span class="cmt">// Automatically creates: createdAt, updatedAt</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-green">
+            <h5>9. For email fields — use trim and lowercase</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema</span></div>
+              <pre><code>email: {
+  type: String,
+  required: <span class="kw">true</span>,
+  unique: <span class="kw">true</span>,
+  trim: <span class="kw">true</span>,
+  lowercase: <span class="kw">true</span>
+}</code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-rose">
+            <h5>10. Password should never be stored as plain text</h5>
+            <div class="flow" style="margin:10px 0 0">
+              <div class="flow-step danger">Plain password</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step purple">bcrypt.hash()</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step cyan">Hashed password</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step success">MongoDB</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="info-box box-danger" style="margin-top:16px">🚫 <strong>Your biggest mistakes were:</strong> <code>require</code> → <code>required</code>, <code>new mongoose.Model()</code> → <code>mongoose.model()</code>, and forgetting <code>unique: true</code> for email.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Easy Pattern to Remember</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step start">mongoose.Schema()</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Schema definition</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">mongoose.model()</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Model</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">MongoDB operations</div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- 2. SCHEMA vs MODEL -->
+    <div class="section-divider" id="s2"><span>2. Mongoose Schema & Model — Mistakes to Remember</span></div>
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4 no-border">
+      <div class="card-sub-title"><h4>Capital S vs Small m</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box good">
+            <h4>Schema — capital S</h4>
+            <p>Schema is imported as a constructor/class.</p>
+            <div class="code-block" style="margin:10px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema</span></div>
+              <pre><code><span class="kw">const</span> userSchema = <span class="kw">new</span> <span class="fn">Schema</span>({
+  <span class="cmt">// fields</span>
+});</code></pre>
+            </div>
+          </div>
+          <div class="compare-box good">
+            <h4>model — small m</h4>
+            <p>It is the function used to create a Mongoose model.</p>
+            <div class="code-block" style="margin:10px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">model</span></div>
+              <pre><code><span class="kw">const</span> User = <span class="fn">model</span>(<span class="str">"User"</span>, userSchema);</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">user.model.ts</span></div>
+          <pre><code><span class="kw">import</span> { Schema, model } <span class="kw">from</span> <span class="str">"mongoose"</span>;
+
+<span class="kw">const</span> userSchema = <span class="kw">new</span> <span class="fn">Schema</span>({
+  <span class="cmt">// fields</span>
+});
+
+<span class="kw">const</span> User = <span class="fn">model</span>(<span class="str">"User"</span>, userSchema);
+
+<span class="kw">export default</span> User;</code></pre>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- 3. InferSchemaType -->
+    <div class="section-divider" id="s3"><span>3. InferSchemaType — Common Mistakes</span></div>
+    <div class="categories-wrap">
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>Don't Forget typeof</h4><span class="stars">★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box bad">
+            <h4>❌ Wrong</h4>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">error</span></div>
+              <pre><code>InferSchemaType&lt;UserSchema&gt;  <span class="cmt">// ❌</span>
+<span class="cmt">// Using it with a TypeScript interface</span></code></pre>
+            </div>
+          </div>
+          <div class="compare-box good">
+            <h4>✅ Correct</h4>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ok</span></div>
+              <pre><code>InferSchemaType&lt;<span class="kw">typeof</span> UserSchema&gt;  <span class="cmt">// ✅</span></code></pre>
+            </div>
+          </div>
+        </div>
+        <div class="info-box box-tip">💡 Write the model like this:<br>
+        <code>const UserModel = model&lt;User&gt;("User", UserSchema);</code></div>
+      </div>
+    </div>
+    </div>
+
+    <!-- 4. JWT + COOKIE MISTAKES -->
+    <div class="section-divider" id="s4"><span>4. JWT + Cookie Authentication — Common Mistakes</span></div>
+    <div class="categories-wrap">
+    <div class="card-sub cat-5 no-border">
+      <div class="card-sub-title"><h4>14 Pitfalls to Avoid</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="mistake-grid">
+
+          <div class="mistake-card m-rose">
+            <h5>1. Reading from the wrong place</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">middleware</span></div>
+              <pre><code>req.headers.authorization  <span class="cmt">// ❌ if using cookies</span>
+req.cookies.accessToken    <span class="cmt">// ✅</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-rose">
+            <h5>2. Forgetting cookie-parser</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app.ts</span></div>
+              <pre><code>app.<span class="fn">use</span>(cookieParser());  <span class="cmt">// ✅ otherwise req.cookies is undefined</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-rose">
+            <h5>3. Forgetting to set the cookie during login</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">auth</span></div>
+              <pre><code>res.<span class="fn">cookie</span>(<span class="str">"accessToken"</span>, token);  <span class="cmt">// ✅</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-rose">
+            <h5>4. Using different cookie names</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">mismatch</span></div>
+              <pre><code>res.<span class="fn">cookie</span>(<span class="str">"token"</span>, token);      <span class="cmt">// set as "token"</span>
+req.cookies.accessToken;          <span class="cmt">// ❌ read as "accessToken" — names must match</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-rose">
+            <h5>5. Putting a cookie token in Authorization</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">wrong</span></div>
+              <pre><code>Authorization: Bearer &lt;token&gt;  <span class="cmt">// ❌ if middleware expects req.cookies.accessToken</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-rose">
+            <h5>6. Forgetting Bearer prefix</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">header</span></div>
+              <pre><code>Authorization: &lt;token&gt;         <span class="cmt">// ❌</span>
+Authorization: Bearer &lt;token&gt;  <span class="cmt">// ✅</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-rose">
+            <h5>7. Not checking if token exists</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">middleware</span></div>
+              <pre><code>jwt.<span class="fn">verify</span>(undefined, secret);  <span class="cmt">// ❌ crashes</span>
+
+<span class="kw">if</span> (!token) <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">401</span>).<span class="fn">json</span>(...);  <span class="cmt">// ✅ check first</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-rose">
+            <h5>8. Mismatched JWT secret</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">jwt</span></div>
+              <pre><code>jwt.<span class="fn">sign</span>(payload, SECRET_A);
+jwt.<span class="fn">verify</span>(token, SECRET_B);  <span class="cmt">// ❌ must match</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-rose">
+            <h5>9. Forgetting JWT_SECRET</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">env</span></div>
+              <pre><code>process.env.JWT_SECRET  <span class="cmt">// may be undefined if .env not loaded</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-rose">
+            <h5>10. Misusing as JwtPayload</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">types</span></div>
+              <pre><code><span class="kw">const</span> decoded = jwt.<span class="fn">verify</span>(...) <span class="kw">as</span> JwtPayload;
+<span class="cmt">// only tells TS the shape — no runtime validation of userId</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-rose">
+            <h5>11. Not storing user on req</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">middleware</span></div>
+              <pre><code>req.user = { userId: decoded.userId };
+<span class="cmt">// without this, the controller doesn't know who's authenticated</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-rose">
+            <h5>12. Wrong property name</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">access</span></div>
+              <pre><code>req.userId       <span class="cmt">// ❌</span>
+req.user.userId  <span class="cmt">// ✅</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-rose">
+            <h5>13. Forgetting Express type augmentation</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">types</span></div>
+              <pre><code><span class="kw">interface</span> Request {
+  user: { userId: <span class="str">string</span> };
+}
+<span class="cmt">// without it: Property 'user' does not exist on type 'Request'</span></code></pre>
+            </div>
+          </div>
+
+          <div class="mistake-card m-rose">
+            <h5>14. Returning password from user API</h5>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">query</span></div>
+              <pre><code>UserModel.<span class="fn">findById</span>(userId);                     <span class="cmt">// ⚠️ leaks password</span>
+UserModel.<span class="fn">findById</span>(userId).<span class="fn">select</span>(<span class="str">"-password"</span>);  <span class="cmt">// ✅</span></code></pre>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- 5. CONTROLLER vs SERVICE -->
+    <div class="section-divider" id="s5"><span>5. Controller vs Service — What to Add</span></div>
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>Controller</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box good">
+            <h4>✅ What to add</h4>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">controller</span></div>
+              <pre><code><span class="kw">export const</span> <span class="fn">registerController</span> = <span class="kw">async</span> (
   req: Request,
   res: Response
 ) => {
-  const requestData = registerSchema.parse(req.body);
+  <span class="kw">const</span> requestData = registerSchema.<span class="fn">parse</span>(req.body);
+  <span class="kw">const</span> result = <span class="kw">await</span> <span class="fn">registerUser</span>(requestData);
+  res.<span class="fn">status</span>(<span class="num">201</span>).<span class="fn">json</span>(result);
+};</code></pre>
+            </div>
+          </div>
+          <div class="compare-box bad">
+            <h4>❌ Don't add</h4>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">wrong</span></div>
+              <pre><code><span class="cmt">// ❌ Don't add database queries</span>
+userModel.<span class="fn">findOne</span>();
+userModel.<span class="fn">create</span>();
 
-  const result = await registerUser(requestData);
+<span class="cmt">// ❌ Don't add password hashing</span>
+argon2.<span class="fn">hash</span>();
 
-  res.status(201).json(result);
-};
-```
+<span class="cmt">// ❌ Don't add JWT generation</span>
+jwt.<span class="fn">sign</span>();
 
-### Controller — don't add
+<span class="cmt">// ❌ Don't add business logic</span>
+<span class="kw">if</span> (existingUser) { <span class="cmt">/* ... */</span> }</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-```ts
-// ❌ Don't add database queries
-userModel.findOne();
-userModel.create();
-
-// ❌ Don't add password hashing
-argon2.hash();
-
-// ❌ Don't add JWT generation
-jwt.sign();
-
-// ❌ Don't add business logic
-if (existingUser) {
-  // ...
-}
-```
-
----
-
-### Service — what to add
-
-```ts
-export const registerUser = async (
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Service</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box good">
+            <h4>✅ What to add</h4>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">service</span></div>
+              <pre><code><span class="kw">export const</span> <span class="fn">registerUser</span> = <span class="kw">async</span> (
   userData: RegisterInput
 ) => {
-  const existingUser = await userModel.findOne({
+  <span class="kw">const</span> existingUser = <span class="kw">await</span> userModel.<span class="fn">findOne</span>({
     email: userData.email,
   });
 
-  if (existingUser) {
-    throw new Error("User already exists");
+  <span class="kw">if</span> (existingUser) {
+    <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"User already exists"</span>);
   }
 
-  return await userModel.create(userData);
-};
-```
+  <span class="kw">return await</span> userModel.<span class="fn">create</span>(userData);
+};</code></pre>
+            </div>
+          </div>
+          <div class="compare-box bad">
+            <h4>❌ Don't add</h4>
+            <div class="code-block" style="margin:8px 0 0">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">wrong</span></div>
+              <pre><code><span class="cmt">// ❌ Don't handle HTTP response</span>
+res.<span class="fn">status</span>(<span class="num">201</span>).<span class="fn">json</span>();
 
-### Service — don't add
-
-```ts
-// ❌ Don't handle HTTP response
-res.status(201).json();
-
-// ❌ Don't access req/res
+<span class="cmt">// ❌ Don't access req/res</span>
 req.body;
-res.json();
+res.<span class="fn">json</span>();
 
-// ❌ Don't do request validation
-registerSchema.parse(req.body);
-```
+<span class="cmt">// ❌ Don't do request validation</span>
+registerSchema.<span class="fn">parse</span>(req.body);</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-### Simple rule
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><h4>Simple Rule</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box good">
+            <h4>Controller</h4>
+            <p style="margin:0;line-height:1.9">
+              HTTP + request validation + response
+            </p>
+          </div>
+          <div class="compare-box good">
+            <h4>Service</h4>
+            <p style="margin:0;line-height:1.9">
+              Business logic + database operations
+            </p>
+          </div>
+        </div>
 
-```text
-Controller
-→ HTTP + request validation + response
+        <table>
+          <tr><th>Responsibility</th><th>Belongs in</th></tr>
+          <tr><td><code>req.body</code></td><td>Controller</td></tr>
+          <tr><td>Zod parse</td><td>Controller</td></tr>
+          <tr><td><code>res.status()</code></td><td>Controller</td></tr>
+          <tr><td><code>findOne()</code></td><td>Service</td></tr>
+          <tr><td><code>create()</code></td><td>Service</td></tr>
+          <tr><td><code>argon2.hash()</code></td><td>Service / Model</td></tr>
+          <tr><td><code>jwt.sign()</code></td><td>Service</td></tr>
+          <tr><td>Business rules</td><td>Service</td></tr>
+        </table>
+      </div>
+    </div>
+    </div>
 
-Service
-→ Business logic + database operations
-```
-
-So:
-
-```text
-req.body          → Controller
-Zod parse         → Controller
-res.status()      → Controller
-
-findOne()         → Service
-create()          → Service
-argon2.hash()     → Service/model
-jwt.sign()        → Service
-Business rules    → Service
-```
+    <footer>Notes — Mongoose & JWT Mistakes</footer>
+  </div>
+</body>
+</html>

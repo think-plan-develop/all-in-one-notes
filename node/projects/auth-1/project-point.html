@@ -1,439 +1,746 @@
-Here is the **combined final version** with everything compactly included:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — Node.js & Backend</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #faf5ff 30%, #ecfdf5 60%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b;
+  min-height: 100vh;
+}
+.container { width: 92%; max-width: 1080px; margin: 48px auto 60px; }
 
-### CommonJS vs ES Modules
-
-| Feature                | CommonJS                     | ES Modules                  |
-| ---------------------- | ---------------------------- | --------------------------- |
-| Import                 | `require()`                  | `import`                    |
-| Export                 | `module.exports` / `exports` | `export` / `export default` |
-| `.js` behavior         | CommonJS by default          | ESM with `"type": "module"` |
-| Explicit extension     | `.cjs`                       | `.mjs`                      |
-| Browser native support | ❌                            | ✅                           |
-| Top-level `await`      | ❌                            | ✅                           |
-| `__dirname`            | ✅ Built-in                   | ❌ Not directly available    |
-| `__filename`           | ✅ Built-in                   | ❌ Not directly available    |
-| `import.meta.url`      | ❌                            | ✅                           |
-
-### `__dirname` and `__filename`
-
-**`__dirname`** gives the **absolute path of the directory containing the current file**.
-
-```js
-console.log(__dirname);
-
-// /Users/shivam/project/src
-```
-
-**`__filename`** gives the **absolute path of the current file, including the filename**.
-
-```js
-console.log(__filename);
-
-// /Users/shivam/project/src/app.js
-```
-
-### What is an absolute path?
-
-An **absolute path** is the complete path from the filesystem root to a file or directory.
-
-```text
-/Users/shivam/project/src/app.js
-```
-
-Here `/` is the filesystem root.
-
-A relative path is:
-
-```text
-./src/app.js
-```
-
-The difference is that an **absolute path does not depend on the current working directory**, while a relative path does.
-
-### ESM replacement for `__dirname` and `__filename`
-
-ES Modules don't directly provide these variables. Use `import.meta.url`:
-
-```js
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-```
-
-Exact replacement:
-
-```text
-CommonJS                         ES Module
-────────────────────────────────────────────────────
-__filename              →       fileURLToPath(import.meta.url)
-
-__dirname               →       path.dirname(
-                                   fileURLToPath(import.meta.url)
-                                 )
-```
-
-`import.meta.url` gives the current module's location as a URL:
-
-```js
-console.log(import.meta.url);
-
-// file:///Users/shivam/project/src/app.js
-```
-
-`fileURLToPath()` converts that URL into a normal filesystem path.
-
-### Top-level `await`
-
-Normally, `await` works only inside an `async` function.
-
-**CommonJS:**
-
-```js
-const data = await fetch(url); // ❌
-```
-
-You need:
-
-```js
-async function main() {
-  const data = await fetch(url);
-  console.log(data);
+@media (max-width: 768px) {
+  .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; }
 }
 
-main();
-```
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#60a5fa; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#60a5fa; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#34d399; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#0e7490; --accent:#0891b2; --accent-light:#22d3ee; --content-bg:#ecfeff; --heading:#0e7490; --shadow-rgb:8,145,178; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#a78bfa; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-5 { --accent-dark:#9f1239; --accent:#e11d48; --accent-light:#fb7185; --content-bg:#fff1f2; --heading:#9f1239; --shadow-rgb:225,29,72; }
 
-**ES Modules** allow `await` directly at the top level:
+/* HEADER */
+.header {
+  background: linear-gradient(125deg, #2c569e 0%, #2c2cbf 35%, #2563eb 70%, #0891b2 100%);
+  border-radius: 18px;
+  padding: 36px 34px;
+  margin-bottom: 44px;
+  box-shadow: 0 14px 36px rgba(124,58,237,0.3);
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  top: -40%; right: -10%;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:30px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; position:relative; }
+.header p { color:rgba(255,255,255,0.92); font-size:16px; margin-bottom:20px; position:relative; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; position:relative; }
+.toc a {
+  text-decoration:none; padding:7px 15px; border-radius:20px; font-size:13px; font-weight:600;
+  transition:all .2s ease; cursor:pointer;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#7c3aed; transform:translateY(-1px); }
 
-```js
-const response = await fetch("https://example.com");
-
-console.log(response.status);
-```
-
-No wrapper function is required.
-
-### Why Top-level `await`?
-
-It is useful when an application needs asynchronous initialization before starting:
-
-* Database connection
-* Reading configuration
-* Loading secrets
-* Dynamic module loading
-* Initializing external services
-
-CommonJS:
-
-```js
-async function start() {
-  await connectDB();
-  app.listen(3000);
+/* SECTION DIVIDER */
+.section-divider { margin:44px 0 18px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #6366f1, #ec4899, #f59e0b, #10b981);
+  opacity:.35;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #faf5ff);
+  padding:0 14px 0 0; position:relative;
+  font-size:20px; font-weight:800; color:#1e293b;
 }
 
-start();
-```
-
-ESM:
-
-```js
-await connectDB();
-
-app.listen(3000);
-```
-
-### Execution flow
-
-**CommonJS:**
-
-```text
-Start module
-    ↓
-Call async function
-    ↓
-await Promise
-    ↓
-Promise resolves
-    ↓
-Continue execution
-```
-
-**ES Module:**
-
-```text
-Start module
-    ↓
-Top-level await
-    ↓
-Module pauses
-    ↓
-Promise resolves
-    ↓
-Module continues
-```
-
-The ES module pauses at the `await` until the Promise settles. Modules that depend on it may also have to wait.
-
-### Node.js configuration
-
-```json
-{
-  "type": "module"
+code, .token {
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+  font-size: 0.88em;
+  background: rgba(99,102,241,0.12);
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: #4338ca;
 }
-```
 
-This makes `.js` files in that package **ES Modules**.
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:14px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.25); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a);
+  padding:9px 16px; display:flex; align-items:center; gap:6px;
+  border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:11px; height:11px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; box-shadow:0 0 6px rgba(248,113,113,0.5); }
+.code-bar .dot-grey { background:#fbbf24; box-shadow:0 0 6px rgba(251,191,36,0.4); }
+.code-bar .dot-green { background:#34d399; box-shadow:0 0 6px rgba(52,211,153,0.4); }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:10px; font-weight:500; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:14px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; } .cmt { color:#64748b; font-style:italic; } .num { color:#fdba74; }
 
-```text
-.cjs → CommonJS
-.mjs → ES Module
-```
+.info-box {
+  border-radius:12px; padding:14px 18px; margin:14px 0;
+  font-size:15px; line-height:1.7; font-weight:600;
+  border:1px solid transparent;
+}
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; border-color:#fda4af; }
 
-### Easy way to remember
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:18px 20px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 16px rgba(0,0,0,0.05);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box h4 { font-size:15px; margin-bottom:10px; font-weight:800; color:#047857; }
+.compare-box p { margin:6px 0 0; font-size:0.9rem; line-height:1.8; }
 
-```text
-CommonJS
-→ require()
-→ module.exports
-→ __dirname
-→ __filename
-→ no top-level await
+/* ===== COLORFUL FLOW DIAGRAMS ===== */
+.flow {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  margin:18px 0; font-size:0.95rem;
+  background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border-radius:16px; padding:28px 22px;
+  border:1px solid #312e81;
+  box-shadow: 0 10px 30px rgba(30,27,75,0.35);
+}
+.flow-step {
+  background: linear-gradient(135deg, #1e293b, #334155);
+  border: 1.5px solid #475569;
+  border-radius:12px; padding:12px 22px; text-align:center;
+  min-width:210px; max-width:400px; color:#f1f5f9; font-weight:600;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: transform .15s ease;
+}
+.flow-step:hover { transform: scale(1.02); }
+.flow-arrow {
+  color:#818cf8; font-size:1.4rem; line-height:1.6; user-select:none;
+  text-shadow: 0 0 12px rgba(129,140,248,0.5);
+}
+.flow-row { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin:10px 0; }
+.flow-row .flow-step { min-width:140px; }
+.flow-branch { display:flex; flex-wrap:wrap; gap:18px; justify-content:center; width:100%; margin:10px 0; }
+.flow-branch-item { display:flex; flex-direction:column; align-items:center; gap:0; }
 
-ES Modules
-→ import
-→ export
-→ import.meta.url
-→ top-level await
-→ static imports
-→ better suited for tree shaking
-```
+.flow-step.start {
+  background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+  border-color: #60a5fa; color:#fff;
+  box-shadow: 0 4px 16px rgba(59,130,246,0.4);
+}
+.flow-step.success {
+  background: linear-gradient(135deg, #047857, #10b981);
+  border-color: #34d399; color:#fff;
+  box-shadow: 0 4px 16px rgba(16,185,129,0.35);
+}
+.flow-step.danger {
+  background: linear-gradient(135deg, #be123c, #e11d48);
+  border-color: #fb7185; color:#fff;
+  box-shadow: 0 4px 16px rgba(225,29,72,0.35);
+}
+.flow-step.purple {
+  background: linear-gradient(135deg, #5b21b6, #7c3aed);
+  border-color: #a78bfa; color:#fff;
+  box-shadow: 0 4px 16px rgba(124,58,237,0.35);
+}
+.flow-step.cyan {
+  background: linear-gradient(135deg, #0e7490, #06b6d4);
+  border-color: #22d3ee; color:#fff;
+  box-shadow: 0 4px 16px rgba(6,182,212,0.35);
+}
+.flow-step.amber {
+  background: linear-gradient(135deg, #b45309, #f59e0b);
+  border-color: #fbbf24; color:#fff;
+  box-shadow: 0 4px 16px rgba(245,158,11,0.35);
+}
+.flow-step.muted {
+  background: linear-gradient(135deg, #334155, #475569);
+  border-color: #64748b; color:#cbd5e1;
+  font-weight:500; font-size:0.9rem; min-width:160px;
+}
+.flow-step.pink {
+  background: linear-gradient(135deg, #9d174d, #db2777);
+  border-color: #f472b6; color:#fff;
+  box-shadow: 0 4px 16px rgba(219,39,119,0.35);
+}
 
-**`__dirname` → "Which folder is this file in?"**
+/* POINT CARDS for Bearer section */
+.point-grid { display:flex; flex-direction:column; gap:12px; margin:14px 0; }
+.point-card {
+  border-radius:14px; padding:16px 18px;
+  border:1px solid transparent;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+.point-card h5 {
+  font-size:15px; font-weight:800; margin-bottom:6px;
+  display:flex; align-items:center; gap:8px;
+}
+.point-card p { font-size:14.5px; line-height:1.65; font-weight:500; margin:0; color:#334155; }
+.point-card ul { margin:6px 0 0 18px; }
+.point-card li { font-size:14.5px; line-height:1.7; font-weight:500; color:#334155; }
 
-**`__filename` → "What is the complete path of this file?"**
+.point-1 { background:linear-gradient(135deg,#eff6ff,#dbeafe); border-color:#93c5fd; }
+.point-1 h5 { color:#1e40af; }
+.point-2 { background:linear-gradient(135deg,#ecfdf5,#d1fae5); border-color:#6ee7b7; }
+.point-2 h5 { color:#065f46; }
+.point-3 { background:linear-gradient(135deg,#fff7ed,#ffedd5); border-color:#fdba74; }
+.point-3 h5 { color:#9a3412; }
+.point-4 { background:linear-gradient(135deg,#faf5ff,#ede9fe); border-color:#c4b5fd; }
+.point-4 h5 { color:#5b21b6; }
+.point-5 { background:linear-gradient(135deg,#fff1f2,#ffe4e6); border-color:#fda4af; }
+.point-5 h5 { color:#9f1239; }
 
-Both are **absolute filesystem paths** in CommonJS.
+/* CARDS */
+.categories-wrap {
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(8px);
+  border:1px solid rgba(124,58,237,0.12);
+  border-radius:18px; padding:24px; margin-bottom:28px;
+  box-shadow: 0 10px 28px rgba(124,58,237,0.07);
+}
+.card-sub {
+  border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff;
+  border:1px solid rgba(var(--shadow-rgb),0.14);
+  box-shadow:0 4px 16px rgba(var(--shadow-rgb),0.08);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { }
+.card-sub-title {
+  display:flex; align-items:center; gap:12px; padding:14px 20px;
+  background: linear-gradient(120deg, var(--content-bg), #ffffff 75%);
+  border-bottom:1px solid rgba(var(--shadow-rgb),0.12);
+}
+.card-sub-title h4 { margin:0; font-size:16px; font-weight:800; color:var(--heading); }
+.card-sub-title .stars { margin-left:auto; color:#f59e0b; font-size:13px; letter-spacing:1px; }
+.card-sub-content { padding:18px 22px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15.5px; line-height:1.7; font-weight:500; margin:0 0 12px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:12px; }
+.card-sub-content ul { margin:6px 0 12px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.75; color:#334155; font-weight:500; margin-bottom:4px; }
+.card-sub-content h3 { font-size:15px; margin:14px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .code-block:last-child,
+.card-sub-content .compare:last-child,
+.card-sub-content .flow:last-child,
+.card-sub-content .point-grid:last-child { margin-bottom:0; }
 
+table { width:100%; border-collapse:collapse; margin:14px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb);
+  color:#fff; font-size:14px; font-weight:700; padding:13px 16px; text-align:left;
+  border:none;
+}
+table th:first-child { border-top-left-radius:12px; }
+table th:last-child { border-top-right-radius:12px; }
+table td { padding:11px 16px; font-size:14.5px; font-weight:600; border:none; color:#1e3a8a; background:#eff6ff; }
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; transition:background .15s ease; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a;
+  padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:13px;
+}
 
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
 
-Configuration	Meaning
-"module": "CommonJS"	Use CommonJS
-"module": "ES2020"	Use standard ES modules
-"module": "ESNext"	Use latest ES module behavior
-"module": "Node16"	Follow Node 16 module rules
-"module": "NodeNext"	Follow modern/current Node.js module rules
+@media (max-width:768px) {
+  .header h1 { font-size:24px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+</head>
+<body>
+  <div class="container">
 
+    <div class="header theme-blue">
+      <h1>Notes — Node.js & Backend</h1>
+      <p>CommonJS vs ESM · Top-level await · JWT login · Bearer tokens · Express errors · Request typing</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">CommonJS vs ESM</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">Top-Level await</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">Module Config</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">Login Flow</a>
+        <a href="#s5" onclick="document.getElementById('s5').scrollIntoView({behavior:'smooth'});return false;">Bearer Token</a>
+        <a href="#s6" onclick="document.getElementById('s6').scrollIntoView({behavior:'smooth'});return false;">Error Handling</a>
+        <a href="#s7" onclick="document.getElementById('s7').scrollIntoView({behavior:'smooth'});return false;">Request Type</a>
+      </div>
+    </div>
 
+    <!-- 1 -->
+    <div class="section-divider" id="s1"><span>1. CommonJS vs ES Modules</span></div>
+    <div class="categories-wrap">
 
-target → What JavaScript features should be generated?
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>Feature Comparison</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Feature</th><th>CommonJS</th><th>ES Modules</th></tr>
+          <tr><td>Import</td><td><code>require()</code></td><td><code>import</code></td></tr>
+          <tr><td>Export</td><td><code>module.exports</code> / <code>exports</code></td><td><code>export</code> / <code>export default</code></td></tr>
+          <tr><td>.js default behavior</td><td>CommonJS by default</td><td>ESM with <code>"type": "module"</code></td></tr>
+          <tr><td>Explicit extension</td><td><code>.cjs</code></td><td><code>.mjs</code></td></tr>
+          <tr><td>Browser native support</td><td>❌</td><td>✅</td></tr>
+          <tr><td>Top-level await</td><td>❌</td><td>✅</td></tr>
+          <tr><td><code>__dirname</code></td><td>✅ Built-in</td><td>❌ Not directly available</td></tr>
+          <tr><td><code>__filename</code></td><td>✅ Built-in</td><td>❌ Not directly available</td></tr>
+          <tr><td><code>import.meta.url</code></td><td>❌</td><td>✅</td></tr>
+        </table>
+      </div>
+    </div>
 
-module → How should imports/exports work for Node.js?
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>__dirname and __filename</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li><code>__dirname</code> — absolute path of the directory containing the current file.</li>
+          <li><code>__filename</code> — absolute path of the current file, including the filename.</li>
+        </ul>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app.js</span></div>
+          <pre><code>console.<span class="fn">log</span>(__dirname);
+<span class="cmt">// /Users/shivam/project/src</span>
 
-"module": "NodeNext"
+console.<span class="fn">log</span>(__filename);
+<span class="cmt">// /Users/shivam/project/src/app.js</span></code></pre>
+        </div>
+        <div class="info-box box-note">📌 <strong>Absolute path</strong> — full path from the filesystem root (<code>/</code>), independent of the current working directory. <strong>Relative path</strong> (e.g. <code>./src/app.js</code>) — depends on where you run the command from.</div>
+      </div>
+    </div>
 
-means:
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>ESM Replacement for __dirname / __filename</h4></div>
+      <div class="card-sub-content">
+        <p>ES Modules don't provide these directly — reconstruct them via <code>import.meta.url</code>:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">esm</span></div>
+          <pre><code><span class="kw">import</span> path <span class="kw">from</span> <span class="str">"path"</span>;
+<span class="kw">import</span> { fileURLToPath } <span class="kw">from</span> <span class="str">"url"</span>;
 
-"Follow Node.js's rules for modules."
+<span class="kw">const</span> __filename = <span class="fn">fileURLToPath</span>(import.meta.url);
+<span class="kw">const</span> __dirname = path.<span class="fn">dirname</span>(__filename);</code></pre>
+        </div>
+        <table>
+          <tr><th>CommonJS</th><th>ES Module equivalent</th></tr>
+          <tr><td><code>__filename</code></td><td><code>fileURLToPath(import.meta.url)</code></td></tr>
+          <tr><td><code>__dirname</code></td><td><code>path.dirname(fileURLToPath(import.meta.url))</code></td></tr>
+        </table>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">esm</span></div>
+          <pre><code>console.<span class="fn">log</span>(import.meta.url);
+<span class="cmt">// file:///Users/shivam/project/src/app.js</span></code></pre>
+        </div>
+        <div class="info-box box-tip">💡 <code>fileURLToPath()</code> converts that file URL into a normal filesystem path.</div>
+      </div>
+    </div>
+    </div>
 
+    <!-- 2 -->
+    <div class="section-divider" id="s2"><span>2. Top-Level await</span></div>
+    <div class="categories-wrap">
 
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>How It Works</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Normally <code>await</code> only works inside an <code>async</code> function.</p>
+        <p><strong>CommonJS — needs a wrapper:</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">cjs</span></div>
+          <pre><code><span class="kw">async function</span> <span class="fn">main</span>() {
+  <span class="kw">const</span> data = <span class="kw">await</span> <span class="fn">fetch</span>(url);
+  console.<span class="fn">log</span>(data);
+}
+<span class="fn">main</span>();</code></pre>
+        </div>
+        <p><strong>ES Modules — works directly at the top level:</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">esm</span></div>
+          <pre><code><span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"https://example.com"</span>);
+console.<span class="fn">log</span>(response.status);</code></pre>
+        </div>
+      </div>
+    </div>
 
-login flow
-Client → POST /auth/login
-   ↓
-Find user by email
-   ↓
-User found?
-   ├── No → 401 Invalid credentials
-   │
-   └── Yes
-        ↓
-bcrypt.compare(password, user.password)
-        ↓
-Password valid?
-   ├── No → 401 Invalid credentials
-   │
-   └── Yes
-        ↓
-jwt.sign(
-  { userId, email },
-  SECRET,
-  { expiresIn: "15m" }
-)
-        ↓
-JWT generated
-        ↓
-Set token as HttpOnly + Secure cookie
-        ↓
-200 Login successful
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Why It's Useful</h4></div>
+      <div class="card-sub-content">
+        <p>Handy for async initialization before an app starts:</p>
+        <ul>
+          <li>Database connection</li>
+          <li>Reading configuration</li>
+          <li>Loading secrets</li>
+          <li>Dynamic module loading</li>
+          <li>Initializing external services</li>
+        </ul>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">compare</span></div>
+          <pre><code><span class="cmt">// CommonJS</span>
+<span class="kw">async function</span> <span class="fn">start</span>() {
+  <span class="kw">await</span> <span class="fn">connectDB</span>();
+  app.<span class="fn">listen</span>(<span class="num">3000</span>);
+}
+<span class="fn">start</span>();
 
+<span class="cmt">// ESM</span>
+<span class="kw">await</span> <span class="fn">connectDB</span>();
+app.<span class="fn">listen</span>(<span class="num">3000</span>);</code></pre>
+        </div>
+      </div>
+    </div>
 
-**Why JWT is called a "bearer" token**
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Execution Flow</h4></div>
+      <div class="card-sub-content">
+        <p><strong>CommonJS</strong></p>
+        <div class="flow">
+          <div class="flow-step start">Start module</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Call async function</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">await Promise</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Promise resolves</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Continue execution</div>
+        </div>
+        <p><strong>ES Module</strong></p>
+        <div class="flow">
+          <div class="flow-step start">Start module</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Top-level await</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Module pauses</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Promise resolves</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Module continues</div>
+        </div>
+        <div class="info-box box-note">📌 The ES module pauses at <code>await</code> until the Promise settles; dependent modules wait too.</div>
+      </div>
+    </div>
+    </div>
 
-A bearer token means whoever holds it can use it — the server doesn't verify identity, only validity. It's not tied to *who* sends it, just *whether* it's valid.
+    <!-- 3 -->
+    <div class="section-divider" id="s3"><span>3. Node.js Module Configuration</span></div>
+    <div class="categories-wrap">
 
-**1. Possession = access**
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>package.json & Extensions</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">package.json</span></div>
+          <pre><code>{ <span class="str">"type"</span>: <span class="str">"module"</span> }</code></pre>
+        </div>
+        <p>Makes <code>.js</code> files in that package ES Modules.</p>
+        <div class="flow">
+          <div class="flow-row" style="margin:0">
+            <div class="flow-step cyan">.cjs → CommonJS</div>
+            <div class="flow-step purple">.mjs → ES Module</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-The server only checks "Is this JWT valid?" — not who's holding it.
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>tsconfig module Settings</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>tsconfig setting</th><th>Meaning</th></tr>
+          <tr><td><code>"module": "CommonJS"</code></td><td>Use CommonJS</td></tr>
+          <tr><td><code>"module": "ES2020"</code></td><td>Use standard ES modules</td></tr>
+          <tr><td><code>"module": "ESNext"</code></td><td>Use latest ES module behavior</td></tr>
+          <tr><td><code>"module": "Node16"</code></td><td>Follow Node 16 module rules</td></tr>
+          <tr><td><code>"module": "NodeNext"</code></td><td>Follow modern/current Node rules</td></tr>
+        </table>
+        <ul>
+          <li><code>target</code> → what JS features get generated</li>
+          <li><code>module</code> → how imports/exports work for Node.js</li>
+        </ul>
+      </div>
+    </div>
 
-- Legitimate user → JWT → API → ✅
-- Attacker with stolen JWT → same JWT → API → ✅ (still works)
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>Quick Recall</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box good">
+            <h4>CommonJS</h4>
+            <p style="margin:0;line-height:1.9">
+              <code>require()</code><br>
+              <code>module.exports</code><br>
+              <code>__dirname</code> / <code>__filename</code><br>
+              no top-level await
+            </p>
+          </div>
+          <div class="compare-box good">
+            <h4>ES Modules</h4>
+            <p style="margin:0;line-height:1.9">
+              <code>import</code><br>
+              <code>export</code><br>
+              <code>import.meta.url</code><br>
+              top-level await<br>
+              static imports, better tree shaking
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
 
-That's what "bearer" means: possession is enough.
+    <!-- 4 -->
+    <div class="section-divider" id="s4"><span>4. Login Flow (JWT)</span></div>
+    <div class="categories-wrap">
+    <div class="card-sub cat-4 no-border">
+      <div class="card-sub-title"><h4>Full Flow</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step start">Client → POST /auth/login</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Find user by email</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">User found?</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-branch">
+            <div class="flow-branch-item">
+              <div class="flow-step danger">No → 401 Invalid credentials</div>
+            </div>
+            <div class="flow-branch-item">
+              <div class="flow-step success">Yes</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step purple">bcrypt.compare(password, user.password)</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step amber">Password valid?</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-branch">
+                <div class="flow-branch-item">
+                  <div class="flow-step danger">No → 401 Invalid credentials</div>
+                </div>
+                <div class="flow-branch-item">
+                  <div class="flow-step success">Yes</div>
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-step cyan">jwt.sign({ userId, email }, SECRET, { expiresIn: "15m" })</div>
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-step purple">JWT generated</div>
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-step pink">Set token as HttpOnly + Secure cookie</div>
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-step success">200 Login successful</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
 
-**2. What `HttpOnly` protects against**
+    <!-- 5 — BEARER TOKEN (colorful redesign) -->
+    <div class="section-divider" id="s5"><span>5. Why JWT Is a "Bearer" Token</span></div>
+    <div class="categories-wrap">
 
-If the JWT is stored in an `HttpOnly` cookie, browser JavaScript (`document.cookie`) can't read it directly. This blocks XSS attacks from stealing the token via script injection.
+    <div class="card-sub cat-5 no-border">
+      <div class="card-sub-title"><h4>Possession = Access</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>A bearer token means whoever holds it can use it — the server checks validity, not identity.</p>
 
-**3. What `HttpOnly` doesn't protect against**
+        <div class="point-grid">
+          <div class="point-card point-1">
+            <h5>🔑 1. Possession = access</h5>
+            <p>The server only asks "is this JWT valid?" — not who's holding it.</p>
+            <ul>
+              <li>Legitimate user → JWT → API → ✅</li>
+              <li>Attacker with stolen JWT → same JWT → API → ✅ (still works)</li>
+            </ul>
+          </div>
 
-If a token is stolen another way (device compromise, network leak, etc.), `HttpOnly` doesn't help — the server has no way to know the token was stolen. It just sees a valid JWT and grants access.
+          <div class="point-card point-2">
+            <h5>🛡️ 2. What HttpOnly protects against</h5>
+            <p>Stored in an HttpOnly cookie, the token can't be read by browser JS (<code>document.cookie</code>) — blocking token theft via XSS/script injection.</p>
+          </div>
 
-**4. Why short expiration matters**
+          <div class="point-card point-3">
+            <h5>⚠️ 3. What HttpOnly doesn't protect against</h5>
+            <p>If the token leaks another way (device compromise, network leak, etc.), HttpOnly gives no protection — the server just sees a valid JWT and grants access.</p>
+          </div>
 
-A short `expiresIn` (e.g. `"15m"`) limits the damage window. If a token is stolen at 10:00, it's only usable until 10:15 — after that it's dead regardless of who has it.
+          <div class="point-card point-4">
+            <h5>⏱️ 4. Why short expiration matters</h5>
+            <p>A short <code>expiresIn</code> (e.g. 15m) limits the damage window — a token stolen at 10:00 is dead by 10:15, regardless of who holds it.</p>
+          </div>
 
-**5. Logout has limits**
+          <div class="point-card point-5">
+            <h5>🚪 5. Logout has limits</h5>
+            <p>Logout only clears the cookie on the legitimate browser. A copy an attacker already made stays valid until it naturally expires.</p>
+          </div>
+        </div>
 
-Logout clears the cookie on the legitimate browser — but if an attacker already copied the token, it's still valid until it naturally expires. Clearing your own cookie doesn't invalidate the token elsewhere.
+        <div class="info-box box-danger">🚫 <strong>Key takeaway</strong><br>
+        • Bearer token — "if you have it, you can use it." No extra proof of identity required.<br>
+        • HttpOnly — stops JS from reading the token; doesn't stop a stolen token from being used.<br>
+        That gap is what refresh-token rotation + reuse detection are designed to close.</div>
+      </div>
+    </div>
 
-**Key takeaway**
+    <div class="card-sub cat-5 accent-left">
+      <div class="card-sub-title"><h4>HttpOnly Cookie vs Bearer Header</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th></th><th>HttpOnly Cookie</th><th>Bearer Header</th></tr>
+          <tr><td>Token location</td><td>Cookie</td><td>Authorization header</td></tr>
+          <tr><td>Sent automatically by browser</td><td>✅ Yes</td><td>❌ No</td></tr>
+          <tr><td>Frontend must handle token</td><td>❌ No</td><td>✅ Yes</td></tr>
+          <tr><td>Visible in Network tab as</td><td><code>Cookie: token=eyJ...</code></td><td><code>Authorization: Bearer eyJ...</code></td></tr>
+          <tr><td>Readable via <code>document.cookie</code></td><td>❌ No (blocked)</td><td>N/A</td></tr>
+          <tr><td>Backend reads from</td><td><code>req.cookies.token</code></td><td><code>req.headers.authorization</code></td></tr>
+          <tr><td>Uses Bearer keyword</td><td>❌ No</td><td>✅ Yes</td></tr>
+          <tr><td>Who manages transport</td><td>Browser</td><td>Frontend code</td></tr>
+        </table>
+        <div class="info-box box-note">📌 Both are visible in the Network tab. HttpOnly blocks JS from reading the cookie — it does not hide traffic from DevTools. A developer inspecting Request Headers can see the full token either way.</div>
+        <p><strong>Which one sends what</strong></p>
+        <ul>
+          <li><strong>Cookie approach:</strong> never attach manually — use <code>credentials: "include"</code> and the browser handles it.</li>
+          <li><strong>Bearer approach:</strong> manually grab and attach the token on every request: <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+        </ul>
+      </div>
+    </div>
+    </div>
 
-- **Bearer token** = possession is sufficient to use it.
-                    (Bearer token = "if you have it, you can use it."
+    <!-- 6 -->
+    <div class="section-divider" id="s6"><span>6. Express Error-Handling Flow</span></div>
+    <div class="categories-wrap">
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>Flow</h4><span class="stars">★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step start">Request</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Route</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Controller</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step danger">Error occurs</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">next(error)</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step pink">errorHandler</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Identify error</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-branch">
+            <div class="flow-step muted">AppError → custom status</div>
+            <div class="flow-step muted">ZodError → 400</div>
+            <div class="flow-step muted">Duplicate key → 409</div>
+            <div class="flow-step muted">Mongoose error → 400</div>
+            <div class="flow-step muted">CastError → 400</div>
+            <div class="flow-step muted">Unknown error → 500</div>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">JSON response</div>
+        </div>
+      </div>
+    </div>
+    </div>
 
-The server doesn't check who you are — it only checks whether the token itself is valid. No extra proof of identity needed, just the token)
-- **HttpOnly** stops JS from *reading* the token — it doesn't stop a *stolen* token from being *used*.
+    <!-- 7 -->
+    <div class="section-divider" id="s7"><span>7. Extending Express's Request Type</span></div>
+    <div class="categories-wrap">
 
-That gap is exactly what refresh tokens with rotation and reuse detection are designed to close later.
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>The Declaration</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">types/express.d.ts</span></div>
+          <pre><code><span class="kw">import</span> <span class="str">"express"</span>;
 
-# HttpOnly Cookie vs Bearer Token
-
-| | HttpOnly Cookie | Bearer Header |
-|---|---|---|
-| Token location | Cookie | `Authorization` header |
-| Sent automatically by browser | ✅ Yes | ❌ No |
-| Frontend must handle token value | ❌ No | ✅ Yes |
-| Visible in Network tab as | `Cookie: token=eyJ...` | `Authorization: Bearer eyJ...` |
-| Readable via `document.cookie` | ❌ No (blocked) | N/A |
-| Backend reads from | `req.cookies.token` | `req.headers.authorization` |
-| Uses `Bearer` keyword | ❌ No | ✅ Yes |
-| Who manages transport | Browser | Frontend code |
-
-## Note: Both are visible in the Network tab
-
-`HttpOnly` does **not** mean "hidden from Network tab." It only blocks JavaScript (`document.cookie`) from reading the cookie — it doesn't hide traffic from DevTools. A developer inspecting Request Headers can still see the full token either way, cookie or bearer.
-
-## Which one sends what
-
-- **Cookie approach:** you never manually attach the token — just use `credentials: "include"` and the browser does the rest.
-- **Bearer approach:** you must manually grab the token and attach it yourself on every request: `Authorization: Bearer <token>`.
-
-
-error flow 
-Request
-   ↓
-Route
-   ↓
-Controller
-   ↓
-Error occurs
-   ↓
-next(error)
-   ↓
-errorHandler
-   ↓
-Identify error
-   ├── AppError       → custom status
-   ├── ZodError       → 400
-   ├── Duplicate key  → 409
-   ├── Mongoose error → 400
-   ├── CastError      → 400
-   └── Unknown error  → 500
-   ↓
-JSON response
-
-My bad — here's the actual code, I dropped it by mistake:
-
-```typescript
-import "express";
-
-declare global {
-  namespace Express {
-    interface Request {
+<span class="kw">declare global</span> {
+  <span class="kw">namespace</span> Express {
+    <span class="kw">interface</span> Request {
       user: {
-        userId: string;
+        userId: <span class="str">string</span>;
       };
     }
   }
 }
 
-export {};
-```
+<span class="kw">export</span> {};</code></pre>
+        </div>
+      </div>
+    </div>
 
-**Why this file is needed**
-
-This declaration file exists only because we added a custom `user` property to Express's `req` object.
-
-Normally Express knows:
-```
-req.body
-req.params
-req.query
-req.headers
-```
-
-But it does not know:
-```
-req.user
-```
-because `user` is not a standard Express property.
-
-**Without this**
-
-You write:
-```ts
-req.user.userId
-```
-
-TypeScript says:
-```
-Property 'user' does not exist on type 'Request'
-```
-
-**With this**
-
-```ts
-interface Request {
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Why This File Is Needed</h4></div>
+      <div class="card-sub-content">
+        <p>We added a custom <code>user</code> property to Express's <code>req</code> object. Express natively knows about:</p>
+        <div class="flow">
+          <div class="flow-row" style="margin:0">
+            <div class="flow-step cyan">req.body</div>
+            <div class="flow-step purple">req.params</div>
+            <div class="flow-step amber">req.query</div>
+            <div class="flow-step pink">req.headers</div>
+          </div>
+        </div>
+        <p>but not <code>req.user</code>.</p>
+        <p><strong>Without this declaration</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">error</span></div>
+          <pre><code>req.user.userId
+<span class="cmt">// Error: Property 'user' does not exist on type 'Request'</span></code></pre>
+        </div>
+        <p><strong>With this declaration</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ok</span></div>
+          <pre><code><span class="kw">interface</span> Request {
   user: {
-    userId: string;
+    userId: <span class="str">string</span>;
   };
 }
-```
 
-TypeScript now understands:
-```
-req.user.userId
-       ↓
-     string
-```
+<span class="cmt">// TypeScript now understands:</span>
+req.user.userId → <span class="str">string</span></code></pre>
+        </div>
+      </div>
+    </div>
 
-**Why do we need `declare global`?**
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Why declare global?</h4></div>
+      <div class="card-sub-content">
+        <p>It tells TypeScript to extend the existing Express Request interface rather than create a new one:</p>
+        <div class="flow">
+          <div class="flow-step start">Express Request</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-branch">
+            <div class="flow-step muted">body</div>
+            <div class="flow-step muted">params</div>
+            <div class="flow-step muted">query</div>
+            <div class="flow-step muted">headers</div>
+            <div class="flow-step success">user ← your custom property<br><span style="font-weight:400;opacity:0.9;font-size:0.85em">└── userId</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
 
-Because you're telling TypeScript: "Extend the existing Express `Request` interface with my application's custom property."
-
-You're not creating a new request object. You're extending the existing one:
-
-```
-Express Request
-     │
-     ├── body
-     ├── params
-     ├── query
-     ├── headers
-     │
-     └── user       ← your custom property
-           └── userId
-```
-
+    <footer>Notes — Node.js & Backend</footer>
+  </div>
+</body>
+</html>
