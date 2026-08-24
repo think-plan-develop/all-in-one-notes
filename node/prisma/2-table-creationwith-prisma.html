@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — Prisma Schema, Config & Client</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1000px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
+
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:26px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
+
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
+
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; }
+
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:14.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-tip { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-note { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a; border-color:#93c5fd; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+
+.tree {
+  background:#0f172a; border-radius:12px; padding:16px 20px; margin:12px 0;
+  font-family:'Fira Code',Consolas,monospace; font-size:13px; color:#e2e8f0; line-height:1.7;
+  white-space: pre;
+}
+.flow {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  margin:16px 0; background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border-radius:16px; padding:24px 20px; border:1px solid #312e81;
+}
+.flow-step {
+  background: linear-gradient(135deg, #1e293b, #334155); border: 1.5px solid #475569;
+  border-radius:12px; padding:11px 20px; text-align:center;
+  min-width:180px; max-width:360px; color:#f1f5f9; font-weight:600;
+}
+.flow-arrow { color:#818cf8; font-size:1.3rem; line-height:1.5; }
+.flow-step.start { background: linear-gradient(135deg, #1d4ed8, #3b82f6); border-color: #60a5fa; color:#fff; }
+.flow-step.cyan { background: linear-gradient(135deg, #0e7490, #06b6d4); border-color: #22d3ee; color:#fff; }
+.flow-step.purple { background: linear-gradient(135deg, #5b21b6, #7c3aed); border-color: #a78bfa; color:#fff; }
+.flow-row { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin:8px 0; }
+
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb); color:#fff;
+  font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td {
+  padding:10px 14px; font-size:14px; font-weight:600; border:none;
+  color:#1e3a8a; background:#eff6ff;
+}
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a; padding:2px 6px;
+  border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — Prisma Schema, Config & Client</h1>
+    <p>Models in one file · Validate · DB config · Generated client · Runtime db.ts</p>
+    <div class="toc">
+      <a href="#s1">Schema location</a>
+      <a href="#s2">Models</a>
+      <a href="#s3">Validate</a>
+      <a href="#s4">DB setup</a>
+      <a href="#s5">Test connection</a>
+      <a href="#s6">What Prisma creates</a>
+      <a href="#s7">Runtime db.ts</a>
+      <a href="#s8">Structure vs data</a>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s1"><span>1. Schema Location</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>All models live in one file</h4></div>
+      <div class="card-sub-content">
+        <p>With Prisma, all your database models are normally defined in <code>prisma/schema.prisma</code>, even if you have 100 models.</p>
+        <div class="tree">prisma/
+└── schema.prisma</div>
+        <div class="info-box box-tip">💡 Install the <strong>Prisma VS Code extension</strong> for syntax highlighting, autocomplete, and schema validation.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s2"><span>2. Example Models</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Role + User (relation)</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">prisma/schema.prisma</span></div>
+          <pre><code>model Role {
+  id    String @id @default(uuid())
+  name  String @unique
+  users User[]
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password_hash String
+  role_id       String
+  role          Role     @relation(fields: [role_id], references: [id])
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s3"><span>3. Validate Schema</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Check the schema first</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>npx prisma validate</code></pre>
+        </div>
+        <div class="info-box box-benefit">✅ Output: <em>The schema at prisma/schema.prisma is valid 🚀</em></div>
+        <div class="info-box box-warning">⚠️ <code>npx prisma migrate dev --name init</code> will fail here if the database is not set up yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s4"><span>4. Database Setup</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Configure prisma.config.ts</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">prisma.config.ts</span></div>
+          <pre><code><span class="kw">import</span> <span class="str">"dotenv/config"</span>;
+<span class="kw">import</span> { defineConfig, env } <span class="kw">from</span> <span class="str">"prisma/config"</span>;
+
+<span class="kw">export default</span> <span class="fn">defineConfig</span>({
+  schema: <span class="str">"prisma/schema.prisma"</span>,
+  migrations: { path: <span class="str">"prisma/migrations"</span> },
+  datasource: { url: <span class="fn">env</span>(<span class="str">"DATABASE_URL"</span>) },
+});</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Configure schema.prisma</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">prisma/schema.prisma</span></div>
+          <pre><code>generator client {
+  provider = <span class="str">"prisma-client"</span>
+  output   = <span class="str">"../src/generated/prisma"</span>
+}
+
+datasource db {
+  provider = <span class="str">"postgresql"</span>
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s5"><span>5. Test the Database Connection</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Now run</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>npx prisma migrate dev --name init</code></pre>
+        </div>
+        <div class="info-box box-note">📌 This creates the tables in PostgreSQL <strong>and</strong> generates the Prisma Client.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s6"><span>6. What Prisma Creates</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Project structure</h4></div>
+      <div class="card-sub-content">
+        <div class="tree">project-2-auth/
+│
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+│       └── 20260822xxxxxx_init/
+│           └── migration.sql
+│
+├── src/
+│   └── generated/
+│       └── prisma/
+│           └── ...
+│
+├── .env
+├── prisma.config.ts
+└── package.json</div>
+        <table>
+          <tr><th>Path</th><th>What it is</th></tr>
+          <tr><td><code>schema.prisma</code></td><td>Source of truth for the database structure</td></tr>
+          <tr><td><code>migrations/</code></td><td>Prisma stores the database changes here</td></tr>
+          <tr><td><code>migration.sql</code></td><td>The SQL Prisma generated from your models</td></tr>
+          <tr><td><code>src/generated/prisma/</code></td><td>Generated Prisma Client code. Don't manually edit this.</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>CLI vs Running application</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step start">Prisma</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-row">
+            <div class="flow-step cyan">Development / CLI</div>
+            <div class="flow-step purple">Running application</div>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-row">
+            <div class="flow-step cyan">prisma.config.ts</div>
+            <div class="flow-step purple">src/config/db.ts</div>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-row">
+            <div class="flow-step cyan">migrations, generate, schema, seed</div>
+            <div class="flow-step purple">PrismaClient → PostgreSQL</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s7"><span>7. Runtime — db.ts</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>For the running application, add db.ts</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/config/db.ts</span></div>
+          <pre><code><span class="kw">import</span> { PrismaClient } <span class="kw">from</span> <span class="str">"../generated/prisma/client.js"</span>;
+<span class="kw">import</span> { PrismaPg } <span class="kw">from</span> <span class="str">"@prisma/adapter-pg"</span>;
+<span class="kw">import</span> { env } <span class="kw">from</span> <span class="str">"./env.js"</span>;
+
+<span class="kw">const</span> adapter = <span class="kw">new</span> <span class="fn">PrismaPg</span>({
+  connectionString: env.DATABASE_URL,
+});
+
+<span class="kw">export const</span> prisma = <span class="kw">new</span> <span class="fn">PrismaClient</span>({ adapter });</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s8"><span>8. Structure vs Data</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Quick difference</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Concept</th><th>What it does</th></tr>
+          <tr><td><strong>Migration</strong></td><td>Creates / changes the <strong>database structure</strong></td></tr>
+          <tr><td><strong>Seed</strong></td><td>Inserts <strong>initial / default records</strong></td></tr>
+        </table>
+        <div class="info-box box-note">📌 Migration = shape of the DB · Seed = starter data</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Notes — Prisma Schema, Config & Client</footer>
+</div>
+</body>
+</html>

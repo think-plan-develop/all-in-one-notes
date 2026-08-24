@@ -1,0 +1,347 @@
+# Prisma Complete Tutorial — Doc 1 (Detailed)
+### Fundamentals, Setup, Schema, PostgreSQL Mapping, Prisma Client CRUD, Upsert & Aggregations
+*(Migrations and Seeding intentionally excluded)*
+
+---
+
+## 1. Prisma Fundamentals
+
+### What is an ORM?
+An ORM (Object-Relational Mapper) lets you interact with a relational database using objects/methods in your programming language instead of raw SQL. Instead of `SELECT * FROM users WHERE id = 1`, you write `prisma.user.findUnique({ where: { id: 1 } })`. It maps tables → models, rows → objects, columns → properties, improving readability, type safety, and reducing manual SQL errors — at some cost of low-level query control.
+
+### Prisma Architecture
+Prisma has three core parts:
+- **Prisma Schema** (`schema.prisma`) — single source of truth for your data model and DB connection.
+- **Prisma Migrate** — converts schema changes into SQL (not covered here per your request).
+- **Prisma Client** — auto-generated, type-safe query builder used inside your app code to talk to the database.
+
+Internally, Prisma Client translates your JS/TS method calls into SQL queries sent to PostgreSQL, either through its query engine or (in Prisma 7+) through driver adapters like `@prisma/adapter-pg`.
+
+### Prisma CLI
+Run via `npx prisma <command>`:
+- `prisma init` — scaffolds a new project (`schema.prisma` + `.env`).
+- `prisma generate` — generates/regenerates Prisma Client from your schema.
+- `prisma studio` — opens a browser GUI to view/edit your database rows visually.
+- `prisma db pull` — introspects an existing database and writes a matching schema (reverse-engineering).
+- `prisma db push` — pushes your schema directly to the DB without migration history (good for prototyping).
+- `prisma format` — auto-formats your `schema.prisma` file.
+- `prisma validate` — checks your schema for errors without touching the database.
+
+### `schema.prisma`
+The central config file with three parts:
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id Int @id @default(autoincrement())
+}
+```
+
+### `prisma.config.ts`
+A TypeScript config file (newer Prisma versions) for programmatic setup — e.g., custom driver adapters, dynamic env loading — supplementing the declarative `schema.prisma`.
+
+### Prisma Client
+The generated, type-safe API (`prisma.user.findMany()`, etc.) reflecting your exact schema. Must be regenerated (`prisma generate`) after every schema change, or TypeScript types will be out of sync.
+
+### Prisma vs Raw SQL
+- **Raw SQL** — full control, but verbose, no compile-time type checking, easy to introduce typos/bugs.
+- **Prisma** — type-safe, autocomplete in editor, automatic relation handling — less suited for extremely complex hand-tuned queries (though `$queryRaw` exists as an escape hatch, covered later).
+
+### Prisma vs Sequelize/TypeORM
+- **Sequelize** — JS-first, weaker type safety even with TS, more implicit/"magic" behavior.
+- **TypeORM** — decorator/class-based, historically less stable with complex relations and migrations.
+- **Prisma** — schema-first (not code-first), strongest type safety of the three, cleanest query API and tooling (Prisma Studio, schema diffing).
+
+### Basic Setup Steps
+```bash
+npm install prisma --save-dev
+npm install @prisma/client
+npx prisma init
+```
+This creates `prisma/schema.prisma` and a `.env` file with a placeholder `DATABASE_URL`. After defining models:
+```bash
+npx prisma generate
+```
+
+**Data flow:**
+```text
+Node.js  (application code)
+   ↓
+Prisma Client  (type-safe query builder)
+   ↓
+PostgreSQL  (database engine)
+```
+
+---
+
+## 2. Prisma Schema ⭐ Important
+
+Learn:
+- `model`
+- Fields and types
+- `@id`
+- `@default()`
+- `@unique`
+- `@updatedAt`
+- `@map`
+- `@@map`
+- Optional fields `?`
+- Arrays `[]`
+- Enums
+- Relations
+
+**Example:**
+```prisma
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  roleId       Int      @map("role_id")
+  role         Role     @relation(fields: [roleId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+```
+
+**Mapping to PostgreSQL concepts:**
+```text
+model        → table
+field        → column
+@id          → PRIMARY KEY
+@unique      → UNIQUE
+@relation    → FOREIGN KEY
+```
+
+---
+
+## 3. PostgreSQL + Prisma
+
+### Type Mapping
+
+| Prisma Type | PostgreSQL Type |
+|---|---|
+| `String` | `text` / `varchar` |
+| `Int` | `integer` |
+| `BigInt` | `bigint` |
+| `Boolean` | `boolean` |
+| `DateTime` | `timestamp` |
+| `Decimal` | `numeric` |
+| `Json` | `jsonb` |
+| `Bytes` | `bytea` |
+| `Float` | `double precision` |
+
+### `String`
+Defaults to `text` unless a native type like `@db.VarChar(255)` is specified.
+
+### `Int` / `BigInt`
+`Int` = standard 32-bit integer. `BigInt` = 64-bit, used for high-volume IDs or large counters.
+
+### `Boolean`
+Maps directly to PostgreSQL's native `boolean`.
+
+### `DateTime`
+Maps to `timestamp` (or `timestamptz` for timezone-aware) — used for `createdAt`/`updatedAt`.
+
+### `Decimal`
+Used for precise values like money (avoids floating-point rounding errors). Maps to `numeric`; control digits with `@db.Decimal(precision, scale)`.
+
+### `Json`
+Stores structured JSON, mapped to `jsonb` (binary, indexable, queryable with Postgres JSON operators).
+
+### PostgreSQL Enums
+A Prisma `enum` creates a native PostgreSQL ENUM type — enforced at the database level, not just app-level:
+```prisma
+enum Role {
+  ADMIN
+  USER
+  GUEST
+}
+```
+
+### PostgreSQL UUID
+Alternative to auto-increment IDs, common in distributed systems:
+```prisma
+id String @id @default(uuid()) @db.Uuid
+```
+
+### `@db.VarChar`
+Overrides default mapping for a length-limited string column, e.g. `@db.VarChar(100)`.
+
+### `@db.Decimal`
+Specifies exact precision/scale, e.g. `@db.Decimal(10, 2)` for currency.
+
+### `@db.Uuid`
+Forces the column to use PostgreSQL's native `uuid` type instead of text.
+
+### Primary Keys
+Uniquely identifies each row — declared via `@id` (single) or `@@id([...])` (composite).
+
+### Foreign Keys
+A column referencing another table's primary key, enforcing referential integrity — created via `@relation`.
+
+### Unique Constraints
+Prevent duplicates in a column (`@unique`) or column combination (`@@unique([...])`).
+
+### Indexes
+Speed up queries on frequently filtered/sorted columns — declared via `@@index([...])`.
+
+### Composite Indexes
+An index spanning multiple columns:
+```prisma
+@@index([firstName, lastName])
+```
+
+### NULL vs Optional Prisma Fields
+`NULL` in PostgreSQL means "no value." Marking a field `?` in Prisma is what allows `NULL` — without it, the column is `NOT NULL`, validated by Prisma before the query even reaches the database.
+
+---
+
+## 4. Prisma Client — Core CRUD ⭐⭐⭐ Very Important
+
+### Create
+```ts
+const user = await prisma.user.create({
+  data: {
+    email: "test@example.com",
+    passwordHash: "hashed_pw",
+    roleId: 1,
+  },
+});
+```
+Inserts a new row and returns the created record (all fields, by default).
+
+### Read
+```ts
+prisma.user.findUnique({ where: { id: 1 } });
+prisma.user.findUniqueOrThrow({ where: { id: 1 } }); // throws P2025 if not found, instead of returning null
+prisma.user.findFirst({ where: { email: { contains: "gmail" } } });
+prisma.user.findFirstOrThrow({ where: { roleId: 2 } });
+prisma.user.findMany();
+```
+- `findUnique` requires a unique field (`id`, `email`, or a `@@unique` combo) in `where`.
+- `findFirst` allows any filter (even non-unique), returns the first match or `null`.
+- `findMany` returns an array — all rows if no filter given.
+- The `OrThrow` variants are useful in APIs where a missing record should immediately raise an error instead of requiring a manual `null` check.
+
+### Update
+```ts
+prisma.user.update({ where: { id: 1 }, data: { email: "new@example.com" } });
+prisma.user.updateMany({ where: { roleId: 2 }, data: { roleId: 3 } });
+```
+- `update` modifies exactly one record (needs a unique field in `where`); throws `P2025` if no matching record exists.
+- `updateMany` modifies all matches, returns only `{ count: number }`, not the updated records.
+
+**Atomic numeric updates** (avoids race conditions in concurrent updates):
+```ts
+prisma.user.update({
+  where: { id: 1 },
+  data: { loginCount: { increment: 1 } },
+});
+```
+Other operators: `decrement`, `multiply`, `divide`, `set`.
+
+### Delete
+```ts
+prisma.user.delete({ where: { id: 1 } });
+prisma.user.deleteMany({ where: { roleId: 2 } });
+```
+- `delete` removes a single record by unique identifier; throws `P2025` if not found.
+- `deleteMany` removes all matching records, returns a count.
+
+### Upsert ⭐ (commonly used, often missed)
+Creates a record if it doesn't exist, or updates it if it does — a single atomic "insert or update" operation:
+```ts
+prisma.user.upsert({
+  where: { email: "test@example.com" },
+  update: { lastLoginAt: new Date() },
+  create: {
+    email: "test@example.com",
+    passwordHash: "hashed_pw",
+    roleId: 1,
+  },
+});
+```
+Very common for things like "sync external user on login" or "create settings row if missing."
+
+### Query Modifiers
+
+**`where`** — filters records by conditions.
+
+**`select`** — returns only specified fields, reducing payload size and avoiding leaking sensitive columns:
+```ts
+prisma.user.findMany({ select: { id: true, email: true } });
+```
+
+**`include`** — fetches related data (like a JOIN):
+```ts
+prisma.user.findMany({ include: { role: true } });
+```
+Note: `select` and `include` cannot be used together at the same level — use nested `select` inside `include` if you need to shape relation fields too.
+
+**`orderBy`** — sorts results:
+```ts
+prisma.user.findMany({ orderBy: { createdAt: "desc" } });
+prisma.user.findMany({ orderBy: [{ roleId: "asc" }, { createdAt: "desc" }] }); // multi-field sort
+```
+
+**`skip`** — skips N records (offset pagination).
+
+**`take`** — limits number of records returned (like SQL `LIMIT`); negative values take from the end.
+
+**`distinct`** — removes duplicates based on specified fields:
+```ts
+prisma.user.findMany({ distinct: ["roleId"] });
+```
+
+---
+
+## 5. Aggregations & Grouping ⭐⭐ Commonly Used (often missing from basic notes)
+
+### `count`
+Counts matching records:
+```ts
+const total = await prisma.user.count({ where: { roleId: 1 } });
+```
+Can also count specific relation fields via `select`:
+```ts
+prisma.user.count({ select: { _all: true, email: true } });
+```
+
+### `aggregate`
+Runs multiple aggregate functions (`_sum`, `_avg`, `_min`, `_max`, `_count`) in one query:
+```ts
+const stats = await prisma.order.aggregate({
+  where: { userId: 1 },
+  _sum: { amount: true },
+  _avg: { amount: true },
+  _min: { amount: true },
+  _max: { amount: true },
+  _count: true,
+});
+```
+
+### `groupBy`
+Groups records by one or more fields and applies aggregates per group — equivalent to SQL `GROUP BY`:
+```ts
+const results = await prisma.order.groupBy({
+  by: ["userId"],
+  _sum: { amount: true },
+  _count: true,
+  having: {
+    amount: { _sum: { gt: 1000 } }, // like SQL HAVING
+  },
+  orderBy: { userId: "asc" },
+});
+```
+Useful for reports like "total spend per user" or "count of users per role."
+
+---
+
+*End of Doc 1. Doc 2 covers Relations, Relation Queries, Filtering, Transactions, Constraints & Indexes, Raw Queries, Error Handling, Pagination, and Prisma Client Configuration — the remaining regularly-used functionality.*

@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prisma Migration — Complete Understanding</title>
+</head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* THEME VARIABLES */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#f97316; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+
+/* HEADER */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* KEY TERMS SUMMARY */
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* SECTION DIVIDER */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* CODE BLOCK */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* DIAGRAM */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+.diagram svg { max-width:420px; margin:0 auto; display:block; }
+
+/* INFO BOXES */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* SUBSECTIONS */
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub.keep-left { border-left:5px solid var(--accent); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-left { border-left: 1px solid rgba(var(--shadow-rgb),0.18); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-num { flex-shrink:0; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .code-block:last-child { margin-bottom:0; }
+
+/* WORKFLOW GRID (4 mini flows side by side on desktop) */
+.flow-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.flow-grid .card-sub { margin-bottom:0; }
+@media (max-width:768px) { .flow-grid { grid-template-columns:1fr; } }
+
+/* IMPORTANT WRAPPER */
+.important-wrap { position:relative; padding:4px; margin-bottom:30px; box-shadow:0 14px 34px rgba(37,99,235,0.22); }
+.important-wrap-inner { background: linear-gradient(120deg, #eff6ff 0%, #f5f9ff 100%); border-radius:16px; padding:22px; }
+.important-flag { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:#fff; background:linear-gradient(120deg,#1e3a8a,#2563eb); padding:6px 14px; border-radius:20px; margin-bottom:16px; box-shadow:0 4px 12px rgba(37,99,235,0.35); }
+
+/* TABLE */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); border:1px solid rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:700; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table tr:hover td { background: rgba(var(--shadow-rgb,37,99,235),0.15); transition:background .15s ease; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+</style>
+<body>
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="header theme-blue">
+      <h1>🗄️ Prisma Migration — Complete Understanding</h1>
+      <p>Migration vs seed, how <code style="color:#fff;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:6px;">migrate dev</code> works, joining an existing project, and the team workflow</p>
+      <div class="toc">
+        <a href="#migration-vs-seed" onclick="document.getElementById('migration-vs-seed').scrollIntoView({behavior:'smooth'});return false;">Migration vs Seed</a>
+        <a href="#what-is" onclick="document.getElementById('what-is').scrollIntoView({behavior:'smooth'});return false;">What is a Migration</a>
+        <a href="#first-migration" onclick="document.getElementById('first-migration').scrollIntoView({behavior:'smooth'});return false;">First Migration</a>
+        <a href="#new-model" onclick="document.getElementById('new-model').scrollIntoView({behavior:'smooth'});return false;">Adding a Model</a>
+        <a href="#company" onclick="document.getElementById('company').scrollIntoView({behavior:'smooth'});return false;">Joining a Company Project</a>
+        <a href="#tracking" onclick="document.getElementById('tracking').scrollIntoView({behavior:'smooth'});return false;">How Prisma Tracks History</a>
+        <a href="#team" onclick="document.getElementById('team').scrollIntoView({behavior:'smooth'});return false;">Team Workflow</a>
+        <a href="#commands" onclick="document.getElementById('commands').scrollIntoView({behavior:'smooth'});return false;">Two Commands</a>
+        <a href="#seed" onclick="document.getElementById('seed').scrollIntoView({behavior:'smooth'});return false;">Where Seed Fits</a>
+        <a href="#mental-model" onclick="document.getElementById('mental-model').scrollIntoView({behavior:'smooth'});return false;">Final Mental Model</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 One-line summary:</strong> Migration files are the version history of your database structure — developers who change the schema create a new migration, while other developers simply apply that migration to their own database.</div>
+
+    <!-- KEY TERMS SUMMARY -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🏗️</div>
+          <div class="summary-text"><strong>Migration:</strong> Creates or changes database structure — tables, columns, keys, indexes, relations.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🌱</div>
+          <div class="summary-text"><strong>Seed:</strong> Inserts initial or default records into tables that already exist.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">📜</div>
+          <div class="summary-text"><strong>_prisma_migrations:</strong> A special table Prisma maintains to record which migrations have already been applied.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">⚙️</div>
+          <div class="summary-text"><strong>migrate dev:</strong> With <code>--name</code> it creates a new migration; without it, it applies migrations that already exist but haven't run locally.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MIGRATION VS SEED ==================== -->
+    <div class="section-divider" id="migration-vs-seed"><span>1. Migration vs Seed</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Migration = Database Structure</h4></div>
+        <div class="card-sub-content">
+          <p>It creates or changes things like:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">structure</span></div>
+            <pre><code>Tables
+Columns
+Primary keys
+Foreign keys
+Indexes
+Constraints
+Relations</code></pre>
+          </div>
+          <p>Example:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">tables</span></div>
+            <pre><code>Role table
+User table
+Product table</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-1 keep-left">
+        <div class="card-sub-title"><h4>Seed = Initial/Default Records</h4></div>
+        <div class="card-sub-content">
+          <p>For example:</p>
+          <table>
+            <tr><th>id</th><th>name</th></tr>
+            <tr><td>1</td><td>user</td></tr>
+            <tr><td>2</td><td>admin</td></tr>
+          </table>
+          <div class="info-box box-note">💡 <strong>Migration</strong> → creates/changes structure. <strong>Seed</strong> → inserts initial/default data.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== WHAT IS A MIGRATION ==================== -->
+    <div class="section-divider" id="what-is"><span>2. What is a Prisma Migration?</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>You Define Structure in schema.prisma</h4></div>
+        <div class="card-sub-content">
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema.prisma</span></div>
+            <pre><code><span class="kw">model</span> Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users User[]
+}
+
+<span class="kw">model</span> User {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  password_hash String
+  role_id       Int
+  role          Role     @relation(fields: [role_id], references: [id])
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+}</code></pre>
+          </div>
+          <p>Prisma compares your schema with the migration history and generates SQL. You don't normally write the SQL yourself.</p>
+          <div class="diagram" style="padding:12px;">
+            <svg viewBox="0 0 620 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+              <defs>
+                <marker id="arrowM1" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 Z" fill="#3b82f6"/>
+                </marker>
+              </defs>
+              <line x1="310" y1="60" x2="310" y2="100" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowM1)"/>
+              <line x1="310" y1="150" x2="310" y2="190" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowM1)"/>
+
+              <rect x="150" y="10" width="320" height="50" rx="10" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1.5"/>
+              <text x="310" y="40" text-anchor="middle" fill="#e0f2fe" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="700">schema.prisma</text>
+
+              <rect x="150" y="100" width="320" height="50" rx="10" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="310" y="130" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="600">Prisma Migration</text>
+
+              <rect x="150" y="190" width="320" height="50" rx="10" fill="#0f2f22" stroke="#34d399" stroke-width="1.5"/>
+              <text x="310" y="220" text-anchor="middle" fill="#6ee7b7" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="700">SQL → PostgreSQL</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== FIRST MIGRATION ==================== -->
+    <div class="section-divider" id="first-migration"><span>3–4. First Migration &amp; the "init" Name</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>First Migration in a New Project</h4></div>
+        <div class="card-sub-content">
+          <p>Suppose you are building your project from scratch, and you define your <code>Role</code> and <code>User</code> models. Then run:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+            <pre><code>npx prisma migrate dev --name init</code></pre>
+          </div>
+          <p><code>init</code> is simply the <strong>name of the migration</strong>. Prisma creates:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">project structure</span></div>
+            <pre><code>prisma/
+├── schema.prisma
+└── migrations/
+    └── 20260822xxxxxx_init/
+        └── migration.sql</code></pre>
+          </div>
+          <div class="diagram" style="padding:12px;">
+            <svg viewBox="0 0 620 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+              <defs>
+                <marker id="arrowM2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 Z" fill="#10b981"/>
+                </marker>
+              </defs>
+              <line x1="310" y1="60" x2="310" y2="100" stroke="#10b981" stroke-width="2" marker-end="url(#arrowM2)"/>
+              <line x1="310" y1="150" x2="310" y2="190" stroke="#10b981" stroke-width="2" marker-end="url(#arrowM2)"/>
+
+              <rect x="150" y="10" width="320" height="50" rx="10" fill="#0f2f22" stroke="#34d399" stroke-width="1.5"/>
+              <text x="310" y="40" text-anchor="middle" fill="#6ee7b7" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="700">schema.prisma</text>
+
+              <rect x="150" y="100" width="320" height="50" rx="10" fill="#082a1c" stroke="#10b981" stroke-width="1.5"/>
+              <text x="310" y="130" text-anchor="middle" fill="#a7f3d0" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="600">init migration</text>
+
+              <rect x="150" y="190" width="320" height="50" rx="10" fill="#082a1c" stroke="#10b981" stroke-width="1.5"/>
+              <text x="310" y="220" text-anchor="middle" fill="#a7f3d0" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="700">Role + User tables</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-2 keep-left">
+        <div class="card-sub-title"><h4>Why is it Called "init"?</h4></div>
+        <div class="card-sub-content">
+          <p><code>init</code> usually means "initial database structure." It is <strong>not a special Prisma keyword</strong> — you could technically write:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+            <pre><code>npx prisma migrate dev --name abc</code></pre>
+          </div>
+          <p>and Prisma would accept it. But <code>--name init</code> is meaningful specifically for the <strong>first</strong> migration.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== ADDING A NEW MODEL ==================== -->
+    <div class="section-divider" id="new-model"><span>5–6. Adding a New Model Later</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>Adding Product to an Existing Project</h4></div>
+        <div class="card-sub-content">
+          <p>Suppose the project already has <code>Role</code> and <code>User</code>. Now you add:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema.prisma</span></div>
+            <pre><code><span class="kw">model</span> Product {
+  id   Int    @id @default(autoincrement())
+  name String
+}</code></pre>
+          </div>
+          <p>You have changed the database structure, so create a <strong>new</strong> migration:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+            <pre><code>npx prisma migrate dev --name add_product</code></pre>
+          </div>
+          <p>Prisma creates:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">migrations/</span></div>
+            <pre><code>prisma/
+└── migrations/
+    ├── 20260801_init/
+    ├── 20260810_add_roles/
+    ├── 20260815_add_users/
+    └── 20260822_add_product/</code></pre>
+          </div>
+          <div class="info-box box-note">💡 The new migration contains only the SQL required to create the <code>Product</code> table.</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-2">
+        <div class="card-sub-title"><h4>Why Not Reuse --name init?</h4></div>
+        <div class="card-sub-content">
+          <p>You technically <strong>can</strong>, but you shouldn't — it would create something confusing like <code>004_init</code>. Instead, <code>--name add_product</code> creates <code>004_add_product</code>, so anyone can read the migration history as a changelog:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">migration history</span></div>
+            <pre><code>001_init
+002_add_roles
+003_add_users
+004_add_product
+005_add_order
+006_add_payment</code></pre>
+          </div>
+          <div class="info-box box-warning">⚠️ Migration names are basically <strong>descriptions of database changes</strong> — keep them descriptive.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== COMPANY PROJECT ==================== -->
+    <div class="section-divider" id="company"><span>7–9. What Happens in a Company Project</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Joining an Existing Company Project</h4></div>
+        <div class="card-sub-content">
+          <p>Suppose you join an existing company project. The Git repository already contains:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">repository</span></div>
+            <pre><code>prisma/
+├── schema.prisma
+└── migrations/
+    ├── 001_init
+    ├── 002_add_roles
+    ├── 003_add_users
+    └── 004_add_orders</code></pre>
+          </div>
+          <div class="info-box box-warning">⚠️ You do <strong>not</strong> create <code>init</code> again. Set up your local database, then run:</div>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+            <pre><code>npx prisma migrate dev</code></pre>
+          </div>
+          <p>Prisma checks the existing migration history and compares it against your local database:</p>
+          <table>
+            <tr><th>Migration</th><th>Your Local DB</th><th>Repository</th></tr>
+            <tr><td><code>001_init</code></td><td>✅ Applied</td><td>✅ Present</td></tr>
+            <tr><td><code>002_add_roles</code></td><td>✅ Applied</td><td>✅ Present</td></tr>
+            <tr><td><code>003_add_users</code></td><td>⬅️ Missing</td><td>✅ Present</td></tr>
+            <tr><td><code>004_add_orders</code></td><td>⬅️ Missing</td><td>✅ Present</td></tr>
+          </table>
+          <div class="info-box box-benefit">✅ Prisma applies the missing migrations (<code>003_add_users</code>, <code>004_add_orders</code>), and your local database becomes synchronized with the project's migration history.</div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>What Does "Apply Existing Migrations" Mean?</h4></div>
+        <div class="card-sub-content">
+          <p>It simply means: execute migration files that already exist in the project but have not yet been applied to your local database.</p>
+          <div class="diagram" style="padding:12px;">
+            <svg viewBox="0 0 620 340" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+              <defs>
+                <marker id="arrowM3" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 Z" fill="#3b82f6"/>
+                </marker>
+              </defs>
+              <line x1="310" y1="60" x2="310" y2="100" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowM3)"/>
+              <line x1="310" y1="150" x2="310" y2="190" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowM3)"/>
+              <line x1="310" y1="240" x2="310" y2="280" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowM3)"/>
+
+              <rect x="150" y="10" width="320" height="50" rx="10" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1.5"/>
+              <text x="310" y="40" text-anchor="middle" fill="#e0f2fe" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="700">Git repository</text>
+
+              <rect x="150" y="100" width="320" height="50" rx="10" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="310" y="130" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="14" font-weight="600">prisma/migrations/ (001…004)</text>
+
+              <rect x="150" y="190" width="320" height="50" rx="10" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="310" y="220" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="15" font-weight="600">npx prisma migrate dev</text>
+
+              <rect x="150" y="280" width="320" height="50" rx="10" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1.5"/>
+              <text x="310" y="310" text-anchor="middle" fill="#e0f2fe" font-family="Fira Code, Consolas, monospace" font-size="14.5" font-weight="700">Your local PostgreSQL database</text>
+            </svg>
+          </div>
+          <div class="info-box box-note">💡 You don't manually create those tables — the migration files describe exactly how to create them.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== TRACKING ==================== -->
+    <div class="section-divider" id="tracking"><span>How Prisma Knows What's Already Applied</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-3">
+        <div class="card-sub-title"><h4>The _prisma_migrations Table</h4></div>
+        <div class="card-sub-content">
+          <p>Prisma maintains a special table in the database that records migration history:</p>
+          <table>
+            <tr><th>_prisma_migrations</th></tr>
+            <tr><td>001_init</td></tr>
+            <tr><td>002_add_roles</td></tr>
+            <tr><td>003_add_users</td></tr>
+          </table>
+          <p>So Prisma can determine, for every migration file:</p>
+          <ul>
+            <li><strong>Already applied</strong> → skip</li>
+            <li><strong>Not applied</strong> → execute</li>
+          </ul>
+          <div class="info-box box-benefit">✅ This is why multiple developers can work with the same migration history without stepping on each other.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== TEAM WORKFLOW ==================== -->
+    <div class="section-divider" id="team"><span>10–11. Developer A Adds a Model, Developer B Gets It</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>Developer A Adds a New Model</h4></div>
+        <div class="card-sub-content">
+          <p>Developer A adds a <code>Product</code> model, then runs:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+            <pre><code>npx prisma migrate dev --name add_product</code></pre>
+          </div>
+          <p>Prisma creates <code>prisma/migrations/20260822_add_product/migration.sql</code>. Developer A commits <code>schema.prisma</code> and the migration folder, and pushes them to Git.</p>
+        </div>
+      </div>
+
+      <div class="card-sub cat-4">
+        <div class="card-sub-title"><h4>Developer B Gets the Change</h4></div>
+        <div class="card-sub-content">
+          <p>Developer B pulls the latest code. They <strong>don't create another migration</strong> — they run:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+            <pre><code>npx prisma migrate dev</code></pre>
+          </div>
+          <table>
+            <tr><th>Migration</th><th>Developer B's DB</th><th>Repository</th></tr>
+            <tr><td><code>001_init</code></td><td>✅</td><td>✅</td></tr>
+            <tr><td><code>002_roles</code></td><td>✅</td><td>✅</td></tr>
+            <tr><td><code>003_users</code></td><td>✅</td><td>✅</td></tr>
+            <tr><td><code>004_add_product</code></td><td>❌</td><td>✅</td></tr>
+          </table>
+          <div class="info-box box-benefit">✅ Prisma applies <code>004_add_product</code>, and now Developer B also has the <code>Product</code> table.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== TWO COMMANDS ==================== -->
+    <div class="section-divider" id="commands"><span>12. The Two Commands You Need to Remember</span></div>
+
+    <div class="important-wrap">
+      <div class="important-wrap-inner">
+        <span class="important-flag">⭐ Important — Remember This</span>
+        <div class="categories-wrap" style="margin-bottom:0;">
+
+          <div class="card-sub cat-1 keep-left">
+            <div class="card-sub-title"><h4>You Changed schema.prisma</h4></div>
+            <div class="card-sub-content">
+              <p>Create a new migration:</p>
+              <div class="code-block">
+                <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+                <pre><code>npx prisma migrate dev --name add_product</code></pre>
+              </div>
+              <div class="info-box box-note">💭 Think: <strong>I changed the schema → create a migration.</strong></div>
+            </div>
+          </div>
+
+          <div class="card-sub cat-1 keep-left">
+            <div class="card-sub-title"><h4>You Cloned/Pulled an Existing Project</h4></div>
+            <div class="card-sub-content">
+              <p>Apply existing migration history:</p>
+              <div class="code-block">
+                <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+                <pre><code>npx prisma migrate dev</code></pre>
+              </div>
+              <div class="info-box box-note">💭 Think: <strong>The migrations already exist → apply what's missing.</strong></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== COMPLETE WORKFLOW ==================== -->
+    <div class="section-divider" id="complete-workflow"><span>13. Complete Developer Workflow</span></div>
+
+    <div class="categories-wrap">
+    <div class="flow-grid">
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>New Project</h4></div>
+        <div class="card-sub-content">
+          <div class="diagram" style="padding:12px;">
+            <svg viewBox="0 0 480 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+              <defs><marker id="a1" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#3b82f6"/></marker></defs>
+              <line x1="240" y1="50" x2="240" y2="80" stroke="#3b82f6" stroke-width="2" marker-end="url(#a1)"/>
+              <line x1="240" y1="130" x2="240" y2="160" stroke="#3b82f6" stroke-width="2" marker-end="url(#a1)"/>
+              <line x1="240" y1="210" x2="240" y2="240" stroke="#3b82f6" stroke-width="2" marker-end="url(#a1)"/>
+              <rect x="60" y="10" width="360" height="40" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="240" y="35" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="13" font-weight="600">Create/modify schema</text>
+              <rect x="30" y="80" width="420" height="50" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="240" y="110" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="12.5" font-weight="600">migrate dev --name init</text>
+              <rect x="60" y="160" width="360" height="40" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="240" y="185" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="13" font-weight="600">Migration created</text>
+              <rect x="60" y="240" width="360" height="40" rx="8" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1.5"/>
+              <text x="240" y="265" text-anchor="middle" fill="#e0f2fe" font-family="Fira Code, Consolas, monospace" font-size="13" font-weight="700">Database structure created</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Existing Project — Joining Company</h4></div>
+        <div class="card-sub-content">
+          <div class="diagram" style="padding:12px;">
+            <svg viewBox="0 0 480 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+              <defs><marker id="a2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#3b82f6"/></marker></defs>
+              <line x1="240" y1="50" x2="240" y2="70" stroke="#3b82f6" stroke-width="2" marker-end="url(#a2)"/>
+              <line x1="240" y1="110" x2="240" y2="130" stroke="#3b82f6" stroke-width="2" marker-end="url(#a2)"/>
+              <line x1="240" y1="170" x2="240" y2="190" stroke="#3b82f6" stroke-width="2" marker-end="url(#a2)"/>
+              <line x1="240" y1="230" x2="240" y2="250" stroke="#3b82f6" stroke-width="2" marker-end="url(#a2)"/>
+              <line x1="240" y1="300" x2="240" y2="320" stroke="#3b82f6" stroke-width="2" marker-end="url(#a2)"/>
+              <rect x="80" y="10" width="320" height="40" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="240" y="35" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="13" font-weight="600">Clone repository</text>
+              <rect x="80" y="70" width="320" height="40" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="240" y="95" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="13" font-weight="600">Install dependencies</text>
+              <rect x="80" y="130" width="320" height="40" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="240" y="155" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="13" font-weight="600">Configure .env</text>
+              <rect x="80" y="190" width="320" height="40" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="240" y="215" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="13" font-weight="600">Create local database</text>
+              <rect x="30" y="250" width="420" height="50" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="240" y="280" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="12.5" font-weight="600">npx prisma migrate dev</text>
+              <rect x="60" y="320" width="360" height="40" rx="8" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1.5"/>
+              <text x="240" y="345" text-anchor="middle" fill="#e0f2fe" font-family="Fira Code, Consolas, monospace" font-size="12.5" font-weight="700">Local DB synchronized</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Existing Project — You Add a Model</h4></div>
+        <div class="card-sub-content">
+          <div class="diagram" style="padding:12px;">
+            <svg viewBox="0 0 480 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+              <defs><marker id="a3" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#3b82f6"/></marker></defs>
+              <line x1="240" y1="50" x2="240" y2="80" stroke="#3b82f6" stroke-width="2" marker-end="url(#a3)"/>
+              <line x1="240" y1="130" x2="240" y2="160" stroke="#3b82f6" stroke-width="2" marker-end="url(#a3)"/>
+              <line x1="240" y1="200" x2="240" y2="230" stroke="#3b82f6" stroke-width="2" marker-end="url(#a3)"/>
+              <rect x="60" y="10" width="360" height="40" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="240" y="35" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="13" font-weight="600">Modify schema.prisma</text>
+              <rect x="30" y="80" width="420" height="50" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="240" y="110" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="12" font-weight="600">migrate dev --name add_product</text>
+              <rect x="60" y="160" width="360" height="40" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="240" y="185" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="13" font-weight="600">New migration created</text>
+              <rect x="60" y="230" width="360" height="40" rx="8" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1.5"/>
+              <text x="240" y="255" text-anchor="middle" fill="#e0f2fe" font-family="Fira Code, Consolas, monospace" font-size="13" font-weight="700">Committed to Git &amp; pushed</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Other Developer</h4></div>
+        <div class="card-sub-content">
+          <div class="diagram" style="padding:12px;">
+            <svg viewBox="0 0 480 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+              <defs><marker id="a4" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#3b82f6"/></marker></defs>
+              <line x1="240" y1="90" x2="240" y2="150" stroke="#3b82f6" stroke-width="2" marker-end="url(#a4)"/>
+              <line x1="240" y1="200" x2="240" y2="230" stroke="#3b82f6" stroke-width="2" marker-end="url(#a4)"/>
+              <rect x="60" y="40" width="360" height="50" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="240" y="70" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="14" font-weight="600">Git pull</text>
+              <rect x="30" y="150" width="420" height="50" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="240" y="180" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="13" font-weight="600">npx prisma migrate dev</text>
+              <rect x="60" y="230" width="360" height="50" rx="8" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1.5"/>
+              <text x="240" y="260" text-anchor="middle" fill="#e0f2fe" font-family="Fira Code, Consolas, monospace" font-size="13" font-weight="700">New migration applied</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    </div>
+
+    <!-- ==================== WHERE SEED FITS ==================== -->
+    <div class="section-divider" id="seed"><span>14. Where Seed Fits</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-1">
+        <div class="card-sub-title"><h4>Seed Happens After Structure Exists</h4></div>
+        <div class="card-sub-content">
+          <div class="diagram" style="padding:12px;">
+            <svg viewBox="0 0 560 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+              <defs><marker id="a5" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#3b82f6"/></marker></defs>
+              <line x1="280" y1="50" x2="280" y2="70" stroke="#3b82f6" stroke-width="2" marker-end="url(#a5)"/>
+              <line x1="280" y1="110" x2="280" y2="130" stroke="#3b82f6" stroke-width="2" marker-end="url(#a5)"/>
+              <rect x="130" y="10" width="300" height="40" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="280" y="35" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="14" font-weight="700">Migration</text>
+              <rect x="130" y="70" width="300" height="40" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="280" y="95" text-anchor="middle" fill="#a5f3fc" font-family="Fira Code, Consolas, monospace" font-size="13" font-weight="600">Creates Role table</text>
+              <rect x="130" y="130" width="300" height="40" rx="8" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1.5"/>
+              <text x="280" y="155" text-anchor="middle" fill="#e0f2fe" font-family="Fira Code, Consolas, monospace" font-size="13" font-weight="700">Seed → inserts user, admin</text>
+            </svg>
+          </div>
+          <p>A company project may have:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">structure</span></div>
+            <pre><code>prisma/
+├── schema.prisma
+├── migrations/
+└── seed.ts</code></pre>
+          </div>
+          <div class="info-box box-warning">⚠️ Follow the company's documented seed command rather than assuming it's safe to run against shared environments.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== FINAL MENTAL MODEL ==================== -->
+    <div class="section-divider" id="mental-model"><span>15. Final Mental Model</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub cat-1 no-left">
+        <div class="card-sub-title"><h4>Four Cases to Remember</h4></div>
+        <div class="card-sub-content">
+          <table>
+            <tr><th>Situation</th><th>Command</th></tr>
+            <tr><td>First database structure</td><td><code>npx prisma migrate dev --name init</code></td></tr>
+            <tr><td>You add/change schema</td><td><code>npx prisma migrate dev --name describe_change</code></td></tr>
+            <tr><td>You pull existing migrations</td><td><code>npx prisma migrate dev</code></td></tr>
+            <tr><td>Need initial/default records</td><td>Seed command</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="card-sub cat-1 keep-left">
+        <div class="card-sub-title"><h4>The Easiest Way to Remember</h4></div>
+        <div class="card-sub-content">
+          <div class="diagram">schema.prisma
+     ↓
+"I changed the structure"
+     ↓
+migrate dev --name &lt;what_changed&gt;</div>
+          <p>Whereas:</p>
+          <div class="diagram">Git repository
+     ↓
+"Migration already exists"
+     ↓
+migrate dev</div>
+          <p>And:</p>
+          <div class="diagram">"Tables exist, but need default records"
+     ↓
+seed</div>
+          <div class="info-box box-benefit"><strong>One-line summary:</strong> Migration files are the version history of your database structure; developers who change the schema create a new migration, while other developers simply apply that migration to their own database.</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</body>
+</html>

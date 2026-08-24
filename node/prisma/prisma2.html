@@ -1,0 +1,514 @@
+# Prisma Complete Tutorial — Doc 2 (Detailed)
+### Relations, Relation Queries, Filtering, Transactions, Constraints, Raw Queries, Error Handling, Pagination, Client Configuration
+*(Migrations and Seeding intentionally excluded)*
+
+---
+
+## 6. Relations ⭐⭐⭐ Very Important
+
+For your RBAC project, understand:
+```text
+Role 1 ──────── N User
+```
+One Role can be assigned to many Users, but each User has only one Role (in a simple RBAC setup).
+
+### One-to-One
+Each record in Table A relates to exactly one record in Table B, and vice versa. Example: `User` and `Profile`.
+```prisma
+model User {
+  id      Int      @id @default(autoincrement())
+  profile Profile?
+}
+
+model Profile {
+  id     Int  @id @default(autoincrement())
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id])
+}
+```
+The `@unique` on the foreign key enforces one-to-one instead of one-to-many.
+
+### One-to-Many
+One record in Table A relates to many in Table B. Example: one `Role` has many `Users`.
+```prisma
+model Role {
+  id    Int    @id @default(autoincrement())
+  users User[]
+}
+
+model User {
+  id     Int  @id @default(autoincrement())
+  roleId Int
+  role   Role @relation(fields: [roleId], references: [id])
+}
+```
+
+### Many-to-Many
+Records in both tables can relate to multiple records in the other. Example: `User` and `Permission`.
+```prisma
+model User {
+  id          Int          @id @default(autoincrement())
+  permissions Permission[]
+}
+
+model Permission {
+  id    Int    @id @default(autoincrement())
+  users User[]
+}
+```
+Prisma auto-creates a hidden join table for implicit many-to-many relations. Use an **explicit join model** if you need extra fields on the relationship itself:
+```prisma
+model UserPermission {
+  userId       Int
+  permissionId Int
+  assignedAt   DateTime @default(now())
+  user         User       @relation(fields: [userId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  @@id([userId, permissionId])
+}
+```
+
+### Self-Relations
+A model relating to itself — common for hierarchies (e.g., a `Role` with a `parentRole`):
+```prisma
+model Role {
+  id           Int    @id @default(autoincrement())
+  name         String
+  parentId     Int?
+  parent       Role?  @relation("RoleHierarchy", fields: [parentId], references: [id])
+  children     Role[] @relation("RoleHierarchy")
+}
+```
+
+### Foreign Keys
+The column storing a reference to another table's primary key — e.g., `roleId` referencing `Role.id`.
+
+### Relation Fields
+The "virtual" field representing the related object (not the raw FK column), e.g. `role Role @relation(...)` — enables `user.role.name` in code.
+
+### `include`
+Eagerly loads related data (like a SQL JOIN):
+```ts
+const user = await prisma.user.findUnique({
+  where: { id: userId },
+  include: { role: true },
+});
+```
+
+### Nested Queries (Filtering by Relations)
+```ts
+prisma.user.findMany({
+  where: { role: { name: "ADMIN" } },
+});
+```
+
+### Nested Create
+Creating a record and linking/creating related data in one call:
+```ts
+prisma.user.create({
+  data: {
+    email: "test@example.com",
+    role: { connect: { id: 1 } }, // link an existing role
+  },
+});
+
+prisma.user.create({
+  data: {
+    email: "test@example.com",
+    role: { create: { name: "GUEST" } }, // create a new related role at the same time
+  },
+});
+```
+
+### Nested Update
+```ts
+prisma.user.update({
+  where: { id: 1 },
+  data: { role: { connect: { id: 2 } } }, // reassign to different existing role
+});
+```
+
+### `connectOrCreate`
+Connects to an existing related record if it exists, otherwise creates it — very useful to avoid a manual "find or create" round trip:
+```ts
+prisma.user.create({
+  data: {
+    email: "test@example.com",
+    role: {
+      connectOrCreate: {
+        where: { name: "GUEST" },
+        create: { name: "GUEST" },
+      },
+    },
+  },
+});
+```
+
+### `disconnect` / `set`
+- **`disconnect`** — removes a relation link without deleting the related record:
+```ts
+prisma.user.update({ where: { id: 1 }, data: { role: { disconnect: true } } });
+```
+- **`set`** — replaces an entire many-to-many relation list with a new set:
+```ts
+prisma.user.update({
+  where: { id: 1 },
+  data: { permissions: { set: [{ id: 2 }, { id: 3 }] } },
+});
+```
+
+---
+
+## 7. Relation Queries ⭐⭐ Frequently Used
+
+**Filter by a related record's field:**
+```ts
+prisma.user.findMany({ where: { role: { name: "ADMIN" } } });
+```
+
+**Filter by relation existence — `some`, `every`, `none`** (for one-to-many/many-to-many):
+```ts
+prisma.role.findMany({
+  where: { users: { some: { email: { contains: "gmail" } } } }, // at least one match
+});
+
+prisma.role.findMany({
+  where: { users: { none: { roleId: 3 } } }, // no matching related record
+});
+
+prisma.role.findMany({
+  where: { users: { every: { isActive: true } } }, // all related users match
+});
+```
+
+**Fetch deep/nested relations:**
+```ts
+prisma.user.findMany({
+  include: {
+    role: { include: { permissions: true } },
+  },
+});
+```
+
+**Select specific fields from a relation:**
+```ts
+prisma.user.findMany({
+  select: {
+    email: true,
+    role: { select: { name: true } },
+  },
+});
+```
+
+**Order by a relation's field** (e.g., sort users by their role's name):
+```ts
+prisma.user.findMany({
+  orderBy: { role: { name: "asc" } },
+});
+```
+
+**Count related records:**
+```ts
+prisma.role.findMany({
+  include: { _count: { select: { users: true } } },
+});
+```
+Returns each role with a `_count.users` field.
+
+**Paginate/limit nested relations directly:**
+```ts
+prisma.role.findMany({
+  include: {
+    users: { take: 5, orderBy: { createdAt: "desc" } }, // only 5 most recent users per role
+  },
+});
+```
+
+---
+
+## 8. Filtering & Querying
+
+```ts
+where: {
+  email: { contains: "gmail" },
+}
+```
+
+### String Filters
+- **`equals`** — exact match.
+- **`contains`** — substring match.
+- **`startsWith`** / **`endsWith`** — prefix/suffix match.
+- **`mode: "insensitive"`** — case-insensitive matching (PostgreSQL-supported):
+```ts
+where: { email: { contains: "GMAIL", mode: "insensitive" } }
+```
+
+### List Filters
+- **`in`** — value is in the given array.
+- **`notIn`** — value is not in the given array.
+
+### Comparison Filters
+- **`gt`**, **`gte`**, **`lt`**, **`lte`** — greater/less than (or equal).
+
+### Logical Operators
+- **`AND`**, **`OR`**, **`NOT`**.
+
+**Combined example:**
+```ts
+prisma.user.findMany({
+  where: {
+    AND: [
+      { email: { contains: "gmail" } },
+      { roleId: { in: [1, 2] } },
+    ],
+    NOT: { email: { startsWith: "test" } },
+  },
+});
+```
+
+### Filtering `Json` Fields
+```ts
+prisma.user.findMany({
+  where: { metadata: { path: ["theme"], equals: "dark" } },
+});
+```
+
+### Filtering by `null`
+```ts
+prisma.user.findMany({ where: { deletedAt: null } });
+prisma.user.findMany({ where: { deletedAt: { not: null } } });
+```
+
+---
+
+## 9. Transactions ⭐⭐⭐ Important
+
+Ensures a group of operations either all succeed or all fail — critical for data consistency.
+
+```ts
+prisma.$transaction()
+```
+
+### Sequential Transaction
+Runs an array of independent queries atomically:
+```ts
+await prisma.$transaction([
+  prisma.user.create({ data: { email: "a@b.com" } }),
+  prisma.auditLog.create({ data: { action: "USER_CREATED" } }),
+]);
+```
+Use when operations don't depend on each other's results.
+
+### Interactive Transaction
+Gives a callback with a transaction client (`tx`) for dependent operations:
+```ts
+await prisma.$transaction(async (tx) => {
+  const user = await tx.user.create({ data: { email: "a@b.com" } });
+  await tx.auditLog.create({
+    data: { userId: user.id, action: "USER_CREATED" },
+  });
+});
+```
+Use when a later query needs data (like an ID) from an earlier query in the same transaction.
+
+### Timeout & Isolation Options
+```ts
+await prisma.$transaction(async (tx) => { /* ... */ }, {
+  maxWait: 5000,   // max time to wait for a connection
+  timeout: 10000,  // max time the transaction can run
+  isolationLevel: "Serializable", // strictest isolation level
+});
+```
+
+### Key Concepts
+- **Atomicity** — all-or-nothing guarantee.
+- **Commit** — permanently saving changes once every step succeeds.
+- **Rollback** — undoing all changes if any step fails.
+- **Transaction Isolation** — controls how concurrent transactions see each other's changes; PostgreSQL defaults to `Read Committed`.
+- **When Necessary** — money transfers, user creation + audit log, inventory update + order creation — any multi-write operation needing consistency.
+
+---
+
+## 10. Constraints & Indexes
+
+```prisma
+@unique     → single-column UNIQUE constraint
+@@unique    → multi-column (composite) UNIQUE constraint
+@@index     → database index for performance (not a constraint)
+@id         → single-column PRIMARY KEY
+@@id        → multi-column (composite) PRIMARY KEY
+```
+
+**Composite unique constraint:**
+```prisma
+model Enrollment {
+  studentId Int
+  courseId  Int
+  @@unique([studentId, courseId])
+}
+```
+
+**Composite primary key:**
+```prisma
+model RolePermission {
+  roleId       Int
+  permissionId Int
+  @@id([roleId, permissionId])
+}
+```
+
+---
+
+## 11. Raw Queries (Escape Hatches) ⭐ Good to Know
+
+Used when Prisma's query API can't express something (complex joins, window functions, CTEs).
+
+### `$queryRaw`
+Returns typed rows — safe from SQL injection when using tagged templates:
+```ts
+const users = await prisma.$queryRaw`SELECT * FROM "User" WHERE email = ${email}`;
+```
+
+### `$executeRaw`
+For statements that don't return rows (`UPDATE`, `DELETE`, `INSERT`) — returns affected row count:
+```ts
+await prisma.$executeRaw`UPDATE "User" SET "roleId" = ${2} WHERE "id" = ${1}`;
+```
+
+### `$queryRawUnsafe` / `$executeRawUnsafe`
+Accept plain strings instead of tagged templates — you must manually sanitize input to prevent SQL injection. Only use for fully dynamic, trusted queries.
+
+---
+
+## 12. Error Handling ⭐⭐ Commonly Needed
+
+### Prisma Error Types
+- **`PrismaClientKnownRequestError`** — expected DB errors with a `code` (e.g. unique violation).
+- **`PrismaClientValidationError`** — malformed query (e.g. missing required field).
+- **`PrismaClientUnknownRequestError`** — unclassified DB errors.
+- **`PrismaClientInitializationError`** — Prisma Client failed to connect to the database.
+
+**Example:**
+```ts
+import { Prisma } from "@prisma/client";
+
+try {
+  await prisma.user.create({ data: { email: "test@example.com" } });
+} catch (e) {
+  if (e instanceof Prisma.PrismaClientKnownRequestError) {
+    if (e.code === "P2002") console.log("Email already exists");
+    if (e.code === "P2003") console.log("Related record does not exist");
+    if (e.code === "P2025") console.log("Record not found");
+  }
+  throw e;
+}
+```
+
+### Common Error Codes
+- `P2002` — Unique constraint failed.
+- `P2003` — Foreign key constraint failed.
+- `P2025` — Record not found (update/delete on non-existent row).
+- `P2014` — Relation violation (e.g., deleting a record still referenced elsewhere).
+
+---
+
+## 13. Pagination ⭐⭐ Frequently Used
+
+### Offset Pagination
+Simple, but slows down on large offsets since PostgreSQL still scans skipped rows:
+```ts
+prisma.user.findMany({ skip: 20, take: 10, orderBy: { id: "asc" } });
+```
+
+### Cursor-Based Pagination
+Faster for large datasets — uses a unique field as a pointer instead of counting rows:
+```ts
+prisma.user.findMany({
+  take: 10,
+  skip: 1, // skip the cursor row itself
+  cursor: { id: lastSeenId },
+  orderBy: { id: "asc" },
+});
+```
+Preferred for infinite scroll / large tables since performance doesn't degrade with page depth.
+
+---
+
+## 14. Prisma Client Configuration
+
+### Prisma Client Generation
+Run `prisma generate` after every schema change to regenerate the type-safe client.
+
+### Custom `output`
+```prisma
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+```
+Useful for monorepos or source-controlled generated code.
+
+### PostgreSQL Adapter
+Prisma 7+ uses driver adapters instead of relying solely on its internal engine — improves compatibility with serverless/edge environments and allows custom connection pooling.
+
+### `@prisma/adapter-pg`
+The official adapter connecting Prisma Client to the `pg` (node-postgres) driver.
+
+### `pg`
+The underlying Node.js PostgreSQL driver that `@prisma/adapter-pg` wraps, handling the actual TCP connection.
+
+### `PrismaClient`
+```ts
+import { PrismaClient } from "./generated/prisma";
+import { PrismaPg } from "@prisma/adapter-pg";
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
+```
+
+### Connection Configuration
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+### Environment Variables
+```
+DATABASE_URL="postgresql://user:password@localhost:5432/mydb"
+```
+Never commit `.env` to version control.
+
+### Connection Lifecycle
+- Create **one** `PrismaClient` instance and reuse it across the app — don't instantiate per-request.
+- Call `prisma.$disconnect()` on app shutdown for graceful connection closing.
+- In serverless environments, watch connection limits — use pooling (e.g., PgBouncer) since each invocation could otherwise open a new connection.
+
+**Recommended singleton pattern (avoids exhausting connections during hot-reload in dev):**
+```ts
+// db.ts
+import { PrismaClient } from "@prisma/client";
+
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+```
+
+---
+
+## 15. Security & Best Practices (Regular Use Checklist)
+
+- Never pass raw client input directly into `where` without validation.
+- Use `$queryRaw` tagged templates, never string concatenation, to avoid SQL injection.
+- Hash passwords (bcrypt/argon2) before calling `create`/`update` — never store plain text.
+- Use `select` to explicitly exclude sensitive fields (like `passwordHash`) from API responses.
+- Keep `DATABASE_URL` in environment variables, never hardcoded.
+- Reuse a single `PrismaClient` instance app-wide instead of creating new ones per request.
+- Prefer `updateMany`/`deleteMany`/`createMany` over loops for batch operations — fewer round trips.
+
+---
+
+*End of Doc 2. Doc 1 + Doc 2 together form a complete, regular-use-focused Prisma + PostgreSQL tutorial (migrations and seeding excluded as requested).*
