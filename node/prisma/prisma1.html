@@ -1,347 +1,636 @@
-# Prisma Complete Tutorial — Doc 1 (Detailed)
-### Fundamentals, Setup, Schema, PostgreSQL Mapping, Prisma Client CRUD, Upsert & Aggregations
-*(Migrations and Seeding intentionally excluded)*
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — Prisma Fundamentals</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1140px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
 
----
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:26px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.55; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
 
-## 1. Prisma Fundamentals
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
 
-### What is an ORM?
-An ORM (Object-Relational Mapper) lets you interact with a relational database using objects/methods in your programming language instead of raw SQL. Instead of `SELECT * FROM users WHERE id = 1`, you write `prisma.user.findUnique({ where: { id: 1 } })`. It maps tables → models, rows → objects, columns → properties, improving readability, type safety, and reducing manual SQL errors — at some cost of low-level query control.
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; }
+.cmt { color:#64748b; font-style:italic; } .num { color:#fdba74; }
 
-### Prisma Architecture
-Prisma has three core parts:
-- **Prisma Schema** (`schema.prisma`) — single source of truth for your data model and DB connection.
-- **Prisma Migrate** — converts schema changes into SQL (not covered here per your request).
-- **Prisma Client** — auto-generated, type-safe query builder used inside your app code to talk to the database.
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:14.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-tip { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-note { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a; border-color:#93c5fd; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
 
-Internally, Prisma Client translates your JS/TS method calls into SQL queries sent to PostgreSQL, either through its query engine or (in Prisma 7+) through driver adapters like `@prisma/adapter-pg`.
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:14px 0; }
+@media (max-width:800px){ .compare-3 { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:16px 18px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.04);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box.blue { border-left:5px solid #2563eb; background:linear-gradient(135deg,#fff,#eff6ff); }
+.compare-box.purple { border-left:5px solid #7c3aed; background:linear-gradient(135deg,#fff,#f5f3ff); }
+.compare-box.amber { border-left:5px solid #f59e0b; background:linear-gradient(135deg,#fff,#fffbeb); }
+.compare-box h4 { font-size:14px; margin-bottom:8px; font-weight:800; }
+.compare-box.good h4 { color:#047857; }
+.compare-box.blue h4 { color:#1e40af; }
+.compare-box.purple h4 { color:#5b21b6; }
+.compare-box.amber h4 { color:#b45309; }
+.compare-box p { margin:0; font-size:0.88rem; line-height:1.75; color:#334155; }
 
-### Prisma CLI
-Run via `npx prisma <command>`:
-- `prisma init` — scaffolds a new project (`schema.prisma` + `.env`).
-- `prisma generate` — generates/regenerates Prisma Client from your schema.
-- `prisma studio` — opens a browser GUI to view/edit your database rows visually.
-- `prisma db pull` — introspects an existing database and writes a matching schema (reverse-engineering).
-- `prisma db push` — pushes your schema directly to the DB without migration history (good for prototyping).
-- `prisma format` — auto-formats your `schema.prisma` file.
-- `prisma validate` — checks your schema for errors without touching the database.
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.card-sub-title .stars { margin-left:auto; color:#f59e0b; font-size:13px; letter-spacing:1px; }
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content ul { margin:6px 0 10px 18px; }
+.card-sub-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; margin-bottom:4px; }
 
-### `schema.prisma`
-The central config file with three parts:
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+.flow {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  margin:16px 0; background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border-radius:16px; padding:24px 20px; border:1px solid #312e81;
+}
+.flow-step {
+  background: linear-gradient(135deg, #1e293b, #334155); border: 1.5px solid #475569;
+  border-radius:12px; padding:11px 20px; text-align:center;
+  min-width:180px; max-width:420px; color:#f1f5f9; font-weight:600;
+}
+.flow-arrow { color:#818cf8; font-size:1.3rem; line-height:1.5; }
+.flow-step.start { background: linear-gradient(135deg, #1d4ed8, #3b82f6); border-color: #60a5fa; color:#fff; }
+.flow-step.success { background: linear-gradient(135deg, #047857, #10b981); border-color: #34d399; color:#fff; }
+.flow-step.cyan { background: linear-gradient(135deg, #0e7490, #06b6d4); border-color: #22d3ee; color:#fff; }
+
+.chip-row { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 4px; }
+.chip {
+  background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a;
+  padding:6px 12px; border-radius:20px; font-size:13px; font-weight:700;
+  border:1px solid #93c5fd; font-family:'Fira Code',Consolas,monospace;
+}
+
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb); color:#fff;
+  font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td {
+  padding:10px 14px; font-size:14px; font-weight:600; border:none;
+  color:#1e3a8a; background:#eff6ff;
+}
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a; padding:2px 6px;
+  border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — Prisma Fundamentals</h1>
+    <p>Setup · Schema · PostgreSQL mapping · Prisma Client CRUD · Upsert & Aggregations<br>
+    <span style="opacity:.85;font-size:13px;">Migrations and seeding excluded</span></p>
+    <div class="toc">
+      <a href="#s1">Fundamentals</a>
+      <a href="#s2">Schema</a>
+      <a href="#s3">PostgreSQL</a>
+      <a href="#s4">CRUD</a>
+      <a href="#s5">Aggregations</a>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s1"><span>1. Prisma Fundamentals</span></div>
+  <div class="categories-wrap">
+
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>What is an ORM?</h4></div>
+      <div class="card-sub-content">
+        <p>An ORM (Object-Relational Mapper) lets you interact with a relational database using objects/methods in your programming language instead of raw SQL.</p>
+        <div class="compare">
+          <div class="compare-box amber">
+            <h4>Raw SQL</h4>
+            <p><code>SELECT * FROM users WHERE id = 1</code></p>
+          </div>
+          <div class="compare-box good">
+            <h4>Prisma</h4>
+            <p><code>prisma.user.findUnique({ where: { id: 1 } })</code></p>
+          </div>
+        </div>
+        <p>It maps <strong>tables → models</strong>, <strong>rows → objects</strong>, <strong>columns → properties</strong> — better readability, type safety, fewer SQL typos. Trade-off: less low-level query control.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Prisma Architecture</h4></div>
+      <div class="card-sub-content">
+        <div class="compare-3">
+          <div class="compare-box blue">
+            <h4>Prisma Schema</h4>
+            <p><code>schema.prisma</code> — single source of truth for your data model and DB connection.</p>
+          </div>
+          <div class="compare-box purple">
+            <h4>Prisma Migrate</h4>
+            <p>Converts schema changes into SQL. <strong>Not covered in this doc.</strong></p>
+          </div>
+          <div class="compare-box good">
+            <h4>Prisma Client</h4>
+            <p>Auto-generated, type-safe query builder used in app code to talk to the database.</p>
+          </div>
+        </div>
+        <p>Prisma Client translates JS/TS method calls into SQL sent to PostgreSQL — via the query engine, or (Prisma 7+) driver adapters like <code>@prisma/adapter-pg</code>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>Prisma CLI</h4></div>
+      <div class="card-sub-content">
+        <p>Run via <code>npx prisma <command></code>:</p>
+        <table>
+          <tr><th>Command</th><th>Purpose</th></tr>
+          <tr><td><code>prisma init</code></td><td>Scaffolds a new project (<code>schema.prisma</code> + <code>.env</code>)</td></tr>
+          <tr><td><code>prisma generate</code></td><td>Generates Prisma Client from your schema</td></tr>
+          <tr><td><code>prisma studio</code></td><td>Browser GUI to view/edit database rows</td></tr>
+          <tr><td><code>prisma db pull</code></td><td>Introspects an existing DB and writes a matching schema</td></tr>
+          <tr><td><code>prisma db push</code></td><td>Pushes schema to DB without migration history (prototyping)</td></tr>
+          <tr><td><code>prisma format</code></td><td>Auto-formats <code>schema.prisma</code></td></tr>
+          <tr><td><code>prisma validate</code></td><td>Checks schema for errors without touching the database</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>schema.prisma</h4></div>
+      <div class="card-sub-content">
+        <p>The central config file with three parts:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema.prisma</span></div>
+          <pre><code>datasource db {
+  provider = <span class="str">"postgresql"</span>
+  url      = env(<span class="str">"DATABASE_URL"</span>)
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider = <span class="str">"prisma-client-js"</span>
 }
 
 model User {
   id Int @id @default(autoincrement())
-}
-```
+}</code></pre>
+        </div>
+      </div>
+    </div>
 
-### `prisma.config.ts`
-A TypeScript config file (newer Prisma versions) for programmatic setup — e.g., custom driver adapters, dynamic env loading — supplementing the declarative `schema.prisma`.
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>prisma.config.ts</h4></div>
+      <div class="card-sub-content">
+        <p>A TypeScript config file (newer Prisma versions) for programmatic setup — custom driver adapters, dynamic env loading — supplementing the declarative <code>schema.prisma</code>.</p>
+      </div>
+    </div>
 
-### Prisma Client
-The generated, type-safe API (`prisma.user.findMany()`, etc.) reflecting your exact schema. Must be regenerated (`prisma generate`) after every schema change, or TypeScript types will be out of sync.
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Prisma Client</h4></div>
+      <div class="card-sub-content">
+        <p>The generated, type-safe API (<code>prisma.user.findMany()</code>, etc.) reflecting your exact schema.</p>
+        <div class="info-box box-warning">⚠️ Must run <code>prisma generate</code> after every schema change, or TypeScript types will be out of sync.</div>
+      </div>
+    </div>
 
-### Prisma vs Raw SQL
-- **Raw SQL** — full control, but verbose, no compile-time type checking, easy to introduce typos/bugs.
-- **Prisma** — type-safe, autocomplete in editor, automatic relation handling — less suited for extremely complex hand-tuned queries (though `$queryRaw` exists as an escape hatch, covered later).
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>Prisma vs Raw SQL</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box amber">
+            <h4>Raw SQL</h4>
+            <p>Full control, but verbose, no compile-time type checking, easy typos/bugs.</p>
+          </div>
+          <div class="compare-box good">
+            <h4>Prisma</h4>
+            <p>Type-safe, autocomplete, automatic relations. Less suited for extremely complex hand-tuned queries — <code>$queryRaw</code> is the escape hatch.</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-### Prisma vs Sequelize/TypeORM
-- **Sequelize** — JS-first, weaker type safety even with TS, more implicit/"magic" behavior.
-- **TypeORM** — decorator/class-based, historically less stable with complex relations and migrations.
-- **Prisma** — schema-first (not code-first), strongest type safety of the three, cleanest query API and tooling (Prisma Studio, schema diffing).
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Prisma vs Sequelize / TypeORM</h4></div>
+      <div class="card-sub-content">
+        <div class="compare-3">
+          <div class="compare-box amber">
+            <h4>Sequelize</h4>
+            <p>JS-first, weaker type safety even with TS, more implicit / "magic" behavior.</p>
+          </div>
+          <div class="compare-box purple">
+            <h4>TypeORM</h4>
+            <p>Decorator/class-based. Historically less stable with complex relations.</p>
+          </div>
+          <div class="compare-box good">
+            <h4>Prisma</h4>
+            <p>Schema-first (not code-first). Strongest type safety. Cleanest query API and tooling (Studio, schema diffing).</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-### Basic Setup Steps
-```bash
-npm install prisma --save-dev
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>Basic Setup Steps</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>npm install prisma --save-dev
 npm install @prisma/client
-npx prisma init
-```
-This creates `prisma/schema.prisma` and a `.env` file with a placeholder `DATABASE_URL`. After defining models:
-```bash
-npx prisma generate
-```
+npx prisma init</code></pre>
+        </div>
+        <p>Creates <code>prisma/schema.prisma</code> and a <code>.env</code> with a placeholder <code>DATABASE_URL</code>. After defining models:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>npx prisma generate</code></pre>
+        </div>
+        <p><strong>Data flow:</strong></p>
+        <div class="flow">
+          <div class="flow-step start">Node.js (application code)</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Prisma Client (type-safe query builder)</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">PostgreSQL (database engine)</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-**Data flow:**
-```text
-Node.js  (application code)
-   ↓
-Prisma Client  (type-safe query builder)
-   ↓
-PostgreSQL  (database engine)
-```
-
----
-
-## 2. Prisma Schema ⭐ Important
-
-Learn:
-- `model`
-- Fields and types
-- `@id`
-- `@default()`
-- `@unique`
-- `@updatedAt`
-- `@map`
-- `@@map`
-- Optional fields `?`
-- Arrays `[]`
-- Enums
-- Relations
-
-**Example:**
-```prisma
-model User {
+  <div class="section-divider" id="s2"><span>2. Prisma Schema</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Learn these</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="chip-row">
+          <span class="chip">model</span>
+          <span class="chip">fields & types</span>
+          <span class="chip">@id</span>
+          <span class="chip">@default()</span>
+          <span class="chip">@unique</span>
+          <span class="chip">@updatedAt</span>
+          <span class="chip">@map</span>
+          <span class="chip">@@map</span>
+          <span class="chip">? optional</span>
+          <span class="chip">[] arrays</span>
+          <span class="chip">enums</span>
+          <span class="chip">relations</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Example</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema.prisma</span></div>
+          <pre><code>model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
-  passwordHash String   @map("password_hash")
-  roleId       Int      @map("role_id")
+  passwordHash String   @map(<span class="str">"password_hash"</span>)
+  roleId       Int      @map(<span class="str">"role_id"</span>)
   role         Role     @relation(fields: [roleId], references: [id])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-}
-```
+}</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>Mapping to PostgreSQL</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Prisma</th><th>PostgreSQL</th></tr>
+          <tr><td><code>model</code></td><td>table</td></tr>
+          <tr><td>field</td><td>column</td></tr>
+          <tr><td><code>@id</code></td><td>PRIMARY KEY</td></tr>
+          <tr><td><code>@unique</code></td><td>UNIQUE</td></tr>
+          <tr><td><code>@relation</code></td><td>FOREIGN KEY</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
 
-**Mapping to PostgreSQL concepts:**
-```text
-model        → table
-field        → column
-@id          → PRIMARY KEY
-@unique      → UNIQUE
-@relation    → FOREIGN KEY
-```
-
----
-
-## 3. PostgreSQL + Prisma
-
-### Type Mapping
-
-| Prisma Type | PostgreSQL Type |
-|---|---|
-| `String` | `text` / `varchar` |
-| `Int` | `integer` |
-| `BigInt` | `bigint` |
-| `Boolean` | `boolean` |
-| `DateTime` | `timestamp` |
-| `Decimal` | `numeric` |
-| `Json` | `jsonb` |
-| `Bytes` | `bytea` |
-| `Float` | `double precision` |
-
-### `String`
-Defaults to `text` unless a native type like `@db.VarChar(255)` is specified.
-
-### `Int` / `BigInt`
-`Int` = standard 32-bit integer. `BigInt` = 64-bit, used for high-volume IDs or large counters.
-
-### `Boolean`
-Maps directly to PostgreSQL's native `boolean`.
-
-### `DateTime`
-Maps to `timestamp` (or `timestamptz` for timezone-aware) — used for `createdAt`/`updatedAt`.
-
-### `Decimal`
-Used for precise values like money (avoids floating-point rounding errors). Maps to `numeric`; control digits with `@db.Decimal(precision, scale)`.
-
-### `Json`
-Stores structured JSON, mapped to `jsonb` (binary, indexable, queryable with Postgres JSON operators).
-
-### PostgreSQL Enums
-A Prisma `enum` creates a native PostgreSQL ENUM type — enforced at the database level, not just app-level:
-```prisma
-enum Role {
+  <div class="section-divider" id="s3"><span>3. PostgreSQL + Prisma</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Type mapping</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Prisma Type</th><th>PostgreSQL Type</th></tr>
+          <tr><td><code>String</code></td><td><code>text</code> / <code>varchar</code></td></tr>
+          <tr><td><code>Int</code></td><td><code>integer</code></td></tr>
+          <tr><td><code>BigInt</code></td><td><code>bigint</code></td></tr>
+          <tr><td><code>Boolean</code></td><td><code>boolean</code></td></tr>
+          <tr><td><code>DateTime</code></td><td><code>timestamp</code></td></tr>
+          <tr><td><code>Decimal</code></td><td><code>numeric</code></td></tr>
+          <tr><td><code>Json</code></td><td><code>jsonb</code></td></tr>
+          <tr><td><code>Bytes</code></td><td><code>bytea</code></td></tr>
+          <tr><td><code>Float</code></td><td><code>double precision</code></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Type details</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li><code>String</code> — defaults to <code>text</code> unless <code>@db.VarChar(255)</code> is specified.</li>
+          <li><code>Int</code> — 32-bit integer. <code>BigInt</code> — 64-bit, for high-volume IDs or large counters.</li>
+          <li><code>Boolean</code> — maps directly to PostgreSQL native <code>boolean</code>.</li>
+          <li><code>DateTime</code> — <code>timestamp</code> (or <code>timestamptz</code>) — used for <code>createdAt</code> / <code>updatedAt</code>.</li>
+          <li><code>Decimal</code> — precise values like money (avoids float rounding). Control with <code>@db.Decimal(precision, scale)</code>.</li>
+          <li><code>Json</code> — maps to <code>jsonb</code> (binary, indexable, queryable).</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>Enums, UUID, native overrides</h4></div>
+      <div class="card-sub-content">
+        <p>A Prisma <code>enum</code> creates a native PostgreSQL ENUM — enforced at the database level:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema.prisma</span></div>
+          <pre><code>enum Role {
   ADMIN
   USER
   GUEST
-}
-```
+}</code></pre>
+        </div>
+        <p>UUID as an alternative to auto-increment IDs:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema.prisma</span></div>
+          <pre><code>id String @id @default(uuid()) @db.Uuid</code></pre>
+        </div>
+        <table>
+          <tr><th>Attribute</th><th>Purpose</th></tr>
+          <tr><td><code>@db.VarChar(100)</code></td><td>Length-limited string column</td></tr>
+          <tr><td><code>@db.Decimal(10, 2)</code></td><td>Exact precision/scale (currency)</td></tr>
+          <tr><td><code>@db.Uuid</code></td><td>Native PostgreSQL <code>uuid</code> instead of text</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Keys, constraints, indexes</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Concept</th><th>How in Prisma</th></tr>
+          <tr><td>Primary key</td><td><code>@id</code> (single) or <code>@@id([...])</code> (composite)</td></tr>
+          <tr><td>Foreign key</td><td><code>@relation</code> — column referencing another table's PK</td></tr>
+          <tr><td>Unique</td><td><code>@unique</code> or <code>@@unique([...])</code></td></tr>
+          <tr><td>Index</td><td><code>@@index([...])</code> — speeds filtered/sorted columns</td></tr>
+          <tr><td>Composite index</td><td><code>@@index([firstName, lastName])</code></td></tr>
+        </table>
+        <div class="info-box box-note">📌 <code>NULL</code> in PostgreSQL = "no value." Mark a field <code>?</code> in Prisma to allow NULL. Without <code>?</code>, the column is <code>NOT NULL</code> — Prisma validates this before the query reaches the database.</div>
+      </div>
+    </div>
+  </div>
 
-### PostgreSQL UUID
-Alternative to auto-increment IDs, common in distributed systems:
-```prisma
-id String @id @default(uuid()) @db.Uuid
-```
-
-### `@db.VarChar`
-Overrides default mapping for a length-limited string column, e.g. `@db.VarChar(100)`.
-
-### `@db.Decimal`
-Specifies exact precision/scale, e.g. `@db.Decimal(10, 2)` for currency.
-
-### `@db.Uuid`
-Forces the column to use PostgreSQL's native `uuid` type instead of text.
-
-### Primary Keys
-Uniquely identifies each row — declared via `@id` (single) or `@@id([...])` (composite).
-
-### Foreign Keys
-A column referencing another table's primary key, enforcing referential integrity — created via `@relation`.
-
-### Unique Constraints
-Prevent duplicates in a column (`@unique`) or column combination (`@@unique([...])`).
-
-### Indexes
-Speed up queries on frequently filtered/sorted columns — declared via `@@index([...])`.
-
-### Composite Indexes
-An index spanning multiple columns:
-```prisma
-@@index([firstName, lastName])
-```
-
-### NULL vs Optional Prisma Fields
-`NULL` in PostgreSQL means "no value." Marking a field `?` in Prisma is what allows `NULL` — without it, the column is `NOT NULL`, validated by Prisma before the query even reaches the database.
-
----
-
-## 4. Prisma Client — Core CRUD ⭐⭐⭐ Very Important
-
-### Create
-```ts
-const user = await prisma.user.create({
+  <div class="section-divider" id="s4"><span>4. Prisma Client — Core CRUD</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Create</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">create</span></div>
+          <pre><code><span class="kw">const</span> user = <span class="kw">await</span> prisma.user.<span class="fn">create</span>({
   data: {
-    email: "test@example.com",
-    passwordHash: "hashed_pw",
-    roleId: 1,
+    email: <span class="str">"test@example.com"</span>,
+    passwordHash: <span class="str">"hashed_pw"</span>,
+    roleId: <span class="num">1</span>,
   },
-});
-```
-Inserts a new row and returns the created record (all fields, by default).
-
-### Read
-```ts
-prisma.user.findUnique({ where: { id: 1 } });
-prisma.user.findUniqueOrThrow({ where: { id: 1 } }); // throws P2025 if not found, instead of returning null
-prisma.user.findFirst({ where: { email: { contains: "gmail" } } });
-prisma.user.findFirstOrThrow({ where: { roleId: 2 } });
-prisma.user.findMany();
-```
-- `findUnique` requires a unique field (`id`, `email`, or a `@@unique` combo) in `where`.
-- `findFirst` allows any filter (even non-unique), returns the first match or `null`.
-- `findMany` returns an array — all rows if no filter given.
-- The `OrThrow` variants are useful in APIs where a missing record should immediately raise an error instead of requiring a manual `null` check.
-
-### Update
-```ts
-prisma.user.update({ where: { id: 1 }, data: { email: "new@example.com" } });
-prisma.user.updateMany({ where: { roleId: 2 }, data: { roleId: 3 } });
-```
-- `update` modifies exactly one record (needs a unique field in `where`); throws `P2025` if no matching record exists.
-- `updateMany` modifies all matches, returns only `{ count: number }`, not the updated records.
-
-**Atomic numeric updates** (avoids race conditions in concurrent updates):
-```ts
-prisma.user.update({
-  where: { id: 1 },
-  data: { loginCount: { increment: 1 } },
-});
-```
-Other operators: `decrement`, `multiply`, `divide`, `set`.
-
-### Delete
-```ts
-prisma.user.delete({ where: { id: 1 } });
-prisma.user.deleteMany({ where: { roleId: 2 } });
-```
-- `delete` removes a single record by unique identifier; throws `P2025` if not found.
-- `deleteMany` removes all matching records, returns a count.
-
-### Upsert ⭐ (commonly used, often missed)
-Creates a record if it doesn't exist, or updates it if it does — a single atomic "insert or update" operation:
-```ts
-prisma.user.upsert({
-  where: { email: "test@example.com" },
-  update: { lastLoginAt: new Date() },
+});</code></pre>
+        </div>
+        <p>Inserts a new row and returns the created record (all fields, by default).</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Read</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">read</span></div>
+          <pre><code>prisma.user.<span class="fn">findUnique</span>({ where: { id: <span class="num">1</span> } });
+prisma.user.<span class="fn">findUniqueOrThrow</span>({ where: { id: <span class="num">1</span> } }); <span class="cmt">// throws P2025 if not found</span>
+prisma.user.<span class="fn">findFirst</span>({ where: { email: { contains: <span class="str">"gmail"</span> } } });
+prisma.user.<span class="fn">findFirstOrThrow</span>({ where: { roleId: <span class="num">2</span> } });
+prisma.user.<span class="fn">findMany</span>();</code></pre>
+        </div>
+        <ul>
+          <li><code>findUnique</code> — needs a unique field (<code>id</code>, <code>email</code>, or <code>@@unique</code>) in <code>where</code>.</li>
+          <li><code>findFirst</code> — any filter, first match or <code>null</code>.</li>
+          <li><code>findMany</code> — returns an array (all rows if no filter).</li>
+          <li><code>OrThrow</code> — missing record raises an error instead of a manual <code>null</code> check.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>Update</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">update</span></div>
+          <pre><code>prisma.user.<span class="fn">update</span>({ where: { id: <span class="num">1</span> }, data: { email: <span class="str">"new@example.com"</span> } });
+prisma.user.<span class="fn">updateMany</span>({ where: { roleId: <span class="num">2</span> }, data: { roleId: <span class="num">3</span> } });</code></pre>
+        </div>
+        <ul>
+          <li><code>update</code> — exactly one record (unique <code>where</code>); throws <code>P2025</code> if missing.</li>
+          <li><code>updateMany</code> — all matches; returns only <code>{ count }</code>, not the records.</li>
+        </ul>
+        <p><strong>Atomic numeric updates</strong> (avoids race conditions):</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">increment</span></div>
+          <pre><code>prisma.user.<span class="fn">update</span>({
+  where: { id: <span class="num">1</span> },
+  data: { loginCount: { increment: <span class="num">1</span> } },
+});</code></pre>
+        </div>
+        <p>Other operators: <code>decrement</code>, <code>multiply</code>, <code>divide</code>, <code>set</code>.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Delete</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">delete</span></div>
+          <pre><code>prisma.user.<span class="fn">delete</span>({ where: { id: <span class="num">1</span> } });
+prisma.user.<span class="fn">deleteMany</span>({ where: { roleId: <span class="num">2</span> } });</code></pre>
+        </div>
+        <ul>
+          <li><code>delete</code> — one record by unique id; throws <code>P2025</code> if not found.</li>
+          <li><code>deleteMany</code> — all matches; returns a count.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>Upsert</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Creates a record if it doesn't exist, or updates it if it does — one atomic insert-or-update:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">upsert</span></div>
+          <pre><code>prisma.user.<span class="fn">upsert</span>({
+  where: { email: <span class="str">"test@example.com"</span> },
+  update: { lastLoginAt: <span class="kw">new</span> <span class="fn">Date</span>() },
   create: {
-    email: "test@example.com",
-    passwordHash: "hashed_pw",
-    roleId: 1,
+    email: <span class="str">"test@example.com"</span>,
+    passwordHash: <span class="str">"hashed_pw"</span>,
+    roleId: <span class="num">1</span>,
   },
-});
-```
-Very common for things like "sync external user on login" or "create settings row if missing."
+});</code></pre>
+        </div>
+        <div class="info-box box-tip">💡 Common for "sync external user on login" or "create settings row if missing."</div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Query modifiers</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Modifier</th><th>What it does</th></tr>
+          <tr><td><code>where</code></td><td>Filters records by conditions</td></tr>
+          <tr><td><code>select</code></td><td>Returns only specified fields (smaller payload, hide secrets)</td></tr>
+          <tr><td><code>include</code></td><td>Fetches related data (like a JOIN)</td></tr>
+          <tr><td><code>orderBy</code></td><td>Sorts results (single or multi-field)</td></tr>
+          <tr><td><code>skip</code></td><td>Skips N records (offset pagination)</td></tr>
+          <tr><td><code>take</code></td><td>Limits records (SQL <code>LIMIT</code>); negative takes from the end</td></tr>
+          <tr><td><code>distinct</code></td><td>Removes duplicates on specified fields</td></tr>
+        </table>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">modifiers</span></div>
+          <pre><code>prisma.user.<span class="fn">findMany</span>({ select: { id: <span class="kw">true</span>, email: <span class="kw">true</span> } });
+prisma.user.<span class="fn">findMany</span>({ include: { role: <span class="kw">true</span> } });
+prisma.user.<span class="fn">findMany</span>({ orderBy: { createdAt: <span class="str">"desc"</span> } });
+prisma.user.<span class="fn">findMany</span>({ orderBy: [{ roleId: <span class="str">"asc"</span> }, { createdAt: <span class="str">"desc"</span> }] });
+prisma.user.<span class="fn">findMany</span>({ distinct: [<span class="str">"roleId"</span>] });</code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ <code>select</code> and <code>include</code> cannot be used together at the same level. Nest <code>select</code> inside <code>include</code> to shape relation fields.</div>
+      </div>
+    </div>
+  </div>
 
-### Query Modifiers
+  <div class="section-divider" id="s5"><span>5. Aggregations & Grouping</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>count</h4><span class="stars">★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">count</span></div>
+          <pre><code><span class="kw">const</span> total = <span class="kw">await</span> prisma.user.<span class="fn">count</span>({ where: { roleId: <span class="num">1</span> } });
 
-**`where`** — filters records by conditions.
-
-**`select`** — returns only specified fields, reducing payload size and avoiding leaking sensitive columns:
-```ts
-prisma.user.findMany({ select: { id: true, email: true } });
-```
-
-**`include`** — fetches related data (like a JOIN):
-```ts
-prisma.user.findMany({ include: { role: true } });
-```
-Note: `select` and `include` cannot be used together at the same level — use nested `select` inside `include` if you need to shape relation fields too.
-
-**`orderBy`** — sorts results:
-```ts
-prisma.user.findMany({ orderBy: { createdAt: "desc" } });
-prisma.user.findMany({ orderBy: [{ roleId: "asc" }, { createdAt: "desc" }] }); // multi-field sort
-```
-
-**`skip`** — skips N records (offset pagination).
-
-**`take`** — limits number of records returned (like SQL `LIMIT`); negative values take from the end.
-
-**`distinct`** — removes duplicates based on specified fields:
-```ts
-prisma.user.findMany({ distinct: ["roleId"] });
-```
-
----
-
-## 5. Aggregations & Grouping ⭐⭐ Commonly Used (often missing from basic notes)
-
-### `count`
-Counts matching records:
-```ts
-const total = await prisma.user.count({ where: { roleId: 1 } });
-```
-Can also count specific relation fields via `select`:
-```ts
-prisma.user.count({ select: { _all: true, email: true } });
-```
-
-### `aggregate`
-Runs multiple aggregate functions (`_sum`, `_avg`, `_min`, `_max`, `_count`) in one query:
-```ts
-const stats = await prisma.order.aggregate({
-  where: { userId: 1 },
-  _sum: { amount: true },
-  _avg: { amount: true },
-  _min: { amount: true },
-  _max: { amount: true },
-  _count: true,
-});
-```
-
-### `groupBy`
-Groups records by one or more fields and applies aggregates per group — equivalent to SQL `GROUP BY`:
-```ts
-const results = await prisma.order.groupBy({
-  by: ["userId"],
-  _sum: { amount: true },
-  _count: true,
+prisma.user.<span class="fn">count</span>({ select: { _all: <span class="kw">true</span>, email: <span class="kw">true</span> } });</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>aggregate</h4></div>
+      <div class="card-sub-content">
+        <p>Runs <code>_sum</code>, <code>_avg</code>, <code>_min</code>, <code>_max</code>, <code>_count</code> in one query:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">aggregate</span></div>
+          <pre><code><span class="kw">const</span> stats = <span class="kw">await</span> prisma.order.<span class="fn">aggregate</span>({
+  where: { userId: <span class="num">1</span> },
+  _sum: { amount: <span class="kw">true</span> },
+  _avg: { amount: <span class="kw">true</span> },
+  _min: { amount: <span class="kw">true</span> },
+  _max: { amount: <span class="kw">true</span> },
+  _count: <span class="kw">true</span>,
+});</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>groupBy</h4></div>
+      <div class="card-sub-content">
+        <p>Groups records and applies aggregates per group — SQL <code>GROUP BY</code>:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">groupBy</span></div>
+          <pre><code><span class="kw">const</span> results = <span class="kw">await</span> prisma.order.<span class="fn">groupBy</span>({
+  by: [<span class="str">"userId"</span>],
+  _sum: { amount: <span class="kw">true</span> },
+  _count: <span class="kw">true</span>,
   having: {
-    amount: { _sum: { gt: 1000 } }, // like SQL HAVING
+    amount: { _sum: { gt: <span class="num">1000</span> } }, <span class="cmt">// like SQL HAVING</span>
   },
-  orderBy: { userId: "asc" },
-});
-```
-Useful for reports like "total spend per user" or "count of users per role."
+  orderBy: { userId: <span class="str">"asc"</span> },
+});</code></pre>
+        </div>
+        <div class="info-box box-note">📌 Useful for reports like "total spend per user" or "count of users per role."</div>
+      </div>
+    </div>
+  </div>
 
----
+  <div class="info-box box-tip">📌 End of Doc 1. Doc 2 covers Relations, Relation Queries, Filtering, Transactions, Constraints & Indexes, Raw Queries, Error Handling, Pagination, and Prisma Client Configuration.</div>
 
-*End of Doc 1. Doc 2 covers Relations, Relation Queries, Filtering, Transactions, Constraints & Indexes, Raw Queries, Error Handling, Pagination, and Prisma Client Configuration — the remaining regularly-used functionality.*
+  <footer>Notes — Prisma Fundamentals</footer>
+</div>
+</body>
+</html>

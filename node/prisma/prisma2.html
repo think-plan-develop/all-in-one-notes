@@ -1,21 +1,184 @@
-# Prisma Complete Tutorial — Doc 2 (Detailed)
-### Relations, Relation Queries, Filtering, Transactions, Constraints, Raw Queries, Error Handling, Pagination, Client Configuration
-*(Migrations and Seeding intentionally excluded)*
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — Prisma Fundamentals · Doc 2</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1140px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
 
----
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:26px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.55; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
 
-## 6. Relations ⭐⭐⭐ Very Important
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
 
-For your RBAC project, understand:
-```text
-Role 1 ──────── N User
-```
-One Role can be assigned to many Users, but each User has only one Role (in a simple RBAC setup).
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; }
+.cmt { color:#64748b; font-style:italic; } .num { color:#fdba74; }
 
-### One-to-One
-Each record in Table A relates to exactly one record in Table B, and vice versa. Example: `User` and `Profile`.
-```prisma
-model User {
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:14.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-tip { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-note { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a; border-color:#93c5fd; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:16px 18px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.04);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box.blue { border-left:5px solid #2563eb; background:linear-gradient(135deg,#fff,#eff6ff); }
+.compare-box.purple { border-left:5px solid #7c3aed; background:linear-gradient(135deg,#fff,#f5f3ff); }
+.compare-box.amber { border-left:5px solid #f59e0b; background:linear-gradient(135deg,#fff,#fffbeb); }
+.compare-box h4 { font-size:14px; margin-bottom:8px; font-weight:800; }
+.compare-box.good h4 { color:#047857; }
+.compare-box.blue h4 { color:#1e40af; }
+.compare-box.purple h4 { color:#5b21b6; }
+.compare-box.amber h4 { color:#b45309; }
+.compare-box p { margin:0; font-size:0.88rem; line-height:1.75; color:#334155; }
+
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.card-sub-title .stars { margin-left:auto; color:#f59e0b; font-size:13px; letter-spacing:1px; }
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content ul { margin:6px 0 10px 18px; }
+.card-sub-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; margin-bottom:4px; }
+
+.tree {
+  background:#0f172a; border-radius:12px; padding:16px 20px; margin:12px 0;
+  font-family:'Fira Code',Consolas,monospace; font-size:13px; color:#e2e8f0; line-height:1.7;
+  white-space: pre; text-align:center;
+}
+
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb); color:#fff;
+  font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td {
+  padding:10px 14px; font-size:14px; font-weight:600; border:none;
+  color:#1e3a8a; background:#eff6ff;
+}
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a; padding:2px 6px;
+  border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — Prisma Fundamentals · Doc 2</h1>
+    <p>Relations · Relation queries · Filtering · Transactions · Constraints · Raw queries · Errors · Pagination · Client config<br>
+    <span style="opacity:.85;font-size:13px;">Migrations and seeding excluded</span></p>
+    <div class="toc">
+      <a href="#s6">Relations</a>
+      <a href="#s7">Relation queries</a>
+      <a href="#s8">Filtering</a>
+      <a href="#s9">Transactions</a>
+      <a href="#s10">Constraints</a>
+      <a href="#s11">Raw queries</a>
+      <a href="#s12">Errors</a>
+      <a href="#s13">Pagination</a>
+      <a href="#s14">Client config</a>
+      <a href="#s15">Security</a>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="section-divider" id="s6"><span>6. Relations</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>RBAC mental model</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="tree">Role  1  ────────  N  User</div>
+        <p>One Role can be assigned to many Users. Each User has only one Role (simple RBAC).</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>One-to-One</h4></div>
+      <div class="card-sub-content">
+        <p>Each record in A relates to exactly one in B, and vice versa. Example: User and Profile. <code>@unique</code> on the FK enforces one-to-one.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema.prisma</span></div>
+          <pre><code>model User {
   id      Int      @id @default(autoincrement())
   profile Profile?
 }
@@ -24,14 +187,18 @@ model Profile {
   id     Int  @id @default(autoincrement())
   userId Int  @unique
   user   User @relation(fields: [userId], references: [id])
-}
-```
-The `@unique` on the foreign key enforces one-to-one instead of one-to-many.
+}</code></pre>
+        </div>
+      </div>
+    </div>
 
-### One-to-Many
-One record in Table A relates to many in Table B. Example: one `Role` has many `Users`.
-```prisma
-model Role {
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>One-to-Many</h4></div>
+      <div class="card-sub-content">
+        <p>One record in A relates to many in B. Example: one Role has many Users.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema.prisma</span></div>
+          <pre><code>model Role {
   id    Int    @id @default(autoincrement())
   users User[]
 }
@@ -40,13 +207,18 @@ model User {
   id     Int  @id @default(autoincrement())
   roleId Int
   role   Role @relation(fields: [roleId], references: [id])
-}
-```
+}</code></pre>
+        </div>
+      </div>
+    </div>
 
-### Many-to-Many
-Records in both tables can relate to multiple records in the other. Example: `User` and `Permission`.
-```prisma
-model User {
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Many-to-Many</h4></div>
+      <div class="card-sub-content">
+        <p>Records in both tables can relate to multiple records in the other. Prisma auto-creates a hidden join table for implicit M:N.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">implicit</span></div>
+          <pre><code>model User {
   id          Int          @id @default(autoincrement())
   permissions Permission[]
 }
@@ -54,461 +226,447 @@ model User {
 model Permission {
   id    Int    @id @default(autoincrement())
   users User[]
-}
-```
-Prisma auto-creates a hidden join table for implicit many-to-many relations. Use an **explicit join model** if you need extra fields on the relationship itself:
-```prisma
-model UserPermission {
+}</code></pre>
+        </div>
+        <p>Use an <strong>explicit join model</strong> if you need extra fields on the relationship:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">explicit join</span></div>
+          <pre><code>model UserPermission {
   userId       Int
   permissionId Int
   assignedAt   DateTime @default(now())
   user         User       @relation(fields: [userId], references: [id])
   permission   Permission @relation(fields: [permissionId], references: [id])
   @@id([userId, permissionId])
-}
-```
+}</code></pre>
+        </div>
+      </div>
+    </div>
 
-### Self-Relations
-A model relating to itself — common for hierarchies (e.g., a `Role` with a `parentRole`):
-```prisma
-model Role {
-  id           Int    @id @default(autoincrement())
-  name         String
-  parentId     Int?
-  parent       Role?  @relation("RoleHierarchy", fields: [parentId], references: [id])
-  children     Role[] @relation("RoleHierarchy")
-}
-```
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>Self-relations</h4></div>
+      <div class="card-sub-content">
+        <p>A model relating to itself — hierarchies (e.g. Role with parentRole):</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema.prisma</span></div>
+          <pre><code>model Role {
+  id       Int    @id @default(autoincrement())
+  name     String
+  parentId Int?
+  parent   Role?  @relation(<span class="str">"RoleHierarchy"</span>, fields: [parentId], references: [id])
+  children Role[] @relation(<span class="str">"RoleHierarchy"</span>)
+}</code></pre>
+        </div>
+      </div>
+    </div>
 
-### Foreign Keys
-The column storing a reference to another table's primary key — e.g., `roleId` referencing `Role.id`.
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Foreign keys vs relation fields</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box blue">
+            <h4>Foreign key</h4>
+            <p>The column storing a reference to another table's PK — e.g. <code>roleId</code> → <code>Role.id</code>.</p>
+          </div>
+          <div class="compare-box purple">
+            <h4>Relation field</h4>
+            <p>The virtual field for the related object — e.g. <code>role Role @relation(...)</code> — enables <code>user.role.name</code>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-### Relation Fields
-The "virtual" field representing the related object (not the raw FK column), e.g. `role Role @relation(...)` — enables `user.role.name` in code.
-
-### `include`
-Eagerly loads related data (like a SQL JOIN):
-```ts
-const user = await prisma.user.findUnique({
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>include · nested create / update · connectOrCreate</h4></div>
+      <div class="card-sub-content">
+        <p><code>include</code> eagerly loads related data (like a SQL JOIN):</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">include</span></div>
+          <pre><code><span class="kw">const</span> user = <span class="kw">await</span> prisma.user.<span class="fn">findUnique</span>({
   where: { id: userId },
-  include: { role: true },
-});
-```
+  include: { role: <span class="kw">true</span> },
+});</code></pre>
+        </div>
+        <p>Nested filter / create / update:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">nested</span></div>
+          <pre><code>prisma.user.<span class="fn">findMany</span>({ where: { role: { name: <span class="str">"ADMIN"</span> } } });
 
-### Nested Queries (Filtering by Relations)
-```ts
-prisma.user.findMany({
-  where: { role: { name: "ADMIN" } },
-});
-```
-
-### Nested Create
-Creating a record and linking/creating related data in one call:
-```ts
-prisma.user.create({
+prisma.user.<span class="fn">create</span>({
   data: {
-    email: "test@example.com",
-    role: { connect: { id: 1 } }, // link an existing role
+    email: <span class="str">"test@example.com"</span>,
+    role: { connect: { id: <span class="num">1</span> } }, <span class="cmt">// link existing</span>
   },
 });
 
-prisma.user.create({
+prisma.user.<span class="fn">create</span>({
   data: {
-    email: "test@example.com",
-    role: { create: { name: "GUEST" } }, // create a new related role at the same time
+    email: <span class="str">"test@example.com"</span>,
+    role: { create: { name: <span class="str">"GUEST"</span> } }, <span class="cmt">// create related at same time</span>
   },
 });
-```
 
-### Nested Update
-```ts
-prisma.user.update({
-  where: { id: 1 },
-  data: { role: { connect: { id: 2 } } }, // reassign to different existing role
-});
-```
-
-### `connectOrCreate`
-Connects to an existing related record if it exists, otherwise creates it — very useful to avoid a manual "find or create" round trip:
-```ts
-prisma.user.create({
+prisma.user.<span class="fn">update</span>({
+  where: { id: <span class="num">1</span> },
+  data: { role: { connect: { id: <span class="num">2</span> } } },
+});</code></pre>
+        </div>
+        <p><code>connectOrCreate</code> — connect if exists, otherwise create (avoids a find-or-create round trip):</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">connectOrCreate</span></div>
+          <pre><code>prisma.user.<span class="fn">create</span>({
   data: {
-    email: "test@example.com",
+    email: <span class="str">"test@example.com"</span>,
     role: {
       connectOrCreate: {
-        where: { name: "GUEST" },
-        create: { name: "GUEST" },
+        where: { name: <span class="str">"GUEST"</span> },
+        create: { name: <span class="str">"GUEST"</span> },
       },
     },
   },
+});</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>disconnect / set</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li><code>disconnect</code> — removes a relation link without deleting the related record.</li>
+          <li><code>set</code> — replaces an entire many-to-many list with a new set.</li>
+        </ul>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">disconnect / set</span></div>
+          <pre><code>prisma.user.<span class="fn">update</span>({ where: { id: <span class="num">1</span> }, data: { role: { disconnect: <span class="kw">true</span> } } });
+
+prisma.user.<span class="fn">update</span>({
+  where: { id: <span class="num">1</span> },
+  data: { permissions: { set: [{ id: <span class="num">2</span> }, { id: <span class="num">3</span> }] } },
+});</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="section-divider" id="s7"><span>7. Relation Queries</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Filter, nest, count, paginate nested</h4><span class="stars">★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">relation queries</span></div>
+          <pre><code>prisma.user.<span class="fn">findMany</span>({ where: { role: { name: <span class="str">"ADMIN"</span> } } });
+
+prisma.role.<span class="fn">findMany</span>({
+  where: { users: { some: { email: { contains: <span class="str">"gmail"</span> } } } }, <span class="cmt">// at least one</span>
 });
-```
-
-### `disconnect` / `set`
-- **`disconnect`** — removes a relation link without deleting the related record:
-```ts
-prisma.user.update({ where: { id: 1 }, data: { role: { disconnect: true } } });
-```
-- **`set`** — replaces an entire many-to-many relation list with a new set:
-```ts
-prisma.user.update({
-  where: { id: 1 },
-  data: { permissions: { set: [{ id: 2 }, { id: 3 }] } },
+prisma.role.<span class="fn">findMany</span>({
+  where: { users: { none: { roleId: <span class="num">3</span> } } }, <span class="cmt">// no match</span>
 });
-```
-
----
-
-## 7. Relation Queries ⭐⭐ Frequently Used
-
-**Filter by a related record's field:**
-```ts
-prisma.user.findMany({ where: { role: { name: "ADMIN" } } });
-```
-
-**Filter by relation existence — `some`, `every`, `none`** (for one-to-many/many-to-many):
-```ts
-prisma.role.findMany({
-  where: { users: { some: { email: { contains: "gmail" } } } }, // at least one match
+prisma.role.<span class="fn">findMany</span>({
+  where: { users: { every: { isActive: <span class="kw">true</span> } } }, <span class="cmt">// all match</span>
 });
 
-prisma.role.findMany({
-  where: { users: { none: { roleId: 3 } } }, // no matching related record
+prisma.user.<span class="fn">findMany</span>({
+  include: { role: { include: { permissions: <span class="kw">true</span> } } },
 });
 
-prisma.role.findMany({
-  where: { users: { every: { isActive: true } } }, // all related users match
+prisma.user.<span class="fn">findMany</span>({
+  select: { email: <span class="kw">true</span>, role: { select: { name: <span class="kw">true</span> } } },
 });
-```
 
-**Fetch deep/nested relations:**
-```ts
-prisma.user.findMany({
-  include: {
-    role: { include: { permissions: true } },
-  },
+prisma.user.<span class="fn">findMany</span>({ orderBy: { role: { name: <span class="str">"asc"</span> } } });
+
+prisma.role.<span class="fn">findMany</span>({
+  include: { _count: { select: { users: <span class="kw">true</span> } } },
 });
-```
 
-**Select specific fields from a relation:**
-```ts
-prisma.user.findMany({
-  select: {
-    email: true,
-    role: { select: { name: true } },
-  },
-});
-```
+prisma.role.<span class="fn">findMany</span>({
+  include: { users: { take: <span class="num">5</span>, orderBy: { createdAt: <span class="str">"desc"</span> } } },
+});</code></pre>
+        </div>
+        <p><code>some</code> / <code>every</code> / <code>none</code> apply to one-to-many and many-to-many. <code>_count.users</code> returns a count field per role.</p>
+      </div>
+    </div>
+  </div>
 
-**Order by a relation's field** (e.g., sort users by their role's name):
-```ts
-prisma.user.findMany({
-  orderBy: { role: { name: "asc" } },
-});
-```
-
-**Count related records:**
-```ts
-prisma.role.findMany({
-  include: { _count: { select: { users: true } } },
-});
-```
-Returns each role with a `_count.users` field.
-
-**Paginate/limit nested relations directly:**
-```ts
-prisma.role.findMany({
-  include: {
-    users: { take: 5, orderBy: { createdAt: "desc" } }, // only 5 most recent users per role
-  },
-});
-```
-
----
-
-## 8. Filtering & Querying
-
-```ts
-where: {
-  email: { contains: "gmail" },
-}
-```
-
-### String Filters
-- **`equals`** — exact match.
-- **`contains`** — substring match.
-- **`startsWith`** / **`endsWith`** — prefix/suffix match.
-- **`mode: "insensitive"`** — case-insensitive matching (PostgreSQL-supported):
-```ts
-where: { email: { contains: "GMAIL", mode: "insensitive" } }
-```
-
-### List Filters
-- **`in`** — value is in the given array.
-- **`notIn`** — value is not in the given array.
-
-### Comparison Filters
-- **`gt`**, **`gte`**, **`lt`**, **`lte`** — greater/less than (or equal).
-
-### Logical Operators
-- **`AND`**, **`OR`**, **`NOT`**.
-
-**Combined example:**
-```ts
-prisma.user.findMany({
+  <!-- 8 -->
+  <div class="section-divider" id="s8"><span>8. Filtering & Querying</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>String, list, comparison, logical</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Kind</th><th>Operators</th></tr>
+          <tr><td>String</td><td><code>equals</code> · <code>contains</code> · <code>startsWith</code> · <code>endsWith</code> · <code>mode: "insensitive"</code></td></tr>
+          <tr><td>List</td><td><code>in</code> · <code>notIn</code></td></tr>
+          <tr><td>Comparison</td><td><code>gt</code> · <code>gte</code> · <code>lt</code> · <code>lte</code></td></tr>
+          <tr><td>Logical</td><td><code>AND</code> · <code>OR</code> · <code>NOT</code></td></tr>
+        </table>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">filters</span></div>
+          <pre><code>prisma.user.<span class="fn">findMany</span>({
   where: {
     AND: [
-      { email: { contains: "gmail" } },
-      { roleId: { in: [1, 2] } },
+      { email: { contains: <span class="str">"gmail"</span> } },
+      { roleId: { in: [<span class="num">1</span>, <span class="num">2</span>] } },
     ],
-    NOT: { email: { startsWith: "test" } },
+    NOT: { email: { startsWith: <span class="str">"test"</span> } },
   },
 });
-```
 
-### Filtering `Json` Fields
-```ts
-prisma.user.findMany({
-  where: { metadata: { path: ["theme"], equals: "dark" } },
+<span class="cmt">// case-insensitive (PostgreSQL)</span>
+where: { email: { contains: <span class="str">"GMAIL"</span>, mode: <span class="str">"insensitive"</span> } }
+
+<span class="cmt">// JSON path</span>
+prisma.user.<span class="fn">findMany</span>({
+  where: { metadata: { path: [<span class="str">"theme"</span>], equals: <span class="str">"dark"</span> } },
 });
-```
 
-### Filtering by `null`
-```ts
-prisma.user.findMany({ where: { deletedAt: null } });
-prisma.user.findMany({ where: { deletedAt: { not: null } } });
-```
+<span class="cmt">// null</span>
+prisma.user.<span class="fn">findMany</span>({ where: { deletedAt: <span class="kw">null</span> } });
+prisma.user.<span class="fn">findMany</span>({ where: { deletedAt: { not: <span class="kw">null</span> } } });</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
 
----
-
-## 9. Transactions ⭐⭐⭐ Important
-
-Ensures a group of operations either all succeed or all fail — critical for data consistency.
-
-```ts
-prisma.$transaction()
-```
-
-### Sequential Transaction
-Runs an array of independent queries atomically:
-```ts
-await prisma.$transaction([
-  prisma.user.create({ data: { email: "a@b.com" } }),
-  prisma.auditLog.create({ data: { action: "USER_CREATED" } }),
+  <!-- 9 -->
+  <div class="section-divider" id="s9"><span>9. Transactions</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>All succeed or all fail</h4><span class="stars">★★★★★</span></div>
+      <div class="card-sub-content">
+        <p>Critical for data consistency. API: <code>prisma.$transaction()</code></p>
+        <div class="compare">
+          <div class="compare-box blue">
+            <h4>Sequential</h4>
+            <p>Array of independent queries, atomically. Use when operations don't depend on each other's results.</p>
+          </div>
+          <div class="compare-box purple">
+            <h4>Interactive</h4>
+            <p>Callback with <code>tx</code>. Use when a later query needs data (like an ID) from an earlier query.</p>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">transactions</span></div>
+          <pre><code><span class="kw">await</span> prisma.<span class="fn">$transaction</span>([
+  prisma.user.<span class="fn">create</span>({ data: { email: <span class="str">"a@b.com"</span> } }),
+  prisma.auditLog.<span class="fn">create</span>({ data: { action: <span class="str">"USER_CREATED"</span> } }),
 ]);
-```
-Use when operations don't depend on each other's results.
 
-### Interactive Transaction
-Gives a callback with a transaction client (`tx`) for dependent operations:
-```ts
-await prisma.$transaction(async (tx) => {
-  const user = await tx.user.create({ data: { email: "a@b.com" } });
-  await tx.auditLog.create({
-    data: { userId: user.id, action: "USER_CREATED" },
+<span class="kw">await</span> prisma.<span class="fn">$transaction</span>(<span class="kw">async</span> (tx) => {
+  <span class="kw">const</span> user = <span class="kw">await</span> tx.user.<span class="fn">create</span>({ data: { email: <span class="str">"a@b.com"</span> } });
+  <span class="kw">await</span> tx.auditLog.<span class="fn">create</span>({
+    data: { userId: user.id, action: <span class="str">"USER_CREATED"</span> },
   });
 });
-```
-Use when a later query needs data (like an ID) from an earlier query in the same transaction.
 
-### Timeout & Isolation Options
-```ts
-await prisma.$transaction(async (tx) => { /* ... */ }, {
-  maxWait: 5000,   // max time to wait for a connection
-  timeout: 10000,  // max time the transaction can run
-  isolationLevel: "Serializable", // strictest isolation level
-});
-```
+<span class="kw">await</span> prisma.<span class="fn">$transaction</span>(<span class="kw">async</span> (tx) => { <span class="cmt">/* ... */</span> }, {
+  maxWait: <span class="num">5000</span>,
+  timeout: <span class="num">10000</span>,
+  isolationLevel: <span class="str">"Serializable"</span>,
+});</code></pre>
+        </div>
+        <ul>
+          <li><strong>Atomicity</strong> — all-or-nothing.</li>
+          <li><strong>Commit</strong> — save once every step succeeds.</li>
+          <li><strong>Rollback</strong> — undo all if any step fails.</li>
+          <li><strong>Isolation</strong> — PostgreSQL default is <code>Read Committed</code>.</li>
+          <li><strong>When</strong> — money transfers, user + audit log, inventory + order — any multi-write needing consistency.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 
-### Key Concepts
-- **Atomicity** — all-or-nothing guarantee.
-- **Commit** — permanently saving changes once every step succeeds.
-- **Rollback** — undoing all changes if any step fails.
-- **Transaction Isolation** — controls how concurrent transactions see each other's changes; PostgreSQL defaults to `Read Committed`.
-- **When Necessary** — money transfers, user creation + audit log, inventory update + order creation — any multi-write operation needing consistency.
-
----
-
-## 10. Constraints & Indexes
-
-```prisma
-@unique     → single-column UNIQUE constraint
-@@unique    → multi-column (composite) UNIQUE constraint
-@@index     → database index for performance (not a constraint)
-@id         → single-column PRIMARY KEY
-@@id        → multi-column (composite) PRIMARY KEY
-```
-
-**Composite unique constraint:**
-```prisma
-model Enrollment {
+  <!-- 10 -->
+  <div class="section-divider" id="s10"><span>10. Constraints & Indexes</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Attributes</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Attribute</th><th>Meaning</th></tr>
+          <tr><td><code>@unique</code></td><td>Single-column UNIQUE</td></tr>
+          <tr><td><code>@@unique</code></td><td>Multi-column (composite) UNIQUE</td></tr>
+          <tr><td><code>@@index</code></td><td>Index for performance (not a constraint)</td></tr>
+          <tr><td><code>@id</code></td><td>Single-column PRIMARY KEY</td></tr>
+          <tr><td><code>@@id</code></td><td>Multi-column (composite) PRIMARY KEY</td></tr>
+        </table>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema.prisma</span></div>
+          <pre><code>model Enrollment {
   studentId Int
   courseId  Int
   @@unique([studentId, courseId])
 }
-```
 
-**Composite primary key:**
-```prisma
 model RolePermission {
   roleId       Int
   permissionId Int
   @@id([roleId, permissionId])
-}
-```
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
 
----
+  <!-- 11 -->
+  <div class="section-divider" id="s11"><span>11. Raw Queries</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Escape hatches</h4></div>
+      <div class="card-sub-content">
+        <p>Use when Prisma's API can't express something (complex joins, window functions, CTEs).</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">raw</span></div>
+          <pre><code><span class="kw">const</span> users = <span class="kw">await</span> prisma.<span class="fn">$queryRaw</span><span class="str">`SELECT * FROM "User" WHERE email = ${email}`</span>;
 
-## 11. Raw Queries (Escape Hatches) ⭐ Good to Know
+<span class="kw">await</span> prisma.<span class="fn">$executeRaw</span><span class="str">`UPDATE "User" SET "roleId" = ${2} WHERE "id" = ${1}`</span>;</code></pre>
+        </div>
+        <ul>
+          <li><code>$queryRaw</code> — typed rows; tagged templates are safe from SQL injection.</li>
+          <li><code>$executeRaw</code> — UPDATE / DELETE / INSERT; returns affected row count.</li>
+          <li><code>$queryRawUnsafe</code> / <code>$executeRawUnsafe</code> — plain strings; you must sanitize. Only for fully dynamic, trusted queries.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 
-Used when Prisma's query API can't express something (complex joins, window functions, CTEs).
+  <!-- 12 -->
+  <div class="section-divider" id="s12"><span>12. Error Handling</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Prisma error types</h4><span class="stars">★★★★</span></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Type</th><th>When</th></tr>
+          <tr><td><code>PrismaClientKnownRequestError</code></td><td>Expected DB errors with a <code>code</code> (unique violation, etc.)</td></tr>
+          <tr><td><code>PrismaClientValidationError</code></td><td>Malformed query (missing required field)</td></tr>
+          <tr><td><code>PrismaClientUnknownRequestError</code></td><td>Unclassified DB errors</td></tr>
+          <tr><td><code>PrismaClientInitializationError</code></td><td>Failed to connect to the database</td></tr>
+        </table>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">errors</span></div>
+          <pre><code><span class="kw">import</span> { Prisma } <span class="kw">from</span> <span class="str">"@prisma/client"</span>;
 
-### `$queryRaw`
-Returns typed rows — safe from SQL injection when using tagged templates:
-```ts
-const users = await prisma.$queryRaw`SELECT * FROM "User" WHERE email = ${email}`;
-```
-
-### `$executeRaw`
-For statements that don't return rows (`UPDATE`, `DELETE`, `INSERT`) — returns affected row count:
-```ts
-await prisma.$executeRaw`UPDATE "User" SET "roleId" = ${2} WHERE "id" = ${1}`;
-```
-
-### `$queryRawUnsafe` / `$executeRawUnsafe`
-Accept plain strings instead of tagged templates — you must manually sanitize input to prevent SQL injection. Only use for fully dynamic, trusted queries.
-
----
-
-## 12. Error Handling ⭐⭐ Commonly Needed
-
-### Prisma Error Types
-- **`PrismaClientKnownRequestError`** — expected DB errors with a `code` (e.g. unique violation).
-- **`PrismaClientValidationError`** — malformed query (e.g. missing required field).
-- **`PrismaClientUnknownRequestError`** — unclassified DB errors.
-- **`PrismaClientInitializationError`** — Prisma Client failed to connect to the database.
-
-**Example:**
-```ts
-import { Prisma } from "@prisma/client";
-
-try {
-  await prisma.user.create({ data: { email: "test@example.com" } });
-} catch (e) {
-  if (e instanceof Prisma.PrismaClientKnownRequestError) {
-    if (e.code === "P2002") console.log("Email already exists");
-    if (e.code === "P2003") console.log("Related record does not exist");
-    if (e.code === "P2025") console.log("Record not found");
+<span class="kw">try</span> {
+  <span class="kw">await</span> prisma.user.<span class="fn">create</span>({ data: { email: <span class="str">"test@example.com"</span> } });
+} <span class="kw">catch</span> (e) {
+  <span class="kw">if</span> (e <span class="kw">instanceof</span> Prisma.PrismaClientKnownRequestError) {
+    <span class="kw">if</span> (e.code === <span class="str">"P2002"</span>) console.log(<span class="str">"Email already exists"</span>);
+    <span class="kw">if</span> (e.code === <span class="str">"P2003"</span>) console.log(<span class="str">"Related record does not exist"</span>);
+    <span class="kw">if</span> (e.code === <span class="str">"P2025"</span>) console.log(<span class="str">"Record not found"</span>);
   }
-  throw e;
-}
-```
+  <span class="kw">throw</span> e;
+}</code></pre>
+        </div>
+        <table>
+          <tr><th>Code</th><th>Meaning</th></tr>
+          <tr><td><code>P2002</code></td><td>Unique constraint failed</td></tr>
+          <tr><td><code>P2003</code></td><td>Foreign key constraint failed</td></tr>
+          <tr><td><code>P2025</code></td><td>Record not found (update/delete on missing row)</td></tr>
+          <tr><td><code>P2014</code></td><td>Relation violation (deleting a still-referenced record)</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
 
-### Common Error Codes
-- `P2002` — Unique constraint failed.
-- `P2003` — Foreign key constraint failed.
-- `P2025` — Record not found (update/delete on non-existent row).
-- `P2014` — Relation violation (e.g., deleting a record still referenced elsewhere).
+  <!-- 13 -->
+  <div class="section-divider" id="s13"><span>13. Pagination</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Offset vs cursor</h4><span class="stars">★★★★</span></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box amber">
+            <h4>Offset</h4>
+            <p>Simple, but slows on large offsets — PostgreSQL still scans skipped rows.</p>
+          </div>
+          <div class="compare-box good">
+            <h4>Cursor</h4>
+            <p>Faster for large datasets. Unique field as a pointer. Preferred for infinite scroll.</p>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">pagination</span></div>
+          <pre><code>prisma.user.<span class="fn">findMany</span>({ skip: <span class="num">20</span>, take: <span class="num">10</span>, orderBy: { id: <span class="str">"asc"</span> } });
 
----
-
-## 13. Pagination ⭐⭐ Frequently Used
-
-### Offset Pagination
-Simple, but slows down on large offsets since PostgreSQL still scans skipped rows:
-```ts
-prisma.user.findMany({ skip: 20, take: 10, orderBy: { id: "asc" } });
-```
-
-### Cursor-Based Pagination
-Faster for large datasets — uses a unique field as a pointer instead of counting rows:
-```ts
-prisma.user.findMany({
-  take: 10,
-  skip: 1, // skip the cursor row itself
+prisma.user.<span class="fn">findMany</span>({
+  take: <span class="num">10</span>,
+  skip: <span class="num">1</span>, <span class="cmt">// skip the cursor row itself</span>
   cursor: { id: lastSeenId },
-  orderBy: { id: "asc" },
-});
-```
-Preferred for infinite scroll / large tables since performance doesn't degrade with page depth.
+  orderBy: { id: <span class="str">"asc"</span> },
+});</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
 
----
+  <!-- 14 -->
+  <div class="section-divider" id="s14"><span>14. Prisma Client Configuration</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Generate, adapter, singleton</h4></div>
+      <div class="card-sub-content">
+        <p>Run <code>prisma generate</code> after every schema change. Custom output:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schema.prisma</span></div>
+          <pre><code>generator client {
+  provider = <span class="str">"prisma-client-js"</span>
+  output   = <span class="str">"../src/generated/prisma"</span>
+}</code></pre>
+        </div>
+        <p>Prisma 7+ uses driver adapters. <code>@prisma/adapter-pg</code> wraps the <code>pg</code> Node driver:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">db.ts</span></div>
+          <pre><code><span class="kw">import</span> { PrismaClient } <span class="kw">from</span> <span class="str">"./generated/prisma"</span>;
+<span class="kw">import</span> { PrismaPg } <span class="kw">from</span> <span class="str">"@prisma/adapter-pg"</span>;
 
-## 14. Prisma Client Configuration
+<span class="kw">const</span> adapter = <span class="kw">new</span> <span class="fn">PrismaPg</span>({ connectionString: process.env.DATABASE_URL });
+<span class="kw">const</span> prisma = <span class="kw">new</span> <span class="fn">PrismaClient</span>({ adapter });</code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ Create <strong>one</strong> PrismaClient and reuse it. Call <code>prisma.$disconnect()</code> on shutdown. In serverless, use pooling (PgBouncer).</div>
+        <p>Singleton (avoids exhausting connections during hot-reload):</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">db.ts</span></div>
+          <pre><code><span class="kw">import</span> { PrismaClient } <span class="kw">from</span> <span class="str">"@prisma/client"</span>;
 
-### Prisma Client Generation
-Run `prisma generate` after every schema change to regenerate the type-safe client.
+<span class="kw">const</span> globalForPrisma = globalThis <span class="kw">as unknown as</span> { prisma?: PrismaClient };
 
-### Custom `output`
-```prisma
-generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
-}
-```
-Useful for monorepos or source-controlled generated code.
+<span class="kw">export const</span> prisma = globalForPrisma.prisma ?? <span class="kw">new</span> <span class="fn">PrismaClient</span>();
 
-### PostgreSQL Adapter
-Prisma 7+ uses driver adapters instead of relying solely on its internal engine — improves compatibility with serverless/edge environments and allows custom connection pooling.
+<span class="kw">if</span> (process.env.NODE_ENV !== <span class="str">"production"</span>) globalForPrisma.prisma = prisma;</code></pre>
+        </div>
+        <p><code>DATABASE_URL="postgresql://user:password@localhost:5432/mydb"</code> — never commit <code>.env</code>.</p>
+      </div>
+    </div>
+  </div>
 
-### `@prisma/adapter-pg`
-The official adapter connecting Prisma Client to the `pg` (node-postgres) driver.
+  <!-- 15 -->
+  <div class="section-divider" id="s15"><span>15. Security & Best Practices</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Regular-use checklist</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li>Never pass raw client input into <code>where</code> without validation.</li>
+          <li>Use <code>$queryRaw</code> tagged templates — never string concatenation.</li>
+          <li>Hash passwords (bcrypt/argon2) before <code>create</code> / <code>update</code>.</li>
+          <li>Use <code>select</code> to exclude sensitive fields like <code>passwordHash</code>.</li>
+          <li>Keep <code>DATABASE_URL</code> in env vars, never hardcoded.</li>
+          <li>Reuse a single PrismaClient app-wide.</li>
+          <li>Prefer <code>updateMany</code> / <code>deleteMany</code> / <code>createMany</code> over loops for batch work.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 
-### `pg`
-The underlying Node.js PostgreSQL driver that `@prisma/adapter-pg` wraps, handling the actual TCP connection.
+  <div class="info-box box-tip">📌 End of Doc 2. Doc 1 + Doc 2 together form a complete regular-use Prisma + PostgreSQL tutorial (migrations and seeding excluded).</div>
 
-### `PrismaClient`
-```ts
-import { PrismaClient } from "./generated/prisma";
-import { PrismaPg } from "@prisma/adapter-pg";
-
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-const prisma = new PrismaClient({ adapter });
-```
-
-### Connection Configuration
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-```
-
-### Environment Variables
-```
-DATABASE_URL="postgresql://user:password@localhost:5432/mydb"
-```
-Never commit `.env` to version control.
-
-### Connection Lifecycle
-- Create **one** `PrismaClient` instance and reuse it across the app — don't instantiate per-request.
-- Call `prisma.$disconnect()` on app shutdown for graceful connection closing.
-- In serverless environments, watch connection limits — use pooling (e.g., PgBouncer) since each invocation could otherwise open a new connection.
-
-**Recommended singleton pattern (avoids exhausting connections during hot-reload in dev):**
-```ts
-// db.ts
-import { PrismaClient } from "@prisma/client";
-
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
-
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
-```
-
----
-
-## 15. Security & Best Practices (Regular Use Checklist)
-
-- Never pass raw client input directly into `where` without validation.
-- Use `$queryRaw` tagged templates, never string concatenation, to avoid SQL injection.
-- Hash passwords (bcrypt/argon2) before calling `create`/`update` — never store plain text.
-- Use `select` to explicitly exclude sensitive fields (like `passwordHash`) from API responses.
-- Keep `DATABASE_URL` in environment variables, never hardcoded.
-- Reuse a single `PrismaClient` instance app-wide instead of creating new ones per request.
-- Prefer `updateMany`/`deleteMany`/`createMany` over loops for batch operations — fewer round trips.
-
----
-
-*End of Doc 2. Doc 1 + Doc 2 together form a complete, regular-use-focused Prisma + PostgreSQL tutorial (migrations and seeding excluded as requested).*
+  <footer>Notes — Prisma Fundamentals · Doc 2</footer>
+</div>
+</body>
+</html>
