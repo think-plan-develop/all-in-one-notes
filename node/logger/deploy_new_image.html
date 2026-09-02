@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — 1 · Code Deploy Docker → ECR → ECS</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1040px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
+
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:26px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.55; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
+
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
+
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; }
+.cmt { color:#64748b; font-style:italic; } .num { color:#fdba74; }
+
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:14.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-tip { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-note { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a; border-color:#93c5fd; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+.box-danger { background:linear-gradient(135deg,#fee2e2,#fecaca); color:#991b1b; border-color:#fca5a5; }
+
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:16px 18px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.04);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box.blue { border-left:5px solid #2563eb; background:linear-gradient(135deg,#fff,#eff6ff); }
+.compare-box.purple { border-left:5px solid #7c3aed; background:linear-gradient(135deg,#fff,#f5f3ff); }
+.compare-box.amber { border-left:5px solid #f59e0b; background:linear-gradient(135deg,#fff,#fffbeb); }
+.compare-box h4 { font-size:14px; margin-bottom:8px; font-weight:800; }
+.compare-box.good h4 { color:#047857; }
+.compare-box.blue h4 { color:#1e40af; }
+.compare-box.purple h4 { color:#5b21b6; }
+.compare-box.amber h4 { color:#b45309; }
+.compare-box p { margin:0; font-size:0.88rem; line-height:1.75; color:#334155; }
+
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.step-num {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:28px; height:22px; padding:0 7px; border-radius:8px;
+  background:linear-gradient(135deg,#1e3a8a,#2563eb); color:#fff;
+  font-size:11px; font-weight:800;
+}
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content ul, .card-sub-content ol { margin:6px 0 10px 18px; }
+.card-sub-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; margin-bottom:5px; }
+
+.flow {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  margin:16px 0; background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border-radius:16px; padding:24px 20px; border:1px solid #312e81;
+}
+.flow-step {
+  background: linear-gradient(135deg, #1e293b, #334155); border: 1.5px solid #475569;
+  border-radius:12px; padding:11px 20px; text-align:center;
+  min-width:180px; max-width:560px; color:#f1f5f9; font-weight:600; font-size:14px;
+}
+.flow-arrow { color:#818cf8; font-size:1.3rem; line-height:1.5; }
+.flow-step.start { background: linear-gradient(135deg, #1d4ed8, #3b82f6); border-color: #60a5fa; color:#fff; }
+.flow-step.success { background: linear-gradient(135deg, #047857, #10b981); border-color: #34d399; color:#fff; }
+.flow-step.cyan { background: linear-gradient(135deg, #0e7490, #06b6d4); border-color: #22d3ee; color:#fff; }
+.flow-step.purple { background: linear-gradient(135deg, #5b21b6, #7c3aed); border-color: #a78bfa; color:#fff; }
+.flow-step.amber { background: linear-gradient(135deg, #b45309, #f59e0b); border-color: #fbbf24; color:#fff; }
+
+.tree {
+  background:#0f172a; border-radius:12px; padding:16px 20px; margin:12px 0;
+  font-family:'Fira Code',Consolas,monospace; font-size:13px; color:#e2e8f0; line-height:1.65;
+  overflow-x:auto; white-space:pre;
+}
+
+.checklist { list-style:none; margin:0; padding:0; }
+.checklist li {
+  padding:8px 12px; margin-bottom:4px; border-radius:8px;
+  background:#eff6ff; font-size:14px; font-weight:600; color:#1e3a8a;
+}
+
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb); color:#fff;
+  font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td {
+  padding:10px 14px; font-size:14px; font-weight:600; border:none;
+  color:#1e3a8a; background:#eff6ff; vertical-align:top;
+}
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a; padding:2px 6px;
+  border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — 1 · Code Deploy · Docker → ECR → ECS</h1>
+    <p>Repeatable process after a code change · local test · image · push · new task revision · force deploy · new IP</p>
+    <div class="toc">
+      <a href="#map">Map</a>
+      <a href="#p1">Code</a>
+      <a href="#p2">Local</a>
+      <a href="#p3">Docker</a>
+      <a href="#p4">ECR</a>
+      <a href="#p5">Task def</a>
+      <a href="#p6">Service</a>
+      <a href="#p7">Verify</a>
+      <a href="#p8">Checklist</a>
+    </div>
+  </div>
+
+  <div class="section-divider" id="map"><span>Current setup</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Local → CloudWatch</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step start">Local project</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Docker image</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Amazon ECR</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Task definition → ECS Service → Fargate</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Public IP:3000 · CloudWatch logs</div>
+        </div>
+        <div class="info-box box-warning">⚠️ Pushing to ECR does <strong>not</strong> automatically run the new image. You still need a new task-definition revision + service update + force new deployment.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p1"><span>Phase 1–2 · Code + local Node test</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">1</span><h4>Change your code</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app</span></div>
+          <pre><code>app.get(<span class="str">'/'</span>, (req, res) => {
+  req.log.info(<span class="str">'Handling root route'</span>);
+  res.send(<span class="str">'Hello from version 2'</span>);
+});</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">2</span><h4>Test Node locally first</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>npm start
+curl http://localhost:3000/</code></pre>
+        </div>
+        <p>Expect <code>Hello from version 2</code>. Also hit <code>/error</code> if you have it.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p2"><span>Phase 3–4 · Build + test Docker locally</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">3–4</span><h4>Build image</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker build --no-cache -t pino-logger-app .
+docker images</code></pre>
+        </div>
+        <p><code>--no-cache</code> guarantees a rebuild for learning. Production deploys don't always need it.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">5–7</span><h4>Run the new image locally — checkpoint</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker run --rm -p 3000:3000 pino-logger-app
+
+<span class="cmt"># other window</span>
+curl http://localhost:3000/
+curl http://localhost:3000/error</code></pre>
+        </div>
+        <p>See Pino in the Docker terminal. Then Ctrl+C to stop.</p>
+        <div class="info-box box-danger">🚫 Don't push to AWS if the new Docker image doesn't work locally.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p3"><span>Phase 5–8 · Tag · login · push · verify ECR</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">8–10</span><h4>Tag + login + push</h4></div>
+      <div class="card-sub-content">
+        <p>Local: <code>pino-logger-app:latest</code> · ECR: <code>pino-logger-demo</code> · account <code>133889910939</code> · <code>us-east-1</code></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker tag pino-logger-app:latest 133889910939.dkr.ecr.us-east-1.amazonaws.com/pino-logger-demo:latest
+
+aws ecr get-login-password --region us-east-1 |
+docker login --username AWS --password-stdin 133889910939.dkr.ecr.us-east-1.amazonaws.com
+
+docker push 133889910939.dkr.ecr.us-east-1.amazonaws.com/pino-logger-demo:latest</code></pre>
+        </div>
+        <p>Expect <code>Login Succeeded</code> then <code>latest: digest: sha256:…</code></p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">11</span><h4>Verify ECR</h4></div>
+      <div class="card-sub-content">
+        <p>Console → ECR → <code>pino-logger-demo</code> → Images: tag <code>latest</code>, new Created at, new digest. Local → Docker → ECR is done. <strong>ECS is not necessarily running this image yet.</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p5"><span>Phase 9 · New task-definition revision</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">12</span><h4>This is the part that caused the earlier problem</h4></div>
+      <div class="card-sub-content">
+        <p>Even if ECR <code>latest</code> changed, ECS can still be pinned to the old digest. Create a new revision.</p>
+        <div class="tree">ECS → Task definitions → pino-logger-task
+→ Create new revision
+Image: …/pino-logger-demo:latest
+Keep: 0.25 vCPU · 0.5 GiB · port 3000 · ecsTaskExecutionRole · existing logs
+→ Create  →  pino-logger-task:4</div>
+        <div class="info-box box-note">📌 Previous task may still be on <code>sha256:339da032…</code>. A new revision is a new deployment config.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p6"><span>Phase 10–11 · Update service + watch deploy</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">13–17</span><h4>Update service</h4></div>
+      <div class="card-sub-content">
+        <div class="tree">Cluster → Services → Update service
+Task definition: pino-logger-task:<NEW_REVISION>   ← not :1
+Desired tasks: 1
+Force new deployment: ON
+Keep VPC / SG / port 3000 / Public IP ON
+→ Update service</div>
+        <p>Force new deployment = replace the running task with this config. Don't recreate networking every deploy.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">18</span><h4>Watch deployments</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step start">New deployment</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Pending</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Running</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Old task stops · 1 Running · 0 Pending</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p7"><span>Phase 12–16 · New task · new IP · API · logs</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">19–21</span><h4>Verify the NEW running task</h4></div>
+      <div class="card-sub-content">
+        <p>Don't use the old task ID. Check: Task definition = <code>pino-logger-task:4</code>. Containers → Image URI = new digest. Compare with ECR. Best check that ECS is actually running the new image.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">22–23</span><h4>New public IP — don't reuse yesterday's</h4></div>
+      <div class="card-sub-content">
+        <p>RUNNING task → Networking → Public IP. Fargate can assign a <strong>different</strong> IP. Old <code>54.163.55.191</code> may be dead.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>Test-NetConnection NEW_PUBLIC_IP -Port 3000</code></pre>
+        </div>
+        <p>Want <code>TcpTestSucceeded : True</code>. If False, don't debug the app yet — check task → public IP → SG → port 3000 → subnet → route table → IGW.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">24–26</span><h4>API + CloudWatch</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>curl http://NEW_PUBLIC_IP:3000/          <span class="cmt"># Hello from version 2</span>
+curl http://NEW_PUBLIC_IP:3000/error     <span class="cmt"># HTTP 500 Internal error</span></code></pre>
+        </div>
+        <p>CloudWatch → <code>/ecs/pino-logger-task</code> → <strong>new task's</strong> stream: Server started · Handling root route · request completed · error log.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p8"><span>Final checks + 22-step checklist</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>All four must match</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>#</th><th>Check</th><th>Look for</th></tr>
+          <tr><td>1</td><td>ECR</td><td>New image digest</td></tr>
+          <tr><td>2</td><td>ECS</td><td>New task-definition revision</td></tr>
+          <tr><td>3</td><td>Fargate</td><td>New RUNNING task + that digest</td></tr>
+          <tr><td>4</td><td>CloudWatch</td><td>Logs from the new task</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Never skip these 5</h4></div>
+      <div class="card-sub-content">
+        <ol>
+          <li><strong>Docker</strong> — <code>docker run --rm -p 3000:3000 pino-logger-app</code> — new code works?</li>
+          <li><strong>ECR</strong> — <code>latest</code> has new time/digest?</li>
+          <li><strong>Task definition</strong> — service using the new revision?</li>
+          <li><strong>Running task</strong> — new image digest?</li>
+          <li><strong>CloudWatch</strong> — logs from the new task?</li>
+        </ol>
+        <div class="compare">
+          <div class="compare-box amber">
+            <h4>① works, ④ old digest</h4>
+            <p>ECS deployment problem</p>
+          </div>
+          <div class="compare-box purple">
+            <h4>④ new digest, API old</h4>
+            <p>Docker / build / code problem</p>
+          </div>
+        </div>
+        <p>④ correct but port 3000 unreachable → networking / security group.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>Normal procedure</h4></div>
+      <div class="card-sub-content">
+        <ol class="checklist">
+          <li>1 Test code locally</li>
+          <li>2 docker build --no-cache -t pino-logger-app .</li>
+          <li>3 docker run --rm -p 3000:3000 pino-logger-app</li>
+          <li>4 Test localhost:3000 · stop container</li>
+          <li>5 docker tag …</li>
+          <li>6 aws ecr get-login-password … | docker login …</li>
+          <li>7 docker push …</li>
+          <li>8 Verify ECR latest</li>
+          <li>9 Create NEW task-definition revision</li>
+          <li>10 Update ECS Service · new revision · desired 1 · force new deployment</li>
+          <li>11 Wait RUNNING · verify revision + digest</li>
+          <li>12 Get NEW public IP · Test-NetConnection · API · CloudWatch</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <footer>Notes — 1 · Updated Code Deployment · Docker → ECR → ECS</footer>
+</div>
+</body>
+</html>

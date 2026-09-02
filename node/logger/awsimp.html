@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — AWS + Docker + ECS + Pino</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1040px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
+
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:26px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.55; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
+
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
+
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; }
+.cmt { color:#64748b; font-style:italic; } .num { color:#fdba74; }
+
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:14.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-tip { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-note { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a; border-color:#93c5fd; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+.box-danger { background:linear-gradient(135deg,#fee2e2,#fecaca); color:#991b1b; border-color:#fca5a5; }
+
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:16px 18px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.04);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box.blue { border-left:5px solid #2563eb; background:linear-gradient(135deg,#fff,#eff6ff); }
+.compare-box.purple { border-left:5px solid #7c3aed; background:linear-gradient(135deg,#fff,#f5f3ff); }
+.compare-box.amber { border-left:5px solid #f59e0b; background:linear-gradient(135deg,#fff,#fffbeb); }
+.compare-box h4 { font-size:14px; margin-bottom:8px; font-weight:800; }
+.compare-box.good h4 { color:#047857; }
+.compare-box.blue h4 { color:#1e40af; }
+.compare-box.purple h4 { color:#5b21b6; }
+.compare-box.amber h4 { color:#b45309; }
+.compare-box p { margin:0; font-size:0.88rem; line-height:1.75; color:#334155; }
+
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.step-num {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:28px; height:22px; padding:0 7px; border-radius:8px;
+  background:linear-gradient(135deg,#1e3a8a,#2563eb); color:#fff;
+  font-size:11px; font-weight:800;
+}
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content ul { margin:6px 0 10px 18px; }
+.card-sub-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; margin-bottom:5px; }
+
+.flow {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  margin:16px 0; background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border-radius:16px; padding:24px 20px; border:1px solid #312e81;
+}
+.flow-step {
+  background: linear-gradient(135deg, #1e293b, #334155); border: 1.5px solid #475569;
+  border-radius:12px; padding:11px 20px; text-align:center;
+  min-width:180px; max-width:560px; color:#f1f5f9; font-weight:600; font-size:14px;
+}
+.flow-arrow { color:#818cf8; font-size:1.3rem; line-height:1.5; }
+.flow-step.start { background: linear-gradient(135deg, #1d4ed8, #3b82f6); border-color: #60a5fa; color:#fff; }
+.flow-step.success { background: linear-gradient(135deg, #047857, #10b981); border-color: #34d399; color:#fff; }
+.flow-step.cyan { background: linear-gradient(135deg, #0e7490, #06b6d4); border-color: #22d3ee; color:#fff; }
+.flow-step.purple { background: linear-gradient(135deg, #5b21b6, #7c3aed); border-color: #a78bfa; color:#fff; }
+.flow-step.amber { background: linear-gradient(135deg, #b45309, #f59e0b); border-color: #fbbf24; color:#fff; }
+
+.tree {
+  background:#0f172a; border-radius:12px; padding:16px 20px; margin:12px 0;
+  font-family:'Fira Code',Consolas,monospace; font-size:13px; color:#e2e8f0; line-height:1.65;
+  overflow-x:auto; white-space:pre;
+}
+
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb); color:#fff;
+  font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td {
+  padding:10px 14px; font-size:14px; font-weight:600; border:none;
+  color:#1e3a8a; background:#eff6ff; vertical-align:top;
+}
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a; padding:2px 6px;
+  border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — AWS + Docker + ECS + Pino</h1>
+    <p>CLI → IAM → ECR → ECS Fargate → VPC/SG → CloudWatch → logger testing</p>
+    <div class="toc">
+      <a href="#p1">CLI / IAM</a>
+      <a href="#p2">ECR</a>
+      <a href="#p3">ECS</a>
+      <a href="#p4">Network</a>
+      <a href="#p5">Test</a>
+      <a href="#p6">Pino</a>
+      <a href="#p7">IPs</a>
+      <a href="#p8">Architecture</a>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p1"><span>1–3 · AWS CLI · IAM · CloudWatch</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">1</span><h4>AWS CLI</h4></div>
+      <div class="card-sub-content">
+        <p>Amazon Web Services Command Line Interface — manage AWS from the terminal.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>aws --version
+aws configure
+aws sts get-caller-identity</code></pre>
+        </div>
+        <p><code>aws configure</code> asks: Access Key ID · Secret Access Key · Default region · Default output (e.g. <code>us-east-1</code>, <code>json</code>).</p>
+        <ul>
+          <li><strong>Access Key ID</strong> — identifies the IAM user/key.</li>
+          <li><strong>Secret Access Key</strong> — treat like a password.</li>
+          <li>Never put either key in GitHub or inside a Docker image.</li>
+          <li>Don't use the AWS root user's access keys.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">2</span><h4>IAM</h4></div>
+      <div class="card-sub-content">
+        <p>Identity and Access Management: who can access AWS, what they can access, what actions they can perform.</p>
+        <p>For CLI, create an IAM user with required permissions — not the root account. Enable <strong>MFA</strong> on root. Root should not have active access keys for normal development.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">3</span><h4>CloudWatch</h4></div>
+      <div class="card-sub-content">
+        <p>Logs · Metrics · Monitoring. ECS app logs go to CloudWatch Logs.</p>
+        <p>Log group: <code>/ecs/pino-logger-task</code></p>
+        <p>Console → CloudWatch → Log groups → <code>/ecs/pino-logger-task</code> → Log stream</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p2"><span>4–8 · ECR · Build · Tag · Push</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">4</span><h4>ECR — Elastic Container Registry</h4></div>
+      <div class="card-sub-content">
+        <p>AWS private Docker image registry. Repo: <code>pino-logger-demo</code> · Image: <code>pino-logger-app</code></p>
+        <div class="flow">
+          <div class="flow-step start">Local Docker</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Docker image</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">ECR</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">ECS</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">5</span><h4>Login Docker to ECR</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>aws ecr get-login-password --region us-east-1 |
+docker login --username AWS --password-stdin 133889910939.dkr.ecr.us-east-1.amazonaws.com</code></pre>
+        </div>
+        <p>Expected: <code>Login Succeeded</code>. Docker needs permission to push into ECR.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">6</span><h4>Build Docker image</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker build -t pino-logger-app .
+docker images</code></pre>
+        </div>
+        <p>~51 MB is reasonable for a small Node.js app.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">7–8</span><h4>Tag + push to ECR</h4></div>
+      <div class="card-sub-content">
+        <p>Format: <code>ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/REPOSITORY:TAG</code></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker tag pino-logger-app:latest 133889910939.dkr.ecr.us-east-1.amazonaws.com/pino-logger-demo:latest
+docker push 133889910939.dkr.ecr.us-east-1.amazonaws.com/pino-logger-demo:latest</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p3"><span>9–15 · ECS Fargate · Cluster · Task · Service · Port</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">9</span><h4>ECS + Fargate</h4></div>
+      <div class="card-sub-content">
+        <p>Elastic Container Service runs Docker on AWS. Launch type: <strong>Fargate</strong> — serverless container compute. You don't manage EC2, OS, or Docker host. You specify CPU, memory, container, networking.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">10</span><h4>ECS Cluster</h4></div>
+      <div class="card-sub-content">
+        <p>Logical grouping. Example: <code>acclaimed-elephant-fx97jh</code></p>
+        <div class="tree">ECS Cluster
+└── ECS Service
+    └── ECS Task
+        └── Container</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">11</span><h4>Task Definition</h4></div>
+      <div class="card-sub-content">
+        <p>Blueprint: <code>pino-logger-task</code> — image, CPU, memory, container name/port, env vars, logging, IAM roles.</p>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Image</td><td><code>…/pino-logger-demo:latest</code></td></tr>
+          <tr><td>Container port</td><td>3000</td></tr>
+          <tr><td>CPU</td><td>0.25 vCPU</td></tr>
+          <tr><td>Memory</td><td>0.5 GiB</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">12</span><h4>Task Execution Role</h4></div>
+      <div class="card-sub-content">
+        <p><code>ecsTaskExecutionRole</code> + <code>AmazonECSTaskExecutionRolePolicy</code> — pull from ECR, send logs to CloudWatch.</p>
+        <div class="info-box box-note">📌 Execution role is used by ECS/Fargate — different from permissions the app itself may need.</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">13</span><h4>ECS Service</h4></div>
+      <div class="card-sub-content">
+        <p>Keeps the app running. Desired tasks = 1 → ECS tries to keep one task running.</p>
+        <div class="flow">
+          <div class="flow-step amber">Task crashes</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Service notices</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">New task starts</div>
+        </div>
+        <p>That's why stopping a task causes ECS to create a replacement.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">14</span><h4>ECS Task</h4></div>
+      <div class="card-sub-content">
+        <p>Running instance of the task definition. Gets its own networking: private IP <code>172.31.69.89</code> · public IP <code>54.163.55.191</code></p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">15</span><h4>Docker port</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile / app</span></div>
+          <pre><code>EXPOSE 3000
+
+app.listen(<span class="num">3000</span>, () => {
+  logger.info(<span class="str">'Server started on port 3000'</span>);
+});</code></pre>
+        </div>
+        <p>Host 3000 → container 3000. <code>EXPOSE 3000</code> does <strong>not</strong> open AWS's firewall. Security Groups control access.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p4"><span>16–23 · Networking · VPC · SG · NACL</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">16</span><h4>ECS networking — awsvpc</h4></div>
+      <div class="card-sub-content">
+        <p>Task gets its own ENI. Example: <code>eni-0ebd8365b0e0855b0</code> · private <code>172.31.69.89</code> · public <code>54.163.55.191</code></p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">17–19</span><h4>VPC · Subnet · Internet Gateway</h4></div>
+      <div class="card-sub-content">
+        <div class="tree">VPC  vpc-05238bb298bc72d50
+├── Subnet  subnet-0013467d15bb75f8e  172.31.64.0/20
+│   └── ECS Task
+├── Route Table  0.0.0.0/0 → igw-003f0379f3c48dd69
+├── Internet Gateway
+└── Security Group</div>
+        <p>Default subnet, auto-assign public IPv4 = Yes → task gets a public IP. Route <code>0.0.0.0/0</code> → IGW → internet.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">20</span><h4>Security Group</h4></div>
+      <div class="card-sub-content">
+        <p>Virtual firewall. Example: <code>sg-02312c73d3f5bcb0a</code></p>
+        <p>Testing inbound: Custom TCP · Port 3000 · Source <code>0.0.0.0/0</code> = anyone on the internet.</p>
+        <p>Better for dev: restrict to your public IP <code>YOUR_PUBLIC_IP/32</code> (single address). ISP can change your IP — then the SG stops working until you update it.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">21</span><h4>Private IP vs Public IP</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box purple">
+            <h4>Private</h4>
+            <p><code>172.31.69.89</code> — inside the VPC.</p>
+          </div>
+          <div class="compare-box blue">
+            <h4>Public</h4>
+            <p><code>54.163.55.191</code> — from the internet. Test: <code>http://54.163.55.191:3000</code></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">22</span><h4>Network ACL</h4></div>
+      <div class="card-sub-content">
+        <p>NACL = subnet-level filter. Example: <code>acl-0b7d7760ae1348c82</code></p>
+        <p>Inbound/outbound rule 100: All traffic · <code>0.0.0.0/0</code> · ALLOW. Then <code>*</code> DENY. Numbered rules first — 100 matches, traffic allowed.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">23</span><h4>Complete network flow</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step start">Your PC 103.24.22.221</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Internet → Public IP 54.163.55.191</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">IGW → VPC → Subnet 172.31.64.0/20</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">SG TCP 3000 → ENI 172.31.69.89</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Fargate → Docker → Node :3000 → Express</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p5"><span>24–25 · Testing</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">24</span><h4>Test ECS port</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>Test-NetConnection 54.163.55.191 -Port 3000</code></pre>
+        </div>
+        <p><code>TcpTestSucceeded : True</code> is what matters. <code>PingSucceeded : False</code> does not mean the app is broken — ICMP can be blocked while TCP 3000 works.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">25</span><h4>Test HTTP API</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>curl.exe http://54.163.55.191:3000/          <span class="cmt"># Hello world</span>
+curl.exe http://54.163.55.191:3000/error     <span class="cmt"># Internal error</span></code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p6"><span>26–30 · Pino · CloudWatch · Exit 137</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">26</span><h4>Pino logger</h4></div>
+      <div class="card-sub-content">
+        <p>High-performance structured logger for Node.js.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">pino</span></div>
+          <pre><code>logger.info(<span class="str">'Server started on port 3000'</span>);
+
+{
+  <span class="str">"level"</span>: <span class="num">30</span>,
+  <span class="str">"time"</span>: <span class="str">"2026-08-30T17:08:22.773Z"</span>,
+  <span class="str">"service"</span>: <span class="str">"pino-demo"</span>,
+  <span class="str">"env"</span>: <span class="str">"development"</span>,
+  <span class="str">"msg"</span>: <span class="str">"Server started on port 3000"</span>
+}</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">27</span><h4>pino-http</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">pino-http</span></div>
+          <pre><code><span class="kw">import</span> pinoHttp <span class="kw">from</span> <span class="str">'pino-http'</span>;
+<span class="kw">const</span> httpLogger = <span class="fn">pinoHttp</span>({ logger });
+app.use(httpLogger);
+
+req.log.info(<span class="str">'Handling root route'</span>);
+req.log.error({ err }, <span class="str">'Failed handling /error route'</span>);</code></pre>
+        </div>
+        <p>Automatically logs HTTP requests (<code>GET /</code>, <code>GET /error</code>).</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">28–29</span><h4>Pino → CloudWatch · live test</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step start">HTTP request</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Express → pino-http → Pino → stdout</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">ECS/Fargate logging → CloudWatch /ecs/pino-logger-task</div>
+        </div>
+        <p>curl the app, then CloudWatch → log group → latest stream → Refresh. You should see request-completed JSON, then error logs from <code>/error</code>.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">30</span><h4>Exit code 137</h4></div>
+      <div class="card-sub-content">
+        <p>Exit 137 = SIGKILL (9). If you <strong>manually stopped</strong> the task, 137 is expected — not an app crash.</p>
+        <p>Service desired = 1 → ECS creates a replacement. Replacement can get a <strong>new public IP</strong>. Always check the current RUNNING task's public IP.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p7"><span>31–33 · Find IP · Commands · IP types</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">31–32</span><h4>Find current public IP + useful commands</h4></div>
+      <div class="card-sub-content">
+        <p>ECS → Cluster → Service → Tasks → RUNNING → Networking → Public IP</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>curl.exe https://checkip.amazonaws.com
+Test-NetConnection 54.163.55.191 -Port 3000
+curl.exe http://54.163.55.191:3000/</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">33</span><h4>Important IP concepts</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Address</th><th>Meaning</th></tr>
+          <tr><td><code>192.168.1.8</code></td><td>Home LAN — do <strong>not</strong> use as SG internet source</td></tr>
+          <tr><td><code>103.24.22.221/32</code></td><td>Your current public IP — OK in Security Group</td></tr>
+          <tr><td><code>172.31.69.89</code></td><td>ECS private IP inside the VPC</td></tr>
+          <tr><td><code>54.163.55.191</code></td><td>ECS task public IP for internet testing</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="p8"><span>34 · Current architecture</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Runtime + deploy path</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box blue">
+            <h4>Runtime</h4>
+            <p>VPC → public subnet → Fargate → Docker → Node + Express :3000 → CloudWatch Logs</p>
+          </div>
+          <div class="compare-box purple">
+            <h4>Deploy</h4>
+            <p>Docker build → image → ECR → Task Definition → Service → Fargate task → Node app</p>
+          </div>
+        </div>
+        <table>
+          <tr><th>Component</th><th>Purpose</th></tr>
+          <tr><td><strong>AWS CLI</strong></td><td>Manage AWS from terminal</td></tr>
+          <tr><td><strong>IAM</strong></td><td>Permissions / identity</td></tr>
+          <tr><td><strong>ECR</strong></td><td>Store Docker images</td></tr>
+          <tr><td><strong>ECS</strong></td><td>Run containers</td></tr>
+          <tr><td><strong>Fargate</strong></td><td>Serverless compute for ECS</td></tr>
+          <tr><td><strong>Cluster</strong></td><td>Logical ECS grouping</td></tr>
+          <tr><td><strong>Task Definition</strong></td><td>Container blueprint</td></tr>
+          <tr><td><strong>Task</strong></td><td>Running container instance</td></tr>
+          <tr><td><strong>Service</strong></td><td>Keeps desired tasks running</td></tr>
+          <tr><td><strong>VPC</strong></td><td>AWS private network</td></tr>
+          <tr><td><strong>Subnet</strong></td><td>Network segment inside VPC</td></tr>
+          <tr><td><strong>Internet Gateway</strong></td><td>Internet connectivity</td></tr>
+          <tr><td><strong>Security Group</strong></td><td>Instance/task firewall</td></tr>
+          <tr><td><strong>NACL</strong></td><td>Subnet-level filtering</td></tr>
+          <tr><td><strong>Public / Private IP</strong></td><td>Internet-facing vs internal VPC</td></tr>
+          <tr><td><strong>CloudWatch</strong></td><td>Logs / monitoring</td></tr>
+          <tr><td><strong>Pino / pino-http</strong></td><td>App logger / HTTP request logger</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer>Notes — AWS + Docker + ECS + Pino Logger</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — Access + Refresh Token · Combined Flow</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1040px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
+
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:26px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.55; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
+
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
+
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; }
+.cmt { color:#64748b; font-style:italic; } .num { color:#fdba74; }
+
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:14.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-tip { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-note { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a; border-color:#93c5fd; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:16px 18px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.04);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box.blue { border-left:5px solid #2563eb; background:linear-gradient(135deg,#fff,#eff6ff); }
+.compare-box.purple { border-left:5px solid #7c3aed; background:linear-gradient(135deg,#fff,#f5f3ff); }
+.compare-box.amber { border-left:5px solid #f59e0b; background:linear-gradient(135deg,#fff,#fffbeb); }
+.compare-box h4 { font-size:14px; margin-bottom:8px; font-weight:800; }
+.compare-box.good h4 { color:#047857; }
+.compare-box.blue h4 { color:#1e40af; }
+.compare-box.purple h4 { color:#5b21b6; }
+.compare-box.amber h4 { color:#b45309; }
+.compare-box p { margin:0; font-size:0.88rem; line-height:1.75; color:#334155; }
+
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content ul { margin:6px 0 10px 18px; }
+.card-sub-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; margin-bottom:6px; }
+
+.flow {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  margin:16px 0; background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border-radius:16px; padding:24px 20px; border:1px solid #312e81;
+}
+.flow-step {
+  background: linear-gradient(135deg, #1e293b, #334155); border: 1.5px solid #475569;
+  border-radius:12px; padding:11px 20px; text-align:center;
+  min-width:180px; max-width:560px; color:#f1f5f9; font-weight:600; font-size:14px;
+}
+.flow-arrow { color:#818cf8; font-size:1.3rem; line-height:1.5; }
+.flow-step.start { background: linear-gradient(135deg, #1d4ed8, #3b82f6); border-color: #60a5fa; color:#fff; }
+.flow-step.success { background: linear-gradient(135deg, #047857, #10b981); border-color: #34d399; color:#fff; }
+.flow-step.cyan { background: linear-gradient(135deg, #0e7490, #06b6d4); border-color: #22d3ee; color:#fff; }
+.flow-step.purple { background: linear-gradient(135deg, #5b21b6, #7c3aed); border-color: #a78bfa; color:#fff; }
+.flow-step.amber { background: linear-gradient(135deg, #b45309, #f59e0b); border-color: #fbbf24; color:#fff; }
+.flow-step.danger { background: linear-gradient(135deg, #9f1239, #e11d48); border-color: #fb7185; color:#fff; }
+
+.qa-item { margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid #e0e7ff; }
+.qa-item:last-child { margin-bottom:0; padding-bottom:0; border-bottom:none; }
+.qa-q { font-weight:800; color:#1e3a8a; font-size:14.5px; margin-bottom:6px; }
+.qa-a { color:#334155; font-size:14.5px; line-height:1.7; font-weight:500; }
+
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb); color:#fff;
+  font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td {
+  padding:10px 14px; font-size:14px; font-weight:600; border:none;
+  color:#1e3a8a; background:#eff6ff; vertical-align:top;
+}
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a; padding:2px 6px;
+  border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — Access + Refresh Token · Combined Flow</h1>
+    <p>Two tokens, two jobs · Login · API use · Refresh · Rotation · Logout · Interview</p>
+    <div class="toc">
+      <a href="#s1">Core idea</a>
+      <a href="#s2">Lifecycle</a>
+      <a href="#s3">token.service</a>
+      <a href="#s4">Login</a>
+      <a href="#s5">Authenticate</a>
+      <a href="#s6">Refresh</a>
+      <a href="#s7">Why this pattern</a>
+      <a href="#s8">Testing</a>
+      <a href="#s9">Trust boundary</a>
+      <a href="#s10">Interview</a>
+      <a href="#s11">System design</a>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s1"><span>The Core Idea</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Two tokens cover each other's weaknesses</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th></th><th>Access Token</th><th>Refresh Token</th></tr>
+          <tr><td>Format</td><td>JWT (signed, self-contained)</td><td>Random opaque string</td></tr>
+          <tr><td>Lifetime</td><td>15 minutes</td><td>7 days</td></tr>
+          <tr><td>Storage</td><td>Client memory (JS variable)</td><td>HttpOnly cookie</td></tr>
+          <tr><td>Sent via</td><td><code>Authorization: Bearer</code></td><td>Cookie on <code>/auth/refresh</code></td></tr>
+          <tr><td>Server-side record</td><td>None — stateless</td><td>Yes — hash in Redis</td></tr>
+          <tr><td>Revocable early</td><td><strong>No</strong></td><td><strong>Yes</strong></td></tr>
+          <tr><td>Used for</td><td>Every API request</td><td>Only to get a new access token</td></tr>
+        </table>
+        <div class="info-box box-benefit">✅ Access token is fast but can't be revoked. Refresh token is revocable but only used occasionally. Together: speed <em>and</em> the ability to cut off access.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s2"><span>Full Lifecycle</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>LOGIN — POST /auth/login</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step start">1. Verify email + password (Argon2)</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">2. Access JWT · 15 min · role embedded</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">3–5. Refresh random hex · SHA-256 · Redis TTL 7d</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">6. Body { accessToken } · Cookie refreshToken HttpOnly</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>NORMAL API USE — e.g. GET /users/me</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step start">Authorization: Bearer <accessToken></div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Verify JWT signature — NO database call</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Valid + not expired → 200</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Expired → 401</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>REFRESH — POST /auth/refresh</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step start">Browser auto-attaches refreshToken cookie</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Hash it · lookup auth:session:{hash} in Redis</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Found → ROTATE · new access + new refresh</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step danger">Not found → 401 · password login again</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>REUSE DETECTION · LOGOUT</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box amber">
+            <h4>Reuse detection</h4>
+            <p>Old (already-rotated) token presented again → theft signal → revoke ALL sessions → force re-login everywhere.</p>
+          </div>
+          <div class="compare-box purple">
+            <h4>Logout</h4>
+            <p>Delete Redis session for current hash. Clear cookie. Access token stays valid until its own 15-min expiry — expected.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s3"><span>Combined Code — token.service.ts</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Both tokens in one file</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/modules/auth/token.service.ts</span></div>
+          <pre><code><span class="kw">import</span> jwt <span class="kw">from</span> <span class="str">"jsonwebtoken"</span>;
+<span class="kw">import</span> { randomBytes, createHash, randomUUID } <span class="kw">from</span> <span class="str">"crypto"</span>;
+<span class="kw">import</span> { env } <span class="kw">from</span> <span class="str">"../../config/env.js"</span>;
+
+<span class="kw">interface</span> AccessTokenPayload {
+  sub: string;
+  role: string;
+}
+
+<span class="cmt">// --- Access Token ---</span>
+<span class="kw">export function</span> <span class="fn">generateAccessToken</span>(payload: AccessTokenPayload) {
+  <span class="kw">return</span> jwt.<span class="fn">sign</span>(payload, env.JWT_ACCESS_SECRET, {
+    expiresIn: env.ACCESS_TOKEN_EXPIRES_IN, <span class="cmt">// "15m"</span>
+    jwtid: <span class="fn">randomUUID</span>(),
+  });
+}
+
+<span class="cmt">// --- Refresh Token ---</span>
+<span class="kw">export function</span> <span class="fn">generateRefreshToken</span>(): string {
+  <span class="kw">return</span> <span class="fn">randomBytes</span>(<span class="num">32</span>).toString(<span class="str">"hex"</span>);
+}
+
+<span class="kw">export function</span> <span class="fn">hashRefreshToken</span>(token: string): string {
+  <span class="kw">return</span> <span class="fn">createHash</span>(<span class="str">"sha256"</span>).update(token).digest(<span class="str">"hex"</span>);
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s4"><span>Combined Code — Login Issues Both</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>loginController</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">loginController</span></div>
+          <pre><code><span class="kw">export async function</span> <span class="fn">loginController</span>(req: Request, res: Response) {
+  <span class="kw">const</span> parsed = loginSchema.<span class="fn">safeParse</span>(req.body);
+  <span class="kw">if</span> (!parsed.success) {
+    <span class="kw">return</span> res.status(<span class="num">400</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"Invalid input"</span> });
+  }
+
+  <span class="kw">try</span> {
+    <span class="kw">const</span> user = <span class="kw">await</span> <span class="fn">verifyLogin</span>(parsed.data);
+
+    <span class="kw">const</span> accessToken = <span class="fn">generateAccessToken</span>({ sub: user.id, role: user.role });
+
+    <span class="kw">const</span> refreshToken = <span class="fn">generateRefreshToken</span>();
+    <span class="kw">const</span> refreshTokenHash = <span class="fn">hashRefreshToken</span>(refreshToken);
+
+    <span class="kw">await</span> <span class="fn">createSession</span>(refreshTokenHash, {
+      userId: user.id,
+      createdAt: Date.now(),
+    });
+
+    res.cookie(<span class="str">"refreshToken"</span>, refreshToken, {
+      httpOnly: <span class="kw">true</span>,
+      secure: env.NODE_ENV === <span class="str">"production"</span>,
+      sameSite: <span class="str">"strict"</span>,
+      maxAge: <span class="num">7</span> * <span class="num">24</span> * <span class="num">60</span> * <span class="num">60</span> * <span class="num">1000</span>,
+      path: <span class="str">"/auth/refresh"</span>,
+    });
+
+    <span class="kw">return</span> res.status(<span class="num">200</span>).json({ accessToken });
+  } <span class="kw">catch</span> (err) {
+    <span class="kw">if</span> (err <span class="kw">instanceof</span> Error && err.message === <span class="str">"INVALID_CREDENTIALS"</span>) {
+      <span class="kw">return</span> res.status(<span class="num">401</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"Invalid credentials"</span> });
+    }
+    <span class="kw">return</span> res.status(<span class="num">500</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"Something went wrong"</span> });
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s5"><span>Combined Code — Authenticate Middleware</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Reads the access token</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">authenticate</span></div>
+          <pre><code><span class="kw">export function</span> <span class="fn">authenticate</span>(req: Request, res: Response, next: NextFunction) {
+  <span class="kw">const</span> authHeader = req.headers.authorization;
+  <span class="kw">if</span> (!authHeader?.startsWith(<span class="str">"Bearer "</span>)) {
+    <span class="kw">return</span> res.status(<span class="num">401</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"Missing token"</span> });
+  }
+
+  <span class="kw">const</span> token = authHeader.split(<span class="str">" "</span>)[<span class="num">1</span>];
+  <span class="kw">try</span> {
+    req.user = jwt.<span class="fn">verify</span>(token, env.JWT_ACCESS_SECRET) <span class="kw">as</span> { sub: string; role: string };
+    next();
+  } <span class="kw">catch</span> {
+    <span class="kw">return</span> res.status(<span class="num">401</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"Invalid or expired token"</span> });
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s6"><span>Combined Code — Refresh Reissues Both</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Consumes refresh · issues new pair</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">refreshController</span></div>
+          <pre><code><span class="kw">export async function</span> <span class="fn">refreshController</span>(req: Request, res: Response) {
+  <span class="kw">const</span> refreshToken = req.cookies.refreshToken;
+  <span class="kw">if</span> (!refreshToken) {
+    <span class="kw">return</span> res.status(<span class="num">401</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"No refresh token"</span> });
+  }
+
+  <span class="kw">const</span> refreshTokenHash = <span class="fn">hashRefreshToken</span>(refreshToken);
+  <span class="kw">const</span> session = <span class="kw">await</span> <span class="fn">getSession</span>(refreshTokenHash);
+
+  <span class="kw">if</span> (!session) {
+    <span class="kw">const</span> reused = <span class="kw">await</span> <span class="fn">wasTokenAlreadyUsed</span>(refreshTokenHash);
+    <span class="kw">if</span> (reused) {
+      <span class="kw">await</span> <span class="fn">revokeAllSessions</span>(reused.userId);
+      res.clearCookie(<span class="str">"refreshToken"</span>, { path: <span class="str">"/auth/refresh"</span> });
+      <span class="kw">return</span> res.status(<span class="num">401</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"Session revoked — please log in again"</span> });
+    }
+    <span class="kw">return</span> res.status(<span class="num">401</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"Invalid or expired session"</span> });
+  }
+
+  <span class="kw">const</span> user = <span class="kw">await</span> prisma.user.<span class="fn">findUnique</span>({
+    where: { id: session.userId },
+    include: { role: <span class="kw">true</span> },
+  });
+  <span class="kw">if</span> (!user) <span class="kw">return</span> res.status(<span class="num">401</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"User not found"</span> });
+
+  <span class="kw">const</span> newAccessToken = <span class="fn">generateAccessToken</span>({ sub: user.id, role: user.role.name });
+  <span class="kw">const</span> newRefreshToken = <span class="fn">generateRefreshToken</span>();
+  <span class="kw">const</span> newRefreshTokenHash = <span class="fn">hashRefreshToken</span>(newRefreshToken);
+
+  <span class="kw">await</span> <span class="fn">rotateSession</span>(refreshTokenHash, newRefreshTokenHash);
+
+  res.cookie(<span class="str">"refreshToken"</span>, newRefreshToken, {
+    httpOnly: <span class="kw">true</span>,
+    secure: env.NODE_ENV === <span class="str">"production"</span>,
+    sameSite: <span class="str">"strict"</span>,
+    maxAge: <span class="num">7</span> * <span class="num">24</span> * <span class="num">60</span> * <span class="num">60</span> * <span class="num">1000</span>,
+    path: <span class="str">"/auth/refresh"</span>,
+  });
+
+  <span class="kw">return</span> res.status(<span class="num">200</span>).json({ accessToken: newAccessToken });
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s7"><span>Why This Combination Is the Standard Pattern</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Problem → solution</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Problem</th><th>Solution</th></tr>
+          <tr><td>Identity check shouldn't require a DB call</td><td>Access token — stateless, signature-only</td></tr>
+          <tr><td>Stateless tokens can't be revoked</td><td>Refresh token — Redis, deletable anytime</td></tr>
+          <tr><td>Users shouldn't re-enter passwords every 15 min</td><td>Refresh silently gets a new access token</td></tr>
+          <tr><td>Users shouldn't stay logged in forever</td><td>Refresh expires (7 days) and requires rotation</td></tr>
+          <tr><td>Stolen refresh shouldn't grant permanent access</td><td>Rotation — each one is single-use</td></tr>
+          <tr><td>Theft should be detectable, not just delayed</td><td>Reuse detection — flags replay</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s8"><span>Testing the Combined Flow</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Quick reference</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">curl</span></div>
+          <pre><code><span class="cmt"># 1. Login — get both tokens</span>
+curl -s -X POST http://localhost:4000/auth/login \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"email":"test@example.com","password":"yourpassword123"}'</span> \
+  -c cookies.txt
+
+<span class="cmt"># 2. Use access token on a protected route</span>
+curl -i http://localhost:4000/users/me \
+  -H <span class="str">"Authorization: Bearer <accessToken>"</span>
+
+<span class="cmt"># 3. Simulate expiry — refresh using the cookie</span>
+curl -s -X POST http://localhost:4000/auth/refresh \
+  -b cookies.txt -c cookies.txt
+
+<span class="cmt"># 4. Reuse OLD refresh token (simulate theft)</span>
+curl -i -X POST http://localhost:4000/auth/refresh \
+  -b old_cookies.txt</code></pre>
+        </div>
+        <table>
+          <tr><th>Step</th><th>Expected</th></tr>
+          <tr><td>2</td><td>200 with user data</td></tr>
+          <tr><td>3</td><td>200 with new accessToken + rotated cookie</td></tr>
+          <tr><td>4</td><td>401, <code>"Session revoked"</code> — and the token from step 3 also stops working</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s9"><span>Theory — The Trust Boundary Shift</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Trust moves from “the token itself” to “a record the server controls”</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box blue">
+            <h4>Access token</h4>
+            <p>Trust lives entirely in the signature. Once issued, the server has no further say until it expires.</p>
+          </div>
+          <div class="compare-box purple">
+            <h4>Refresh token</h4>
+            <p>Trust lives in Redis. The string is just a lookup key. Erase the record (logout, theft, admin) and the token is instantly worthless.</p>
+          </div>
+        </div>
+        <div class="info-box box-note">📌 This is why the refresh token needs a database at all — and the single fact that explains almost every design decision in this system.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s10"><span>Interview Questions</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Combined system</h4></div>
+      <div class="card-sub-content">
+        <div class="qa-item">
+          <div class="qa-q">1. Explain the pattern end to end, as if to a junior engineer.</div>
+          <div class="qa-a">Login issues both: a short-lived signed JWT for fast per-request checks, and a long-lived random token backed by a server-side record for revocability. Access is used constantly; refresh is only used to quietly get a new access token when the old one expires.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">2. Why not just use one token for everything?</div>
+          <div class="qa-a">A single token forces a bad tradeoff: short-lived → users logged out constantly; long-lived → a leak is a long-term compromise with no revoke. Two tokens split these concerns.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">3. Where does each token live in the client, and why differently?</div>
+          <div class="qa-a">Access in memory (JS variable) — short-lived, no persistence. Refresh in an HttpOnly cookie — long-lived, survives reloads, inaccessible to JS to resist XSS.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">4. What's the actual attack this system defends against?</div>
+          <div class="qa-a">Token theft via XSS, network interception, or leaked logs. Short access life limits exposure; HttpOnly cookie resists XSS; rotation limits stolen refresh to one use; reuse detection shuts down theft that does happen.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">5. Walk through: attacker steals a refresh token cookie.</div>
+          <div class="qa-a">They can use it once to get a new pair. When the real user's browser also refreshes (with the now-rotated original), the server detects reuse and revokes every session — cutting off the attacker's stolen pair too.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">6. Why does logout only clear the refresh token, not invalidate the access token immediately?</div>
+          <div class="qa-a">Access is stateless — no revocation list without a DB call on every request, defeating its purpose. It stays valid for remaining ~15 minutes after logout. Deliberate, documented tradeoff.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">7. “This device” vs “all devices” logout?</div>
+          <div class="qa-a">This device: delete the current session's Redis key (current refresh hash). All devices: Redis Set of every session hash per user, delete them all together.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">8. What breaks if you store the raw refresh token in Redis?</div>
+          <div class="qa-a">Anyone with Redis read access could impersonate any user — identical to storing plaintext passwords.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">9. Why is CSRF a concern here but not for the access token?</div>
+          <div class="qa-a">Refresh rides in a cookie, which browsers attach automatically — including requests from a malicious site. Access is attached via a header by your own JS, which a third-party site can't do cross-origin without CORS cooperation.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">10. How do you decide access token expiry in a real system?</div>
+          <div class="qa-a">Shorter = smaller blast radius, more refresh calls. Longer = fewer refreshes, larger exposure. 15 minutes is a common middle ground; banking often 2–5 min.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">11. What happens if you change JWT_ACCESS_SECRET?</div>
+          <div class="qa-a">Every existing access token fails signature verification — forced global logout for API access. Refresh tokens still work unless you also want a hard logout.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">12. Is this still needed if you use HTTPS everywhere?</div>
+          <div class="qa-a">Yes. HTTPS protects data in transit, not a token already in a compromised browser (XSS) or leaked via logs. Transport security and token-design security solve different threats.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s11"><span>System Design Notes</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Where this fits in a larger architecture</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li><strong>Microservices</strong> — any service holding <code>JWT_ACCESS_SECRET</code> (or a shared public key with RS256) can verify independently. Refresh flow stays centralized in one auth service.</li>
+          <li><strong>Horizontal scaling</strong> — access verification needs zero shared state. Refresh needs Redis reachable from every instance — the one piece of shared state.</li>
+          <li><strong>Mobile</strong> — cookies don't work the same way. Store refresh in Keychain/Keystore; send as body/header. Rotation/reuse-detection stays identical.</li>
+          <li><strong>Multi-region</strong> — Redis session data is small and TTL-bound, cheap to replicate or shard by user ID vs a full user database.</li>
+          <li><strong>Alternative at scale</strong> — some systems replace the access JWT with a reference token + in-memory cache to gain revocability on the access token too — trade some statelessness for instant global logout.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <footer>Notes — Access + Refresh Token · Combined Flow</footer>
+</div>
+</body>
+</html>

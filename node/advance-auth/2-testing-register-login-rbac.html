@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — Testing Guide · Register → Login → Admin</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1040px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
+
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:26px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.55; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
+
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
+
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; }
+.cmt { color:#64748b; font-style:italic; } .num { color:#fdba74; }
+
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:14.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-tip { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-note { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a; border-color:#93c5fd; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:16px 18px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.04);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box.blue { border-left:5px solid #2563eb; background:linear-gradient(135deg,#fff,#eff6ff); }
+.compare-box.amber { border-left:5px solid #f59e0b; background:linear-gradient(135deg,#fff,#fffbeb); }
+.compare-box h4 { font-size:14px; margin-bottom:8px; font-weight:800; }
+.compare-box.good h4 { color:#047857; }
+.compare-box.blue h4 { color:#1e40af; }
+.compare-box.amber h4 { color:#b45309; }
+.compare-box p { margin:0; font-size:0.88rem; line-height:1.75; color:#334155; }
+
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.expect {
+  display:inline-block; margin-left:auto; font-size:12px; font-weight:800;
+  padding:4px 10px; border-radius:999px; background:#d1fae5; color:#065f46;
+}
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content ul { margin:6px 0 10px 18px; }
+.card-sub-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; margin-bottom:4px; }
+
+.flow {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  margin:16px 0; background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border-radius:16px; padding:24px 20px; border:1px solid #312e81;
+}
+.flow-step {
+  background: linear-gradient(135deg, #1e293b, #334155); border: 1.5px solid #475569;
+  border-radius:12px; padding:11px 20px; text-align:center;
+  min-width:180px; max-width:460px; color:#f1f5f9; font-weight:600;
+}
+.flow-arrow { color:#818cf8; font-size:1.3rem; line-height:1.5; }
+.flow-step.start { background: linear-gradient(135deg, #1d4ed8, #3b82f6); border-color: #60a5fa; color:#fff; }
+.flow-step.success { background: linear-gradient(135deg, #047857, #10b981); border-color: #34d399; color:#fff; }
+.flow-step.cyan { background: linear-gradient(135deg, #0e7490, #06b6d4); border-color: #22d3ee; color:#fff; }
+.flow-step.purple { background: linear-gradient(135deg, #5b21b6, #7c3aed); border-color: #a78bfa; color:#fff; }
+.flow-step.amber { background: linear-gradient(135deg, #b45309, #f59e0b); border-color: #fbbf24; color:#fff; }
+
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb); color:#fff;
+  font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td {
+  padding:10px 14px; font-size:14px; font-weight:600; border:none;
+  color:#1e3a8a; background:#eff6ff;
+}
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a; padding:2px 6px;
+  border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — Testing Guide</h1>
+    <p>Registration → Login → Admin verification · End-to-end RBAC flow</p>
+    <div class="toc">
+      <a href="#s0">Bootstrap admin</a>
+      <a href="#s1">Register</a>
+      <a href="#s2">Login user</a>
+      <a href="#s3">Blocked from admin</a>
+      <a href="#s4">Login admin</a>
+      <a href="#s5">Get user id</a>
+      <a href="#s6">Promote</a>
+      <a href="#s7">Verify</a>
+      <a href="#s8">Full table</a>
+    </div>
+  </div>
+
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Prerequisites</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li>Server running: <code>npm run dev</code></li>
+          <li>Database migrated + seeded (<code>user</code> and <code>admin</code> roles exist)</li>
+          <li>One bootstrap admin account already seeded</li>
+        </ul>
+        <div class="flow">
+          <div class="flow-step start">Register as user</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Login · confirm role user</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Admin route → 403</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Admin promotes via PATCH</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Re-login · admin route → 200</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s0"><span>Step 0 — Confirm Bootstrap Admin Exists</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Need at least one working admin</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">seed</span></div>
+          <pre><code>BOOTSTRAP_ADMIN_EMAIL=admin@example.com BOOTSTRAP_ADMIN_PASSWORD=adminPass123 npx prisma db seed
+
+npx prisma studio</code></pre>
+        </div>
+        <p>Check the <code>User</code> table — confirm <code>admin@example.com</code> exists with role <code>admin</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s1"><span>Step 1 — Register a Normal User</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Valid registration</h4><span class="expect">201</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">POST /auth/register</span></div>
+          <pre><code>curl -i -X POST http://localhost:4000/auth/register \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"name":"Test User","email":"test@example.com","password":"yourpassword123"}'</span></code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">expect body</span></div>
+          <pre><code>{
+  <span class="str">"id"</span>: <span class="str">"some-uuid"</span>,
+  <span class="str">"email"</span>: <span class="str">"test@example.com"</span>,
+  <span class="str">"role"</span>: <span class="str">"user"</span>
+}</code></pre>
+        </div>
+        <ul>
+          <li><code>role</code> is <code>"user"</code> — never anything else, regardless of what you send.</li>
+          <li>No <code>password_hash</code> anywhere in the response.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Client cannot self-assign admin</h4><span class="expect">201 · still user</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">injected role ignored</span></div>
+          <pre><code>curl -i -X POST http://localhost:4000/auth/register \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"name":"Hacker","email":"hacker@example.com","password":"pass12345","role":"admin"}'</span></code></pre>
+        </div>
+        <p>Still <code>201</code> with <code>"role": "user"</code>. Extra <code>role</code> is not in <code>registerSchema</code>, so Zod strips it.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>Duplicate email</h4><span class="expect">409</span></div>
+      <div class="card-sub-content">
+        <p>Register <code>test@example.com</code> again → <code>409 Conflict</code>.</p>
+        <table>
+          <tr><th>Case</th><th>Expected</th></tr>
+          <tr><td>Valid registration</td><td>201, <code>role: "user"</code></td></tr>
+          <tr><td>Registration with <code>"role":"admin"</code> in body</td><td>201, <code>role: "user"</code> (ignored)</td></tr>
+          <tr><td>Duplicate email</td><td>409</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s2"><span>Step 2 — Login as the New User</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Get USER_TOKEN</h4><span class="expect">200</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">POST /auth/login</span></div>
+          <pre><code>curl -i -X POST http://localhost:4000/auth/login \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"email":"test@example.com","password":"yourpassword123"}'</span>
+
+<span class="kw">export</span> USER_TOKEN=<span class="str">"<paste accessToken>"</span>
+
+echo $USER_TOKEN | cut -d <span class="str">'.'</span> -f2 | base64 -d 2>/dev/null | python3 -m json.tool</code></pre>
+        </div>
+        <p>Decoded payload must contain <code>"role": "user"</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s3"><span>Step 3 — User Cannot Access Admin Routes Yet</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>RBAC is blocking before promotion</h4><span class="expect">403</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">GET /admin/users</span></div>
+          <pre><code>curl -i http://localhost:4000/admin/users \
+  -H <span class="str">"Authorization: Bearer $USER_TOKEN"</span></code></pre>
+        </div>
+        <div class="info-box box-benefit">✅ 403 proves RBAC is actively blocking non-admins.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s4"><span>Step 4 — Login as Bootstrap Admin</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Get ADMIN_TOKEN</h4><span class="expect">200</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">POST /auth/login</span></div>
+          <pre><code>curl -i -X POST http://localhost:4000/auth/login \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"email":"admin@example.com","password":"adminPass123"}'</span>
+
+<span class="kw">export</span> ADMIN_TOKEN=<span class="str">"<paste accessToken>"</span>
+
+echo $ADMIN_TOKEN | cut -d <span class="str">'.'</span> -f2 | base64 -d 2>/dev/null | python3 -m json.tool</code></pre>
+        </div>
+        <p>Decoded payload must contain <code>"role": "admin"</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s5"><span>Step 5 — Get the Target User's ID</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Read sub from USER_TOKEN</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">decode JWT</span></div>
+          <pre><code>echo $USER_TOKEN | cut -d <span class="str">'.'</span> -f2 | base64 -d 2>/dev/null | python3 -m json.tool
+
+<span class="cmt"># { "sub": "abc-123-uuid", "role": "user", ... }</span>
+
+<span class="kw">export</span> TARGET_USER_ID=<span class="str">"abc-123-uuid"</span></code></pre>
+        </div>
+        <p>Alternatively: <code>GET /admin/users</code> as admin and find them in the list.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s6"><span>Step 6 — Promote the User to Admin</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Happy path</h4><span class="expect">200</span></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">PATCH /admin/users/:id/role</span></div>
+          <pre><code>curl -i -X PATCH http://localhost:4000/admin/users/$TARGET_USER_ID/role \
+  -H <span class="str">"Authorization: Bearer $ADMIN_TOKEN"</span> \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"role":"admin"}'</span></code></pre>
+        </div>
+        <p>Body: <code>{ "id": "...", "email": "test@example.com", "role": "admin" }</code></p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Negative tests</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Case</th><th>Expected</th></tr>
+          <tr><td>Admin promotes another user</td><td>200, <code>role: "admin"</code></td></tr>
+          <tr><td>Non-admin attempts promotion (<code>$USER_TOKEN</code>)</td><td>403</td></tr>
+          <tr><td>Admin tries to change own role</td><td>400 — Cannot change your own role</td></tr>
+          <tr><td>Invalid role value (<code>superuser</code>)</td><td>400 — fails <code>z.enum(["user","admin"])</code></td></tr>
+          <tr><td>Nonexistent target user</td><td>404</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s7"><span>Step 7 — Verify the Promotion Actually Worked</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Old token is frozen</h4></div>
+      <div class="card-sub-content">
+        <p>The database is updated, but the user's <strong>old token still has <code>role: "user"</code></strong>.</p>
+        <div class="compare">
+          <div class="compare-box amber">
+            <h4>Old token (stale)</h4>
+            <p><code>USER_TOKEN</code> on <code>/admin/users</code> → <strong>403</strong>. Correct — not a bug. Tokens don't update live.</p>
+          </div>
+          <div class="compare-box good">
+            <h4>New token (fresh login)</h4>
+            <p><code>PROMOTED_TOKEN</code> decoded <code>"role": "admin"</code> → <code>/admin/users</code> → <strong>200</strong> + user list.</p>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">re-login then retry</span></div>
+          <pre><code>curl -i http://localhost:4000/admin/users \
+  -H <span class="str">"Authorization: Bearer $USER_TOKEN"</span>
+<span class="cmt"># 403 — expected</span>
+
+curl -i -X POST http://localhost:4000/auth/login \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"email":"test@example.com","password":"yourpassword123"}'</span>
+
+<span class="kw">export</span> PROMOTED_TOKEN=<span class="str">"<paste new accessToken>"</span>
+
+curl -i http://localhost:4000/admin/users \
+  -H <span class="str">"Authorization: Bearer $PROMOTED_TOKEN"</span>
+<span class="cmt"># 200</span></code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s8"><span>Full Summary — Every Assertion</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>If every row matches, the flow is verified</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>#</th><th>Step</th><th>Expected</th></tr>
+          <tr><td>1</td><td>Register new user</td><td>201, <code>role: "user"</code></td></tr>
+          <tr><td>1b</td><td>Register with <code>"role":"admin"</code> injected</td><td>201, still <code>role: "user"</code></td></tr>
+          <tr><td>1c</td><td>Register duplicate email</td><td>409</td></tr>
+          <tr><td>2</td><td>Login as new user</td><td>200 + token, decoded <code>role: "user"</code></td></tr>
+          <tr><td>3</td><td>New user hits <code>/admin/users</code></td><td>403</td></tr>
+          <tr><td>4</td><td>Login as bootstrap admin</td><td>200 + token, decoded <code>role: "admin"</code></td></tr>
+          <tr><td>6a</td><td>Admin promotes user</td><td>200, <code>role: "admin"</code></td></tr>
+          <tr><td>6b</td><td>Non-admin attempts promotion</td><td>403</td></tr>
+          <tr><td>6c</td><td>Admin changes own role</td><td>400</td></tr>
+          <tr><td>6d</td><td>Invalid role value</td><td>400</td></tr>
+          <tr><td>6e</td><td>Nonexistent target user</td><td>404</td></tr>
+          <tr><td>7a</td><td>Promoted user's OLD token on admin route</td><td>403 (stale token)</td></tr>
+          <tr><td>7b</td><td>Promoted user's NEW token on admin route</td><td>200</td></tr>
+        </table>
+        <div class="info-box box-benefit">✅ If every row matches, registration, login, and the full admin-promotion flow are verified end-to-end.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Notes — Testing Guide · Registration → Login → Admin Verification</footer>
+</div>
+</body>
+</html>

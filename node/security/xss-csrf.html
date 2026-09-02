@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — CSRF Protection + XSS Protection</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1040px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
+
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:26px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.55; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
+
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
+
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; white-space:pre; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; }
+.cmt { color:#64748b; font-style:italic; } .num { color:#fdba74; }
+
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:14.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-note { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a; border-color:#93c5fd; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+.box-danger { background:linear-gradient(135deg,#fee2e2,#fecaca); color:#991b1b; border-color:#fca5a5; }
+
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:16px 18px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.04);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box.blue { border-left:5px solid #2563eb; background:linear-gradient(135deg,#fff,#eff6ff); }
+.compare-box.purple { border-left:5px solid #7c3aed; background:linear-gradient(135deg,#fff,#f5f3ff); }
+.compare-box.amber { border-left:5px solid #f59e0b; background:linear-gradient(135deg,#fff,#fffbeb); }
+.compare-box h4 { font-size:14px; margin-bottom:8px; font-weight:800; }
+.compare-box.good h4 { color:#047857; }
+.compare-box.blue h4 { color:#1e40af; }
+.compare-box.purple h4 { color:#5b21b6; }
+.compare-box.amber h4 { color:#b45309; }
+.compare-box p { margin:0; font-size:0.88rem; line-height:1.75; color:#334155; }
+
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.step-num {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:28px; height:22px; padding:0 7px; border-radius:8px;
+  background:linear-gradient(135deg,#1e3a8a,#2563eb); color:#fff;
+  font-size:11px; font-weight:800;
+}
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content ul, .card-sub-content ol { margin:6px 0 10px 18px; }
+.card-sub-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; margin-bottom:5px; }
+
+.flow {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  margin:16px 0; background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border-radius:16px; padding:24px 20px; border:1px solid #312e81;
+}
+.flow-step {
+  background: linear-gradient(135deg, #1e293b, #334155); border: 1.5px solid #475569;
+  border-radius:12px; padding:11px 20px; text-align:center;
+  min-width:180px; max-width:640px; color:#f1f5f9; font-weight:600; font-size:14px;
+}
+.flow-arrow { color:#818cf8; font-size:1.3rem; line-height:1.5; }
+.flow-step.start { background: linear-gradient(135deg, #1d4ed8, #3b82f6); border-color: #60a5fa; color:#fff; }
+.flow-step.success { background: linear-gradient(135deg, #047857, #10b981); border-color: #34d399; color:#fff; }
+.flow-step.cyan { background: linear-gradient(135deg, #0e7490, #06b6d4); border-color: #22d3ee; color:#fff; }
+.flow-step.purple { background: linear-gradient(135deg, #5b21b6, #7c3aed); border-color: #a78bfa; color:#fff; }
+.flow-step.amber { background: linear-gradient(135deg, #b45309, #f59e0b); border-color: #fbbf24; color:#fff; }
+.flow-step.danger { background: linear-gradient(135deg, #991b1b, #ef4444); border-color: #fca5a5; color:#fff; }
+
+.tree {
+  background:#0f172a; border-radius:12px; padding:16px 20px; margin:12px 0;
+  font-family:'Fira Code',Consolas,monospace; font-size:13px; color:#e2e8f0; line-height:1.65;
+  overflow-x:auto; white-space:pre;
+}
+
+.checklist { list-style:none; margin:0; padding:0; }
+.checklist li {
+  padding:8px 12px; margin-bottom:4px; border-radius:8px;
+  background:#eff6ff; font-size:14px; font-weight:600; color:#1e3a8a;
+}
+
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb); color:#fff;
+  font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td {
+  padding:10px 14px; font-size:14px; font-weight:600; border:none;
+  color:#1e3a8a; background:#eff6ff; vertical-align:top;
+}
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a; padding:2px 6px;
+  border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — CSRF Protection + XSS Protection</h1>
+    <p>Compact notes. Full text. Cookie flags, SameSite, CSRF tokens, XSS types and defenses.</p>
+    <div class="toc">
+      <a href="#csrf">CSRF 1–13</a>
+      <a href="#xss">XSS 1–6</a>
+    </div>
+  </div>
+
+  <!-- ================= CSRF ================= -->
+  <div class="section-divider" id="csrf"><span>CSRF Protection — Compact Notes</span></div>
+
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">1</span><h4>What is CSRF?</h4></div>
+      <div class="card-sub-content">
+        <p><strong>CSRF (Cross-Site Request Forgery)</strong> — an attack where a malicious site tricks a user's browser into sending an authenticated request to your API. Relevant because refresh tokens are stored in cookies, and <strong>browsers auto-attach cookies</strong> to matching requests — no JavaScript needed.</p>
+        <div class="tree">User logs in → Server sends refresh token → Stored in HttpOnly cookie → Browser auto-sends it to API</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">2</span><h4>Why It Matters for Your Auth System</h4></div>
+      <div class="card-sub-content">
+        <div class="tree">Login → Access Token → Refresh Token → HttpOnly Cookie</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code>res.cookie(<span class="str">"refreshToken"</span>, token, { httpOnly: <span class="kw">true</span>, secure: <span class="kw">true</span>, sameSite: <span class="str">"strict"</span> });</code></pre>
+        </div>
+        <p>Since the browser manages this cookie automatically, cookie-based auth = potential CSRF risk = needs a CSRF strategy.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">3</span><h4>HttpOnly is NOT CSRF Protection ⚠️ Key Concept</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code>httpOnly: <span class="kw">true</span></code></pre>
+        </div>
+        <p>Means JavaScript <strong>cannot read</strong> the cookie (<code>document.cookie</code> fails), but the <strong>browser can still send it</strong> with requests.</p>
+        <div class="tree">JavaScript → ❌ cannot read cookie
+Browser    → ✅ can still send cookie</div>
+        <ul>
+          <li><strong><code>HttpOnly</code></strong> → protects against JS/XSS reading the cookie</li>
+          <li><strong>CSRF protection</strong> → protects against forged requests <em>using</em> the cookie</li>
+        </ul>
+        <div class="info-box box-warning">⚠️ <strong>HttpOnly ≠ CSRF protection.</strong> You still need <code>SameSite</code> and/or an explicit CSRF token.</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">4</span><h4>Secure</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code>secure: <span class="kw">true</span></code></pre>
+        </div>
+        <p>Cookie is sent <strong>only over HTTPS</strong>, never plain HTTP. Use <code>true</code> in production; may need <code>false</code> for local HTTP development.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">5</span><h4>SameSite</h4></div>
+      <div class="card-sub-content">
+        <p>Controls whether the cookie is sent in <strong>cross-site</strong> requests — a core CSRF defense.</p>
+        <table>
+          <tr><th>Value</th><th>Behavior</th></tr>
+          <tr><td><code>strict</code></td><td>Most restrictive — cookie sent only for same-site requests. Blocks most CSRF.</td></tr>
+          <tr><td><code>lax</code></td><td>Allows some cross-site cases (e.g., top-level navigation); still meaningful protection. Useful when <code>strict</code> breaks legitimate flows.</td></tr>
+          <tr><td><code>none</code></td><td>Allows cross-site cookie sending. <strong>Must</strong> be paired with <code>secure: true</code>. Needed for genuine cross-site frontend/backend setups — but requires an <strong>explicit CSRF token strategy</strong> since <code>SameSite</code> alone no longer protects you.</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">6</span><h4>CSRF Token</h4></div>
+      <div class="card-sub-content">
+        <p>An extra value the legitimate frontend sends alongside the cookie; the server validates it before processing the request.</p>
+        <div class="flow">
+          <div class="flow-step start">Browser</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">[Auth cookie + CSRF token]</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">API</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Validate CSRF token</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Allow / Reject</div>
+        </div>
+        <p><strong>Why it works:</strong> an attacker's site can trigger a request that <em>includes</em> the cookie, but it won't know/have the legitimate CSRF token → request is rejected (<code>403 Forbidden</code>).</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">7</span><h4>CSRF Token vs Refresh Token</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Token</th><th>Purpose</th></tr>
+          <tr><td>Refresh Token</td><td>Authentication — get a new access token</td></tr>
+          <tr><td>CSRF Token</td><td>Verifies the request legitimately came from your app</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">8</span><h4>Cookie Security Responsibilities</h4></div>
+      <div class="card-sub-content">
+        <div class="tree">httpOnly   → JS cannot read cookie
+secure     → HTTPS only
+sameSite   → controls cross-site sending
+CSRF token → explicit validation request is legitimate</div>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">9</span><h4>CSRF vs XSS</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Attack</th><th>Mechanism</th><th>Main Defense</th></tr>
+          <tr><td><strong>XSS</strong></td><td>Attacker injects malicious JS into your page</td><td><code>HttpOnly</code> (stops JS from reading the cookie)</td></tr>
+          <tr><td><strong>CSRF</strong></td><td>Attacker tricks browser into sending an authenticated request</td><td><code>SameSite</code> + CSRF token</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">10</span><h4>Which Requests Need CSRF Protection?</h4></div>
+      <div class="card-sub-content">
+        <p>Focus on <strong>state-changing</strong> methods: <code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>.</p>
+        <p>Priority endpoints for an auth project:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">http</span></div>
+          <pre><code>POST /auth/login
+POST /auth/refresh
+POST /auth/logout
+POST /auth/register</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">11</span><h4>Recommended Configurations</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Same-site production (preferred, simpler):</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code>res.cookie(<span class="str">"refreshToken"</span>, refreshToken, {
+  httpOnly: <span class="kw">true</span>,
+  secure: <span class="kw">true</span>,
+  sameSite: <span class="str">"strict"</span>,
+});</code></pre>
+        </div>
+        <p><strong>Cross-site architecture (frontend/backend on different domains):</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code>res.cookie(<span class="str">"refreshToken"</span>, refreshToken, {
+  httpOnly: <span class="kw">true</span>,
+  secure: <span class="kw">true</span>,
+  sameSite: <span class="str">"none"</span>,
+});</code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ With <code>sameSite: "none"</code>, do <strong>not</strong> rely on <code>SameSite</code> alone — implement explicit CSRF token validation.</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">12</span><h4>Architecture Checklist (Before Adding CSRF Tokens)</h4></div>
+      <div class="card-sub-content">
+        <p>Don't add a CSRF token just because you use cookies — first ask:</p>
+        <ol>
+          <li>Are frontend and backend same-site or cross-site?</li>
+          <li>What <code>SameSite</code> policy are you using?</li>
+          <li>Do you actually need cross-site cookies?</li>
+          <li>Which endpoints are state-changing/protected?</li>
+          <li>Does your CSRF defense match your cookie config?</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">13</span><h4>Final Mental Model</h4></div>
+      <div class="card-sub-content">
+        <div class="tree">Refresh Token → HttpOnly Cookie
+│
+┌─────────────┼─────────────┐
+↓             ↓             ↓
+HttpOnly      Secure        SameSite
+(JS can't     (HTTPS        (cross-site
+read it)      only)         control)
+│
+↓
+CSRF Strategy (if needed)
+│
+↓
+Valid ✅ → Allow
+Invalid ❌ → 403 Forbidden</div>
+        <div class="info-box box-benefit"><strong>One-line summary:</strong> <code>HttpOnly</code> blocks JS from reading the cookie, <code>Secure</code> protects it in transit, <code>SameSite</code> limits cross-site sending, and a CSRF token gives explicit proof a protected request came from your legitimate app.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= XSS ================= -->
+  <div class="section-divider" id="xss"><span>XSS Protection — Compact Notes</span></div>
+
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">1</span><h4>What is XSS?</h4></div>
+      <div class="card-sub-content">
+        <p><strong>XSS (Cross-Site Scripting)</strong> — an attack where a malicious actor injects JavaScript into your web page, which then runs in the victim's browser under your app's trusted origin. Unlike CSRF (which forges a <em>request</em>), XSS injects and runs <em>code</em>.</p>
+        <div class="flow">
+          <div class="flow-step danger">Attacker</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Injects malicious script</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Your webpage renders it</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Runs in victim's browser</div>
+        </div>
+        <p>Once injected, that script can steal readable cookies/tokens, make API calls as the user, log keystrokes, redirect to phishing pages, or modify the DOM.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">2</span><h4>Types of XSS</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Type</th><th>How it happens</th></tr>
+          <tr><td><strong>Stored XSS</strong></td><td>Malicious script is saved server-side (e.g., in a comment/profile field) and served to every viewer. Most dangerous — persistent, affects many users.</td></tr>
+          <tr><td><strong>Reflected XSS</strong></td><td>Script is embedded in a request (e.g., URL query param) and immediately reflected back in the response without sanitization. Requires tricking the victim into clicking a crafted link.</td></tr>
+          <tr><td><strong>DOM-based XSS</strong></td><td>Vulnerability exists purely in client-side JS — untrusted data is written into the DOM (e.g., via <code>innerHTML</code>) without ever touching the server.</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">3</span><h4>Why It Matters for Your Auth System</h4></div>
+      <div class="card-sub-content">
+        <p>If an attacker achieves XSS on your site, they can run JS in the same origin as your app:</p>
+        <div class="flow">
+          <div class="flow-step danger">Malicious script runs</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Can read anything JS-accessible: localStorage, sessionStorage, non-HttpOnly cookies</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Can call your API using the victim's live session</div>
+        </div>
+        <p>This is exactly why the <strong>refresh token should be <code>HttpOnly</code></strong> — even if XSS occurs, the script still cannot read that cookie directly. It's a mitigation for XSS's impact, not a fix for XSS itself.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">4</span><h4>Core Defenses</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Output Encoding / Escaping</strong></p>
+        <p>Always escape untrusted data before rendering it in HTML, attributes, JS, or URLs — convert <code><</code>, <code>></code>, <code>"</code>, <code>'</code>, <code>&</code> into safe entities so injected markup is displayed as text, not executed as code. Most modern frameworks (React, Vue, Angular) auto-escape by default when using standard templating — the risk appears when you bypass it.</p>
+
+        <p><strong>Avoid Dangerous Sinks</strong></p>
+        <p>Don't insert unsanitized data into places that execute code:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">js</span></div>
+          <pre><code><span class="cmt">// Dangerous</span>
+element.innerHTML = userInput;
+
+<span class="cmt">// Safer</span>
+element.textContent = userInput;</code></pre>
+        </div>
+        <p>In React, avoid <code>dangerouslySetInnerHTML</code> unless the content is sanitized first (e.g., via a library like DOMPurify).</p>
+
+        <p><strong>Content Security Policy (CSP)</strong></p>
+        <p>An HTTP response header that restricts what scripts/resources a page is allowed to load and run — a strong defense-in-depth layer even if an injection slips through:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">http</span></div>
+          <pre><code>Content-Security-Policy: default-src 'self'; script-src 'self'; object-src 'none'</code></pre>
+        </div>
+        <p>This blocks inline scripts and scripts from untrusted origins, significantly limiting what an injected payload can do.</p>
+
+        <p><strong>Input Validation & Sanitization</strong></p>
+        <p>Validate input format server-side (e.g., reject unexpected HTML in a "name" field), and sanitize rich-text input (e.g., blog content) using a trusted library (like DOMPurify) rather than a custom regex/blocklist, which is easy to bypass.</p>
+
+        <p><strong><code>HttpOnly</code> Cookies</strong></p>
+        <p>As covered above — makes tokens unreadable via <code>document.cookie</code>, limiting what a successful XSS attack can steal.</p>
+
+        <p><strong>Avoid Storing Sensitive Tokens in <code>localStorage</code></strong></p>
+        <p><code>localStorage</code>/<code>sessionStorage</code> are fully readable by any JS running on the page — including injected XSS payloads. Prefer <code>HttpOnly</code> cookies for tokens like refresh tokens over storing them in <code>localStorage</code>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">5</span><h4>CSRF vs XSS — Quick Comparison</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th></th><th>CSRF</th><th>XSS</th></tr>
+          <tr><td><strong>What's exploited</strong></td><td>Browser auto-sending cookies</td><td>Trust in rendered page content</td></tr>
+          <tr><td><strong>Attacker injects</strong></td><td>A forged request</td><td>Malicious JavaScript</td></tr>
+          <tr><td><strong>Main defenses</strong></td><td><code>SameSite</code>, CSRF tokens</td><td>Output encoding, CSP, sanitization</td></tr>
+          <tr><td><strong><code>HttpOnly</code> role</strong></td><td>Not a defense</td><td>Limits token theft if XSS occurs</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">6</span><h4>Quick Checklist</h4></div>
+      <div class="card-sub-content">
+        <ol>
+          <li>Escape/encode all untrusted output rendered into HTML.</li>
+          <li>Avoid <code>innerHTML</code>/<code>dangerouslySetInnerHTML</code> with unsanitized input — sanitize with a library like DOMPurify if rich text is required.</li>
+          <li>Set a strict <code>Content-Security-Policy</code> header.</li>
+          <li>Validate and sanitize all user input server-side, not just client-side.</li>
+          <li>Keep sensitive tokens in <code>HttpOnly</code> cookies, not <code>localStorage</code>/<code>sessionStorage</code>.</li>
+          <li>Keep frontend framework and templating libraries up to date (auto-escaping behavior can have historical CVEs).</li>
+        </ol>
+        <div class="info-box box-benefit"><strong>One-line summary:</strong> XSS lets an attacker run their own JavaScript inside your trusted page — defend with output encoding, CSP, input sanitization, and by keeping sensitive tokens out of JS-readable storage (<code>HttpOnly</code> cookies), since XSS and CSRF are different attacks requiring different (complementary) defenses.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Notes — CSRF Protection + XSS Protection · full text</footer>
+</div>
+</body>
+</html>

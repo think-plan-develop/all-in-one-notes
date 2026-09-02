@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — AWS CLI + ECR + CloudWatch — Your Order</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1040px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
+
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:26px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.55; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
+
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
+
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; white-space:pre; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; }
+.cmt { color:#64748b; font-style:italic; } .num { color:#fdba74; }
+
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:14.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-tip { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-note { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a; border-color:#93c5fd; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+.box-danger { background:linear-gradient(135deg,#fee2e2,#fecaca); color:#991b1b; border-color:#fca5a5; }
+
+.quote {
+  border-left: 4px solid #2563eb; background: #eff6ff; padding: 12px 16px;
+  border-radius: 0 10px 10px 0; margin: 12px 0; font-size: 15px; line-height: 1.7; color: #1e3a8a; font-weight: 600;
+}
+
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:16px 18px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.04);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box.blue { border-left:5px solid #2563eb; background:linear-gradient(135deg,#fff,#eff6ff); }
+.compare-box.purple { border-left:5px solid #7c3aed; background:linear-gradient(135deg,#fff,#f5f3ff); }
+.compare-box.amber { border-left:5px solid #f59e0b; background:linear-gradient(135deg,#fff,#fffbeb); }
+.compare-box h4 { font-size:14px; margin-bottom:8px; font-weight:800; }
+.compare-box.good h4 { color:#047857; }
+.compare-box.blue h4 { color:#1e40af; }
+.compare-box.purple h4 { color:#5b21b6; }
+.compare-box.amber h4 { color:#b45309; }
+.compare-box p { margin:0; font-size:0.88rem; line-height:1.75; color:#334155; }
+
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.step-num {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:28px; height:22px; padding:0 7px; border-radius:8px;
+  background:linear-gradient(135deg,#1e3a8a,#2563eb); color:#fff;
+  font-size:11px; font-weight:800;
+}
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content ul, .card-sub-content ol { margin:6px 0 10px 18px; }
+.card-sub-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; margin-bottom:5px; }
+
+.flow {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  margin:16px 0; background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border-radius:16px; padding:24px 20px; border:1px solid #312e81;
+}
+.flow-step {
+  background: linear-gradient(135deg, #1e293b, #334155); border: 1.5px solid #475569;
+  border-radius:12px; padding:11px 20px; text-align:center;
+  min-width:180px; max-width:620px; color:#f1f5f9; font-weight:600; font-size:14px;
+}
+.flow-arrow { color:#818cf8; font-size:1.3rem; line-height:1.5; }
+.flow-step.start { background: linear-gradient(135deg, #1d4ed8, #3b82f6); border-color: #60a5fa; color:#fff; }
+.flow-step.success { background: linear-gradient(135deg, #047857, #10b981); border-color: #34d399; color:#fff; }
+.flow-step.cyan { background: linear-gradient(135deg, #0e7490, #06b6d4); border-color: #22d3ee; color:#fff; }
+.flow-step.purple { background: linear-gradient(135deg, #5b21b6, #7c3aed); border-color: #a78bfa; color:#fff; }
+.flow-step.amber { background: linear-gradient(135deg, #b45309, #f59e0b); border-color: #fbbf24; color:#fff; }
+
+.tree {
+  background:#0f172a; border-radius:12px; padding:16px 20px; margin:12px 0;
+  font-family:'Fira Code',Consolas,monospace; font-size:13px; color:#e2e8f0; line-height:1.65;
+  overflow-x:auto; white-space:pre;
+}
+
+.checklist { list-style:none; margin:0; padding:0; }
+.checklist li {
+  padding:8px 12px; margin-bottom:4px; border-radius:8px;
+  background:#eff6ff; font-size:14px; font-weight:600; color:#1e3a8a;
+}
+.checklist li.done { background:#d1fae5; color:#065f46; }
+.checklist li.wait { background:#fef3c7; color:#92400e; }
+.checklist li.todo { background:#fee2e2; color:#991b1b; }
+
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb); color:#fff;
+  font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td {
+  padding:10px 14px; font-size:14px; font-weight:600; border:none;
+  color:#1e3a8a; background:#eff6ff; vertical-align:top;
+}
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a; padding:2px 6px;
+  border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — AWS CLI + ECR + CloudWatch — Your Order</h1>
+    <p>Same order you actually performed. Full text. Nothing cut.</p>
+    <div class="toc">
+      <a href="#s1">1 CLI</a>
+      <a href="#s2">2 IAM</a>
+      <a href="#s3">3 configure</a>
+      <a href="#s4">4 sts</a>
+      <a href="#s5">5 ECR</a>
+      <a href="#s6">6 CloudWatch</a>
+      <a href="#s7">7 Docker login</a>
+      <a href="#s8">8–10 Build tag push</a>
+      <a href="#names">Local vs ECR names</a>
+      <a href="#role">Execution Role</a>
+      <a href="#cluster">Cluster</a>
+      <a href="#td">Task Definition</a>
+      <a href="#svc">Service</a>
+      <a href="#ip">Public IP</a>
+    </div>
+  </div>
+
+  <div class="info-box box-note">Since your setup is now working, follow this <strong>same order you actually performed</strong>.</div>
+
+  <!-- ========== 1 ========== -->
+  <div class="section-divider" id="s1"><span>1. Install AWS CLI</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">1</span><h4>Install AWS CLI v2</h4></div>
+      <div class="card-sub-content">
+        <p>Install AWS CLI v2.</p>
+        <p>Verify:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>aws --version</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 2 ========== -->
+  <div class="section-divider" id="s2"><span>2. Create IAM Access Key</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">2</span><h4>IAM user access keys for CLI</h4></div>
+      <div class="card-sub-content">
+        <p>Go to:</p>
+        <div class="tree">AWS Console
+→ IAM
+→ Users
+→ Your IAM User
+→ Security credentials
+→ Access keys
+→ Create access key
+→ Command Line Interface (CLI)</div>
+        <p>You get:</p>
+        <div class="tree">Access Key ID
+Secret Access Key</div>
+        <p><strong>Access Key ID</strong> → identifier</p>
+        <p><strong>Secret Access Key</strong> → secret/password-like credential</p>
+        <div class="info-box box-warning">⚠️ Never share or commit the Secret Access Key.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 3 ========== -->
+  <div class="section-divider" id="s3"><span>3. Configure AWS CLI</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">3</span><h4>aws configure</h4></div>
+      <div class="card-sub-content">
+        <p>Run:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>aws configure</code></pre>
+        </div>
+        <p>Enter:</p>
+        <div class="tree">AWS Access Key ID: <IAM Access Key ID>
+AWS Secret Access Key: <IAM Secret Access Key>
+Default region name: us-east-1
+Default output format: json</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 4 ========== -->
+  <div class="section-divider" id="s4"><span>4. Test AWS Credentials</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">4</span><h4>aws sts get-caller-identity</h4></div>
+      <div class="card-sub-content">
+        <p>Run:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>aws sts get-caller-identity</code></pre>
+        </div>
+        <p>If successful, your AWS CLI authentication is working.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 5 ========== -->
+  <div class="section-divider" id="s5"><span>5. Create ECR Repository</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">5</span><h4>Create repository</h4></div>
+      <div class="card-sub-content">
+        <p>Go to:</p>
+        <div class="tree">AWS Console
+→ ECR
+→ Repositories
+→ Create repository</div>
+        <p>Example:</p>
+        <div class="tree">Repository name: auth-api</div>
+        <p>For your beginner setup:</p>
+        <div class="tree">Image tag mutability: Mutable
+Mutable tag exclusions: Empty</div>
+        <p>Create the repository.</p>
+        <p>You'll get a URI similar to:</p>
+        <div class="tree">133889910939.dkr.ecr.us-east-1.amazonaws.com/auth-api</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 6 ========== -->
+  <div class="section-divider" id="s6"><span>6. Create CloudWatch Log Group</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">6</span><h4>Where ECS later sends Docker/Pino logs</h4></div>
+      <div class="card-sub-content">
+        <p>Go to:</p>
+        <div class="tree">AWS Console
+→ CloudWatch
+→ Logs
+→ Log groups
+→ Create log group</div>
+        <p>Example:</p>
+        <div class="tree">/ecs/auth-api</div>
+        <p>For beginner setup:</p>
+        <div class="tree">KMS Key ARN: Leave empty
+Retention: 7 or 30 days</div>
+        <p>This is where ECS will later send your Docker/Pino logs.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 7 ========== -->
+  <div class="section-divider" id="s7"><span>7. Login Docker to ECR</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">7</span><h4>After sts works and the ECR repository is already created</h4></div>
+      <div class="card-sub-content">
+        <p>Now that <code>aws sts get-caller-identity</code> works and your <strong>ECR repository is already created</strong>, login Docker to ECR.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>7.1 Make sure Docker Desktop is running</h4></div>
+      <div class="card-sub-content">
+        <p>Check:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker --version</code></pre>
+        </div>
+        <p>Then:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker info</code></pre>
+        </div>
+        <p>If <code>docker info</code> works, Docker is running.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>7.2 Login to ECR</h4></div>
+      <div class="card-sub-content">
+        <p>Your ECR registry is:</p>
+        <div class="tree">133889910939.dkr.ecr.us-east-1.amazonaws.com</div>
+        <p>Run this <strong>exact command</strong>:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 133889910939.dkr.ecr.us-east-1.amazonaws.com</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>7.3 Expected result</h4></div>
+      <div class="card-sub-content">
+        <div class="tree">Login Succeeded</div>
+        <p>That's it. ✅</p>
+        <p>You <strong>do not enter your Access Key or Secret Access Key again</strong> here. AWS CLI already has them from:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>aws configure</code></pre>
+        </div>
+        <p>The flow is:</p>
+        <div class="flow">
+          <div class="flow-step start">IAM Access Key + Secret</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">aws configure</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">AWS CLI credentials</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">aws ecr get-login-password</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Docker login</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">ECR</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>7.4 If you get Login Succeeded</h4></div>
+      <div class="card-sub-content">
+        <p>Your next step is:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker build -t auth-api .</code></pre>
+        </div>
+        <p>Then tag and push the image to your ECR repository.</p>
+        <div class="info-box box-note">📌 <code>aws ecr get-login-password</code> generates a temporary authorization token for Docker; you aren't exposing your IAM secret directly to Docker.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 8 9 10 auth-api ========== -->
+  <div class="section-divider" id="s8"><span>8–10. Build · Tag · Push (auth-api example)</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">8</span><h4>Build Docker Image</h4></div>
+      <div class="card-sub-content">
+        <p>From your project directory:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker build -t auth-api .</code></pre>
+        </div>
+        <p>Check:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker images</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">9</span><h4>Tag Docker Image</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker tag auth-api:latest 133889910939.dkr.ecr.us-east-1.amazonaws.com/auth-api:latest</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">10</span><h4>Push Docker Image to ECR</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker push 133889910939.dkr.ecr.us-east-1.amazonaws.com/auth-api:latest</code></pre>
+        </div>
+        <p>Then verify:</p>
+        <div class="tree">AWS Console
+→ ECR
+→ Repositories
+→ auth-api
+→ Images</div>
+        <p>You should see:</p>
+        <div class="tree">latest</div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Your exact flow</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step start">1. Install AWS CLI</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">2. Create IAM Access Key</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">3. aws configure</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">4. aws sts get-caller-identity</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">5. Create ECR Repository</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">6. Create CloudWatch Log Group</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">7. Docker Login → ECR</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">8. docker build</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">9. docker tag</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">10. docker push → ECR</div>
+        </div>
+        <p>This matches the order you've been doing it.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== local vs ecr names ========== -->
+  <div class="section-divider" id="names"><span>Local image name vs ECR repository name</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Different names are completely fine</h4></div>
+      <div class="card-sub-content">
+        <p>Perfect. Your <strong>local Docker image</strong> and <strong>ECR repository</strong> have different names:</p>
+        <div class="tree">Local Docker image:
+pino-logger-app:latest
+
+ECR repository:
+pino-logger-demo</div>
+        <p>That's completely fine. You just need to tag the local image with the ECR repository URI.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">8</span><h4>Step 8 — Build Docker Image</h4></div>
+      <div class="card-sub-content">
+        <p>From your project directory:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker build -t pino-logger-app .</code></pre>
+        </div>
+        <p>Check:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker images</code></pre>
+        </div>
+        <p>You should see:</p>
+        <div class="tree">REPOSITORY          TAG
+pino-logger-app     latest</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">9</span><h4>Step 9 — Tag Image for ECR</h4></div>
+      <div class="card-sub-content">
+        <p>Your ECR repository URI is:</p>
+        <div class="tree">133889910939.dkr.ecr.us-east-1.amazonaws.com/pino-logger-demo</div>
+        <p>Run:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker tag pino-logger-app:latest 133889910939.dkr.ecr.us-east-1.amazonaws.com/pino-logger-demo:latest</code></pre>
+        </div>
+        <p>Now the same image has an ECR-compatible tag:</p>
+        <div class="flow">
+          <div class="flow-step start">pino-logger-app:latest</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">133889910939.dkr.ecr.us-east-1.amazonaws.com/pino-logger-demo:latest</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">10</span><h4>Step 10 — Push to ECR</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>docker push 133889910939.dkr.ecr.us-east-1.amazonaws.com/pino-logger-demo:latest</code></pre>
+        </div>
+        <p>After the push completes, check:</p>
+        <p><strong>AWS Console → ECR → Repositories → <code>pino-logger-demo</code> → Images</strong></p>
+        <p>You should see:</p>
+        <div class="tree">latest</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>Your current flow</h4></div>
+      <div class="card-sub-content">
+        <div class="tree">Local
+│
+├── Dockerfile
+│
+└── pino-logger-app:latest
+        │
+        │ docker tag
+        ↓
+AWS ECR
+└── pino-logger-demo:latest
+        │
+        │ docker push
+        ↓
+ECR ✅</div>
+        <p>So <strong>don't rename your local image</strong>. <code>pino-logger-app</code> can remain your local image name, while <code>pino-logger-demo</code> is your ECR repository name.</p>
+        <ul class="checklist">
+          <li class="done">1. AWS CLI installation ✅</li>
+          <li class="done">2. IAM Access Key ✅</li>
+          <li class="done">3. aws configure ✅</li>
+          <li class="done">4. aws sts get-caller-identity ✅</li>
+          <li class="done">5. ECR Repository ✅</li>
+          <li class="done">6. CloudWatch Log Group ✅</li>
+          <li class="done">7. Docker login → ECR ✅</li>
+          <li class="done">8. Docker image build ✅</li>
+          <li class="wait">9. Docker image tag ⏳ / next</li>
+          <li class="wait">10. Docker push → ECR ⏳</li>
+          <li class="todo">11. ECS Task Execution Role ❌ NOT DONE</li>
+          <li class="todo">12. ECS Cluster ❌</li>
+          <li class="todo">13. ECS Task Definition ❌</li>
+          <li class="todo">14. ECS Service ❌</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== EXECUTION ROLE ========== -->
+  <div class="section-divider" id="role"><span>3. ECS Task Execution Role</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>What it is</h4></div>
+      <div class="card-sub-content">
+        <p>The <strong>ECS Task Execution Role</strong> is an IAM role that gives <strong>ECS/Fargate permission to perform certain AWS actions on behalf of your container</strong>.</p>
+        <p>For your project, the two important things are:</p>
+        <div class="tree">ECS/Fargate
+│
+├── Pull Docker image from ECR
+│
+└── Send container logs to CloudWatch</div>
+        <p>Without the appropriate execution role, ECS may not be able to pull your private ECR image or send logs to CloudWatch.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">1</span><h4>Why do we need it?</h4></div>
+      <div class="card-sub-content">
+        <p>You have already done:</p>
+        <div class="flow">
+          <div class="flow-step start">Your PC</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">AWS CLI</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">IAM Access Key</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">ECR</div>
+        </div>
+        <p>That access key is for <strong>you/your computer</strong>.</p>
+        <p>But later, when AWS starts your Docker container, AWS itself needs permission:</p>
+        <div class="tree">AWS ECS
+↓
+"I need to pull this image from ECR"
+↓
+"I need to send these logs to CloudWatch"</div>
+        <p>The <strong>Task Execution Role</strong> provides those permissions.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">2</span><h4>Access Key vs Execution Role</h4></div>
+      <div class="card-sub-content">
+        <p>This distinction is very important:</p>
+        <table>
+          <tr><th>Credential</th><th>Used by</th><th>Purpose</th></tr>
+          <tr><td>IAM Access Key</td><td>You / local AWS CLI</td><td>Upload image to ECR</td></tr>
+          <tr><td>ECS Task Execution Role</td><td>ECS/Fargate</td><td>Start and manage your container</td></tr>
+        </table>
+        <p>So:</p>
+        <div class="compare">
+          <div class="compare-box blue">
+            <h4>LOCAL</h4>
+            <p>You → AWS CLI → Access Key → ECR</p>
+          </div>
+          <div class="compare-box purple">
+            <h4>AWS</h4>
+            <p>ECS/Fargate → Task Execution Role → ECR pull image + CloudWatch send logs</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">3</span><h4>Create the Role</h4></div>
+      <div class="card-sub-content">
+        <p>Go to:</p>
+        <div class="tree">AWS Console
+→ IAM
+→ Roles
+→ Create role</div>
+        <p><strong>Step 1 — Trusted entity</strong></p>
+        <p>Choose:</p>
+        <div class="tree">Trusted entity type:
+AWS service</div>
+        <p>Then service/use case:</p>
+        <div class="tree">Elastic Container Service
+→ Elastic Container Service Task</div>
+        <p>This means:</p>
+        <div class="quote">ECS tasks are allowed to use this role.</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">4</span><h4>Add the Permission Policy</h4></div>
+      <div class="card-sub-content">
+        <p>Search for:</p>
+        <div class="tree">AmazonECSTaskExecutionRolePolicy</div>
+        <p>Select it.</p>
+        <p>This is an AWS-managed policy designed for ECS task execution.</p>
+        <p>It provides permissions needed for things such as:</p>
+        <div class="tree">ECR
+↓
+Pull container image
+
+CloudWatch Logs
+↓
+Create/write log streams and events</div>
+        <p>For your current setup, this is exactly what you need.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">5</span><h4>Name the Role</h4></div>
+      <div class="card-sub-content">
+        <p>Use:</p>
+        <div class="tree">ecsTaskExecutionRole</div>
+        <p>Then: <strong>Create role</strong></p>
+        <p>You should now have:</p>
+        <div class="tree">IAM
+└── Roles
+    └── ecsTaskExecutionRole</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">6</span><h4>How it will be used later</h4></div>
+      <div class="card-sub-content">
+        <p>You don't manually give this role to Docker.</p>
+        <p>You'll select it in your <strong>ECS Task Definition</strong>:</p>
+        <div class="tree">ECS Task Definition
+│
+├── Container image
+│       ↓
+│      ECR
+│
+├── Execution role
+│       ↓
+│      ecsTaskExecutionRole
+│
+└── Logging
+        ↓
+       CloudWatch</div>
+        <p>When ECS launches your task:</p>
+        <div class="tree">ECS
+│
+│ uses ecsTaskExecutionRole
+│
+├──────────────→ ECR
+│                   └── Pull pino-logger-demo:latest
+│
+└──────────────→ CloudWatch
+                    └── Write container logs</div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">7</span><h4>Don't confuse it with Task Role</h4></div>
+      <div class="card-sub-content">
+        <p>ECS has two different concepts:</p>
+        <p><strong>Task Execution Role</strong> — used by <strong>ECS infrastructure</strong>:</p>
+        <div class="tree">ECS
+├── Pull image from ECR
+└── Send logs to CloudWatch</div>
+        <p><strong>Task Role</strong> — used by <strong>your application inside the container</strong>:</p>
+        <div class="tree">Node.js application
+↓
+AWS API
+↓
+S3 / DynamoDB / SQS / etc.</div>
+        <p>For your current Pino + CloudWatch project, you primarily need:</p>
+        <div class="tree">✅ Task Execution Role
+❌ Task Role — not required unless your application itself needs AWS permissions</div>
+        <p><strong>Final setup</strong></p>
+        <p>Create:</p>
+        <div class="tree">Role name:
+ecsTaskExecutionRole
+
+Trusted entity:
+Elastic Container Service Task
+
+Policy:
+AmazonECSTaskExecutionRolePolicy</div>
+        <p>Once this role is created, your <strong>next step is ECS Cluster creation</strong>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== CLUSTER ========== -->
+  <div class="section-divider" id="cluster"><span>4. Create ECS Cluster</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>What a cluster is</h4></div>
+      <div class="card-sub-content">
+        <p>An <strong>ECS Cluster</strong> is a logical AWS container environment where your ECS tasks/services will run.</p>
+        <p>For your project:</p>
+        <div class="flow">
+          <div class="flow-step start">ECR · Docker image</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">ECS Cluster</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Fargate Task</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Your Node.js + Pino container</div>
+        </div>
+        <p><strong>Important</strong></p>
+        <p>The cluster <strong>does not contain your Docker image</strong>.</p>
+        <p>Your image is already stored here:</p>
+        <div class="tree">ECR
+└── pino-logger-demo
+    └── latest</div>
+        <p>The cluster is where AWS will <strong>run</strong> that image.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">1</span><h4>Open ECS</h4></div>
+      <div class="card-sub-content">
+        <p>AWS Console:</p>
+        <div class="tree">AWS Console
+→ Search "ECS"
+→ Amazon Elastic Container Service
+→ Clusters
+→ Create cluster</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">2</span><h4>Cluster name</h4></div>
+      <div class="card-sub-content">
+        <p>Enter:</p>
+        <div class="tree">pino-logger-cluster</div>
+        <p>You can use another name, but keep it descriptive.</p>
+        <p>Yes, that's normal. AWS ECS can generate a random default cluster name, such as:</p>
+        <div class="tree">acclaimed-elephant-fx97jh</div>
+        <p>It is not an error.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">3</span><h4>Infrastructure — AWS Fargate</h4></div>
+      <div class="card-sub-content">
+        <p>For your project, choose:</p>
+        <div class="tree">AWS Fargate</div>
+        <p><strong>What is Fargate?</strong></p>
+        <p>Normally, running Docker containers requires servers.</p>
+        <p>With Fargate:</p>
+        <div class="flow">
+          <div class="flow-step start">You</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Give AWS Docker image</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Fargate</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">AWS manages the underlying servers</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Your container runs</div>
+        </div>
+        <p>You don't need to create or manage an EC2 server for this setup.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">4</span><h4>Other settings</h4></div>
+      <div class="card-sub-content">
+        <p>For your beginner setup, <strong>don't change unnecessary advanced settings</strong>.</p>
+        <p>Use the default configuration unless AWS requires something specific.</p>
+        <p>Then click:</p>
+        <div class="tree">Create</div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>After creation</h4></div>
+      <div class="card-sub-content">
+        <p>You should have:</p>
+        <div class="tree">ECS
+└── Clusters
+    └── pino-logger-cluster</div>
+        <p>But currently:</p>
+        <div class="tree">pino-logger-cluster
+└── No running tasks</div>
+        <p>That's <strong>normal</strong>.</p>
+        <p>We haven't told ECS <strong>what container to run yet</strong>.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>What comes next?</h4></div>
+      <div class="card-sub-content">
+        <p>The next important step is <strong>Task Definition</strong>.</p>
+        <p>Think of it this way:</p>
+        <p><strong>Cluster</strong></p>
+        <div class="quote">"Where should my container run?"</div>
+        <div class="tree">pino-logger-cluster</div>
+        <p><strong>Task Definition</strong></p>
+        <div class="quote">"What exactly should I run?"</div>
+        <p>It will specify:</p>
+        <div class="tree">Docker image:
+pino-logger-demo:latest
+
+CPU:
+...
+
+Memory:
+...
+
+Container:
+pino-logger-app
+
+Execution Role:
+ecsTaskExecutionRole
+
+Logs:
+CloudWatch</div>
+        <p>Then:</p>
+        <div class="flow">
+          <div class="flow-step start">Cluster</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Task Definition</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Fargate Task</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Docker Container</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Pino logs</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">CloudWatch</div>
+        </div>
+        <p><strong>Your progress</strong></p>
+        <p>After creating the cluster:</p>
+        <ul class="checklist">
+          <li class="done">✅ AWS CLI</li>
+          <li class="done">✅ IAM Access Key</li>
+          <li class="done">✅ ECR Repository</li>
+          <li class="done">✅ CloudWatch Log Group</li>
+          <li class="done">✅ Docker Login</li>
+          <li class="done">✅ Docker Image</li>
+          <li class="done">✅ ECS Task Execution Role</li>
+          <li class="done">✅ ECS Cluster</li>
+          <li class="wait">⏳ ECS Task Definition ← NEXT</li>
+          <li class="wait">⏳ ECS Service</li>
+          <li class="wait">⏳ Run container</li>
+          <li class="wait">⏳ Check CloudWatch logs</li>
+        </ul>
+        <p>So <strong>Create ECS Cluster is an easy step</strong>. The next step, <strong>Task Definition</strong>, is where we'll connect your ECR image, execution role, container settings, and CloudWatch logging.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TASK DEFINITION ========== -->
+  <div class="section-divider" id="td"><span>5. ECS Task Definition</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Blueprint for how to run the container</h4></div>
+      <div class="card-sub-content">
+        <p>A <strong>Task Definition</strong> is the configuration/blueprint that tells ECS <strong>how to run your Docker container</strong>.</p>
+        <p>You already have:</p>
+        <div class="tree">ECR
+└── pino-logger-demo
+    └── latest
+
+ECS Cluster
+└── acclaimed-elephant-fx97jh
+
+IAM Role
+└── ecsTaskExecutionRole
+
+CloudWatch
+└── Your Log Group</div>
+        <p>Now the Task Definition connects these pieces.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">1</span><h4>Create Task Definition</h4></div>
+      <div class="card-sub-content">
+        <p>Go to:</p>
+        <div class="tree">AWS Console
+→ ECS
+→ Task definitions
+→ Create new task definition</div>
+        <p>You'll see a form for configuring your task.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">2</span><h4>Task Definition Family</h4></div>
+      <div class="card-sub-content">
+        <p>You'll be asked for a name/family.</p>
+        <p>Use:</p>
+        <div class="tree">pino-logger-task</div>
+        <p>Think of this as the name of the configuration.</p>
+        <div class="tree">pino-logger-task
+↓
+"How should AWS run my pino logger container?"</div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">3</span><h4>Launch Type / Infrastructure</h4></div>
+      <div class="card-sub-content">
+        <p>Choose:</p>
+        <div class="tree">AWS Fargate</div>
+        <p>You are using Fargate because you don't want to manage EC2 servers.</p>
+        <div class="tree">Task Definition
+↓
+AWS Fargate
+↓
+Container</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">4</span><h4>CPU and Memory</h4></div>
+      <div class="card-sub-content">
+        <p>For a small Node.js/Pino learning application, start small.</p>
+        <p>For example:</p>
+        <div class="tree">CPU:
+0.25 vCPU
+
+Memory:
+0.5 GB</div>
+        <p>This is enough for a simple Node.js application for learning/testing.</p>
+        <p>You can increase these later if your application needs more resources.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">5</span><h4>Task Execution Role</h4></div>
+      <div class="card-sub-content">
+        <p>This is the role you already created:</p>
+        <div class="tree">ecsTaskExecutionRole</div>
+        <p>Select it as:</p>
+        <div class="tree">Task execution role
+→ ecsTaskExecutionRole</div>
+        <p>Remember:</p>
+        <div class="tree">ecsTaskExecutionRole
+↓
+ECS uses this role
+↓
+ECR + CloudWatch</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">6</span><h4>Container Configuration</h4></div>
+      <div class="card-sub-content">
+        <p>This is where you tell ECS which Docker image to run.</p>
+        <p>Add a container.</p>
+        <p><strong>Container name</strong></p>
+        <p>Use:</p>
+        <div class="tree">pino-logger-app</div>
+        <p><strong>Image URI</strong></p>
+        <p>Use your ECR image:</p>
+        <div class="tree">133889910939.dkr.ecr.us-east-1.amazonaws.com/pino-logger-demo:latest</div>
+        <p>Notice the difference:</p>
+        <div class="tree">Local image:
+pino-logger-app:latest
+
+ECR image:
+133889910939.dkr.ecr.us-east-1.amazonaws.com/pino-logger-demo:latest</div>
+        <p>ECS uses the <strong>ECR image URI</strong>, not the local image name.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">7</span><h4>Container Port</h4></div>
+      <div class="card-sub-content">
+        <p>If your Node.js application runs on:</p>
+        <div class="tree">PORT=3000</div>
+        <p>then configure:</p>
+        <div class="tree">Container port: 3000
+Protocol: TCP</div>
+        <p>If your application uses another port, use that port instead.</p>
+        <p>For example:</p>
+        <div class="tree">Node.js
+↓
+localhost:3000</div>
+        <p>The container should expose:</p>
+        <div class="tree">3000/TCP</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">8</span><h4>CloudWatch Logging</h4></div>
+      <div class="card-sub-content">
+        <p>This is the important part for your original goal:</p>
+        <div class="quote">I want to see my Pino logs in AWS CloudWatch.</div>
+        <p>Enable container logging using:</p>
+        <div class="tree">Log driver:
+awslogs</div>
+        <p>Configure:</p>
+        <div class="tree">Log group:
+/ecs/pino-logger-app
+
+Region:
+us-east-1
+
+Stream prefix:
+ecs</div>
+        <p>The flow becomes:</p>
+        <div class="flow">
+          <div class="flow-step start">Pino</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">console/stdout</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Docker container</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">ECS awslogs</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">CloudWatch</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">/ecs/pino-logger-app</div>
+        </div>
+        <p><strong>Important</strong></p>
+        <p>Your Pino code should normally log to stdout/stderr.</p>
+        <p>For example:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">pino</span></div>
+          <pre><code>logger.info(<span class="str">"Server started"</span>);
+logger.error(<span class="str">"Something went wrong"</span>);</code></pre>
+        </div>
+        <p>You don't need to make Pino directly connect to CloudWatch.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">9</span><h4>Environment Variables</h4></div>
+      <div class="card-sub-content">
+        <p>If your application requires environment variables, you can add them here.</p>
+        <p>For example:</p>
+        <div class="tree">NODE_ENV=production
+PORT=3000</div>
+        <p><strong>Don't put sensitive secrets directly into the Task Definition</strong> for a real production application.</p>
+        <p>For example, avoid:</p>
+        <div class="tree">DATABASE_PASSWORD=actual-password
+JWT_SECRET=actual-secret</div>
+        <p>Later you can use <strong>AWS Secrets Manager/SSM Parameter Store</strong>.</p>
+        <p>For your current learning setup, keep this simple.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">10</span><h4>Create Task Definition — review</h4></div>
+      <div class="card-sub-content">
+        <p>Review:</p>
+        <div class="tree">Task family:
+pino-logger-task
+
+Infrastructure:
+Fargate
+
+CPU:
+0.25 vCPU
+
+Memory:
+0.5 GB
+
+Execution role:
+ecsTaskExecutionRole
+
+Container:
+pino-logger-app
+
+Image:
+133889910939.dkr.ecr.us-east-1.amazonaws.com/pino-logger-demo:latest
+
+Port:
+3000
+
+Logging:
+awslogs
+
+CloudWatch:
+/ecs/pino-logger-app</div>
+        <p>Then click: <strong>Create</strong></p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>What you have accomplished</h4></div>
+      <div class="card-sub-content">
+        <p>Before Task Definition:</p>
+        <div class="tree">ECR
+└── Docker image ✅
+
+IAM
+└── Execution role ✅
+
+CloudWatch
+└── Log Group ✅
+
+ECS
+└── Cluster ✅</div>
+        <p>After Task Definition:</p>
+        <div class="tree">ECS
+├── Cluster
+│   └── acclaimed-elephant-fx97jh
+│
+└── Task Definition
+    └── pino-logger-task
+        ├── ECR image
+        ├── CPU / Memory
+        ├── Execution role
+        ├── Container
+        └── CloudWatch logging</div>
+        <p><strong>What comes next?</strong></p>
+        <p>After the Task Definition is created, <strong>don't run the task manually yet</strong>.</p>
+        <p>The next step is:</p>
+        <div class="flow">
+          <div class="flow-step start">ECS Service</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Fargate Task</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Docker Container</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Pino</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">CloudWatch</div>
+        </div>
+        <div class="info-box box-benefit"><strong>Task Definition = blueprint.</strong><br><strong>ECS Service = tells ECS to actually keep that blueprint running.</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SERVICE ========== -->
+  <div class="section-divider" id="svc"><span>6. Create ECS Service</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Run my task and keep it running</h4></div>
+      <div class="card-sub-content">
+        <p>You have now created the <strong>Task Definition</strong>. The next step is to create an <strong>ECS Service</strong>.</p>
+        <p>The service tells ECS:</p>
+        <div class="quote">Run my task and keep it running.</div>
+        <p>Your flow is now:</p>
+        <div class="flow">
+          <div class="flow-step start">ECR</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Docker Image</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Task Definition</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">ECS Service ← NOW</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Fargate Task</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Docker Container</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">1</span><h4>Open your ECS Cluster</h4></div>
+      <div class="card-sub-content">
+        <p>Go to:</p>
+        <div class="tree">AWS Console
+→ ECS
+→ Clusters
+→ acclaimed-elephant-fx97jh</div>
+        <p>Then choose:</p>
+        <div class="tree">Create
+→ Create service</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">2</span><h4>Environment</h4></div>
+      <div class="card-sub-content">
+        <p>Choose:</p>
+        <div class="tree">Compute options:
+Launch type
+
+Launch type:
+FARGATE</div>
+        <p>Depending on the current AWS console UI, this may appear under <strong>Compute options</strong> rather than explicitly as "Launch type."</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">3</span><h4>Application type</h4></div>
+      <div class="card-sub-content">
+        <p>Choose:</p>
+        <div class="tree">Application type:
+Service</div>
+        <p>A service is what keeps your container running.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">4</span><h4>Task Definition</h4></div>
+      <div class="card-sub-content">
+        <p>Select the task definition you just created:</p>
+        <div class="tree">Family:
+pino-logger-task</div>
+        <p>Use its latest revision.</p>
+        <p>Conceptually:</p>
+        <div class="tree">Service
+↓
+pino-logger-task
+↓
+Fargate
+↓
+pino-logger-app</div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">5</span><h4>Service Name</h4></div>
+      <div class="card-sub-content">
+        <p>Use:</p>
+        <div class="tree">pino-logger-service</div>
+        <p>So you'll have:</p>
+        <div class="tree">Cluster:
+acclaimed-elephant-fx97jh
+
+Service:
+pino-logger-service
+
+Task Definition:
+pino-logger-task</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">6</span><h4>Desired Tasks</h4></div>
+      <div class="card-sub-content">
+        <p>Set:</p>
+        <div class="tree">Desired tasks:
+1</div>
+        <p>This means:</p>
+        <div class="quote">Keep <strong>one container/task running</strong>.</div>
+        <p>For your learning project, <code>1</code> is enough.</p>
+        <div class="tree">pino-logger-service
+↓
+1 Task
+↓
+pino-logger-app</div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">7</span><h4>Networking</h4></div>
+      <div class="card-sub-content">
+        <p>This is the main part to pay attention to.</p>
+        <p>You'll need:</p>
+        <div class="tree">VPC
+Subnet
+Security Group</div>
+        <p><strong>VPC</strong></p>
+        <p>For your first deployment, select your <strong>default VPC</strong>.</p>
+        <p><strong>Subnet</strong></p>
+        <p>Select an available subnet in that VPC.</p>
+        <p><strong>Security Group</strong></p>
+        <p>Create/select a security group for the application.</p>
+        <p>If your Node.js application listens on:</p>
+        <div class="tree">3000</div>
+        <p>you'll eventually need the appropriate inbound rule for port <code>3000</code> if you want to access the application from outside.</p>
+        <p>For example:</p>
+        <div class="tree">Inbound
+TCP
+Port: 3000
+Source: appropriate client/network</div>
+        <p>Don't open ports you don't need.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">8</span><h4>Public IP</h4></div>
+      <div class="card-sub-content">
+        <p>For a simple beginner deployment where you want to directly reach the Fargate task, you can enable:</p>
+        <div class="tree">Public IP:
+Turned on</div>
+        <p>This gives the task a public IP when launched in a suitable public subnet.</p>
+        <p>For a proper production architecture, you would normally put the application behind an <strong>Application Load Balancer</strong> rather than relying on a task's public IP.</p>
+        <p>For your learning project, direct public access is simpler.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">9</span><h4>Create the Service</h4></div>
+      <div class="card-sub-content">
+        <p>Review:</p>
+        <div class="tree">Cluster:
+acclaimed-elephant-fx97jh
+
+Service:
+pino-logger-service
+
+Task:
+pino-logger-task
+
+Desired tasks:
+1
+
+Launch:
+Fargate
+
+Networking:
+Default VPC
+Subnet
+Security Group
+Public IP</div>
+        <p>Then click: <strong>Create</strong>.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">10</span><h4>What happens after creation?</h4></div>
+      <div class="card-sub-content">
+        <p>ECS will start your task:</p>
+        <div class="flow">
+          <div class="flow-step start">ECS Service</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Fargate</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Task</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Docker Container</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">pino-logger-app</div>
+        </div>
+        <p>You should eventually see:</p>
+        <div class="tree">Running: 1
+Desired: 1</div>
+        <p>That's what you want.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">11</span><h4>Check the Task</h4></div>
+      <div class="card-sub-content">
+        <p>Go to:</p>
+        <div class="tree">ECS
+→ Clusters
+→ acclaimed-elephant-fx97jh
+→ Services
+→ pino-logger-service
+→ Tasks</div>
+        <p>You should see your task.</p>
+        <p>Initially it may show:</p>
+        <div class="tree">PROVISIONING</div>
+        <p>then:</p>
+        <div class="tree">PENDING</div>
+        <p>and finally:</p>
+        <div class="tree">RUNNING</div>
+        <p>You want:</p>
+        <div class="tree">Desired: 1
+Running: 1</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">12</span><h4>Then Check CloudWatch</h4></div>
+      <div class="card-sub-content">
+        <p>Once the task is running:</p>
+        <div class="tree">CloudWatch
+→ Logs
+→ Log groups
+→ /ecs/pino-logger-app</div>
+        <p>Open the log stream.</p>
+        <p>Your Pino logs should appear:</p>
+        <div class="tree">Server started
+Request received
+...</div>
+        <p>So your final logging flow becomes:</p>
+        <div class="flow">
+          <div class="flow-step start">Node.js</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Pino</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">stdout</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Docker</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">ECS/Fargate</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">awslogs</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">CloudWatch</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">/ecs/pino-logger-app</div>
+        </div>
+        <p><strong>Your progress now</strong></p>
+        <ul class="checklist">
+          <li class="done">✅ AWS CLI</li>
+          <li class="done">✅ IAM Access Key</li>
+          <li class="done">✅ ECR Repository</li>
+          <li class="done">✅ Docker Image</li>
+          <li class="done">✅ Image pushed to ECR</li>
+          <li class="done">✅ CloudWatch Log Group</li>
+          <li class="done">✅ ECS Task Execution Role</li>
+          <li class="done">✅ ECS Cluster</li>
+          <li class="done">✅ ECS Task Definition</li>
+          <li class="wait">⏳ ECS Service ← NOW</li>
+          <li class="wait">⏳ Run Task</li>
+          <li class="wait">⏳ Verify RUNNING</li>
+          <li class="wait">⏳ Check CloudWatch logs</li>
+        </ul>
+        <p><strong>The next thing after the service is running is simply verification: make sure the task reaches <code>RUNNING</code>, then open CloudWatch and confirm your Pino logs are arriving.</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">CloudWatch log</span></div>
+          <pre><code>{
+  <span class="str">"level"</span>: <span class="num">30</span>,
+  <span class="str">"time"</span>: <span class="str">"2026-08-30T17:08:22.773Z"</span>,
+  <span class="str">"service"</span>: <span class="str">"pino-demo"</span>,
+  <span class="str">"env"</span>: <span class="str">"development"</span>,
+  <span class="str">"msg"</span>: <span class="str">"Server started on port 3000"</span>
+}</code></pre>
+        </div>
+        <ul class="checklist">
+          <li class="done">AWS CLI ✅</li>
+          <li class="done">IAM Access Key ✅</li>
+          <li class="done">ECR Repository ✅</li>
+          <li class="done">Docker Image ✅</li>
+          <li class="done">Docker Push ✅</li>
+          <li class="done">CloudWatch Log Group ✅</li>
+          <li class="done">ECS Execution Role ✅</li>
+          <li class="done">ECS Cluster ✅</li>
+          <li class="done">ECS Task Definition ✅</li>
+          <li class="done">ECS Service ✅</li>
+          <li class="done">Fargate Container ✅</li>
+          <li class="done">Pino → CloudWatch ✅</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== PUBLIC IP ========== -->
+  <div class="section-divider" id="ip"><span>Find the public IP (task already RUNNING)</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Method 1 — ECS Console</h4></div>
+      <div class="card-sub-content">
+        <p>Since your ECS task is already <strong>RUNNING</strong>, you can find its public IP from the ECS console.</p>
+        <p>Go to:</p>
+        <div class="tree">AWS Console
+→ ECS
+→ Clusters
+→ acclaimed-elephant-fx97jh
+→ Services
+→ pino-logger-service
+→ Tasks
+→ click the RUNNING task</div>
+        <p>Then find the <strong>Networking</strong> section.</p>
+        <p>You should see something like:</p>
+        <div class="tree">Network
+VPC: vpc-xxxxxxxx
+Subnet: subnet-xxxxxxxx
+Security group: sg-xxxxxxxx
+Public IP: 54.xxx.xxx.xxx</div>
+        <p>Copy the <strong>Public IP</strong>.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Method 2 — Use it to call your API</h4></div>
+      <div class="card-sub-content">
+        <p>If your public IP is:</p>
+        <div class="tree">54.123.45.67</div>
+        <p>and your Node.js app listens on port <code>3000</code>, call:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">powershell</span></div>
+          <pre><code>curl http://54.123.45.67:3000</code></pre>
+        </div>
+        <p>Or:</p>
+        <div class="tree">http://54.123.45.67:3000</div>
+        <p>in your browser.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>If you don't see a Public IP</h4></div>
+      <div class="card-sub-content">
+        <p>Check your ECS Service/Task networking configuration and make sure:</p>
+        <div class="tree">Public IP → ON</div>
+        <p>Also make sure the task is running in a subnet that has internet connectivity.</p>
+        <p>And your Security Group needs an inbound rule allowing the application port, e.g.:</p>
+        <div class="tree">Type: Custom TCP
+Port: 3000
+Source: Your IP</div>
+        <p>For testing, you can use <code>0.0.0.0/0</code>, but <strong>don't leave that open in a production setup</strong>.</p>
+        <p>Once you find the IP, you can use it to call your API and watch the Pino request logs appear in CloudWatch Live Tail.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>Notes — AWS CLI + ECR + CloudWatch — Your Order · full text</footer>
+</div>
+</body>
+</html>

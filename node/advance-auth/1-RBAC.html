@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — RBAC Implementation Guide</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1040px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
+
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:26px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.55; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
+
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
+
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; }
+.cmt { color:#64748b; font-style:italic; } .num { color:#fdba74; }
+
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:14.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-tip { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-note { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a; border-color:#93c5fd; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+.box-danger { background:linear-gradient(135deg,#fee2e2,#fecaca); color:#991b1b; border-color:#fca5a5; }
+
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:16px 18px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.04);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box.blue { border-left:5px solid #2563eb; background:linear-gradient(135deg,#fff,#eff6ff); }
+.compare-box.purple { border-left:5px solid #7c3aed; background:linear-gradient(135deg,#fff,#f5f3ff); }
+.compare-box.amber { border-left:5px solid #f59e0b; background:linear-gradient(135deg,#fff,#fffbeb); }
+.compare-box.bad { border-left:5px solid #e11d48; background:linear-gradient(135deg,#fff,#fff1f2); }
+.compare-box h4 { font-size:14px; margin-bottom:8px; font-weight:800; }
+.compare-box.good h4 { color:#047857; }
+.compare-box.blue h4 { color:#1e40af; }
+.compare-box.purple h4 { color:#5b21b6; }
+.compare-box.amber h4 { color:#b45309; }
+.compare-box.bad h4 { color:#9f1239; }
+.compare-box p { margin:0; font-size:0.88rem; line-height:1.75; color:#334155; }
+
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content ul { margin:6px 0 10px 18px; }
+.card-sub-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; margin-bottom:4px; }
+
+.flow {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  margin:16px 0; background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border-radius:16px; padding:24px 20px; border:1px solid #312e81;
+}
+.flow-step {
+  background: linear-gradient(135deg, #1e293b, #334155); border: 1.5px solid #475569;
+  border-radius:12px; padding:11px 20px; text-align:center;
+  min-width:180px; max-width:460px; color:#f1f5f9; font-weight:600;
+}
+.flow-arrow { color:#818cf8; font-size:1.3rem; line-height:1.5; }
+.flow-step.start { background: linear-gradient(135deg, #1d4ed8, #3b82f6); border-color: #60a5fa; color:#fff; }
+.flow-step.success { background: linear-gradient(135deg, #047857, #10b981); border-color: #34d399; color:#fff; }
+.flow-step.cyan { background: linear-gradient(135deg, #0e7490, #06b6d4); border-color: #22d3ee; color:#fff; }
+.flow-step.purple { background: linear-gradient(135deg, #5b21b6, #7c3aed); border-color: #a78bfa; color:#fff; }
+.flow-step.danger { background: linear-gradient(135deg, #9f1239, #e11d48); border-color: #fb7185; color:#fff; }
+.flow-step.amber { background: linear-gradient(135deg, #b45309, #f59e0b); border-color: #fbbf24; color:#fff; }
+.flow-row { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin:8px 0; }
+
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb); color:#fff;
+  font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td {
+  padding:10px 14px; font-size:14px; font-weight:600; border:none;
+  color:#1e3a8a; background:#eff6ff;
+}
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a; padding:2px 6px;
+  border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — RBAC Implementation Guide</h1>
+    <p>Access-token based · Auth middleware · Protected routes · Role middleware · Admin · Role change · Testing</p>
+    <div class="toc">
+      <a href="#s0">Core rule</a>
+      <a href="#s1">Authenticate</a>
+      <a href="#s2">/users/me</a>
+      <a href="#s3">Test auth</a>
+      <a href="#s4">requireRole</a>
+      <a href="#s5">Admin route</a>
+      <a href="#s6">Bootstrap</a>
+      <a href="#s7">Role change</a>
+      <a href="#s8">Test authz</a>
+      <a href="#s9">Pattern</a>
+      <a href="#s10">Enterprise</a>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s0"><span>0. Theory — The Core RBAC Rule</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Hold onto this before any code</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step start">Public signup</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">USER only</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Admin action</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Change role to admin</div>
+        </div>
+        <div class="info-box box-benefit">✅ Public signup can only ever create a normal <code>user</code>. The client cannot choose or submit a role. Only an already-authorized admin can change another user's role.</div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Never allow this</h4></div>
+      <div class="card-sub-content">
+        <div class="flow">
+          <div class="flow-step start">Frontend</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step danger">"role": "admin" in registration body</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Backend accepts it → RBAC bypassed</div>
+        </div>
+        <p>If a registration endpoint reads <code>role</code> from the client and trusts it, <strong>anyone can register as admin</strong>. The fix is not "validate that role is a real value" — it's <strong>never accept <code>role</code> from the client at all</strong> during signup. The server decides the role, always.</p>
+        <div class="compare">
+          <div class="compare-box bad">
+            <h4>Wrong</h4>
+            <p><code>role_id: input.role_id</code> — client-controlled. Anyone can send admin.</p>
+          </div>
+          <div class="compare-box good">
+            <h4>Correct</h4>
+            <p>Lookup <code>name: "user"</code> on the server. Never from the request.</p>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">signup — server decides role</span></div>
+          <pre><code><span class="cmt">// ❌ WRONG — never do this</span>
+<span class="kw">const</span> user = <span class="kw">await</span> prisma.user.<span class="fn">create</span>({
+  data: {
+    email: input.email,
+    password_hash: hash,
+    role_id: input.role_id, <span class="cmt">// client-controlled</span>
+  },
+});
+
+<span class="cmt">// ✅ CORRECT — server decides, always</span>
+<span class="kw">const</span> userRole = <span class="kw">await</span> prisma.role.<span class="fn">findUniqueOrThrow</span>({ where: { name: <span class="str">"user"</span> } });
+<span class="kw">const</span> user = <span class="kw">await</span> prisma.user.<span class="fn">create</span>({
+  data: {
+    email: input.email,
+    password_hash: hash,
+    role_id: userRole.id, <span class="cmt">// hardcoded lookup</span>
+  },
+});</code></pre>
+        </div>
+        <div class="info-box box-note">📌 Zod omitting <code>role</code> strips unknown keys by default — still don't rely on that alone. The service layer should never read <code>input.role</code>.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s1"><span>1. Authentication Middleware</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Verify JWT · attach req.user</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/middleware/authenticate.ts</span></div>
+          <pre><code><span class="kw">import</span> { Request, Response, NextFunction } <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> jwt <span class="kw">from</span> <span class="str">"jsonwebtoken"</span>;
+<span class="kw">import</span> { env } <span class="kw">from</span> <span class="str">"../config/env.js"</span>;
+
+<span class="kw">interface</span> AccessTokenPayload {
+  sub: string;
+  role: string;
+}
+
+<span class="kw">declare global</span> {
+  <span class="kw">namespace</span> Express {
+    <span class="kw">interface</span> Request {
+      user?: AccessTokenPayload;
+    }
+  }
+}
+
+<span class="kw">export function</span> <span class="fn">authenticate</span>(req: Request, res: Response, next: NextFunction) {
+  <span class="kw">const</span> authHeader = req.headers.authorization;
+
+  <span class="kw">if</span> (!authHeader?.startsWith(<span class="str">"Bearer "</span>)) {
+    <span class="kw">return</span> res.status(<span class="num">401</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"Missing token"</span> });
+  }
+
+  <span class="kw">const</span> token = authHeader.split(<span class="str">" "</span>)[<span class="num">1</span>];
+
+  <span class="kw">try</span> {
+    <span class="kw">const</span> payload = jwt.<span class="fn">verify</span>(token, env.JWT_ACCESS_SECRET) <span class="kw">as</span> AccessTokenPayload;
+    req.user = payload;
+    next();
+  } <span class="kw">catch</span> {
+    <span class="kw">return</span> res.status(<span class="num">401</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"Invalid or expired token"</span> });
+  }
+}</code></pre>
+        </div>
+        <div class="info-box box-tip">💡 <code>declare global</code> teaches TypeScript that <code>req.user</code> exists. Without it, <code>req.user</code> errors as unknown.</div>
+        <div class="info-box box-warning">⚠️ Role in the JWT is a snapshot at <strong>login time</strong>, not a live DB read. Role changes don't take effect until the user logs in again. Expected — not a bug. Promoted users still get 403 until they re-authenticate.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s2"><span>2. First Protected Route — /users/me</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Any logged-in user can fetch their own data</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/modules/user/user.routes.ts</span></div>
+          <pre><code><span class="kw">import</span> { Router } <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> { authenticate } <span class="kw">from</span> <span class="str">"../../middleware/authenticate.js"</span>;
+<span class="kw">import</span> { prisma } <span class="kw">from</span> <span class="str">"../../config/db.js"</span>;
+
+<span class="kw">const</span> router = Router();
+
+router.get(<span class="str">"/me"</span>, authenticate, <span class="kw">async</span> (req, res) => {
+  <span class="kw">const</span> user = <span class="kw">await</span> prisma.user.<span class="fn">findUnique</span>({
+    where: { id: req.user!.sub },
+    include: { role: <span class="kw">true</span> },
+  });
+
+  <span class="kw">if</span> (!user) <span class="kw">return</span> res.status(<span class="num">404</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"User not found"</span> });
+
+  <span class="kw">return</span> res.json({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role.name,
+  });
+});
+
+<span class="kw">export default</span> router;</code></pre>
+        </div>
+        <p>Wire in <code>app.ts</code>: <code>app.use("/users", userRoutes);</code></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s3"><span>3. Test the Protected Route</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Don't move on until all three pass</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">curl</span></div>
+          <pre><code>curl -i http://localhost:4000/users/me
+
+curl -i http://localhost:4000/users/me \
+  -H <span class="str">"Authorization: Bearer <valid-access-token>"</span>
+
+curl -i http://localhost:4000/users/me \
+  -H <span class="str">"Authorization: Bearer invalidtoken123"</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Case</th><th>Expected</th></tr>
+          <tr><td>No token</td><td>401</td></tr>
+          <tr><td>Valid token</td><td>200 + user data</td></tr>
+          <tr><td>Garbage / expired token</td><td>401</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s4"><span>4. Role Middleware</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Runs after authenticate</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/middleware/requireRole.ts</span></div>
+          <pre><code><span class="kw">import</span> { Request, Response, NextFunction } <span class="kw">from</span> <span class="str">"express"</span>;
+
+<span class="kw">export function</span> <span class="fn">requireRole</span>(...roles: string[]) {
+  <span class="kw">return</span> (req: Request, res: Response, next: NextFunction) => {
+    <span class="kw">if</span> (!req.user || !roles.includes(req.user.role)) {
+      <span class="kw">return</span> res.status(<span class="num">403</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"Forbidden"</span> });
+    }
+    next();
+  };
+}</code></pre>
+        </div>
+        <p>Factory: <code>requireRole("admin")</code> or <code>requireRole("admin", "moderator")</code>. Order is fixed:</p>
+        <div class="flow">
+          <div class="flow-step start">authenticate()</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">requireRole("admin")</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">controller</div>
+        </div>
+        <div class="info-box box-warning">⚠️ If you swap the order, <code>req.user</code> is always undefined and every request gets 403 — including valid admin tokens. Common "admin route always fails" bug.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s5"><span>5. Admin-Only Route</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>GET /admin/users</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/modules/admin/admin.routes.ts</span></div>
+          <pre><code><span class="kw">import</span> { Router } <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> { authenticate } <span class="kw">from</span> <span class="str">"../../middleware/authenticate.js"</span>;
+<span class="kw">import</span> { requireRole } <span class="kw">from</span> <span class="str">"../../middleware/requireRole.js"</span>;
+<span class="kw">import</span> { prisma } <span class="kw">from</span> <span class="str">"../../config/db.js"</span>;
+
+<span class="kw">const</span> router = Router();
+
+router.get(<span class="str">"/users"</span>, authenticate, <span class="fn">requireRole</span>(<span class="str">"admin"</span>), <span class="kw">async</span> (req, res) => {
+  <span class="kw">const</span> users = <span class="kw">await</span> prisma.user.<span class="fn">findMany</span>({
+    select: { id: <span class="kw">true</span>, name: <span class="kw">true</span>, email: <span class="kw">true</span>, role: { select: { name: <span class="kw">true</span> } } },
+  });
+  <span class="kw">return</span> res.json(users);
+});
+
+<span class="kw">export default</span> router;</code></pre>
+        </div>
+        <p>Wire: <code>app.use("/admin", adminRoutes);</code></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s6"><span>6. How Does the First Admin Get Created?</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Bootstrap — chicken and egg</h4></div>
+      <div class="card-sub-content">
+        <p>The role-change endpoint requires an existing admin. On a new system, zero admins exist. Solve it with <strong>one controlled, manual bootstrap</strong> — never a public endpoint.</p>
+        <div class="flow">
+          <div class="flow-step start">seed</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Create "user" role</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Create "admin" role</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Create ONE initial admin, manually</div>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">prisma/seed.ts</span></div>
+          <pre><code><span class="kw">const</span> adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
+<span class="kw">if</span> (adminEmail) {
+  <span class="kw">const</span> adminRole = <span class="kw">await</span> prisma.role.<span class="fn">findUniqueOrThrow</span>({ where: { name: <span class="str">"admin"</span> } });
+  <span class="kw">await</span> prisma.user.<span class="fn">upsert</span>({
+    where: { email: adminEmail },
+    update: { role_id: adminRole.id },
+    create: {
+      email: adminEmail,
+      name: <span class="str">"Bootstrap Admin"</span>,
+      password_hash: <span class="kw">await</span> argon2.<span class="fn">hash</span>(process.env.BOOTSTRAP_ADMIN_PASSWORD!),
+      role_id: adminRole.id,
+    },
+  });
+}</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>BOOTSTRAP_ADMIN_EMAIL=admin@example.com BOOTSTRAP_ADMIN_PASSWORD=securePass123 npx prisma db seed</code></pre>
+        </div>
+        <div class="info-box box-danger">🚫 Never expose this through public signup — operational/deployment step, not an API feature.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s7"><span>7. Admin Promotes / Demotes Another User</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Schema</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/modules/user/user.schema.ts</span></div>
+          <pre><code><span class="kw">import</span> { z } <span class="kw">from</span> <span class="str">"zod"</span>;
+
+<span class="kw">export const</span> roleChangeSchema = z.object({
+  role: z.enum([<span class="str">"user"</span>, <span class="str">"admin"</span>]),
+});
+
+<span class="kw">export type</span> RoleChangeInput = z.infer<typeof roleChangeSchema>;</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Service</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/modules/user/user.service.ts</span></div>
+          <pre><code><span class="kw">export async function</span> <span class="fn">changeUserRole</span>(targetUserId: string, newRoleName: <span class="str">"user"</span> | <span class="str">"admin"</span>) {
+  <span class="kw">const</span> targetUser = <span class="kw">await</span> prisma.user.<span class="fn">findUnique</span>({ where: { id: targetUserId } });
+  <span class="kw">if</span> (!targetUser) <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"USER_NOT_FOUND"</span>);
+
+  <span class="kw">const</span> newRole = <span class="kw">await</span> prisma.role.<span class="fn">findUniqueOrThrow</span>({ where: { name: newRoleName } });
+
+  <span class="kw">const</span> updated = <span class="kw">await</span> prisma.user.<span class="fn">update</span>({
+    where: { id: targetUserId },
+    data: { role_id: newRole.id },
+    include: { role: <span class="kw">true</span> },
+  });
+
+  <span class="kw">return</span> { id: updated.id, email: updated.email, role: updated.role.name };
+}</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>Controller — self-demotion guard</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/modules/user/user.controller.ts</span></div>
+          <pre><code><span class="kw">export async function</span> <span class="fn">changeRoleController</span>(req: Request, res: Response) {
+  <span class="kw">const</span> parsed = roleChangeSchema.<span class="fn">safeParse</span>(req.body);
+  <span class="kw">if</span> (!parsed.success) {
+    <span class="kw">return</span> res.status(<span class="num">400</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"Invalid input"</span> });
+  }
+
+  <span class="kw">const</span> targetUserId = req.params.id;
+
+  <span class="kw">if</span> (targetUserId === req.user!.sub) {
+    <span class="kw">return</span> res.status(<span class="num">400</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"Cannot change your own role"</span> });
+  }
+
+  <span class="kw">try</span> {
+    <span class="kw">const</span> updated = <span class="kw">await</span> <span class="fn">changeUserRole</span>(targetUserId, parsed.data.role);
+    <span class="kw">return</span> res.status(<span class="num">200</span>).json(updated);
+  } <span class="kw">catch</span> (err) {
+    <span class="kw">if</span> (err <span class="kw">instanceof</span> Error && err.message === <span class="str">"USER_NOT_FOUND"</span>) {
+      <span class="kw">return</span> res.status(<span class="num">404</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"User not found"</span> });
+    }
+    <span class="kw">return</span> res.status(<span class="num">500</span>).json({ success: <span class="kw">false</span>, message: <span class="str">"Something went wrong"</span> });
+  }
+}</code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ Without the self-demotion guard, the only admin could demote themselves and lock the system with no admin left.</div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Route + flow</h4></div>
+      <div class="card-sub-content">
+        <p><code>PATCH /admin/users/:id/role</code> · <code>authenticate</code> → <code>requireRole("admin")</code> → controller</p>
+        <div class="flow">
+          <div class="flow-step start">Request</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">JWT authentication</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Identify current user · check role</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-row">
+            <div class="flow-step danger">Not admin → 403</div>
+            <div class="flow-step success">Is admin</div>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-row">
+            <div class="flow-step amber">Target === self → 400</div>
+            <div class="flow-step cyan">Not self</div>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-row">
+            <div class="flow-step danger">Missing → 404</div>
+            <div class="flow-step success">Change role → 200</div>
+          </div>
+        </div>
+        <p>Same endpoint for both directions:</p>
+        <table>
+          <tr><th>From</th><th>Body</th><th>To</th></tr>
+          <tr><td>user</td><td><code>{ "role": "admin" }</code></td><td>admin (promote)</td></tr>
+          <tr><td>admin</td><td><code>{ "role": "user" }</code></td><td>user (demote)</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s8"><span>8. Test Authorization</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>List users</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Role</th><th>Expected</th></tr>
+          <tr><td>user</td><td>403</td></tr>
+          <tr><td>admin</td><td>200</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Role-change cases</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Case</th><th>Expected</th></tr>
+          <tr><td>Admin promotes another user</td><td>200</td></tr>
+          <tr><td>Non-admin attempts promotion</td><td>403</td></tr>
+          <tr><td>Admin changes own role</td><td>400</td></tr>
+          <tr><td>Invalid role value (<code>superuser</code>)</td><td>400</td></tr>
+          <tr><td>Nonexistent target user</td><td>404</td></tr>
+        </table>
+        <div class="info-box box-note">📌 After promote: old token still fails admin routes. New login succeeds. Stateless JWT snapshot — document this so QA doesn't file it as a bug.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s9"><span>9. Summary — Pattern to Reuse</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>WHO vs ALLOWED</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box blue">
+            <h4>authenticate</h4>
+            <p>Proves WHO the caller is. Valid JWT → <code>req.user</code></p>
+          </div>
+          <div class="compare-box purple">
+            <h4>requireRole("X", "Y")</h4>
+            <p>Proves the caller is ALLOWED. <code>req.user.role</code> is one of X, Y</p>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">any route</span></div>
+          <pre><code>router.get(<span class="str">"/public"</span>, handler);
+router.get(<span class="str">"/private"</span>, authenticate, handler);
+router.get(<span class="str">"/admin-only"</span>, authenticate, <span class="fn">requireRole</span>(<span class="str">"admin"</span>), handler);
+router.get(<span class="str">"/staff"</span>, authenticate, <span class="fn">requireRole</span>(<span class="str">"admin"</span>, <span class="str">"moderator"</span>), handler);</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s10"><span>10. Enterprise-Maturity Notes</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Optional later — not required now</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Concern</th><th>What it looks like</th></tr>
+          <tr><td>Audit trail</td><td>Log every role change (actor, target, oldRole, newRole, timestamp) to its own table</td></tr>
+          <tr><td>Narrower promotion</td><td>Split <code>admin</code> vs <code>super_admin</code> (only super can grant roles)</td></tr>
+          <tr><td>Step-up auth</td><td>Re-enter password / MFA before a role-change action</td></tr>
+          <tr><td>Approval workflow</td><td>Second admin must approve highest-privilege promotions</td></tr>
+          <tr><td>Permissions</td><td>Granular <code>users:read</code> / <code>users:manage_roles</code> when two roles aren't enough</td></tr>
+        </table>
+        <div class="info-box box-benefit">✅ For now: register → always <code>"user"</code> · one seeded bootstrap admin · <code>PATCH /admin/users/:id/role</code> for everything after that.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Notes — RBAC Implementation Guide (Access-Token Based)</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — Application Security</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1040px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
+
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:26px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.55; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
+
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
+
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; }
+.cmt { color:#64748b; font-style:italic; } .num { color:#fdba74; }
+
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:14.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-tip { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-note { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a; border-color:#93c5fd; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+.box-danger { background:linear-gradient(135deg,#fee2e2,#fecaca); color:#991b1b; border-color:#fca5a5; }
+
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:16px 18px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.04);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box.blue { border-left:5px solid #2563eb; background:linear-gradient(135deg,#fff,#eff6ff); }
+.compare-box.purple { border-left:5px solid #7c3aed; background:linear-gradient(135deg,#fff,#f5f3ff); }
+.compare-box.amber { border-left:5px solid #f59e0b; background:linear-gradient(135deg,#fff,#fffbeb); }
+.compare-box.bad { border-left:5px solid #e11d48; background:linear-gradient(135deg,#fff,#fff1f2); }
+.compare-box h4 { font-size:14px; margin-bottom:8px; font-weight:800; }
+.compare-box.good h4 { color:#047857; }
+.compare-box.blue h4 { color:#1e40af; }
+.compare-box.purple h4 { color:#5b21b6; }
+.compare-box.amber h4 { color:#b45309; }
+.compare-box.bad h4 { color:#9f1239; }
+.compare-box p { margin:0; font-size:0.88rem; line-height:1.75; color:#334155; }
+
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+
+/* ---- Improved bullet-point styling (applies to every list in the doc) ---- */
+.card-sub-content ul {
+  list-style: none;
+  margin: 10px 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.card-sub-content ul:last-child { margin-bottom: 0; }
+.card-sub-content li {
+  position: relative;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: #334155;
+  font-weight: 500;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #2563eb;
+  border-radius: 9px;
+  padding: 10px 14px 10px 38px;
+  margin: 0;
+  transition: background 0.15s ease;
+}
+.card-sub-content li::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #6366f1);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.14);
+}
+.card-sub-content li:hover { background: linear-gradient(135deg, #eff6ff, #e0e7ff); }
+.card-sub-content li strong { color: #1e3a8a; font-weight: 800; }
+
+/* numbered variant used for step-like / ordered lists (e.g. section 9.1–9.4) */
+.card-sub-content ul.numbered { counter-reset: item; }
+.card-sub-content ul.numbered li {
+  counter-increment: item;
+  border-left: 3px solid #7c3aed;
+  padding-left: 42px;
+}
+.card-sub-content ul.numbered li::before {
+  content: counter(item);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  left: 8px;
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.14);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flow {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  margin:16px 0; background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border-radius:16px; padding:24px 20px; border:1px solid #312e81;
+}
+.flow-step {
+  background: linear-gradient(135deg, #1e293b, #334155); border: 1.5px solid #475569;
+  border-radius:12px; padding:11px 20px; text-align:center;
+  min-width:180px; max-width:560px; color:#f1f5f9; font-weight:600; font-size:14px;
+}
+.flow-arrow { color:#818cf8; font-size:1.3rem; line-height:1.5; }
+.flow-step.start { background: linear-gradient(135deg, #1d4ed8, #3b82f6); border-color: #60a5fa; color:#fff; }
+.flow-step.success { background: linear-gradient(135deg, #047857, #10b981); border-color: #34d399; color:#fff; }
+.flow-step.cyan { background: linear-gradient(135deg, #0e7490, #06b6d4); border-color: #22d3ee; color:#fff; }
+.flow-step.purple { background: linear-gradient(135deg, #5b21b6, #7c3aed); border-color: #a78bfa; color:#fff; }
+.flow-step.amber { background: linear-gradient(135deg, #b45309, #f59e0b); border-color: #fbbf24; color:#fff; }
+
+.tree {
+  background:#0f172a; border-radius:12px; padding:16px 20px; margin:12px 0;
+  font-family:'Fira Code',Consolas,monospace; font-size:13px; color:#e2e8f0; line-height:1.65;
+  overflow-x:auto; white-space:pre;
+}
+.tree .g { color:#86efac; } .tree .b { color:#7dd3fc; } .tree .p { color:#c084fc; }
+
+.chip-row { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 4px; }
+.chip {
+  background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a;
+  padding:6px 12px; border-radius:20px; font-size:13px; font-weight:700;
+  border:1px solid #93c5fd;
+}
+
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb); color:#fff;
+  font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td {
+  padding:10px 14px; font-size:14px; font-weight:600; border:none;
+  color:#1e3a8a; background:#eff6ff; vertical-align:top;
+}
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a; padding:2px 6px;
+  border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — Application Security</h1>
+    <p>Auth · Authz · Network · Cookies · API · Frontend · Env · Database · Ops</p>
+    <div class="toc">
+      <a href="#map">Map</a>
+      <a href="#s1">1 Auth</a>
+      <a href="#s2">2 Authz</a>
+      <a href="#s3">3 Network</a>
+      <a href="#s4">4 Cookies</a>
+      <a href="#s5">5 API</a>
+      <a href="#s6">6 Frontend</a>
+      <a href="#s7">7 Env</a>
+      <a href="#s8">8 Database</a>
+      <a href="#s9">9 Ops</a>
+    </div>
+  </div>
+
+  <div class="section-divider" id="map"><span>Map</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Nine layers</h4></div>
+      <div class="card-sub-content">
+        <div class="tree">APPLICATION SECURITY
+│
+├── <span class="b">1. Authentication</span>     JWT · Argon2 · Access · Refresh · Rotation
+├── <span class="p">2. Authorization</span>      RBAC · Roles · Permissions
+├── <span class="g">3. Network Security</span>   HTTPS/TLS · Headers · CORS
+├── <span class="b">4. Cookie Security</span>    HttpOnly · Secure · SameSite · CSRF
+├── <span class="p">5. API Security</span>        Validation · Rate limit · Size · SQLi · Errors
+├── <span class="g">6. Frontend Security</span>  XSS · CSP · Safe DOM · Storage · Routes · Deps
+├── <span class="b">7. Environment</span>         .env · Secrets · JWT/DB/Redis/API keys
+├── <span class="p">8. Database</span>            Postgres · Redis · Least privilege · Backups
+└── <span class="g">9. Operational</span>         Logs · Monitor · Alert · Audit · Scan · Recover</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s1"><span>1. Authentication — who the user is</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Tokens + hashing</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li><strong>JWT</strong> — signed claims (user ID, role); verified by signature, not a DB lookup every request.</li>
+          <li><strong>Argon2</strong> — memory-hard password hash; never store plain text.</li>
+          <li><strong>Access token</strong> — short-lived, sent with each API request.</li>
+          <li><strong>Refresh token</strong> — long-lived, HttpOnly cookie, used to get a new access token.</li>
+          <li><strong>Token rotation</strong> — new refresh token each use; old one invalidated.</li>
+        </ul>
+        <div class="flow">
+          <div class="flow-step start">Login</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Verify password (Argon2)</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Issue Access + Refresh</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Refresh in HttpOnly cookie</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s2"><span>2. Authorization — what they may do</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>RBAC</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li><strong>RBAC</strong> — decisions from assigned role(s), not per-user rules.</li>
+          <li><strong>Roles</strong> — named groupings (ADMIN, USER).</li>
+          <li><strong>Permissions</strong> — granular actions (<code>user:delete</code>) on roles. Effective access = union of role permissions.</li>
+        </ul>
+        <div class="flow">
+          <div class="flow-step start">User</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Role</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Permissions</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Allow / Deny</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s3"><span>3. Network Security</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>3.1 HTTPS / TLS</h4></div>
+      <div class="card-sub-content">
+        <p>Protects <strong>data in transit</strong>. HTTPS = HTTP + TLS.</p>
+        <ul>
+          <li><strong>Server authentication</strong> — certificate confirms the real server.</li>
+          <li><strong>Encryption</strong> — hides passwords, cookies, tokens from eavesdroppers.</li>
+          <li><strong>Integrity</strong> — detects tampering in transit.</li>
+        </ul>
+        <div class="info-box box-warning">⚠️ TLS protects the channel only — not SQL injection or XSS.</div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>3.2 Security headers</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Header</th><th>Purpose</th></tr>
+          <tr><td><code>Content-Security-Policy</code></td><td>Restricts script/resource sources — mitigates XSS</td></tr>
+          <tr><td><code>Strict-Transport-Security</code></td><td>Forces HTTPS</td></tr>
+          <tr><td><code>X-Content-Type-Options: nosniff</code></td><td>Prevents MIME sniffing</td></tr>
+          <tr><td><code>X-Frame-Options</code></td><td>Mitigates clickjacking</td></tr>
+          <tr><td><code>Referrer-Policy</code></td><td>Controls referrer info</td></tr>
+        </table>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">helmet</span></div>
+          <pre><code><span class="kw">import</span> helmet <span class="kw">from</span> <span class="str">"helmet"</span>;
+app.use(<span class="fn">helmet</span>());</code></pre>
+        </div>
+        <p>Helmet sets headers. It does <strong>not</strong> encrypt traffic — that's TLS.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>3.3 CORS</h4></div>
+      <div class="card-sub-content">
+        <p>Which origins can call your API from a browser.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">cors</span></div>
+          <pre><code>app.use(<span class="fn">cors</span>({ origin: <span class="str">"https://myapp.com"</span>, credentials: <span class="kw">true</span> }));</code></pre>
+        </div>
+        <div class="info-box box-danger">🚫 Never <code>origin: "*"</code> when credentials/cookies are required.</div>
+        <div class="compare">
+          <div class="compare-box blue"><h4>HTTPS/TLS</h4><p>Protects data in transit</p></div>
+          <div class="compare-box purple"><h4>Headers</h4><p>Browser security behavior</p></div>
+        </div>
+        <p>CORS controls which origins can access the API.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s4"><span>4. Cookie Security</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>HttpOnly · Secure · SameSite · CSRF</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li><strong>HttpOnly</strong> — JS cannot read the cookie; mitigates XSS token theft.</li>
+          <li><strong>Secure</strong> — sent only over HTTPS.</li>
+          <li><strong>SameSite</strong> — <code>strict</code> / <code>lax</code> / <code>none</code>; primary CSRF mitigation.</li>
+          <li><strong>CSRF</strong> — forged authenticated requests. Defend with SameSite + CSRF tokens on POST/PUT/PATCH/DELETE.</li>
+        </ul>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">cookie</span></div>
+          <pre><code>res.cookie(<span class="str">"refreshToken"</span>, token, { httpOnly: <span class="kw">true</span>, secure: <span class="kw">true</span>, sameSite: <span class="str">"strict"</span> });</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s5"><span>5. API Security</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>5.1 Input validation</h4></div>
+      <div class="card-sub-content">
+        <p>Reject malformed data <strong>before</strong> business logic or the DB (zod / joi). Type, format, length, allowed values — every field.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>5.2 Rate limiting</h4></div>
+      <div class="card-sub-content">
+        <p>Cap requests per IP/user/key. Stops brute-force, credential stuffing, abuse.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">rateLimit</span></div>
+          <pre><code>app.use(<span class="fn">rateLimit</span>({ windowMs: <span class="num">15</span> * <span class="num">60</span> * <span class="num">1000</span>, max: <span class="num">100</span> }));</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>5.3 Request size limits</h4></div>
+      <div class="card-sub-content">
+        <p>Cap body size to prevent memory DoS.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">json limit</span></div>
+          <pre><code>app.use(express.json({ limit: <span class="str">"1mb"</span> }));</code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>5.4 SQL injection</h4></div>
+      <div class="card-sub-content">
+        <p>Never let user input become executable SQL.</p>
+        <div class="compare">
+          <div class="compare-box bad">
+            <h4>Dangerous</h4>
+            <p><code>SELECT * FROM users WHERE email = '${email}'</code></p>
+          </div>
+          <div class="compare-box good">
+            <h4>Parameterized / ORM</h4>
+            <p><code>prisma.user.findUnique({ where: { email } })</code></p>
+          </div>
+        </div>
+        <div class="flow">
+          <div class="flow-step start">User input</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Parameter</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Database query</div>
+        </div>
+        <div class="info-box box-note">📌 Validation checks if input is valid. Parameterization treats input as data, not code. You need both.</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>5.5 Error handling</h4></div>
+      <div class="card-sub-content">
+        <p>Generic messages to clients. Log full details server-side. Consistent shapes. Status codes: 400, 401, 403, 404, 409, 500. Never leak stack traces, SQL errors, or file paths.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s6"><span>6. Frontend Security</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>XSS · CSP · DOM · storage · routes · deps</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li><strong>XSS</strong> — injected JS. Defend with output encoding, no unsanitized <code>innerHTML</code> / <code>dangerouslySetInnerHTML</code>, DOMPurify for rich text.</li>
+          <li><strong>CSP</strong> — restricts what scripts/resources can load; limits XSS even if injection occurs.</li>
+          <li><strong>Safe DOM</strong> — prefer <code>textContent</code>; never <code>eval()</code> or unsanitized strings.</li>
+          <li><strong>Secure storage</strong> — tokens in HttpOnly cookies, not localStorage/sessionStorage (JS-readable).</li>
+          <li><strong>Route protection</strong> — client guards are UX only. Always re-enforce on the server.</li>
+          <li><strong>Dependencies</strong> — keep packages updated; <code>npm audit</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s7"><span>7. Environment Security</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>7.1 .env — local</h4></div>
+      <div class="card-sub-content">
+        <div class="tree">project/
+├── .env          ← local secrets (gitignored)
+├── .env.example  ← names only, committed
+└── .gitignore</div>
+        <p>Add <code>.env</code> to <code>.gitignore</code>. Commit only <code>.env.example</code>.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>7.2 Production — AWS / server</h4></div>
+      <div class="card-sub-content">
+        <p>Never store production secrets in Git or the Docker image.</p>
+        <div class="flow">
+          <div class="flow-step start">AWS Secrets Manager</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">ECS / container / server</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Node.js → process.env</div>
+        </div>
+        <p>Recommended: AWS Secrets Manager + IAM. Simple EC2 can set env vars on the server.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>7.3 Docker</h4></div>
+      <div class="card-sub-content">
+        <p>Image = code + deps + Node. <strong>Not</strong> JWT_SECRET, DB passwords, API keys. Inject at runtime.</p>
+        <div class="flow">
+          <div class="flow-step start">Docker image + runtime secrets</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Container → Node.js</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>7.4 What must be protected</h4></div>
+      <div class="card-sub-content">
+        <div class="chip-row">
+          <span class="chip">JWT secrets</span>
+          <span class="chip">DB credentials</span>
+          <span class="chip">Redis credentials</span>
+          <span class="chip">API keys</span>
+          <span class="chip">Third-party creds</span>
+        </div>
+        <ul>
+          <li>Never hardcode secrets in source.</li>
+          <li>Never commit <code>.env</code>.</li>
+          <li>Never expose server secrets to the frontend.</li>
+          <li>Different secrets per env (dev / staging / prod).</li>
+          <li>Least privilege per environment.</li>
+          <li>Rotate immediately if compromised.</li>
+        </ul>
+        <div class="info-box box-benefit">✅ Code goes into Git/Docker. Secrets are supplied at runtime.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s8"><span>8. Database Security</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Postgres · Redis · privilege · constraints · TLS · backups</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li><strong>PostgreSQL</strong> — parameterized queries / ORM; restrict network (firewall/VPC); SSL connections.</li>
+          <li><strong>Redis</strong> — <code>requirepass</code>; bind internal only; never public; TLS if available.</li>
+          <li><strong>Least privilege</strong> — app DB user: no SUPERUSER, no DROP in prod. Don't connect as admin/root.</li>
+          <li><strong>Constraints</strong> — UNIQUE, NOT NULL, FKs so invalid states fail even if app logic is buggy.</li>
+          <li><strong>Encryption/TLS</strong> — in transit; consider at rest for sensitive columns/disks.</li>
+          <li><strong>Backups</strong> — automated, stored securely (see 9.7).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s9"><span>9. Operational Security</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>9.1–9.4 Logging · monitoring · alerting · audit</h4></div>
+      <div class="card-sub-content">
+        <ul class="numbered">
+          <li><strong>Logging</strong> — requests, errors, auth attempts. Never passwords, tokens, full card numbers.</li>
+          <li><strong>Monitoring</strong> — latency, error rates, resource usage.</li>
+          <li><strong>Alerting</strong> — notify on thresholds (500 spike, failed-login surge).</li>
+          <li><strong>Audit logs</strong> — immutable record of role changes, grants, admin actions, deletions. Critical for RBAC and incidents.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>9.5–9.6 Scanning · dependency updates</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>npm audit</code></pre>
+        </div>
+        <p>Scan deps, containers, OS, code, infra. Supplement with review, security testing, pen tests.</p>
+        <div class="flow">
+          <div class="flow-step start">Detect</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Assess</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Update</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Test</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Deploy</div>
+        </div>
+        <p>Don't blindly major-upgrade in prod. Patches can still break things.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>9.7 Backup & recovery</h4></div>
+      <div class="card-sub-content">
+        <div class="compare">
+          <div class="compare-box blue">
+            <h4>Backup</h4>
+            <p>Do we have a copy of the data?</p>
+          </div>
+          <div class="compare-box purple">
+            <h4>Recovery</h4>
+            <p>Can we actually restore the system?</p>
+          </div>
+        </div>
+        <div class="flow">
+          <div class="flow-step start">Backup</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step cyan">Store safely</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step purple">Verify</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step amber">Test restore</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">Disaster recovery</div>
+        </div>
+        <table>
+          <tr><th>Term</th><th>Meaning</th></tr>
+          <tr><td><strong>RPO</strong></td><td>How much data loss is acceptable (e.g. last 15 minutes)</td></tr>
+          <tr><td><strong>RTO</strong></td><td>How quickly service must be restored (e.g. 1 hour)</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer>Notes — Application Security · layers 1–9 match the map</footer>
+</div>
+</body>
+</html>
