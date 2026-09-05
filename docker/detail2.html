@@ -1,0 +1,2578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — Docker Sections 8–13 · Node.js · Production · AWS</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1040px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:24px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.55; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; white-space:pre; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .cmt { color:#64748b; font-style:italic; }
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:14.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-note { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a; border-color:#93c5fd; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+.box-danger { background:linear-gradient(135deg,#fee2e2,#fecaca); color:#991b1b; border-color:#fca5a5; }
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:16px 18px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.04);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box.blue { border-left:5px solid #2563eb; background:linear-gradient(135deg,#fff,#eff6ff); }
+.compare-box.purple { border-left:5px solid #7c3aed; background:linear-gradient(135deg,#fff,#f5f3ff); }
+.compare-box.amber { border-left:5px solid #f59e0b; background:linear-gradient(135deg,#fff,#fffbeb); }
+.compare-box h4 { font-size:14px; margin-bottom:8px; font-weight:800; }
+.compare-box.good h4 { color:#047857; }
+.compare-box.blue h4 { color:#1e40af; }
+.compare-box.purple h4 { color:#5b21b6; }
+.compare-box.amber h4 { color:#b45309; }
+.compare-box p { margin:0; font-size:0.88rem; line-height:1.75; color:#334155; }
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.step-num {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:28px; height:22px; padding:0 7px; border-radius:8px;
+  background:linear-gradient(135deg,#1e3a8a,#2563eb); color:#fff;
+  font-size:11px; font-weight:800;
+}
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content ul, .card-sub-content ol { margin:6px 0 10px 18px; }
+.card-sub-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; margin-bottom:5px; }
+.flow {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  margin:16px 0; background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border-radius:16px; padding:24px 20px; border:1px solid #312e81;
+}
+.flow-step {
+  background: linear-gradient(135deg, #1e293b, #334155); border: 1.5px solid #475569;
+  border-radius:12px; padding:11px 20px; text-align:center;
+  min-width:180px; max-width:640px; color:#f1f5f9; font-weight:600; font-size:14px;
+}
+.flow-arrow { color:#818cf8; font-size:1.3rem; line-height:1.5; }
+.flow-step.start { background: linear-gradient(135deg, #1d4ed8, #3b82f6); border-color: #60a5fa; color:#fff; }
+.flow-step.success { background: linear-gradient(135deg, #047857, #10b981); border-color: #34d399; color:#fff; }
+.flow-step.cyan { background: linear-gradient(135deg, #0e7490, #06b6d4); border-color: #22d3ee; color:#fff; }
+.flow-step.purple { background: linear-gradient(135deg, #5b21b6, #7c3aed); border-color: #a78bfa; color:#fff; }
+.flow-step.amber { background: linear-gradient(135deg, #b45309, #f59e0b); border-color: #fbbf24; color:#fff; }
+.tree {
+  background:#0f172a; border-radius:12px; padding:16px 20px; margin:12px 0;
+  font-family:'Fira Code',Consolas,monospace; font-size:13px; color:#e2e8f0; line-height:1.65;
+  overflow-x:auto; white-space:pre;
+}
+.checklist { list-style:none; margin:0; padding:0; }
+.checklist li {
+  padding:8px 12px; margin-bottom:4px; border-radius:8px;
+  background:#eff6ff; font-size:14px; font-weight:600; color:#1e3a8a;
+}
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb); color:#fff;
+  font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td {
+  padding:10px 14px; font-size:14px; font-weight:600; border:none;
+  color:#1e3a8a; background:#eff6ff; vertical-align:top;
+}
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a; padding:2px 6px;
+  border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — Docker Sections 8–13</h1>
+    <p>Node.js stack · production Docker · security · logging · AWS ECS/ECR · production architecture. Full text.</p>
+    <div class="toc">
+      <a href="#s8">8 Node.js</a>
+      <a href="#s9">9 Production</a>
+      <a href="#s10">10 Security</a>
+      <a href="#s11">11 Logging</a>
+      <a href="#s12">12 AWS</a>
+      <a href="#s13">13 Prod AWS</a>
+    </div>
+  </div>
+
+  <div class="info-box box-note">After Sections 1–7, the next major topics are: Docker security → production Dockerfiles → multi-stage builds → container resource limits → Docker healthchecks → logging → Docker registry/ECR → ECS → CI/CD → production deployment. <strong>Section 8</strong> takes everything from 1–7 and builds a real Node.js backend stack. <strong>Section 9</strong> then makes that setup suitable for production.</div>
+
+  <!-- ===================== 8 ===================== -->
+  <div class="section-divider" id="s8"><span>8. Docker + Node.js</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Goal: Build this real architecture</h4></div>
+      <div class="card-sub-content">
+        <div class="tree">Client
+│
+↓
+Node / Express
+:3000
+/ \
+↓ ↓
+PostgreSQL Redis
+:5432 :6379
+│
+↓
+Docker Volume</div>
+        <p>With Docker Compose:</p>
+        <div class="tree">docker-compose.yml
+│
+├── API container
+├── PostgreSQL container
+├── Redis container
+├── Network
+└── PostgreSQL Volume</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">8.1</span><h4>Dockerize Express API</h4></div>
+      <div class="card-sub-content">
+        <p>Suppose your Node project looks like:</p>
+        <div class="tree">my-api/
+│
+├── src/
+│ └── server.js
+│
+├── package.json
+├── package-lock.json
+├── Dockerfile
+└── .dockerignore</div>
+        <p>Simple Express application:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/server.js</span></div>
+          <pre><code><span class="kw">const</span> express = require(<span class="str">"express"</span>);
+
+<span class="kw">const</span> app = express();
+
+app.use(express.json());
+
+app.get(<span class="str">"/"</span>, (req, res) => {
+  res.json({
+    message: <span class="str">"API is running"</span>
+  });
+});
+
+app.listen(<span class="num">3000</span>, <span class="str">"0.0.0.0"</span>, () => {
+  console.log(<span class="str">"Server running on port 3000"</span>);
+});</code></pre>
+        </div>
+        <p><strong>Why <code>0.0.0.0</code>?</strong></p>
+        <p>This is important with Docker.</p>
+        <p>If you use:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">javascript</span></div>
+          <pre><code>app.listen(<span class="num">3000</span>, <span class="str">"localhost"</span>);</code></pre>
+        </div>
+        <p>the application may only listen inside the container.</p>
+        <p>Use:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">javascript</span></div>
+          <pre><code>app.listen(<span class="num">3000</span>, <span class="str">"0.0.0.0"</span>);</code></pre>
+        </div>
+        <p>so the application accepts connections coming through the container's network interface.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">8.2</span><h4>Node.js Dockerfile</h4></div>
+      <div class="card-sub-content">
+        <p>A basic Dockerfile:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["node", "src/server.js"]</code></pre>
+        </div>
+        <p>Build:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>docker build -t node-api .</code></pre>
+        </div>
+        <p>Run:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>docker run -d \
+--name node-api \
+-p 3000:3000 \
+node-api</code></pre>
+        </div>
+        <p>Now:</p>
+        <div class="tree">Browser
+↓
+localhost:3000
+↓
+Docker
+↓
+Node container :3000</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">8.3</span><h4>NODE_ENV</h4></div>
+      <div class="card-sub-content">
+        <p>Node applications commonly use:</p>
+        <div class="tree">development
+test
+production</div>
+        <p>Example:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>NODE_ENV=production</code></pre>
+        </div>
+        <p>In Node:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">javascript</span></div>
+          <pre><code>console.log(process.env.NODE_ENV);</code></pre>
+        </div>
+        <p>You can change application behavior:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">javascript</span></div>
+          <pre><code><span class="kw">if</span> (process.env.NODE_ENV === <span class="str">"production"</span>) {
+  <span class="cmt">// production configuration</span>
+}</code></pre>
+        </div>
+        <p>In Docker:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>ENV NODE_ENV=production</code></pre>
+        </div>
+        <p>However, for production deployments, environment-specific configuration is often better injected at runtime rather than baking all configuration into the image.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">8.4</span><h4>npm install vs npm ci</h4></div>
+      <div class="card-sub-content">
+        <p>This is important for Docker.</p>
+        <p><strong><code>npm install</code></strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>npm install</code></pre>
+        </div>
+        <p>It installs dependencies and can modify/update <code>package-lock.json</code>.</p>
+        <p><strong><code>npm ci</code></strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>npm ci</code></pre>
+        </div>
+        <p>is designed for clean, reproducible installations.</p>
+        <p>It uses:</p>
+        <div class="tree">package.json
++
+package-lock.json</div>
+        <p>and installs the locked dependency versions.</p>
+        <p>For production Docker builds, generally prefer:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>RUN npm ci</code></pre>
+        </div>
+        <p>or:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>RUN npm ci --omit=dev</code></pre>
+        </div>
+        <p>for the final production image.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">8.5</span><h4>Why node_modules Should Not Be Copied</h4></div>
+      <div class="card-sub-content">
+        <p>Your local machine may have:</p>
+        <div class="tree">node_modules/</div>
+        <p>But you shouldn't do:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>COPY . .</code></pre>
+        </div>
+        <p>and accidentally send your local <code>node_modules</code> into the image.</p>
+        <p>Use:</p>
+        <div class="tree">.dockerignore</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">.dockerignore</span></div>
+          <pre><code>node_modules
+.git
+.env
+npm-debug.log</code></pre>
+        </div>
+        <p>Then Docker creates <code>node_modules</code> itself:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>COPY package*.json ./
+RUN npm ci</code></pre>
+        </div>
+        <p>This also avoids problems caused by host-specific binaries, especially when developing on Windows and running Linux containers.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">8.6</span><h4>PostgreSQL Container</h4></div>
+      <div class="card-sub-content">
+        <p>Instead of installing PostgreSQL directly on your machine:</p>
+        <div class="tree">Windows
+└── PostgreSQL</div>
+        <p>Docker can run:</p>
+        <div class="tree">Docker
+└── PostgreSQL container</div>
+        <p>Use the official image:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">yaml</span></div>
+          <pre><code>image: postgres:16</code></pre>
+        </div>
+        <p>Postgres requires configuration such as:</p>
+        <div class="tree">POSTGRES_USER
+POSTGRES_PASSWORD
+POSTGRES_DB</div>
+        <p>Example:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">yaml</span></div>
+          <pre><code>postgres:
+  image: postgres:16
+  environment:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: password
+    POSTGRES_DB: myapp</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">8.7</span><h4>PostgreSQL Volume</h4></div>
+      <div class="card-sub-content">
+        <p>Without a volume:</p>
+        <div class="tree">Postgres container
+↓
+container deleted
+↓
+data potentially lost</div>
+        <p>So:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">yaml</span></div>
+          <pre><code>volumes:
+  - postgres-data:/var/lib/postgresql/data</code></pre>
+        </div>
+        <p>Architecture:</p>
+        <div class="tree">Postgres container
+│
+↓
+/var/lib/postgresql/data
+│
+↓
+postgres-data volume</div>
+        <p>Define the volume:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">yaml</span></div>
+          <pre><code>volumes:
+  postgres-data:</code></pre>
+        </div>
+        <p>Now:</p>
+        <div class="tree">Container deleted
+↓
+Volume remains
+↓
+Database data remains</div>
+        <p>For local Docker development this is extremely useful.</p>
+        <p>For production, databases are often better hosted using a managed database service such as Amazon RDS rather than running PostgreSQL inside an application container.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">8.8</span><h4>Redis Container</h4></div>
+      <div class="card-sub-content">
+        <p>Redis can similarly run as a container:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">yaml</span></div>
+          <pre><code>redis:
+  image: redis:7</code></pre>
+        </div>
+        <p>Redis commonly handles:</p>
+        <div class="tree">Caching
+Sessions
+Rate limiting
+Queues
+Temporary data</div>
+        <p>For example:</p>
+        <div class="tree">Node API
+│
+├── PostgreSQL → permanent application data
+│
+└── Redis → cache/session/queue data</div>
+        <p>The Node application connects to Redis using:</p>
+        <div class="tree">redis:6379</div>
+        <p>not:</p>
+        <div class="tree">localhost:6379</div>
+        <p>because <code>redis</code> is the Docker Compose service name.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">8.9</span><h4>API + PostgreSQL + Redis</h4></div>
+      <div class="card-sub-content">
+        <p>Now we can create the complete Compose file.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">docker-compose.yml</span></div>
+          <pre><code>services:
+
+  api:
+    build: .
+    container_name: node-api
+    ports:
+      - "3000:3000"
+
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/myapp
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  postgres:
+    image: postgres:16
+    container_name: postgres
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: myapp
+
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d myapp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: redis
+
+volumes:
+  postgres-data:</code></pre>
+        </div>
+        <p>Run:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>docker compose up --build</code></pre>
+        </div>
+        <p>Now Compose creates a network automatically:</p>
+        <div class="tree">Docker Network
+│
+┌──────────────┼──────────────┐
+↓              ↓              ↓
+API         Postgres        Redis
+:3000        :5432          :6379</div>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">8.10</span><h4>How Node Connects to PostgreSQL</h4></div>
+      <div class="card-sub-content">
+        <p>Inside the API container:</p>
+        <div class="tree">DATABASE_URL=
+postgresql://postgres:password@postgres:5432/myapp</div>
+        <p>Break it down:</p>
+        <div class="tree">postgresql://
+postgres → username
+:
+password → password
+@
+postgres → Docker service/container hostname
+:
+5432 → PostgreSQL port
+/
+myapp → database</div>
+        <p>The important part is:</p>
+        <div class="tree">@postgres:5432</div>
+        <p>not:</p>
+        <div class="tree">@localhost:5432</div>
+        <p>Because:</p>
+        <div class="tree">localhost</div>
+        <p>inside the API container means:</p>
+        <div class="tree">API container</div>
+        <p>while:</p>
+        <div class="tree">postgres</div>
+        <p>means:</p>
+        <div class="tree">PostgreSQL container</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">8.11</span><h4>How Node Connects to Redis</h4></div>
+      <div class="card-sub-content">
+        <p>Similarly:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">env</span></div>
+          <pre><code>REDIS_HOST=redis
+REDIS_PORT=6379</code></pre>
+        </div>
+        <p>Architecture:</p>
+        <div class="tree">Node API
+│
+│ redis:6379
+↓
+Redis container</div>
+        <p>Docker's internal DNS resolves:</p>
+        <div class="tree">redis</div>
+        <p>to the Redis container.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">8.12</span><h4>Development vs Production · Development</h4></div>
+      <div class="card-sub-content">
+        <p>This distinction is very important.</p>
+        <p><strong>Development</strong></p>
+        <p>You want:</p>
+        <div class="tree">Fast code changes
+Hot reload
+Debugging
+Source code mounted</div>
+        <p>Typical setup:</p>
+        <div class="tree">Host
+│
+├── src/
+│
+↓ bind mount
+Container
+│
+└── nodemon</div>
+        <p>For example:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">yaml</span></div>
+          <pre><code>api:
+  build:
+    context: .
+    target: development
+
+  volumes:
+    - .:/app
+    - /app/node_modules
+
+  command: npm run dev</code></pre>
+        </div>
+        <p>And:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">package.json</span></div>
+          <pre><code>{
+  "scripts": {
+    "dev": "nodemon src/server.js"
+  }
+}</code></pre>
+        </div>
+        <p>Now you modify:</p>
+        <div class="tree">src/server.js</div>
+        <p>and nodemon restarts the application.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">8.13</span><h4>Production Container</h4></div>
+      <div class="card-sub-content">
+        <p>Production should generally be different.</p>
+        <p>You don't want:</p>
+        <div class="tree">Host source code
+↓
+bind mounted
+↓
+production container</div>
+        <p>Instead:</p>
+        <div class="tree">Source code
+↓
+Docker build
+↓
+Production image
+↓
+Container</div>
+        <p>The production image should contain only what is required to run the application.</p>
+        <p>For example:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci --omit=dev
+
+COPY . .
+
+USER node
+
+EXPOSE 3000
+
+CMD ["node", "src/server.js"]</code></pre>
+        </div>
+        <p>So:</p>
+        <div class="tree">Development
+
+Host → bind mount → Container → nodemon
+
+
+Production
+
+Dockerfile → Image → Container → Node</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 9 ===================== -->
+  <div class="section-divider" id="s9"><span>9. Production Docker</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Take Section 8 and make it production-grade</h4></div>
+      <div class="card-sub-content">
+        <p>Now we take the application we built in Section 8 and make it production-grade.</p>
+        <p>The goal is:</p>
+        <div class="tree">Secure
+Small
+Fast
+Reproducible
+Observable
+Resilient</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">9.1</span><h4>Multi-stage Builds</h4></div>
+      <div class="card-sub-content">
+        <p>A multi-stage Dockerfile has multiple <code>FROM</code> statements.</p>
+        <p>Example:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>FROM node:18-alpine AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci
+
+COPY . .
+
+RUN npm run build
+
+
+FROM node:18-alpine AS production
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci --omit=dev
+
+COPY --from=build /app/dist ./dist
+
+USER node
+
+EXPOSE 3000
+
+CMD ["node", "dist/server.js"]</code></pre>
+        </div>
+        <p>Concept:</p>
+        <div class="tree">BUILD STAGE
+───────────
+Source
+Dev dependencies
+Build tools
+Compiler
+│
+↓
+dist/
+│
+↓
+PRODUCTION STAGE
+───────────────
+Runtime
+Production dependencies
+dist/</div>
+        <p>The final image doesn't need the build tools.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">9.2</span><h4>Minimal Base Images</h4></div>
+      <div class="card-sub-content">
+        <p>Instead of:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>FROM node:18</code></pre>
+        </div>
+        <p>you might use:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>FROM node:18-alpine</code></pre>
+        </div>
+        <p>Alpine is much smaller.</p>
+        <p>Another option is:</p>
+        <div class="tree">Distroless</div>
+        <p>Distroless images contain very little beyond the application runtime.</p>
+        <p>The principle is:</p>
+        <div class="tree">Less software
+↓
+Smaller image
+↓
+Smaller attack surface</div>
+        <p>But don't choose Alpine/distroless blindly. Some Node native dependencies can have compatibility considerations. Test your actual application.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">9.3</span><h4>Image Size Optimization</h4></div>
+      <div class="card-sub-content">
+        <p>Bad:</p>
+        <div class="tree">Huge base image
++
+dev dependencies
++
+unnecessary files
++
+node_modules copied from host</div>
+        <p>Better:</p>
+        <div class="tree">Minimal base
++
+production dependencies
++
+only application files</div>
+        <p>Use:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>RUN npm ci --omit=dev</code></pre>
+        </div>
+        <p>and:</p>
+        <div class="tree">.dockerignore</div>
+        <p>For Debian-based images, package-manager caches should be cleaned appropriately. But don't add cleanup commands mechanically—design the <code>RUN</code> instruction so unnecessary package cache isn't left in the resulting layer.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">9.4</span><h4>Layer Optimization</h4></div>
+      <div class="card-sub-content">
+        <p>Bad:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>COPY . .
+RUN npm install</code></pre>
+        </div>
+        <p>Better:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>COPY package*.json ./
+RUN npm ci
+COPY . .</code></pre>
+        </div>
+        <p>Suppose you change:</p>
+        <div class="tree">server.js</div>
+        <p>The dependency layer remains cached.</p>
+        <div class="tree">package.json
+↓
+npm ci
+↓
+CACHED
+↓
+server.js changed
+↓
+only later layer rebuilds</div>
+        <p>This can make CI/CD builds significantly faster.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">9.5</span><h4>BuildKit</h4></div>
+      <div class="card-sub-content">
+        <p>Modern Docker uses BuildKit for builds.</p>
+        <p>It provides features such as:</p>
+        <div class="tree">Better caching
+Parallel build operations
+Build secrets
+Cache mounts
+Improved build performance</div>
+        <p>One particularly important security feature is secret mounting.</p>
+        <p>Instead of putting a secret into:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>ENV SECRET=value</code></pre>
+        </div>
+        <p>or:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>COPY secret.txt .</code></pre>
+        </div>
+        <p>BuildKit can provide secrets temporarily during a build.</p>
+        <p>Conceptually:</p>
+        <div class="tree">Secret
+↓
+Build step only
+↓
+not stored in final image</div>
+        <p>This is useful when a build needs private package registry credentials or similar build-time secrets.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">9.6</span><h4>Non-root User</h4></div>
+      <div class="card-sub-content">
+        <p>By default, some containers may run processes as root.</p>
+        <p>That's unnecessary for most applications.</p>
+        <p>Use:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>USER node</code></pre>
+        </div>
+        <p>with the Node official image's existing <code>node</code> user.</p>
+        <p>Conceptually:</p>
+        <div class="tree">Container
+│
+└── Node process
+    ↓
+    node user</div>
+        <p>instead of:</p>
+        <div class="tree">Container
+│
+└── Node process
+    ↓
+    root</div>
+        <p>If an attacker exploits the application, reducing privileges limits what the compromised process can do.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">9.7</span><h4>Read-only Filesystem</h4></div>
+      <div class="card-sub-content">
+        <p>You can run:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>docker run --read-only myapp</code></pre>
+        </div>
+        <p>Now the container's root filesystem can't normally be written to.</p>
+        <p>Conceptually:</p>
+        <div class="tree">Application
+│
+├── Read files ✓
+└── Modify files ✗</div>
+        <p>If your application needs temporary writable storage, provide something like a tmpfs mount:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>--tmpfs /tmp</code></pre>
+        </div>
+        <p>This is defense in depth.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">9.8</span><h4>Healthchecks</h4></div>
+      <div class="card-sub-content">
+        <p>A container being "running" doesn't necessarily mean the application is healthy.</p>
+        <p>Example:</p>
+        <div class="tree">Container running ✓
+Node process running ✓
+Database connection broken ✗
+API actually usable ✗</div>
+        <p>A healthcheck can test the application.</p>
+        <p>For example:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>HEALTHCHECK \
+  --interval=30s \
+  --timeout=5s \
+  --retries=3 \
+  CMD wget --spider -q http://localhost:3000/health || exit 1</code></pre>
+        </div>
+        <p>Your API should have:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">javascript</span></div>
+          <pre><code>app.get(<span class="str">"/health"</span>, (req, res) => {
+  res.status(<span class="num">200</span>).json({
+    status: <span class="str">"ok"</span>
+  });
+});</code></pre>
+        </div>
+        <p>Now Docker can determine whether the application responds.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">9.9</span><h4>Graceful Shutdown</h4></div>
+      <div class="card-sub-content">
+        <p>This is especially important for Node.js production applications.</p>
+        <p>Suppose ECS/Kubernetes/Docker wants to stop your container.</p>
+        <p>It typically sends:</p>
+        <div class="tree">SIGTERM</div>
+        <p>Your Node application should:</p>
+        <div class="tree">Receive SIGTERM
+↓
+Stop accepting new requests
+↓
+Finish in-flight requests
+↓
+Close DB connections
+↓
+Close Redis connections
+↓
+Exit</div>
+        <p>Example:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">javascript</span></div>
+          <pre><code>process.on(<span class="str">"SIGTERM"</span>, <span class="kw">async</span> () => {
+  console.log(<span class="str">"SIGTERM received"</span>);
+
+  server.close(<span class="kw">async</span> () => {
+    <span class="kw">await</span> db.close();
+    <span class="kw">await</span> redis.quit();
+
+    process.exit(<span class="num">0</span>);
+  });
+});</code></pre>
+        </div>
+        <p>This prevents requests from being abruptly terminated during deployments.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">9.10</span><h4>Resource Limits</h4></div>
+      <div class="card-sub-content">
+        <p>Containers can consume excessive resources.</p>
+        <p>For example:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>docker run \
+  --memory=512m \
+  --cpus=1 \
+  myapp</code></pre>
+        </div>
+        <p>Means approximately:</p>
+        <div class="tree">Memory → 512 MB
+CPU → 1 CPU</div>
+        <p>This helps prevent one container from consuming unlimited resources on a shared host.</p>
+        <p>In orchestrated environments such as ECS, equivalent CPU/memory resource configuration is normally defined at the task/container level.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">9.11</span><h4>Restart Policies</h4></div>
+      <div class="card-sub-content">
+        <p>Docker can restart containers automatically.</p>
+        <p>Example:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>docker run \
+  --restart=on-failure \
+  myapp</code></pre>
+        </div>
+        <p>Common policies:</p>
+        <div class="tree">no
+always
+on-failure
+unless-stopped</div>
+        <p>For example:</p>
+        <div class="tree">Application crashes
+↓
+Docker detects exit
+↓
+Restart container</div>
+        <p>In production orchestrators like ECS, you generally rely on the orchestrator's service/task restart behavior rather than treating Docker's standalone restart policy as your entire availability strategy.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">9.12</span><h4>Production Environment Variables and Secrets</h4></div>
+      <div class="card-sub-content">
+        <p>Avoid:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>ENV DB_PASSWORD=myPassword</code></pre>
+        </div>
+        <p>and don't put real secrets into:</p>
+        <div class="tree">Git
+Dockerfile
+Docker image</div>
+        <p>Instead:</p>
+        <div class="tree">Production
+│
+↓
+Secrets Manager
+│
+↓
+ECS
+│
+↓
+Container environment
+│
+↓
+Node.js</div>
+        <p>For example:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">javascript</span></div>
+          <pre><code>process.env.DATABASE_URL</code></pre>
+        </div>
+        <p>Your image remains reusable:</p>
+        <div class="tree">Same Docker Image
+│
+├── Dev
+├── Test
+└── Production</div>
+        <p>Only configuration changes.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Final Production Node.js Docker Architecture</h4></div>
+      <div class="card-sub-content">
+        <p>Putting Sections 8 and 9 together:</p>
+        <div class="tree">Docker Build
+│
+↓
+Multi-stage Build
+│
+↓
+Production Image
+┌───────────────┐
+│ Node Runtime  │
+│ App Code      │
+│ Prod Deps     │
+│ Non-root user │
+└───────┬───────┘
+        │
+        ↓
+   API Container
+       :3000
+        │
+┌───────┴───────┐
+↓               ↓
+PostgreSQL     Redis
+│               │
+Persistent     Cache/Queue/
+Storage        Sessions</div>
+        <p>And in AWS, the architecture you have been learning becomes:</p>
+        <div class="tree">Developer
+↓
+Dockerfile
+↓
+docker build
+↓
+Docker Image
+↓
+Amazon ECR
+↓
+ECS
+↓
+ECS Task
+↓
+Node.js Container
+│
+├── CloudWatch Logs
+├── Secrets Manager
+├── RDS PostgreSQL
+└── ElastiCache Redis</div>
+        <div class="info-box box-benefit"><strong>Key production mindset:</strong> Docker should package the application; it should not necessarily replace managed infrastructure. For example, locally you can run <strong>Node + PostgreSQL + Redis in Compose</strong>, while in AWS a common production architecture is <strong>Node on ECS + PostgreSQL on RDS + Redis on ElastiCache</strong>.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 10 ===================== -->
+  <div class="section-divider" id="s10"><span>10. Docker Security</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Goal: harder to compromise, limited damage</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Goal:</strong> Make containers harder to compromise and limit the damage if something goes wrong.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">1</span><h4>Container Isolation</h4></div>
+      <div class="card-sub-content">
+        <p>Docker uses Linux <strong>namespaces</strong> to isolate:</p>
+        <ul>
+          <li>Processes</li>
+          <li>Network</li>
+          <li>Filesystem</li>
+          <li>Users</li>
+        </ul>
+        <p>But containers share the <strong>host kernel</strong>, so they aren't as strongly isolated as VMs.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">2</span><h4>Least Privilege</h4></div>
+      <div class="card-sub-content">
+        <p>Give the container only the permissions it actually needs.</p>
+        <p>Example:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>docker run --cap-drop=ALL myapp</code></pre>
+        </div>
+        <p>Instead of giving the container unnecessary Linux privileges.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">3</span><h4>Non-root Containers</h4></div>
+      <div class="card-sub-content">
+        <p>Don't run your application as <code>root</code>.</p>
+        <p>Dockerfile:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>USER node</code></pre>
+        </div>
+        <p>If the application is compromised, the attacker has fewer privileges.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">4</span><h4>Linux Capabilities</h4></div>
+      <div class="card-sub-content">
+        <p>Linux capabilities provide specific privileges without giving full root access.</p>
+        <p>For example:</p>
+        <div class="tree">NET_BIND_SERVICE</div>
+        <p>allows binding to privileged ports.</p>
+        <p>Instead of:</p>
+        <div class="tree">Full root privileges</div>
+        <p>you can grant only the capability required.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">5</span><h4>Secrets Management</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Never</strong> do:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>ENV DB_PASSWORD=secret123</code></pre>
+        </div>
+        <p>because the secret can become part of the image/configuration.</p>
+        <p>Use:</p>
+        <div class="tree">AWS Secrets Manager
+Docker/BuildKit secrets
+Vault
+ECS secrets</div>
+        <p>For your AWS setup:</p>
+        <div class="tree">AWS Secrets Manager
+↓
+ECS
+↓
+Node container</div>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">6</span><h4>Image Vulnerability Scanning</h4></div>
+      <div class="card-sub-content">
+        <p>Your image may contain vulnerable packages.</p>
+        <p>Use tools such as:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>trivy image myapp:latest</code></pre>
+        </div>
+        <p>It can identify known <strong>CVEs</strong> in:</p>
+        <div class="tree">OS packages
+Node dependencies
+Base image
+Libraries</div>
+        <p>Then update the vulnerable package/base image.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">7</span><h4>Trusted Base Images</h4></div>
+      <div class="card-sub-content">
+        <p>Prefer trusted images:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>FROM node:18-alpine</code></pre>
+        </div>
+        <p>rather than unknown/untrusted images.</p>
+        <p>For stronger reproducibility, production systems can pin an image by <strong>digest</strong>:</p>
+        <div class="tree">image@sha256:...</div>
+        <p>This ensures you're using the exact image content.</p>
+      </div>
+    </div>
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">8</span><h4>Supply Chain Security</h4></div>
+      <div class="card-sub-content">
+        <p>This protects the software from being tampered with between:</p>
+        <div class="tree">Source Code
+↓
+Build
+↓
+Docker Image
+↓
+Registry
+↓
+Production</div>
+        <p>Common technologies:</p>
+        <div class="tree">Image signing → cosign / Sigstore
+SBOM → Software Bill of Materials</div>
+        <p>An <strong>SBOM</strong> tells you what components/packages are inside your image.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Production Security Checklist</h4></div>
+      <div class="card-sub-content">
+        <p>For your Node.js Docker application, remember:</p>
+        <ul class="checklist">
+          <li>✓ Non-root user</li>
+          <li>✓ Minimal trusted base image</li>
+          <li>✓ No secrets inside image</li>
+          <li>✓ .dockerignore</li>
+          <li>✓ Scan images with Trivy</li>
+          <li>✓ Keep dependencies updated</li>
+          <li>✓ Drop unnecessary capabilities</li>
+          <li>✓ Use read-only filesystem where practical</li>
+          <li>✓ Pin production images when reproducibility matters</li>
+          <li>✓ Generate/maintain SBOM</li>
+          <li>✓ Sign and verify images for stronger supply-chain security</li>
+        </ul>
+        <p>The most important things to master first are <strong>non-root containers + secrets management + vulnerability scanning + trusted/minimal images</strong>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 11 ===================== -->
+  <div class="section-divider" id="s11"><span>11. Docker Logging & Monitoring</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Goal: Gain visibility into running containers</h4></div>
+      <div class="card-sub-content">
+        <ul>
+          <li><strong>stdout / stderr</strong> — Docker's logging model expects apps to log to stdout/stderr, not files.</li>
+          <li><strong>Docker Logging Drivers</strong> — <code>json-file</code> (default), <code>syslog</code>, <code>fluentd</code>, <code>awslogs</code>, etc.</li>
+          <li><strong>Structured Logging</strong> — JSON-formatted logs for easier parsing by log aggregators.</li>
+          <li><strong>Log Rotation</strong> — Configuring <code>max-size</code>/<code>max-file</code> to prevent disk from filling up.</li>
+          <li><strong>Health Monitoring</strong> — Combining <code>HEALTHCHECK</code> with orchestrator-level monitoring.</li>
+          <li><strong>Metrics</strong> — <code>docker stats</code>, cAdvisor, Prometheus exporters for CPU/memory/network metrics.</li>
+          <li><strong>Container Observability</strong> — Centralized logging/metrics/tracing stacks (ELK, Loki+Grafana, Prometheus+Grafana).</li>
+        </ul>
+        <p><strong>Practice:</strong> Set up log rotation on a container and pipe logs into a local ELK or Grafana Loki stack via Compose.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 12 ===================== -->
+  <div class="section-divider" id="s12"><span>12. Docker + AWS</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>From laptop Docker to real production</h4></div>
+      <div class="card-sub-content">
+        <p>This is one of the <strong>most important parts of Docker for your production-level learning</strong>, because here you move from:</p>
+        <div class="tree">Docker on your laptop
+↓
+Docker image
+↓
+AWS
+↓
+Real production application</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">12.1</span><h4>Overall Architecture</h4></div>
+      <div class="card-sub-content">
+        <p>Before learning each AWS service, understand the complete flow:</p>
+        <div class="tree">Developer
+│
+│ docker build
+↓
+Docker Image
+│
+│ docker push
+↓
+AWS ECR
+│
+│ ECS pulls image
+↓
+ECS Fargate
+│
+│ runs container
+↓
+Application Load Balancer
+│
+│ HTTP/HTTPS
+↓
+Node.js API
+│
+├──────────────→ RDS PostgreSQL
+│
+└──────────────→ ElastiCache Redis
+│
+↓
+CloudWatch Logs</div>
+        <p>The important distinction is:</p>
+        <ul>
+          <li><strong>ECR stores your Docker image</strong></li>
+          <li><strong>ECS decides how/where the container runs</strong></li>
+          <li><strong>Fargate provides the compute</strong></li>
+          <li><strong>ALB receives public traffic</strong></li>
+          <li><strong>VPC provides networking</strong></li>
+          <li><strong>Security Groups control traffic</strong></li>
+          <li><strong>IAM controls permissions</strong></li>
+          <li><strong>CloudWatch stores logs/metrics</strong></li>
+          <li><strong>RDS stores PostgreSQL data</strong></li>
+          <li><strong>ElastiCache provides Redis</strong></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">12.2</span><h4>ECR — Elastic Container Registry</h4></div>
+      <div class="card-sub-content">
+        <p>Amazon Elastic Container Registry</p>
+        <p>ECR is basically a <strong>private Docker registry inside AWS</strong>.</p>
+        <p>Normally you might do:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>docker build -t my-api .
+docker push docker.io/myusername/my-api</code></pre>
+        </div>
+        <p>With AWS:</p>
+        <div class="tree">Docker Image
+↓
+ECR
+↓
+ECS</div>
+        <p><strong>Example</strong></p>
+        <p>You create:</p>
+        <div class="tree">ECR Repository
+↓
+node-api</div>
+        <p>Then build:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>docker build -t node-api .</code></pre>
+        </div>
+        <p>Tag:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>docker tag node-api:latest \
+123456789012.dkr.ecr.us-east-1.amazonaws.com/node-api:latest</code></pre>
+        </div>
+        <p>Login:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>aws ecr get-login-password --region us-east-1 |
+docker login --username AWS --password-stdin \
+123456789012.dkr.ecr.us-east-1.amazonaws.com</code></pre>
+        </div>
+        <p>Push:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>docker push \
+123456789012.dkr.ecr.us-east-1.amazonaws.com/node-api:latest</code></pre>
+        </div>
+        <p>Now AWS has your image:</p>
+        <div class="tree">ECR
+└── node-api
+    └── latest</div>
+        <p><strong>Important</strong></p>
+        <p>ECR <strong>does not run your container</strong>.</p>
+        <p>It only stores the image.</p>
+        <div class="tree">ECR = Docker image storage</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">12.3</span><h4>ECS — Elastic Container Service</h4></div>
+      <div class="card-sub-content">
+        <p>Amazon Elastic Container Service</p>
+        <p>ECS is responsible for <strong>running and managing containers</strong>.</p>
+        <p>Think:</p>
+        <div class="tree">ECR
+↓
+"Here is my Docker image"
+
+ECS
+↓
+"I will run this image"</div>
+        <p>For example:</p>
+        <div class="tree">ECS
+│
+├── Task 1 → node-api container
+├── Task 2 → node-api container
+└── Task 3 → node-api container</div>
+        <p>If you configure:</p>
+        <div class="tree">Desired count = 3</div>
+        <p>ECS tries to keep <strong>3 running tasks</strong>.</p>
+        <p>If one crashes:</p>
+        <div class="tree">Task 1 ❌
+Task 2 ✅
+Task 3 ✅
+
+↓
+
+ECS starts replacement
+
+Task 1 → new task ✅
+Task 2 ✅
+Task 3 ✅</div>
+        <p>That's one of the major reasons we don't simply run:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>docker run node-api</code></pre>
+        </div>
+        <p>in production.</p>
+        <p>ECS provides orchestration.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">12.4</span><h4>ECS Task Definition</h4></div>
+      <div class="card-sub-content">
+        <p>This is extremely important.</p>
+        <p>A <strong>Task Definition</strong> is essentially the configuration/blueprint for your container.</p>
+        <p>It tells ECS:</p>
+        <div class="tree">Which image?
+How much CPU?
+How much RAM?
+Which port?
+Which environment variables?
+Which IAM role?
+Which logs?
+Which secrets?</div>
+        <p>Example conceptually:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">json</span></div>
+          <pre><code>{
+  "family": "node-api-task",
+  "cpu": "512",
+  "memory": "1024",
+
+  "containerDefinitions": [
+    {
+      "name": "node-api",
+
+      "image": "123456789012.dkr.ecr.us-east-1.amazonaws.com/node-api:latest",
+
+      "portMappings": [
+        {
+          "containerPort": 3000
+        }
+      ]
+    }
+  ]
+}</code></pre>
+        </div>
+        <p>So:</p>
+        <div class="tree">Task Definition
+│
+├── Image
+├── CPU
+├── Memory
+├── Port
+├── Environment variables
+├── Secrets
+├── IAM role
+└── CloudWatch logging</div>
+        <p><strong>Task Definition ≠ Running container</strong></p>
+        <p>This distinction is important:</p>
+        <div class="tree">Task Definition
+↓
+Blueprint
+
+ECS Task
+↓
+Actual running instance of that blueprint</div>
+        <p>If you change your Docker image/configuration, you normally create a <strong>new task-definition revision</strong>.</p>
+        <p>Example:</p>
+        <div class="tree">Revision 1
+node-api:v1
+
+Revision 2
+node-api:v2
+
+Revision 3
+node-api:v3</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">12.5</span><h4>ECS Task</h4></div>
+      <div class="card-sub-content">
+        <p>A <strong>Task</strong> is an actual running instance of your task definition.</p>
+        <p>For example:</p>
+        <div class="tree">Task Definition
+node-api-task:3
+│
+├── CPU: 0.5 vCPU
+├── RAM: 1 GB
+└── Container: node-api
+    ↓
+    Running</div>
+        <p>If you run 3 replicas:</p>
+        <div class="tree">Task Definition
+│
+├── Task 1
+├── Task 2
+└── Task 3</div>
+        <p>Each task can run your Docker container.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">12.6</span><h4>ECS Service</h4></div>
+      <div class="card-sub-content">
+        <p>An ECS <strong>Service</strong> manages your running tasks.</p>
+        <p>For example:</p>
+        <div class="tree">Service: node-api-service
+
+Desired count = 3</div>
+        <p>ECS maintains:</p>
+        <div class="tree">Task 1 ✅
+Task 2 ✅
+Task 3 ✅</div>
+        <p>If Task 2 crashes:</p>
+        <div class="tree">Task 1 ✅
+Task 2 ❌
+Task 3 ✅</div>
+        <p>ECS launches another:</p>
+        <div class="tree">Task 1 ✅
+Task 2 → replacement ✅
+Task 3 ✅</div>
+        <p><strong>Service responsibilities</strong></p>
+        <div class="tree">ECS Service
+│
+├── Desired task count
+├── Deployment
+├── Rolling update
+├── Load balancer integration
+├── Health checks
+└── Task replacement</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">12.7</span><h4>Fargate</h4></div>
+      <div class="card-sub-content">
+        <p>AWS Fargate</p>
+        <p>ECS needs compute infrastructure to actually run containers.</p>
+        <p>There are two major options:</p>
+        <div class="tree">ECS
+│
+├── EC2
+│
+└── Fargate</div>
+        <p><strong>ECS + EC2</strong></p>
+        <p>You manage:</p>
+        <div class="tree">EC2 instances
+↓
+Operating system
+↓
+CPU/RAM capacity
+↓
+ECS containers</div>
+        <p>More infrastructure management.</p>
+        <p><strong>ECS + Fargate</strong></p>
+        <p>AWS manages the underlying servers for you:</p>
+        <div class="tree">ECS
+↓
+Fargate
+↓
+Container</div>
+        <p>You specify:</p>
+        <div class="tree">CPU = 0.5 vCPU
+Memory = 1 GB</div>
+        <p>and AWS handles the underlying compute.</p>
+        <p>For learning and many production workloads:</p>
+        <div class="tree">ECS + Fargate</div>
+        <p>is a very good starting architecture.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">12.8</span><h4>IAM</h4></div>
+      <div class="card-sub-content">
+        <p>AWS Identity and Access Management</p>
+        <p>IAM controls:</p>
+        <div class="info-box box-note"><strong>Who can access what?</strong></div>
+        <p>Example:</p>
+        <p>Your ECS container needs to read secrets from Secrets Manager.</p>
+        <p>Don't put:</p>
+        <div class="tree">AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...</div>
+        <p>inside your Docker image.</p>
+        <p>Instead:</p>
+        <div class="tree">ECS Task
+↓
+IAM Task Role
+↓
+Secrets Manager</div>
+        <p>The IAM role grants only the required permission.</p>
+        <p>For example:</p>
+        <div class="tree">Task Role
+│
+└── secretsmanager:GetSecretValue</div>
+        <p>Another important role is:</p>
+        <div class="tree">Task Execution Role</div>
+        <p>which allows ECS/Fargate to perform things such as:</p>
+        <div class="tree">Pull image from ECR
++
+Send logs to CloudWatch</div>
+        <p><strong>Two roles to understand</strong></p>
+        <div class="tree">Execution Role
+↓
+ECS/Fargate infrastructure actions
+
+Task Role
+↓
+Your application actions</div>
+        <p>This distinction is important in production.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">12.9</span><h4>VPC</h4></div>
+      <div class="card-sub-content">
+        <p>Amazon Virtual Private Cloud</p>
+        <p>VPC is your <strong>private AWS network</strong>.</p>
+        <p>Think of it as:</p>
+        <div class="tree">AWS
+└── VPC
+    │
+    ├── Public Subnet
+    │
+    └── Private Subnet</div>
+        <p>Production architecture commonly looks like:</p>
+        <div class="tree">Internet
+↓
+Internet Gateway
+↓
+Public Subnet
+↓
+ALB
+↓
+Private Subnet
+↓
+ECS
+↓
+RDS</div>
+        <p>Your database should generally <strong>not be directly exposed to the internet</strong>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">12.10</span><h4>Public vs Private Subnet</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Public subnet</strong></p>
+        <p>Usually contains resources that need direct internet-facing connectivity.</p>
+        <p>Example:</p>
+        <div class="tree">ALB</div>
+        <p><strong>Private subnet</strong></p>
+        <p>Usually contains internal application/data resources.</p>
+        <p>Example:</p>
+        <div class="tree">ECS
+RDS
+Redis</div>
+        <p>So:</p>
+        <div class="tree">INTERNET
+│
+↓
+Public Subnet
+│
+ALB
+│
+↓
+Private Subnet
+│              │
+ECS           RDS
+│
+Redis</div>
+        <p>There are variations, but this is the important production mental model.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">12.11</span><h4>Security Groups</h4></div>
+      <div class="card-sub-content">
+        <p>AWS security groups</p>
+        <p>Security Groups act like <strong>virtual firewalls</strong>.</p>
+        <p>Suppose:</p>
+        <div class="tree">ALB
+↓
+ECS</div>
+        <p>You don't want everyone on the internet to directly access ECS.</p>
+        <p>Instead:</p>
+        <p><strong>ALB Security Group</strong></p>
+        <div class="tree">Inbound:
+
+HTTP 80 → 0.0.0.0/0
+HTTPS 443 → 0.0.0.0/0</div>
+        <p><strong>ECS Security Group</strong></p>
+        <div class="tree">Inbound:
+
+Port 3000
+Source = ALB Security Group</div>
+        <p>Therefore:</p>
+        <div class="tree">Internet
+↓
+ALB SG
+↓
+ALB
+↓
+ECS SG
+↓
+ECS :3000</div>
+        <p>This is much better than:</p>
+        <div class="tree">ECS :3000
+↑
+0.0.0.0/0</div>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">12.12</span><h4>Application Load Balancer</h4></div>
+      <div class="card-sub-content">
+        <p>Application Load Balancer</p>
+        <p>ALB is the <strong>public entry point</strong> for your API.</p>
+        <p>Without ALB:</p>
+        <div class="tree">Internet
+↓
+ECS Task</div>
+        <p>With ALB:</p>
+        <div class="tree">Internet
+↓
+ALB
+↓
+ECS Tasks</div>
+        <p>Suppose you have:</p>
+        <div class="tree">ECS Service
+
+Task 1 → 10.0.1.10:3000
+Task 2 → 10.0.2.20:3000
+Task 3 → 10.0.3.30:3000</div>
+        <p>ALB distributes requests:</p>
+        <div class="tree">Request 1 → Task 1
+Request 2 → Task 2
+Request 3 → Task 3
+Request 4 → Task 1</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">12.13</span><h4>Target Group</h4></div>
+      <div class="card-sub-content">
+        <p>ALB normally works with a <strong>Target Group</strong>.</p>
+        <p>Flow:</p>
+        <div class="tree">Internet
+↓
+ALB
+↓
+Target Group
+↓
+ECS Tasks</div>
+        <p>Example:</p>
+        <div class="tree">Target Group
+├── Task 1 :3000
+├── Task 2 :3000
+└── Task 3 :3000</div>
+        <p>The target group also performs health checks.</p>
+        <p>For example:</p>
+        <div class="tree">GET /health</div>
+        <p>Expected:</p>
+        <div class="tree">200 OK</div>
+        <p>If Task 2 returns:</p>
+        <div class="tree">500</div>
+        <p>repeatedly, ALB marks it unhealthy and stops routing traffic to it.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">12.14</span><h4>CloudWatch Logs</h4></div>
+      <div class="card-sub-content">
+        <p>Amazon CloudWatch</p>
+        <p>Your Node.js application produces logs:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">javascript</span></div>
+          <pre><code>console.log(<span class="str">"Server started"</span>);</code></pre>
+        </div>
+        <p>or:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">javascript</span></div>
+          <pre><code>logger.info(<span class="str">"User logged in"</span>);</code></pre>
+        </div>
+        <p>Inside ECS:</p>
+        <div class="tree">Node.js
+↓
+stdout / stderr
+↓
+ECS logging configuration
+↓
+CloudWatch Logs</div>
+        <p>Example:</p>
+        <div class="tree">CloudWatch
+└── Log Group
+    └── /ecs/node-api
+        ├── Task 1 logs
+        ├── Task 2 logs
+        └── Task 3 logs</div>
+        <p>This is why your Pino logs can appear in CloudWatch when configured through the ECS <code>awslogs</code> log driver.</p>
+        <p>For example:</p>
+        <div class="tree">Pino
+↓
+stdout
+↓
+ECS
+↓
+CloudWatch</div>
+        <p>You don't normally SSH into every container just to inspect logs.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">12.15</span><h4>Environment Variables</h4></div>
+      <div class="card-sub-content">
+        <p>Your Node application might need:</p>
+        <div class="tree">PORT
+DATABASE_URL
+REDIS_HOST
+JWT_SECRET</div>
+        <p>Don't build them into your image:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span></div>
+          <pre><code>ENV JWT_SECRET=my-secret</code></pre>
+        </div>
+        <p>Instead:</p>
+        <div class="tree">ECS Task Definition
+↓
+Environment / Secrets
+↓
+Node.js container</div>
+        <p>For sensitive values:</p>
+        <div class="tree">AWS Secrets Manager
+↓
+ECS
+↓
+Container</div>
+        <p>Example:</p>
+        <div class="tree">DATABASE_URL
+JWT_SECRET
+REDIS_PASSWORD</div>
+        <p>can be managed through Secrets Manager rather than putting them in Git or the Docker image.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">12.16</span><h4>Auto Scaling</h4></div>
+      <div class="card-sub-content">
+        <p>Suppose you have:</p>
+        <div class="tree">ECS Service
+
+Desired count = 2</div>
+        <p>Normal traffic:</p>
+        <div class="tree">Task 1
+Task 2</div>
+        <p>Traffic increases:</p>
+        <div class="tree">CPU = 85%</div>
+        <p>Auto Scaling can increase:</p>
+        <div class="tree">2 tasks
+↓
+4 tasks</div>
+        <p>When traffic decreases:</p>
+        <div class="tree">4 tasks
+↓
+2 tasks</div>
+        <p>Common scaling signals:</p>
+        <div class="tree">CPU utilization
+Memory utilization
+ALB request count
+Custom CloudWatch metrics</div>
+        <p>Example:</p>
+        <div class="tree">CPU > 70%
+↓
+Increase tasks
+
+CPU < 30%
+↓
+Decrease tasks</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">12.17</span><h4>Complete Deployment Flow</h4></div>
+      <div class="card-sub-content">
+        <p>Now connect everything.</p>
+        <p><strong>Step 1 — Build</strong></p>
+        <p>On your machine/CI:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>docker build -t node-api .</code></pre>
+        </div>
+        <p>Result:</p>
+        <div class="tree">Docker Image
+node-api:v1</div>
+        <p><strong>Step 2 — Push to ECR</strong></p>
+        <div class="tree">Docker Image
+↓
+ECR
+
+ECR
+└── node-api
+    └── v1</div>
+        <p><strong>Step 3 — ECS Task Definition</strong></p>
+        <p>Tell ECS:</p>
+        <div class="tree">Image:
+ECR/node-api:v1
+
+CPU:
+0.5 vCPU
+
+Memory:
+1 GB
+
+Container Port:
+3000
+
+Logs:
+CloudWatch
+
+Secrets:
+Secrets Manager</div>
+        <p><strong>Step 4 — ECS Service</strong></p>
+        <p>Create:</p>
+        <div class="tree">Service
+Desired count = 2</div>
+        <p>Now:</p>
+        <div class="tree">ECS
+├── Task 1
+│ └── node-api:v1
+│
+└── Task 2
+  └── node-api:v1</div>
+        <p><strong>Step 5 — Fargate</strong></p>
+        <p>Fargate provides the compute to run those tasks.</p>
+        <div class="tree">Fargate
+├── Task 1
+└── Task 2</div>
+        <p><strong>Step 6 — ALB</strong></p>
+        <p>Configure:</p>
+        <div class="tree">Internet
+↓
+ALB :443
+↓
+Target Group
+↓
+ECS :3000</div>
+        <p><strong>Step 7 — CloudWatch</strong></p>
+        <p>Application logs:</p>
+        <div class="tree">Node.js
+↓
+Pino
+↓
+stdout
+↓
+ECS
+↓
+CloudWatch</div>
+        <p><strong>Step 8 — Database</strong></p>
+        <p>Application:</p>
+        <div class="tree">ECS
+│
+├──→ RDS PostgreSQL
+│
+└──→ ElastiCache Redis</div>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">12.18</span><h4>Production Request Flow</h4></div>
+      <div class="card-sub-content">
+        <p>Suppose the user calls:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">http</span></div>
+          <pre><code>GET https://api.example.com/users</code></pre>
+        </div>
+        <p>The request travels:</p>
+        <div class="tree">User
+│
+│ HTTPS
+↓
+ALB
+│
+│ health/target routing
+↓
+ECS Fargate Task
+│
+│ Node.js / Express
+↓
+PostgreSQL
+│
+│ result
+↓
+Node.js
+│
+↓
+ALB
+│
+↓
+User</div>
+        <p>If Redis is involved:</p>
+        <div class="tree">User
+↓
+ALB
+↓
+ECS
+├──→ Redis
+│
+└──→ PostgreSQL
+↓
+Response</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">12.19</span><h4>What Happens When You Deploy v2?</h4></div>
+      <div class="card-sub-content">
+        <p>Suppose you currently have:</p>
+        <div class="tree">v1
+
+Task 1 → v1
+Task 2 → v1</div>
+        <p>You modify your Node.js application.</p>
+        <p>Build:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bash</span></div>
+          <pre><code>docker build -t node-api:v2 .</code></pre>
+        </div>
+        <p>Push:</p>
+        <div class="tree">node-api:v2
+↓
+ECR</div>
+        <p>Create:</p>
+        <div class="tree">Task Definition Revision 2</div>
+        <p>Now ECS performs a rolling deployment:</p>
+        <div class="tree">Before:
+
+Task 1 → v1
+Task 2 → v1
+
+
+Deploy v2:
+
+Task 1 → v1
+Task 2 → v2
+
+
+Then:
+
+Task 1 → v2
+Task 2 → v2</div>
+        <p>During a properly configured deployment, traffic can continue flowing while the new tasks become healthy.</p>
+        <p>This is the foundation of <strong>zero/minimal-downtime deployments</strong>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">12.20</span><h4>What Each Service Does</h4></div>
+      <div class="card-sub-content">
+        <p>Keep this table in your head:</p>
+        <table>
+          <tr><th>AWS Service</th><th>Responsibility</th></tr>
+          <tr><td><strong>ECR</strong></td><td>Store Docker images</td></tr>
+          <tr><td><strong>ECS</strong></td><td>Orchestrate containers</td></tr>
+          <tr><td><strong>Fargate</strong></td><td>Run containers without managing servers</td></tr>
+          <tr><td><strong>Task Definition</strong></td><td>Container blueprint</td></tr>
+          <tr><td><strong>ECS Service</strong></td><td>Maintain desired tasks/deployments</td></tr>
+          <tr><td><strong>IAM</strong></td><td>Permissions</td></tr>
+          <tr><td><strong>VPC</strong></td><td>Private network</td></tr>
+          <tr><td><strong>Subnet</strong></td><td>Network segment</td></tr>
+          <tr><td><strong>Security Group</strong></td><td>Firewall</td></tr>
+          <tr><td><strong>ALB</strong></td><td>Public traffic/load balancing</td></tr>
+          <tr><td><strong>Target Group</strong></td><td>Routes traffic to ECS tasks + health checks</td></tr>
+          <tr><td><strong>CloudWatch</strong></td><td>Logs/metrics</td></tr>
+          <tr><td><strong>Secrets Manager</strong></td><td>Store secrets</td></tr>
+          <tr><td><strong>RDS</strong></td><td>Managed PostgreSQL</td></tr>
+          <tr><td><strong>ElastiCache</strong></td><td>Managed Redis</td></tr>
+          <tr><td><strong>Auto Scaling</strong></td><td>Increase/decrease ECS tasks</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">12.21</span><h4>The Most Important Mental Model</h4></div>
+      <div class="card-sub-content">
+        <p>Don't think:</p>
+        <div class="tree">Docker → AWS</div>
+        <p>Think:</p>
+        <div class="tree">AWS
+│
+┌─────────┴─────────┐
+│                   │
+ECR                VPC
+│                   │
+Docker Image   ┌────┴─────┐
+│              │          │
+↓             ALB    Private Network
+ECS            │          │
+│              ↓          │
+Fargate      ECS Tasks    │
+│              │          │
+│         ┌────┴────┐     │
+│         ↓         ↓     │
+│        RDS      Redis   │
+│                         │
+└────────→ CloudWatch ←───┘</div>
+        <div class="info-box box-benefit"><strong>In one sentence:</strong> ECR stores your image → ECS/Fargate runs it → ALB exposes it → VPC/Security Groups protect networking → IAM controls permissions → RDS/Redis provide data services → CloudWatch monitors it.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 13 ===================== -->
+  <div class="section-divider" id="s13"><span>13. Production AWS Container Architecture</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Combine everything into a real production architecture</h4></div>
+      <div class="card-sub-content">
+        <div class="tree">INTERNET
+│
+HTTPS :443
+│
+↓
+┌───────────────────┐
+│ ALB               │
+│ Load Balancer     │
+└─────────┬─────────┘
+          │
+     Target Group
+          │
+┌─────────┼─────────┐
+↓         ↓         ↓
+ECS Task 1 ECS Task 2 ECS Task 3
+Fargate    Fargate    Fargate
+│          │          │
+└──────────┼──────────┘
+           │
+      Node.js API
+       / Express
+           │
+     ┌─────┴─────┐
+     ↓           ↓
+RDS PostgreSQL  ElastiCache Redis
+     │           │
+     └─────┬─────┘
+           ↓
+      CloudWatch
+    Logs + Metrics</div>
+        <p>But there is another important piece:</p>
+        <div class="tree">Developer / CI
+│
+│ docker build
+↓
+Docker Image
+│
+│ docker push
+↓
+ECR
+│
+│ ECS pulls
+↓
+Fargate Tasks</div>
+        <p>So the complete picture is:</p>
+        <div class="tree">DEVELOPMENT / CI
+│
+docker build
+↓
+Docker Image
+│
+docker push
+↓
+ECR
+│
+ECS pulls image
+↓
+ECS Fargate
+│
+↓
+ALB
+│
+↓
+Node.js API
+│           │
+↓           ↓
+RDS       Redis
+│           │
+└─────┬─────┘
+      ↓
+  CloudWatch</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">13.1</span><h4>Why RDS Instead of PostgreSQL Container?</h4></div>
+      <div class="card-sub-content">
+        <p>For learning, you can run:</p>
+        <div class="tree">Docker
+├── Node
+└── PostgreSQL</div>
+        <p>But production commonly uses:</p>
+        <div class="tree">ECS
+↓
+Node.js
+
+RDS
+↓
+PostgreSQL</div>
+        <p>Because AWS handles many database operations such as:</p>
+        <ul>
+          <li>backups</li>
+          <li>patching</li>
+          <li>storage management</li>
+          <li>monitoring</li>
+          <li>Multi-AZ options</li>
+          <li>recovery mechanisms</li>
+        </ul>
+        <p>Your application shouldn't normally depend on a PostgreSQL container running alongside it in ECS for a production system.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">13.2</span><h4>Why ElastiCache Instead of Redis Container?</h4></div>
+      <div class="card-sub-content">
+        <p>Same concept.</p>
+        <p>Development:</p>
+        <div class="tree">Docker Compose
+├── Node
+├── PostgreSQL
+└── Redis</div>
+        <p>Production:</p>
+        <div class="tree">ECS
+↓
+Node.js
+│
+└──→ ElastiCache Redis</div>
+        <p>AWS manages the Redis infrastructure.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">13.3</span><h4>Production Network Design</h4></div>
+      <div class="card-sub-content">
+        <p>A more realistic design:</p>
+        <div class="tree">INTERNET
+│
+↓
+Internet Gateway
+│
+Public Subnets
+│
+ALB
+│
+┌─────────────┴─────────────┐
+│                           │
+Private Subnet         Private Subnet
+│                           │
+ECS Task 1             ECS Task 2
+│                           │
+└─────────────┬─────────────┘
+              │
+        ┌─────┴─────┐
+        ↓           ↓
+   RDS PostgreSQL  ElastiCache
+   Private Subnet  Private Subnet</div>
+        <p>This gives you a strong separation:</p>
+        <div class="tree">Public
+↓
+ALB
+
+Private
+↓
+Application
+
+Private
+↓
+Database / Redis</div>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">13.4</span><h4>Production Security Groups</h4></div>
+      <div class="card-sub-content">
+        <p>A clean setup could be:</p>
+        <div class="tree">Internet
+│
+↓
+ALB Security Group
+│
+│ 443
+↓
+ECS Security Group
+│
+├── 5432
+↓
+RDS Security Group
+
+ECS Security Group
+│
+├── 6379
+↓
+Redis Security Group</div>
+        <p>Meaning:</p>
+        <div class="tree">Internet → ALB
+ALB → ECS
+ECS → PostgreSQL
+ECS → Redis</div>
+        <p>But:</p>
+        <div class="tree">Internet → PostgreSQL ❌
+Internet → Redis ❌
+Internet → ECS:3000 ❌</div>
+        <p>That is a much better production network model.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">13.5</span><h4>Production Deployment Flow</h4></div>
+      <div class="card-sub-content">
+        <p>Eventually your workflow should look like:</p>
+        <div class="tree">Developer
+│
+↓
+Git Push
+│
+↓
+CI/CD
+│
+├── npm test
+├── Docker build
+├── Security scan
+└── Docker push
+│
+↓
+ECR
+│
+↓
+ECS Deployment
+│
+┌──────┴──────┐
+↓             ↓
+Old Tasks    New Tasks
+│             │
+│        Health Check
+│             ↓
+│        Healthy ✅
+│             │
+└──────→ Traffic
+         moves
+         to v2</div>
+        <p>That is the production-level direction you should eventually learn.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">13.6</span><h4>What You Should Actually Practice</h4></div>
+      <div class="card-sub-content">
+        <p>Don't try to learn all AWS services at once.</p>
+        <p>Build this progressively:</p>
+        <p><strong>Level 1</strong></p>
+        <div class="tree">Docker
+↓
+ECR</div>
+        <p>Practice:</p>
+        <div class="tree">docker build
+docker tag
+docker push</div>
+        <p><strong>Level 2</strong></p>
+        <div class="tree">ECR
+↓
+ECS Fargate</div>
+        <p>Run:</p>
+        <div class="tree">Node.js container</div>
+        <p><strong>Level 3</strong></p>
+        <div class="tree">ECR
+↓
+ECS Fargate
+↓
+Public access</div>
+        <p>Understand:</p>
+        <div class="tree">VPC
+Subnet
+Security Group
+Public IP</div>
+        <p><strong>Level 4</strong></p>
+        <p>Replace direct public access:</p>
+        <div class="tree">Internet
+↓
+ALB
+↓
+ECS</div>
+        <p>Learn:</p>
+        <div class="tree">Target Group
+Health Check
+Listener
+Security Groups</div>
+        <p><strong>Level 5</strong></p>
+        <p>Add logs:</p>
+        <div class="tree">ECS
+↓
+CloudWatch</div>
+        <p>Verify your Pino/console logs.</p>
+        <p><strong>Level 6</strong></p>
+        <p>Add database:</p>
+        <div class="tree">ECS
+↓
+RDS PostgreSQL</div>
+        <p><strong>Level 7</strong></p>
+        <p>Add Redis:</p>
+        <div class="tree">ECS
+↓
+ElastiCache Redis</div>
+        <p><strong>Level 8</strong></p>
+        <p>Add secrets:</p>
+        <div class="tree">Secrets Manager
+↓
+ECS</div>
+        <p><strong>Level 9</strong></p>
+        <p>Add scaling:</p>
+        <div class="tree">ALB
+↓
+ECS
+↓
+2 → 4 → 8 tasks</div>
+        <p><strong>Level 10</strong></p>
+        <p>Add CI/CD:</p>
+        <div class="tree">GitHub
+↓
+CI/CD
+↓
+Docker Build
+↓
+ECR
+↓
+ECS
+↓
+Production</div>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Final Architecture You Should Be Able to Build</h4></div>
+      <div class="card-sub-content">
+        <p>Your ultimate Docker + AWS practice project should look like:</p>
+        <div class="tree">GitHub
+│
+↓
+CI/CD
+│
+Docker Build
+│
+↓
+ECR
+│
+↓
+ECS Fargate
+┌─────┴─────┐
+↓           ↓
+Task 1     Task 2
+│           │
+└─────┬─────┘
+      ↓
+     ALB
+      │
+    HTTPS
+      │
+   Internet
+
+ECS
+│
+├────────→ RDS PostgreSQL
+│
+├────────→ ElastiCache Redis
+│
+├────────→ Secrets Manager
+│
+└────────→ CloudWatch</div>
+        <div class="info-box box-benefit">If you can <strong>build this architecture yourself and explain why each component exists</strong>, you will have moved well beyond basic Docker into <strong>real production container deployment</strong>.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Notes — Docker Sections 8–13 · Node.js · Production · AWS · full text</footer>
+</div>
+</body>
+</html>

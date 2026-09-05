@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Docker Documentation</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+    <style>
+      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        display: flex; flex-direction: column; height: 100vh; font-family: "Segoe UI", system-ui, sans-serif;
+        color: #1e293b; overflow: hidden; position: relative;
+        background: #eef1f8;
+      }
+
+      /* ── Ambient color blobs behind everything, so the glass panels have color to refract ── */
+      .bg-blobs { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+      .bg-blobs span {
+        position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.55;
+      }
+      .bg-blobs .b1 { width: 480px; height: 480px; top: -160px; left: -120px; background: radial-gradient(circle, #6366f1, transparent 70%); }
+      .bg-blobs .b2 { width: 460px; height: 460px; top: 10%; left: 60%; background: radial-gradient(circle, #ec4899, transparent 70%); }
+      .bg-blobs .b3 { width: 420px; height: 420px; bottom: -140px; left: 10%; background: radial-gradient(circle, #10b981, transparent 70%); }
+      .bg-blobs .b4 { width: 400px; height: 400px; bottom: -100px; right: -100px; background: radial-gradient(circle, #f59e0b, transparent 70%); }
+      .bg-blobs .b5 { width: 360px; height: 360px; top: 40%; left: 28%; background: radial-gradient(circle, #06b6d4, transparent 70%); }
+
+      /* Topbar */
+      .topbar {
+        height: 58px; flex-shrink: 0; position: relative; z-index: 200;
+        background: linear-gradient(120deg, rgba(30,58,138,0.92), rgba(79,70,229,0.92) 60%, rgba(109,40,217,0.92));
+        backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%);
+        display: flex; align-items: center; gap: 12px; padding: 0 18px;
+        box-shadow: 0 4px 24px rgba(30, 41, 59, 0.22); color: #fff;
+        border-bottom: 1px solid rgba(255,255,255,0.14);
+      }
+
+      .sidebar-toggle {
+        width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+        border-radius: 9px; border: 1px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.14); color: #fff; cursor: pointer;
+        transition: background 0.2s ease, transform 0.15s ease; font-size: 18px;
+      }
+      .sidebar-toggle:hover { background: rgba(255,255,255,0.28); transform: translateY(-1px); }
+
+      .topbar-title { display: flex; align-items: center; gap: 10px; }
+      .topbar-title i { font-size: 22px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25)); background: linear-gradient(120deg,#fde68a,#fca5f5); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .topbar-title span { font-weight: 700; font-size: 17.5px; letter-spacing: .2px; }
+
+      .back-btn {
+        display: flex; align-items: center; gap: 6px; padding: 7px 14px; margin-left: 6px;
+        border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.14);
+        color: #fff; font-size: 13.5px; font-weight: 600; text-decoration: none; cursor: pointer;
+        transition: background 0.2s ease, transform 0.15s ease;
+      }
+      .back-btn:hover { background: rgba(255,255,255,0.28); transform: translateY(-1px); }
+      .back-btn i { font-size: 16px; }
+
+      /* ── Author badge — distinct standalone design ── */
+      .topbar-author {
+        margin-left: auto; display: flex; align-items: center; gap: 0; white-space: nowrap;
+        border-radius: 20px; overflow: hidden;
+        background: #0f172a;
+        border: 1px solid rgba(255,255,255,0.15);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+      }
+      .ed-label {
+        display: flex; align-items: center; gap: 5px;
+        font-size: 11px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase;
+        color: #ffffff;
+        background: linear-gradient(160deg, #22d3ee 0%, #2563eb 55%, #1e3a8a 100%);
+        padding: 7px 10px 7px 12px;
+        text-shadow: 0 1px 0 rgba(255,255,255,0.35), 0 -1px 1px rgba(0,0,0,0.45);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,0.5),
+          inset 0 -3px 4px rgba(0,0,0,0.35),
+          inset 2px 0 3px rgba(255,255,255,0.15),
+          0 2px 3px rgba(0,0,0,0.3);
+        position: relative;
+      }
+      .ed-label i { font-size: 13px; filter: drop-shadow(0 1px 0 rgba(0,0,0,0.4)); }
+      .author-name {
+        position: relative; padding: 7px 14px 7px 12px;
+        font-size: 13.5px; font-weight: 800; letter-spacing: 0.2px;
+        background: linear-gradient(90deg, #facc15, #fb7185, #a3e635, #facc15);
+        background-size: 300% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: shimmer 3.5s linear infinite, pulse 2.2s ease-in-out infinite;
+        display: inline-block;
+      }
+      @keyframes shimmer {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 300% 50%; }
+      }
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.08); }
+      }
+
+      .main { display: flex; flex: 1; overflow: hidden; position: relative; z-index: 1; }
+
+      /* ── Glassy sidebar ── */
+      .sidebar {
+        width: 296px; min-width: 296px;
+        background: #ffffff;
+        border-right: 1px solid rgba(15,23,42,0.08);
+        display: flex; flex-direction: column; overflow: hidden;
+        transition: width 0.22s ease, min-width 0.22s ease, transform 0.3s ease;
+        box-shadow: 8px 0 32px rgba(30, 41, 59, 0.08);
+      }
+      .main.collapsed .sidebar { width: 0; min-width: 0; border-right: none; box-shadow: none; }
+
+      .sidebar-inner { flex: 1; overflow-y: auto; padding: 16px 12px 24px; scrollbar-width: thin; width: 296px; }
+      .sidebar-inner::-webkit-scrollbar { width: 6px; }
+      .sidebar-inner::-webkit-scrollbar-thumb { background: linear-gradient(180deg,#818cf8,#f472b6); border-radius: 10px; }
+
+      /* Each topic gets its own solid, tinted panel */
+      .sidebar-section {
+        margin-bottom: 12px; padding: 10px 8px 10px; border-radius: 16px;
+        background: var(--sec-tint-a);
+        border: 1px solid var(--sec-border);
+      }
+
+      .sidebar-group-label {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px;
+        color: var(--sec-color); padding: 4px 6px 8px;
+      }
+      .sidebar-group-label .dot {
+        width: 7px; height: 7px; border-radius: 50%; background: var(--sec-color); flex-shrink: 0;
+      }
+
+      .sidebar a {
+        display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 9px; margin-bottom: 3px;
+        border-radius: 10px; text-decoration: none; font-size: 14px; font-weight: 500; color: #475569;
+        border: 1px solid transparent;
+        transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.12s ease, box-shadow 0.16s ease;
+      }
+      .sidebar a:hover {
+        background: var(--tint-strong);
+        color: var(--c);
+        border-color: var(--tint-strong);
+      }
+      .sidebar a.active {
+        background: var(--tint-strong);
+        color: var(--c);
+        font-weight: 700;
+        border-color: var(--c);
+      }
+
+      .nav-icon {
+        width: 30px; height: 30px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+        border-radius: 9px; font-size: 14.5px; color: #fff;
+        background: var(--c);
+      }
+      .sidebar a:hover .nav-icon, .sidebar a.active .nav-icon { transform: scale(1.1) rotate(-3deg); }
+
+      /* Mobile Overlay */
+      .sidebar-overlay {
+        display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.35); z-index: 150;
+      }
+
+      iframe { flex: 1; border: none; background: #fff; position: relative; z-index: 1; }
+
+      /* Mobile Styles */
+      @media (max-width: 768px) {
+        .sidebar {
+          position: absolute; left: -296px; height: 100%; z-index: 1000; box-shadow: 10px 0 30px rgba(0,0,0,0.2);
+        }
+        .sidebar.mobile-open { left: 0; }
+        .sidebar.mobile-open + .sidebar-overlay { display: block; }
+
+        .sidebar-inner {
+          padding: 16px 12px 96px;
+        }
+        .sidebar-inner::after {
+          content: "";
+          display: block;
+          height: 24px;
+        }
+
+        /* Mobile-specific UI adjustments requested by user */
+        /* Hide the title text and the user icon on small screens */
+        .topbar-title span,
+        .topbar-author i {
+          display: none !important;
+        }
+
+        /* Make the content iframe take ~97% of viewport width on mobile */
+        .main {
+          justify-content: center;
+        }
+        iframe {
+          flex: none;
+          width: 97%;
+          max-width: 97%;
+          margin: 0 auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg-blobs">
+      <span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span><span class="b5"></span>
+    </div>
+
+    <div class="topbar">
+      <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
+        <i class="ti ti-menu-2"></i>
+      </button>
+      <div class="topbar-title">
+        <i class="ti ti-brand-docker"></i>
+        <span>Docker Reference</span>
+      </div>
+      <button class="back-btn" id="backBtn" title="Go back">
+        <i class="ti ti-arrow-left"></i>
+        Back
+      </button>
+      <div class="topbar-author">
+        <span class="ed-label"><i class="ti ti-user"></i>ED</span><span class="author-name">Shivam</span>
+      </div>
+    </div>
+
+    <div class="main" id="main">
+      <nav class="sidebar" id="sidebar">
+        <div class="sidebar-inner" id="sidebarInner"></div>
+      </nav>
+      <div class="sidebar-overlay" id="sidebarOverlay"></div>
+      <iframe name="contentFrame" id="contentFrame" title="Docker documentation content" src="./detail.html"></iframe>
+    </div>
+
+    <script>
+      const NAV_CONFIG = [
+        {
+          label: "Docker Learning Path",
+          color: "#0284c7",
+          links: [
+            { icon: "ti-book-2", color: "#0284c7", light: "#38bdf8", text: "Docker Fundamentals (Sections 1–7)", href: "./detail.html" },
+            { icon: "ti-server-2", color: "#0369a1", light: "#0ea5e9", text: "Node.js & Production (Sections 8–13)", href: "./detail2.html" },
+            { icon: "ti-map", color: "#075985", light: "#0284c7", text: "Complete Learning Roadmap", href: "./roadmap.html" }
+          ]
+        },
+        {
+          label: "Docker Reference",
+          color: "#0f766e",
+          links: [
+            { icon: "ti-terminal-2", color: "#0f766e", light: "#14b8a6", text: "Docker Commands", href: "./command.html" },
+            { icon: "ti-brand-docker", color: "#0d9488", light: "#2dd4bf", text: "Kubernetes: After Docker", href: "./kubernetes.html" }
+          ]
+        }
+      ];
+      function buildNav(config) {
+        const inner = document.getElementById("sidebarInner");
+        inner.innerHTML = config.map(section => `
+          <div class="sidebar-section" style="--sec-color:${section.color}; --sec-tint-a:${section.color}22; --sec-tint-b:${section.color}05; --sec-border:${section.color}30;">
+            <div class="sidebar-group-label"><span class="dot"></span>${section.label}</div>
+            ${section.links.map(link => `
+              <a href="${link.href}" target="contentFrame" style="--c:${link.color}; --c-light:${link.light}; --tint-strong:${link.color}33;">
+                <span class="nav-icon">
+                  <i class="ti ${link.icon}"></i>
+                </span>
+                ${link.text}
+              </a>
+            `).join('')}
+          </div>
+        `).join('');
+
+        // Close mobile sidebar when clicking a link
+        inner.querySelectorAll('a').forEach(link => {
+          link.addEventListener("click", () => {
+            if (window.innerWidth <= 768) {
+              sidebar.classList.remove("mobile-open");
+            }
+            inner.querySelectorAll("a").forEach(a => a.classList.remove("active"));
+            link.classList.add("active");
+          });
+        });
+      }
+
+      buildNav(NAV_CONFIG);
+
+      // Toggle Logic
+      const sidebar = document.getElementById("sidebar");
+      const main = document.getElementById("main");
+      const toggleBtn = document.getElementById("sidebarToggle");
+      const overlay = document.getElementById("sidebarOverlay");
+
+      // Toggle action
+      toggleBtn.addEventListener("click", () => {
+        if (window.innerWidth <= 768) {
+          sidebar.classList.toggle("mobile-open");
+        } else {
+          main.classList.toggle("collapsed");
+        }
+      });
+
+      // Back button — return to the previous page if available, otherwise go to the parent index
+      const backBtn = document.getElementById("backBtn");
+      backBtn.addEventListener("click", () => {
+       
+          window.location.href = "../index.html";
+        
+      });
+
+      // Close on overlay click
+      overlay.addEventListener("click", () => {
+        sidebar.classList.remove("mobile-open");
+      });
+    </script>
+  </body>
+</html>

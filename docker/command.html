@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — Docker Commands Full Reference</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1040px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
+
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:24px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.55; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
+
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
+
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+
+/* ---- Code block: command + its own indented flag tree, grouped visually ---- */
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; }
+
+.cmd-group { margin-bottom:16px; }
+.cmd-group:last-child { margin-bottom:0; }
+.cmd-line {
+  display:block; white-space:pre; border-left:3px solid #2563eb; padding-left:10px; margin-bottom:2px;
+}
+.cmd { color:#7dd3fc; font-weight:700; }
+.arg { color:#a5b4fc; }
+.cmd-desc { color:#64748b; font-style:italic; }
+.flag-row {
+  display:flex; align-items:baseline; gap:8px; padding:3px 0 3px 22px; border-left:3px solid transparent;
+  margin-left:1px;
+}
+.tree { color:#3b82f6; font-weight:700; white-space:pre; flex-shrink:0; }
+.flag { color:#fbbf24; font-weight:700; white-space:pre; flex-shrink:0; }
+.flag-desc { color:#cbd5e1; font-size:13px; }
+
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:16.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-note { background:linear-gradient(135deg,#ede9fe,#ddd6fe); color:#4c1d95; border-color:#c4b5fd; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+
+.table-wrap {
+  border-radius:12px; overflow:hidden; margin:14px 0;
+  border:1px solid #dbe4f3; box-shadow:0 3px 10px rgba(30,58,138,0.06);
+}
+table { width:100%; border-collapse:collapse; background:#fff; }
+table th {
+  background:#1e3a8a; color:#fff;
+  font-size:12.5px; font-weight:700; padding:11px 16px; text-align:left; border:none;
+  letter-spacing:.02em; text-transform:uppercase;
+}
+table th:first-child { border-top-left-radius:0; }
+table td {
+  padding:11px 16px; font-size:14px; font-weight:500; border:none;
+  color:#1e293b; background:#fff; vertical-align:top;
+  border-bottom:1px solid #eef2f9;
+}
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background:#f8fafc; }
+table tr:hover td { background:#eff6ff; }
+table td:first-child { color:#1e3a8a; font-weight:700; white-space:nowrap; border-right:1px solid #eef2f9; font-size:15.5px; }
+table td code {
+  background:rgba(37,99,235,0.08); color:#1d4ed8; padding:2px 7px;
+  border-radius:5px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+  border:1px solid rgba(37,99,235,0.15);
+}
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — Docker Commands Full Reference</h1>
+    <p>Cheat sheet with flag notes. Images · Containers · Logs · Networks · Volumes · Compose · Registry · Cleanup.</p>
+    <div class="toc">
+      <a href="#images">Images</a>
+      <a href="#containers">Containers</a>
+      <a href="#logs">Logs & Debug</a>
+      <a href="#networks">Networks</a>
+      <a href="#volumes">Volumes</a>
+      <a href="#compose">Compose</a>
+      <a href="#registry">Registry</a>
+      <a href="#cleanup">Cleanup</a>
+    </div>
+  </div>
+
+  <div class="info-box box-warning">Quick pattern: <code>-d</code> (detached/background) and <code>-f</code> (force / follow, depending on command) show up across almost every command group. Always check <code>--help</code> (e.g. <code>docker run --help</code>) when unsure — flag meaning can shift slightly by context (<code>-f</code> = "force" on rm/rmi, but "follow" on logs). In the code blocks below, each flag is listed directly under its own command with a <code>└─</code> connector, so it's always clear which command a flag belongs to.</div>
+
+  <!-- IMAGES -->
+  <div class="section-divider" id="images"><span>Images</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Pull, build, list, tag, inspect</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">images</span></div>
+          <pre><code><div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker pull</span> <span class="arg">&lt;image&gt;</span>  <span class="cmd-desc"># download an image</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker build</span> <span class="arg">-t name:tag .</span>  <span class="cmd-desc"># build image from Dockerfile</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-t</span><span class="flag-desc">tag the image with a name:tag</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">--no-cache</span><span class="flag-desc">rebuild ignoring cache</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-f &lt;file&gt;</span><span class="flag-desc">use a different Dockerfile</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker images</span>  <span class="cmd-desc"># list local images</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker rmi</span> <span class="arg">&lt;image&gt;</span>  <span class="cmd-desc"># remove an image</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-f</span><span class="flag-desc">force remove even if in use</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker tag</span> <span class="arg">&lt;image&gt; new:tag</span>  <span class="cmd-desc"># add a tag to an image</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker history</span> <span class="arg">&lt;image&gt;</span>  <span class="cmd-desc"># show image layers</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker inspect</span> <span class="arg">&lt;image&gt;</span>  <span class="cmd-desc"># full image metadata</span></span>
+</div></code></pre>
+        </div>
+        <div class="table-wrap"><table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>docker pull &lt;image&gt;</code></td><td>download an image</td></tr>
+          <tr><td><code>docker build -t name:tag .</code></td><td>build image from Dockerfile</td></tr>
+          <tr><td><code>docker images</code></td><td>list local images</td></tr>
+          <tr><td><code>docker rmi &lt;image&gt;</code></td><td>remove an image</td></tr>
+          <tr><td><code>docker tag &lt;image&gt; new:tag</code></td><td>add a tag to an image</td></tr>
+          <tr><td><code>docker history &lt;image&gt;</code></td><td>show image layers</td></tr>
+          <tr><td><code>docker inspect &lt;image&gt;</code></td><td>full image metadata</td></tr>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTAINERS -->
+  <div class="section-divider" id="containers"><span>Containers</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Run, list, start, stop, kill, remove</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">containers</span></div>
+          <pre><code><div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker run</span> <span class="arg">&lt;image&gt;</span>  <span class="cmd-desc"># create + start a container</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-d</span><span class="flag-desc">detached (run in background, prints container ID)</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-it</span><span class="flag-desc">interactive + allocate a terminal (for shells)</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">--rm</span><span class="flag-desc">auto-remove container when it stops</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-p 8080:80</span><span class="flag-desc">map host:container ports</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-e KEY=value</span><span class="flag-desc">set an environment variable</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">--env-file .env</span><span class="flag-desc">load env vars from a file</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">--name myapp</span><span class="flag-desc">give it a custom name</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-v vol:/data</span><span class="flag-desc">attach a volume or bind mount</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">--network mynet</span><span class="flag-desc">attach to a specific network</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">--restart=always</span><span class="flag-desc">restart policy</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker ps</span>  <span class="cmd-desc"># list running containers</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-a</span><span class="flag-desc">show all (including stopped)</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-q</span><span class="flag-desc">only show container IDs (useful in scripts)</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker start</span> <span class="arg">&lt;id&gt;</span>  <span class="cmd-desc"># start a stopped container</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-a</span><span class="flag-desc">attach to its output</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-i</span><span class="flag-desc">interactive</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker stop</span> <span class="arg">&lt;id&gt;</span>  <span class="cmd-desc"># gracefully stop (SIGTERM, then SIGKILL after timeout)</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-t &lt;sec&gt;</span><span class="flag-desc">custom timeout before force-kill</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker restart</span> <span class="arg">&lt;id&gt;</span>  <span class="cmd-desc"># stop then start again</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker kill</span> <span class="arg">&lt;id&gt;</span>  <span class="cmd-desc"># force stop immediately (SIGKILL)</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker rm</span> <span class="arg">&lt;id&gt;</span>  <span class="cmd-desc"># remove a stopped container</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-f</span><span class="flag-desc">force remove even if running</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-v</span><span class="flag-desc">also remove associated anonymous volumes</span></div>
+</div></code></pre>
+        </div>
+        <div class="table-wrap"><table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>docker run &lt;image&gt;</code></td><td>create + start a container</td></tr>
+          <tr><td><code>docker ps</code></td><td>list running containers</td></tr>
+          <tr><td><code>docker start &lt;id&gt;</code></td><td>start a stopped container</td></tr>
+          <tr><td><code>docker stop &lt;id&gt;</code></td><td>gracefully stop (SIGTERM, then SIGKILL after timeout)</td></tr>
+          <tr><td><code>docker restart &lt;id&gt;</code></td><td>stop then start again</td></tr>
+          <tr><td><code>docker kill &lt;id&gt;</code></td><td>force stop immediately (SIGKILL)</td></tr>
+          <tr><td><code>docker rm &lt;id&gt;</code></td><td>remove a stopped container</td></tr>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGS -->
+  <div class="section-divider" id="logs"><span>Logs & Debugging</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>Logs, exec, inspect, stats, top</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">logs & debug</span></div>
+          <pre><code><div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker logs</span> <span class="arg">&lt;id&gt;</span>  <span class="cmd-desc"># view logs</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-f</span><span class="flag-desc">follow logs live (like tail -f)</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">--tail 100</span><span class="flag-desc">show last 100 lines only</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-t</span><span class="flag-desc">show timestamps</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker exec</span> <span class="arg">&lt;id&gt; &lt;cmd&gt;</span>  <span class="cmd-desc"># run a command in a running container</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-it</span><span class="flag-desc">interactive shell (e.g. docker exec -it &lt;id&gt; sh)</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker inspect</span> <span class="arg">&lt;id&gt;</span>  <span class="cmd-desc"># full container config/state (JSON)</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker stats</span>  <span class="cmd-desc"># live CPU/memory/network usage</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">--no-stream</span><span class="flag-desc">show one snapshot instead of live updates</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker top</span> <span class="arg">&lt;id&gt;</span>  <span class="cmd-desc"># processes running inside container</span></span>
+</div></code></pre>
+        </div>
+        <div class="table-wrap"><table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>docker logs &lt;id&gt;</code></td><td>view logs</td></tr>
+          <tr><td><code>docker exec &lt;id&gt; &lt;cmd&gt;</code></td><td>run a command in a running container</td></tr>
+          <tr><td><code>docker inspect &lt;id&gt;</code></td><td>full container config/state (JSON)</td></tr>
+          <tr><td><code>docker stats</code></td><td>live CPU/memory/network usage</td></tr>
+          <tr><td><code>docker top &lt;id&gt;</code></td><td>processes running inside container</td></tr>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NETWORKS -->
+  <div class="section-divider" id="networks"><span>Networks</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>List, create, inspect, connect, disconnect, remove</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">networks</span></div>
+          <pre><code><div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker network ls</span>  <span class="cmd-desc"># list networks</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker network create</span> <span class="arg">mynet</span>  <span class="cmd-desc"># create a custom network</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">--driver bridge/host/overlay</span><span class="flag-desc">choose network type</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker network inspect</span> <span class="arg">mynet</span>  <span class="cmd-desc"># see connected containers</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker network connect</span> <span class="arg">mynet &lt;id&gt;</span>  <span class="cmd-desc"># attach a running container to a network</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker network disconnect</span> <span class="arg">mynet &lt;id&gt;</span>  <span class="cmd-desc"># detach it</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker network rm</span> <span class="arg">mynet</span>  <span class="cmd-desc"># remove a network</span></span>
+</div></code></pre>
+        </div>
+        <div class="table-wrap"><table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>docker network ls</code></td><td>list networks</td></tr>
+          <tr><td><code>docker network create mynet</code></td><td>create a custom network</td></tr>
+          <tr><td><code>docker network inspect mynet</code></td><td>see connected containers</td></tr>
+          <tr><td><code>docker network connect mynet &lt;id&gt;</code></td><td>attach a running container to a network</td></tr>
+          <tr><td><code>docker network disconnect mynet &lt;id&gt;</code></td><td>detach it</td></tr>
+          <tr><td><code>docker network rm mynet</code></td><td>remove a network</td></tr>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VOLUMES -->
+  <div class="section-divider" id="volumes"><span>Volumes</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>List, create, inspect, remove, prune</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">volumes</span></div>
+          <pre><code><div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker volume ls</span>  <span class="cmd-desc"># list volumes</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker volume create</span> <span class="arg">myvol</span>  <span class="cmd-desc"># create a volume</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker volume inspect</span> <span class="arg">myvol</span>  <span class="cmd-desc"># details (mount point, driver)</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker volume rm</span> <span class="arg">myvol</span>  <span class="cmd-desc"># remove a volume</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker volume prune</span>  <span class="cmd-desc"># remove all unused volumes</span></span>
+</div></code></pre>
+        </div>
+        <div class="table-wrap"><table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>docker volume ls</code></td><td>list volumes</td></tr>
+          <tr><td><code>docker volume create myvol</code></td><td>create a volume</td></tr>
+          <tr><td><code>docker volume inspect myvol</code></td><td>details (mount point, driver)</td></tr>
+          <tr><td><code>docker volume rm myvol</code></td><td>remove a volume</td></tr>
+          <tr><td><code>docker volume prune</code></td><td>remove all unused volumes</td></tr>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPOSE -->
+  <div class="section-divider" id="compose"><span>Compose</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>up, down, restart, exec, logs, ps, build, config, pull</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">compose</span></div>
+          <pre><code><div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker compose up</span>  <span class="cmd-desc"># start all services</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-d</span><span class="flag-desc">detached (run in background)</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">--build</span><span class="flag-desc">rebuild images before starting</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker compose down</span>  <span class="cmd-desc"># stop and remove containers/networks</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-v</span><span class="flag-desc">also remove named volumes</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">--rmi all</span><span class="flag-desc">also remove images</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker compose restart</span> <span class="arg">&lt;service&gt;</span>  <span class="cmd-desc"># restart a single service</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker compose stop / start</span> <span class="arg">&lt;service&gt;</span>  <span class="cmd-desc"># stop/start without removing</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker compose exec</span> <span class="arg">&lt;service&gt; sh</span>  <span class="cmd-desc"># shell into a running service</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">(no -it needed)</span><span class="flag-desc">exec is interactive by default in Compose</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker compose logs</span>  <span class="cmd-desc"># view logs for all services</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-f</span><span class="flag-desc">follow live</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">&lt;service&gt;</span><span class="flag-desc">logs for just one service</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker compose ps</span>  <span class="cmd-desc"># list services and their status</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker compose build</span>  <span class="cmd-desc"># rebuild images</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">--no-cache</span><span class="flag-desc">ignore build cache</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker compose config</span>  <span class="cmd-desc"># validate and print the resolved compose config</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker compose pull</span>  <span class="cmd-desc"># pull images for all services</span></span>
+</div></code></pre>
+        </div>
+        <div class="table-wrap"><table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>docker compose up</code></td><td>start all services</td></tr>
+          <tr><td><code>docker compose down</code></td><td>stop and remove containers/networks</td></tr>
+          <tr><td><code>docker compose restart &lt;service&gt;</code></td><td>restart a single service</td></tr>
+          <tr><td><code>docker compose stop / start &lt;service&gt;</code></td><td>stop/start without removing</td></tr>
+          <tr><td><code>docker compose exec &lt;service&gt; sh</code></td><td>shell into a running service</td></tr>
+          <tr><td><code>docker compose logs</code></td><td>view logs for all services</td></tr>
+          <tr><td><code>docker compose ps</code></td><td>list services and their status</td></tr>
+          <tr><td><code>docker compose build</code></td><td>rebuild images</td></tr>
+          <tr><td><code>docker compose config</code></td><td>validate and print the resolved compose config</td></tr>
+          <tr><td><code>docker compose pull</code></td><td>pull images for all services</td></tr>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTRY -->
+  <div class="section-divider" id="registry"><span>Registry</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub">
+      <div class="card-sub-title"><h4>Login, push, pull, logout</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">registry</span></div>
+          <pre><code><div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker login</span>  <span class="cmd-desc"># authenticate to a registry</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">&lt;registry-url&gt;</span><span class="flag-desc">for private registries</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker push</span> <span class="arg">&lt;image&gt;</span>  <span class="cmd-desc"># upload image</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker pull</span> <span class="arg">&lt;image&gt;</span>  <span class="cmd-desc"># download image</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker logout</span>  <span class="cmd-desc"># log out of a registry</span></span>
+</div></code></pre>
+        </div>
+        <div class="table-wrap"><table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>docker login</code></td><td>authenticate to a registry</td></tr>
+          <tr><td><code>docker login &lt;registry-url&gt;</code></td><td>for private registries</td></tr>
+          <tr><td><code>docker push &lt;image&gt;</code></td><td>upload image</td></tr>
+          <tr><td><code>docker pull &lt;image&gt;</code></td><td>download image</td></tr>
+          <tr><td><code>docker logout</code></td><td>log out of a registry</td></tr>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLEANUP -->
+  <div class="section-divider" id="cleanup"><span>Cleanup</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Prune unused resources</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">cleanup</span></div>
+          <pre><code><div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker system prune</span>  <span class="cmd-desc"># remove unused containers/networks/dangling images</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-a</span><span class="flag-desc">also remove all unused images (not just dangling)</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">--volumes</span><span class="flag-desc">also remove unused volumes</span></div>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-f</span><span class="flag-desc">skip confirmation prompt</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker container prune</span>  <span class="cmd-desc"># remove all stopped containers</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker image prune</span>  <span class="cmd-desc"># remove dangling (untagged) images</span></span>
+<div class="flag-row"><span class="tree">└─</span><span class="flag">-a</span><span class="flag-desc">remove all unused images</span></div>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker volume prune</span>  <span class="cmd-desc"># remove unused volumes</span></span>
+</div>
+<div class="cmd-group">
+<span class="cmd-line"><span class="cmd">docker network prune</span>  <span class="cmd-desc"># remove unused networks</span></span>
+</div></code></pre>
+        </div>
+        <div class="table-wrap"><table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>docker system prune</code></td><td>remove unused containers/networks/dangling images</td></tr>
+          <tr><td><code>docker container prune</code></td><td>remove all stopped containers</td></tr>
+          <tr><td><code>docker image prune</code></td><td>remove dangling (untagged) images</td></tr>
+          <tr><td><code>docker volume prune</code></td><td>remove unused volumes</td></tr>
+          <tr><td><code>docker network prune</code></td><td>remove unused networks</td></tr>
+        </table></div>
+        <div class="info-box box-warning">Be careful with prune commands on machines containing important Docker resources — especially <code>--volumes</code>, which can delete persistent database data.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"><span>Flag pattern to remember</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>-d and -f</h4></div>
+      <div class="card-sub-content">
+        <p>Quick pattern to remember: <code>-d</code> (detached/background) and <code>-f</code> (force / follow, depending on command) show up across almost every command group — always check <code>--help</code> (e.g. <code>docker run --help</code>) when unsure, since flag meaning can shift slightly by context (<code>-f</code> = "force" on rm/rmi, but "follow" on logs).</p>
+        <div class="info-box box-benefit">Standalone cheat sheet. Kept separate from the main roadmap so you can jump straight to commands.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Notes — Docker Commands Full Reference · with flag notes · full text</footer>
+</div>
+</body>
+</html>
