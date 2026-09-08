@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Docker Compose — Full Guide — Interview Notes</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+@media (max-width: 768px) { .container { width: 100%; max-width: 100%; margin: 20px 0 40px; } }
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#ecfeff,#cffafe); color:#0e7490; } .summary-orange .summary-text strong { color:#0891b2; }
+.summary-rose   { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#9f1239; } .summary-rose .summary-text strong { color:#e11d48; }
+.summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple .summary-text strong { color:#7c3aed; }
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+code, .token { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; font-size: 0.88em; background: rgba(0,0,0,0.06); padding: 2px 7px; border-radius: 5px; color: #4338ca; }
+pre { background: #0d1117; border: 1px solid #2d3a4f; border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; margin: 14px 0; color: #e6edf3; }
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#d4d4d4; font-size:14px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; } .arg { color:#a5b4fc; }
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:14.5px; font-weight:700; padding:12px 18px; text-align:left; letter-spacing:.2px; }
+table td { padding:11px 18px; font-size:14px; font-weight:600; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table td:first-child { white-space:nowrap; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-size:13px; }
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+.qa-answer .code-block code { background:none; padding:0; color:#d4d4d4; font-weight:400; }
+.qa-group-title { font-size:16px; font-weight:800; color:var(--heading); margin: 6px 0 -6px; }
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+@media (max-width:768px) { .header h1 { font-size:26px; } .toc a { padding:6px 12px; font-size:12px; } }
+ul.clean { margin: 12px 0 12px 20px; padding: 0; }
+ul.clean li { margin-bottom: 6px; font-size: 15px; line-height: 1.6; color: #333; }
+.diagram { background: #0d1117; color: #e6edf3; padding: 18px 22px; border-radius: 10px; font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 13px; line-height: 1.55; overflow-x: auto; margin: 14px 0; white-space: pre; }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header theme-blue">
+      <h1>Docker Compose — Full Guide</h1>
+      <p>Interview notes &amp; cheat sheet — what Compose is, when to use it, commands, and how it compares to plain Docker.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">What &amp; Why</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">Examples</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">Commands &amp; Internals</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">Dev vs Prod</a>
+        <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-tip"><strong>💡 Core idea:</strong> Docker manages containers individually. Docker Compose manages multiple related containers as one application stack. Everything you do with Compose can be done with normal <code>docker</code> commands — Compose just makes multi-service setups far easier.</div>
+
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Ideas at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">📄</div>
+          <div class="summary-text"><strong>compose.yaml:</strong> Declarative description of services, networks, volumes, env vars, ports, and dependencies.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🚀</div>
+          <div class="summary-text"><strong>docker compose up -d:</strong> One command starts the entire application stack (network + containers).</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🧩</div>
+          <div class="summary-text"><strong>Multi-container:</strong> Best when you have Backend + Postgres + Redis + Frontend (or similar) that belong together.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🔁</div>
+          <div class="summary-text"><strong>up vs run:</strong> <code>docker run</code> = one container; <code>docker compose up</code> = whole stack from config.</div>
+        </div>
+        <div class="summary-item summary-rose">
+          <div class="summary-icon">🧹</div>
+          <div class="summary-text"><strong>down vs stop:</strong> <code>stop</code> keeps containers; <code>down</code> stops and removes containers + network.</div>
+        </div>
+        <div class="summary-item summary-purple">
+          <div class="summary-icon">🏭</div>
+          <div class="summary-text"><strong>Production:</strong> Compose is great for local/dev; production often moves to ECS, Kubernetes, or similar.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1: WHAT & WHY ==================== -->
+    <div class="section-divider" id="s1"><span>1. What is Docker Compose &amp; When to Use It</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>Without Compose vs With Compose</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Without Compose</strong> you manually manage each container:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">manual docker</span></div>
+          <pre><code><span class="fn">docker network create</span> <span class="arg">my-network</span>
+
+<span class="fn">docker run</span> <span class="arg">-d --name postgres</span> \
+  <span class="arg">--network my-network</span> \
+  <span class="arg">-e POSTGRES_PASSWORD=1234</span> \
+  <span class="str">postgres</span>
+
+<span class="fn">docker run</span> <span class="arg">-d --name backend</span> \
+  <span class="arg">--network my-network</span> \
+  <span class="arg">-p 3000:3000</span> \
+  <span class="str">my-backend</span></code></pre>
+        </div>
+        <p>You have to remember: container names, networks, environment variables, ports, volumes, images, and startup order.</p>
+
+        <p><strong>With Compose</strong> you describe everything in <code>compose.yaml</code>:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">compose.yaml</span></div>
+          <pre><code><span class="kw">services</span>:
+  <span class="fn">postgres</span>:
+    <span class="kw">image</span>: <span class="str">postgres</span>
+    <span class="kw">environment</span>:
+      <span class="arg">POSTGRES_PASSWORD</span>: <span class="num">1234</span>
+
+  <span class="fn">backend</span>:
+    <span class="kw">image</span>: <span class="str">my-backend</span>
+    <span class="kw">ports</span>:
+      - <span class="str">"3000:3000"</span>
+    <span class="kw">depends_on</span>:
+      - <span class="str">postgres</span></code></pre>
+        </div>
+        <p>Then one command starts everything:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code><span class="fn">docker compose up</span> <span class="arg">-d</span></code></pre>
+        </div>
+        <div class="info-box box-benefit">Compose creates and manages the required containers and network automatically.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>When should you use Compose?</h4></div>
+      <div class="card-sub-content">
+        <p>The biggest reason is <strong>multiple related containers</strong>. Example application stack:</p>
+        <div class="diagram">                    Your Application
+                          |
+              ┌───────────┴───────────┐
+              ↓                       ↓
+           Backend                 Frontend
+              |
+        ┌─────┴─────┐
+        ↓           ↓
+     Postgres      Redis</div>
+        <p>That’s 4 containers: <code>frontend</code>, <code>backend</code>, <code>postgres</code>, <code>redis</code>.</p>
+        <p><strong>Without Compose</strong> you run several <code>docker run ...</code> commands and configure everything manually.</p>
+        <p><strong>With Compose</strong>:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code><span class="fn">docker compose up</span> <span class="arg">-d</span></code></pre>
+        </div>
+        <p>One command starts the whole application stack.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Can we do everything without Compose?</h4></div>
+      <div class="card-sub-content">
+        <p>Yes. Compose is convenience and orchestration for a group of containers, not a separate runtime.</p>
+        <table>
+          <tr><th>Compose</th><th>Normal Docker equivalent</th></tr>
+          <tr><td><code>docker compose up</code></td><td><code>docker run</code> (for each service)</td></tr>
+          <tr><td><code>docker compose down</code></td><td><code>docker stop</code> + <code>docker rm</code></td></tr>
+          <tr><td><code>docker compose restart</code></td><td><code>docker restart</code></td></tr>
+          <tr><td><code>docker compose stop</code></td><td><code>docker stop</code></td></tr>
+          <tr><td><code>docker compose start</code></td><td><code>docker start</code></td></tr>
+          <tr><td><code>docker compose exec</code></td><td><code>docker exec</code></td></tr>
+          <tr><td><code>docker compose logs</code></td><td><code>docker logs</code></td></tr>
+          <tr><td><code>docker compose ps</code></td><td><code>docker ps</code></td></tr>
+          <tr><td><code>docker compose build</code></td><td><code>docker build</code></td></tr>
+          <tr><td><code>docker compose pull</code></td><td><code>docker pull</code></td></tr>
+        </table>
+        <div class="info-box box-tip">The important difference: Compose manages a <strong>group of containers as one application</strong>.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 2: EXAMPLES ==================== -->
+    <div class="section-divider" id="s2"><span>2. Practical Examples</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>Single application container — Compose not needed</h4></div>
+      <div class="card-sub-content">
+        <p>Suppose you have a Node.js app image already built:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code><span class="fn">docker build</span> <span class="arg">-t my-node-app:1.0 .</span>
+
+<span class="fn">docker run</span> <span class="arg">-d</span> \
+  <span class="arg">--name my-node-container</span> \
+  <span class="arg">-p 3000:3000</span> \
+  <span class="str">my-node-app:1.0</span></code></pre>
+        </div>
+        <div class="info-box box-benefit">For a single simple container, normal Docker commands are perfectly fine. You do <strong>not</strong> need Compose.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Node.js + PostgreSQL — without Compose</h4></div>
+      <div class="card-sub-content">
+        <p>Two containers that need to talk to each other:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">without-compose</span></div>
+          <pre><code><span class="cmt"># 1. Create a shared network</span>
+<span class="fn">docker network create</span> <span class="arg">app-network</span>
+
+<span class="cmt"># 2. Run PostgreSQL</span>
+<span class="fn">docker run</span> <span class="arg">-d</span> \
+  <span class="arg">--name postgres</span> \
+  <span class="arg">--network app-network</span> \
+  <span class="arg">-e POSTGRES_PASSWORD=1234</span> \
+  <span class="str">postgres</span>
+
+<span class="cmt"># 3. Run Node app</span>
+<span class="fn">docker run</span> <span class="arg">-d</span> \
+  <span class="arg">--name backend</span> \
+  <span class="arg">--network app-network</span> \
+  <span class="arg">-p 3000:3000</span> \
+  <span class="str">my-node-app:1.0</span></code></pre>
+        </div>
+        <p>Your Node app can connect to <code>postgres:5432</code> because both containers are on the same Docker network. This works completely without Compose.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Same stack with Compose</h4></div>
+      <div class="card-sub-content">
+        <p>Instead of remembering all those commands, create <code>compose.yaml</code>:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">compose.yaml</span></div>
+          <pre><code><span class="kw">services</span>:
+  <span class="fn">backend</span>:
+    <span class="kw">image</span>: <span class="str">my-node-app:1.0</span>
+    <span class="kw">ports</span>:
+      - <span class="str">"3000:3000"</span>
+    <span class="kw">depends_on</span>:
+      - <span class="str">postgres</span>
+
+  <span class="fn">postgres</span>:
+    <span class="kw">image</span>: <span class="str">postgres</span>
+    <span class="kw">environment</span>:
+      <span class="arg">POSTGRES_PASSWORD</span>: <span class="num">1234</span></code></pre>
+        </div>
+        <p>Then:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code><span class="fn">docker compose up</span> <span class="arg">-d</span></code></pre>
+        </div>
+        <div class="info-box box-benefit">That’s the major benefit — one declarative file + one command for the whole stack.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Why Compose becomes really useful</h4></div>
+      <div class="card-sub-content">
+        <p>Imagine a larger project:</p>
+        <ul class="clean">
+          <li>Frontend</li>
+          <li>Backend</li>
+          <li>PostgreSQL</li>
+          <li>Redis</li>
+          <li>Nginx</li>
+          <li>Adminer</li>
+        </ul>
+        <p>Without Compose you need many <code>docker run</code> commands and must remember ports, networks, volumes, env vars, names, images, and dependencies.</p>
+        <p>With Compose:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code><span class="fn">docker compose up</span> <span class="arg">-d</span>     <span class="cmt"># start the whole stack</span>
+<span class="fn">docker compose down</span>         <span class="cmt"># stop and tear down the stack</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 3: COMMANDS & INTERNALS ==================== -->
+    <div class="section-divider" id="s3"><span>3. Commands, Internals &amp; Key Differences</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>What does <code>docker compose up</code> actually do?</h4></div>
+      <div class="card-sub-content">
+        <p>Given a file with several services, Compose roughly:</p>
+        <div class="diagram">Read compose.yaml
+       ↓
+Create network
+       ↓
+Pull/build required images
+       ↓
+Create containers
+       ↓
+Configure networking
+       ↓
+Configure volumes
+       ↓
+Configure environment variables
+       ↓
+Start containers</div>
+        <p>So Compose is essentially an <strong>orchestration / configuration tool</strong> for your local Docker application stack.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4><code>docker compose up</code> vs <code>docker run</code></h4></div>
+      <div class="card-sub-content">
+        <p><strong>docker run</strong> — “Create and start this one container.”</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code><span class="fn">docker run</span> <span class="arg">-d --name redis</span> <span class="str">redis</span></code></pre>
+        </div>
+        <p><strong>docker compose up</strong> — “Read my application configuration and create/start all the required services.”</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code><span class="fn">docker compose up</span> <span class="arg">-d</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4><code>docker compose down</code> vs <code>docker stop</code></h4></div>
+      <div class="card-sub-content">
+        <p><strong>Normal Docker</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code><span class="fn">docker stop</span> <span class="arg">backend</span>     <span class="cmt"># stops the container; it still exists</span>
+<span class="fn">docker ps</span> <span class="arg">-a</span>            <span class="cmt"># you can still see it</span>
+<span class="fn">docker start</span> <span class="arg">backend</span>    <span class="cmt"># start it again</span></code></pre>
+        </div>
+        <p><strong>Compose</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code><span class="fn">docker compose down</span>      <span class="cmt"># stops AND removes Compose-managed containers + network</span>
+<span class="fn">docker compose up</span> <span class="arg">-d</span>    <span class="cmt"># creates/starts them again</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Compose command reference</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">compose commands</span></div>
+          <pre><code><span class="fn">docker compose up</span>                       <span class="cmt"># start all services</span>
+  <span class="cmt">-d        detached (run in background)</span>
+  <span class="cmt">--build   rebuild images before starting</span>
+
+<span class="fn">docker compose down</span>                     <span class="cmt"># stop and remove containers/networks</span>
+  <span class="cmt">-v          also remove named volumes</span>
+  <span class="cmt">--rmi all   also remove images</span>
+
+<span class="fn">docker compose restart</span> <span class="arg">&lt;service&gt;</span>       <span class="cmt"># restart a single service</span>
+
+<span class="fn">docker compose stop</span> / <span class="fn">start</span> <span class="arg">&lt;service&gt;</span>  <span class="cmt"># stop/start without removing</span>
+
+<span class="fn">docker compose exec</span> <span class="arg">&lt;service&gt; sh</span>        <span class="cmt"># shell into a running service</span>
+  <span class="cmt">(no -it needed — interactive by default in Compose)</span>
+
+<span class="fn">docker compose logs</span>                     <span class="cmt"># view logs for all services</span>
+  <span class="cmt">-f            follow live</span>
+  <span class="cmt">&lt;service&gt;     logs for just one service</span>
+
+<span class="fn">docker compose ps</span>                       <span class="cmt"># list services and their status</span>
+
+<span class="fn">docker compose build</span>                    <span class="cmt"># rebuild images</span>
+  <span class="cmt">--no-cache    ignore build cache</span>
+
+<span class="fn">docker compose config</span>                   <span class="cmt"># validate and print the resolved config</span>
+
+<span class="fn">docker compose pull</span>                     <span class="cmt"># pull images for all services</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>docker compose up</code></td><td>start all services</td></tr>
+          <tr><td><code>docker compose down</code></td><td>stop and remove containers/networks</td></tr>
+          <tr><td><code>docker compose restart &lt;service&gt;</code></td><td>restart a single service</td></tr>
+          <tr><td><code>docker compose stop / start &lt;service&gt;</code></td><td>stop/start without removing</td></tr>
+          <tr><td><code>docker compose exec &lt;service&gt; sh</code></td><td>shell into a running service</td></tr>
+          <tr><td><code>docker compose logs</code></td><td>view logs for all services</td></tr>
+          <tr><td><code>docker compose ps</code></td><td>list services and their status</td></tr>
+          <tr><td><code>docker compose build</code></td><td>rebuild images</td></tr>
+          <tr><td><code>docker compose config</code></td><td>validate and print the resolved config</td></tr>
+          <tr><td><code>docker compose pull</code></td><td>pull images for all services</td></tr>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 4: DEV VS PROD ==================== -->
+    <div class="section-divider" id="s4"><span>4. Development vs Production &amp; Learning Path</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>Why developers use Compose</h4></div>
+      <div class="card-sub-content">
+        <p>Mainly for <strong>development and testing</strong>. A typical company stack:</p>
+        <div class="diagram">React
+   ↓
+Node.js
+   ↓
+PostgreSQL
+   ↓
+Redis</div>
+        <p>A new developer joins. Instead of “install Postgres, install Redis, configure ports, create databases, set passwords…”, you give them:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code><span class="fn">docker compose up</span> <span class="arg">-d</span></code></pre>
+        </div>
+        <p>All required development services are running.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Is Compose used in production?</h4></div>
+      <div class="card-sub-content">
+        <p>It <strong>can</strong> be, but the common distinction is:</p>
+        <p><strong>Local development</strong> — very common:</p>
+        <div class="diagram">Docker Compose
+      ↓
+Backend + Postgres + Redis + Frontend</div>
+        <p><strong>Production</strong> — often moves to:</p>
+        <ul class="clean">
+          <li>AWS ECS</li>
+          <li>Kubernetes</li>
+          <li>Docker Swarm</li>
+          <li>Other cloud platforms</li>
+        </ul>
+        <p>Example AWS path you may already know:</p>
+        <div class="diagram">Docker image
+     ↓
+ECR
+     ↓
+ECS
+     ↓
+ECS Task
+     ↓
+Container</div>
+        <p>You don’t need Docker Compose to run that ECS container.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Simple rule of thumb</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Situation</th><th>What to use</th></tr>
+          <tr><td>One container (e.g. single Node.js API)</td><td><code>docker run</code></td></tr>
+          <tr><td>Multiple containers that belong to one app</td><td><code>docker compose up</code></td></tr>
+          <tr><td>Production container orchestration</td><td>ECS / Kubernetes / similar</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Recommended learning path</h4></div>
+      <div class="card-sub-content">
+        <div class="diagram">1. Docker Images
+       ↓
+2. Docker Containers
+       ↓
+3. docker run
+       ↓
+4. Ports
+       ↓
+5. Volumes
+       ↓
+6. Networks
+       ↓
+7. Environment variables
+       ↓
+8. Dockerfile
+       ↓
+9. Docker Compose
+       ↓
+10. Docker Registry / ECR
+       ↓
+11. ECS
+       ↓
+12. Production deployment</div>
+        <div class="info-box box-tip">Compose is the next level after you’re comfortable running individual containers. Key concept: <strong>Docker manages containers individually. Docker Compose manages multiple related containers as one application stack.</strong></div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="qa"><span>Interview Q&amp;A</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A — Docker Compose</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-group-title">Core Concepts</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Is Docker Compose mandatory?</div>
+          <div class="qa-answer">No. Everything you do with Compose can generally be done with normal <code>docker</code> commands. Compose mainly makes it easier when your application has multiple containers/services that need to work together.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is Docker Compose in one sentence?</div>
+          <div class="qa-answer">Compose is a tool that lets you define and run multi-container Docker applications using a declarative YAML file (<code>compose.yaml</code>), so you can start/stop the whole stack with single commands like <code>docker compose up</code> and <code>docker compose down</code>.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">When should you use Compose vs plain <code>docker run</code>?</div>
+          <div class="qa-answer">Use plain <code>docker run</code> for a single simple container. Use Compose when you have multiple related containers (backend + database + cache + frontend, etc.) that form one application stack and share networks, volumes, and dependencies.</div>
+        </div>
+
+        <div class="qa-group-title">Commands &amp; Behavior</div>
+
+        <div class="qa-item">
+          <div class="qa-question">What’s the difference between <code>docker compose up</code> and <code>docker run</code>?</div>
+          <div class="qa-answer"><code>docker run</code> creates and starts <strong>one</strong> container. <code>docker compose up</code> reads your Compose file and creates/starts <strong>all</strong> the services defined there (plus the network and any other shared resources).</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What’s the practical difference between <code>docker compose down</code> and <code>docker compose stop</code>?</div>
+          <div class="qa-answer"><code>stop</code> halts the containers but leaves them (and their networks) in place so you can <code>start</code> them again. <code>down</code> stops and also <strong>removes</strong> the containers and the Compose-managed network. Add <code>-v</code> to also remove named volumes, or <code>--rmi all</code> to also remove images.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why doesn’t <code>docker compose exec</code> need <code>-it</code> the way <code>docker exec</code> usually does?</div>
+          <div class="qa-answer">Compose’s <code>exec</code> is interactive and allocates a TTY by default, because shelling into a running service is a very common workflow. Plain <code>docker exec</code> requires you to opt in explicitly with <code>-it</code>.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How do you see logs only for one service in a Compose project?</div>
+          <div class="qa-answer"><code>docker compose logs &lt;service&gt;</code> scopes output to that service. Add <code>-f</code> to follow live.</div>
+        </div>
+
+        <div class="qa-group-title">Architecture &amp; Production</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Can you run a multi-container app without Compose?</div>
+          <div class="qa-answer">Yes. Create a network with <code>docker network create</code>, then run each container with <code>docker run --network ...</code>, set env vars, ports, and volumes yourself. Compose just automates and centralizes that configuration.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Is Docker Compose used in production?</div>
+          <div class="qa-answer">It can be used in production for simpler setups, but many teams use it primarily for local development and testing, then deploy with ECS, Kubernetes, Docker Swarm, or a cloud platform’s orchestration for production.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What does <code>docker compose up</code> do under the hood (high level)?</div>
+          <div class="qa-answer">It reads <code>compose.yaml</code>, creates the project network, pulls or builds images, creates the containers, wires networking/volumes/env vars, and starts the services (respecting <code>depends_on</code> where defined).</div>
+        </div>
+
+        <div class="qa-group-title">Practical / Coding</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Write a minimal <code>compose.yaml</code> for a Node API + Postgres.</div>
+          <div class="qa-answer">
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">compose.yaml</span></div>
+              <pre><code><span class="kw">services</span>:
+  <span class="fn">backend</span>:
+    <span class="kw">image</span>: <span class="str">my-node-app:1.0</span>
+    <span class="kw">ports</span>:
+      - <span class="str">"3000:3000"</span>
+    <span class="kw">depends_on</span>:
+      - <span class="str">postgres</span>
+
+  <span class="fn">postgres</span>:
+    <span class="kw">image</span>: <span class="str">postgres</span>
+    <span class="kw">environment</span>:
+      <span class="arg">POSTGRES_PASSWORD</span>: <span class="num">1234</span></code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How would you fully tear down a Compose project including volumes and images?</div>
+          <div class="qa-answer">
+            <div class="code-block">
+              <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">teardown</span></div>
+              <pre><code><span class="fn">docker compose down</span> <span class="arg">-v --rmi all</span>
+<span class="fn">docker compose ps</span>          <span class="cmt"># confirm nothing left from this project</span></code></pre>
+            </div>
+            <p style="margin-top:12px"><code>-v</code> removes named volumes; <code>--rmi all</code> removes the images used by the services. Prefer this over a broad <code>docker system prune</code> when you only want to clean one project.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Docker Compose — Full Guide — Interview Notes</footer>
+
+</body>
+</html>
