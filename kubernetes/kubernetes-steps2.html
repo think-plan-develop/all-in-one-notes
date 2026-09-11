@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kubernetes Core Four — Namespace, YAML, Deployment, Service</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1100px; margin: 60px auto; }
+@media (max-width: 768px) { .container { width: 100%; max-width: 100%; margin: 20px 0 40px; } }
+
+.header { background: linear-gradient(120deg, #064e3b, #059669); border-radius:16px; padding:40px 36px; margin-bottom:36px; box-shadow: 0 12px 30px rgba(5,150,105,0.28); }
+.header h1 { color:#fff; font-size:30px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#d1fae5; font-size:16px; margin-bottom:22px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:13.5px; font-weight:600; background:rgba(255,255,255,0.16); color:#fff; border:1px solid rgba(255,255,255,0.3); cursor:pointer; }
+.toc a:hover { background:#fff; color:#059669; }
+
+.priority-strip { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:40px; }
+.pcard { flex:1 1 220px; background:#fff; border-radius:14px; padding:18px 20px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 6px 18px rgba(0,0,0,0.06); position:relative; overflow:hidden; }
+.pcard::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(90deg,#059669,#10b981); }
+.pcard .pnum { font-size:12px; font-weight:800; color:#059669; letter-spacing:1px; text-transform:uppercase; }
+.pcard .ptitle { font-size:17px; font-weight:800; color:#1e293b; margin:4px 0 4px; }
+.pcard .pstars { color:#f59e0b; font-size:14px; letter-spacing:1px; }
+
+.section-divider { margin:50px 0 22px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#10b981,#8b5cf6,#f59e0b); opacity:.22; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:21px; font-weight:800; color:#1a1a1a; }
+
+code { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; font-size: 0.88em; background: rgba(0,0,0,0.06); padding: 2px 7px; border-radius: 5px; color: #059669; }
+p.lead { font-size:15px; color:#475569; font-weight:500; margin:10px 0 14px; line-height:1.75; }
+
+.info-box { border-radius:10px; padding:16px 20px; margin:16px 0; font-size:15.5px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-quote  { background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; border-left:4px solid #059669; font-weight:700; font-size:17px; }
+.box-tip    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-good   { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-warn   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+.term { background:#0d1117; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.term-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.term-bar .dot { width:10px; height:10px; border-radius:50%; }
+.dot-red { background:#ff5f57; } .dot-grey { background:#febc2e; } .dot-green { background:#28c840; }
+.term-bar .label { color:#999; font-size:12px; margin-left:8px; font-family:monospace; }
+.term pre { padding:18px; margin:0; overflow-x:auto; font-size:14px; line-height:1.65; color:#d4d4d4; font-family:'Fira Code','Consolas',monospace; }
+.term .cmd { color:#82aaff; } .term .out { color:#9aa5b1; } .term .cmt { color:#7a7a7a; font-style:italic; } .term .flag{color:#a5b4fc;}
+
+.tree-card { background:#0d1117; color:#c9d1d9; border-radius:12px; padding:20px 26px; margin:18px 0; font-family:"SF Mono","Fira Code",Consolas,monospace; font-size:14.5px; line-height:1.85; white-space:pre; overflow-x:auto; box-shadow:0 8px 22px rgba(0,0,0,0.15); }
+.tree-card .lvl1 { color:#60a5fa; font-weight:700; } .tree-card .lvl2 { color:#34d399; font-weight:700; }
+.tree-card .lvl3 { color:#fbbf24; font-weight:700; } .tree-card .lvl4 { color:#f472b6; font-weight:700; }
+.tree-card .lvl5 { color:#a78bfa; font-weight:700; } .tree-card .arrow { color:#6b7280; }
+.tree-card .bad { color:#f87171; font-weight:700; }
+
+.yaml-block { background:#0d1117; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.yaml-block pre { padding:18px; margin:0; overflow-x:auto; font-size:13.5px; line-height:1.6; color:#d4d4d4; font-family:'Fira Code','Consolas',monospace; }
+.yaml-block .k { color:#7dd3fc; } .yaml-block .v { color:#c3e88d; } .yaml-block .c { color:#7a7a7a; font-style:italic; } .yaml-block .dash{color:#f472b6;}
+
+.chip-row { display:flex; flex-wrap:wrap; gap:10px; margin:14px 0; }
+.chip { background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px 16px; box-shadow:0 3px 10px rgba(0,0,0,0.05); flex:1 1 200px; min-width:180px; }
+.chip .chip-code { font-family:monospace; font-weight:800; color:#059669; font-size:14px; margin-bottom:4px; display:block; }
+.chip .chip-desc { font-size:13px; color:#475569; font-weight:500; line-height:1.5; }
+
+table { width:100%; border-collapse:separate; border-spacing:0; margin:16px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(5,150,105,0.12); }
+table th { background:linear-gradient(120deg, #064e3b, #059669); color:#fff; font-size:14px; font-weight:700; padding:12px 18px; text-align:left; }
+table td { padding:11px 18px; font-size:14px; font-weight:600; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: #ecfdf5; }
+table td code { background:rgba(5,150,105,0.1); color:#065f46; padding:2px 6px; border-radius:5px; font-size:13px; }
+
+.diagram-box { background:#fff; border-radius:16px; padding:26px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 8px 22px rgba(0,0,0,0.06); margin:18px 0; }
+.diagram-node { display:inline-block; background:linear-gradient(135deg,#059669,#047857); color:#fff; font-weight:800; font-size:13.5px; padding:10px 20px; border-radius:10px; box-shadow:0 4px 12px rgba(5,150,105,0.25); }
+.diagram-node.alt { background:linear-gradient(135deg,#4f46e5,#4338ca); box-shadow:0 4px 12px rgba(79,70,229,0.25); }
+.diagram-node.dim { background:linear-gradient(135deg,#94a3b8,#64748b); box-shadow:0 4px 12px rgba(100,116,139,0.2); }
+.diagram-arrow-down { text-align:center; color:#94a3b8; font-size:20px; font-weight:800; margin:4px 0; }
+.diagram-center { text-align:center; }
+.pod-pair { display:flex; justify-content:center; gap:40px; margin:10px 0; }
+
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+@media (max-width:768px) { .header h1 { font-size:23px; } }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <h1>The Kubernetes Core Four</h1>
+      <p>For a backend developer, these four concepts give you everything you need to actually run and reach an application in Kubernetes.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">Namespace</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">YAML</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">Deployment</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">Service</a>
+        <a href="#s5" onclick="document.getElementById('s5').scrollIntoView({behavior:'smooth'});return false;">The Big Picture</a>
+      </div>
+    </div>
+
+    <!-- ==================== 1: NAMESPACE ==================== -->
+    <div class="section-divider" id="s1"><span>1. Namespace</span></div>
+
+    <div class="info-box box-quote">💬 A <strong>Namespace</strong> is a logical separation inside a Kubernetes cluster.</div>
+
+    <div class="tree-card">Kubernetes Cluster
+│
+├── <span class="lvl1">development</span>
+│   ├── backend
+│   ├── frontend
+│   └── redis
+│
+├── <span class="lvl2">testing</span>
+│   ├── backend
+│   └── redis
+│
+└── <span class="lvl3">production</span>
+    ├── backend
+    └── redis</div>
+
+    <p class="lead">Instead of dumping everything into one big space, you separate resources by namespace.</p>
+
+    <p style="font-weight:800; color:#065f46; margin:18px 0 6px;">Why use it?</p>
+    <div class="tree-card">namespace: <span class="lvl1">dev</span>
+    backend
+    redis
+
+namespace: <span class="lvl2">test</span>
+    backend
+    redis
+
+namespace: <span class="lvl3">prod</span>
+    backend
+    redis</div>
+    <p class="lead">The <code>backend</code> in <code>dev</code> and the <code>backend</code> in <code>prod</code> can share the exact same name, because they live in different namespaces — no collision.</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">namespace commands</span></div>
+      <pre><span class="cmt"># create it</span>
+<span class="cmd">kubectl create namespace</span> <span class="flag">dev</span>
+
+<span class="cmt"># check it exists</span>
+<span class="cmd">kubectl get namespaces</span>
+
+<span class="cmt"># create a Pod inside it</span>
+<span class="cmd">kubectl run</span> <span class="flag">backend --image=nginx --namespace=dev</span>
+
+<span class="cmt"># see Pods scoped to that namespace</span>
+<span class="cmd">kubectl get pods</span> <span class="flag">-n dev</span></pre>
+    </div>
+
+    <p style="font-weight:800; color:#065f46; margin:18px 0 10px;">Commands worth knowing</p>
+    <div class="chip-row">
+      <div class="chip"><span class="chip-code">kubectl get ns</span><span class="chip-desc">List all namespaces</span></div>
+      <div class="chip"><span class="chip-code">kubectl get pods -n dev</span><span class="chip-desc">List Pods scoped to one namespace</span></div>
+      <div class="chip"><span class="chip-code">kubectl get all -n dev</span><span class="chip-desc">List everything in that namespace</span></div>
+      <div class="chip"><span class="chip-code">kubectl delete namespace dev</span><span class="chip-desc">Delete the namespace and everything inside it</span></div>
+    </div>
+
+    <div class="info-box box-good">✅ <strong>Backend developer takeaway:</strong> you don't need to be a namespace administration expert. Just know: <strong>Namespace = logical environment/group for Kubernetes resources.</strong></div>
+
+    <!-- ==================== 2: YAML ==================== -->
+    <div class="section-divider" id="s2"><span>2. YAML</span></div>
+
+    <p class="lead">Kubernetes resources are normally defined using YAML files — this is the most important skill on this list.</p>
+
+    <div class="yaml-block">
+      <pre><span class="k">apiVersion:</span> <span class="v">v1</span>
+<span class="k">kind:</span> <span class="v">Pod</span>
+
+<span class="k">metadata:</span>
+  <span class="k">name:</span> <span class="v">backend</span>
+
+<span class="k">spec:</span>
+  <span class="k">containers:</span>
+    <span class="dash">-</span> <span class="k">name:</span> <span class="v">backend</span>
+      <span class="k">image:</span> <span class="v">nginx</span>
+      <span class="k">ports:</span>
+        <span class="dash">-</span> <span class="k">containerPort:</span> <span class="v">80</span></pre>
+    </div>
+
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">apply</span></div>
+      <pre><span class="cmd">kubectl apply -f</span> <span class="flag">backend.yaml</span></pre>
+    </div>
+    <p class="lead">Kubernetes reads the YAML file and creates whatever resource it describes.</p>
+
+    <p style="font-weight:800; color:#065f46; margin:20px 0 10px;">The basic structure, every time</p>
+    <div class="chip-row">
+      <div class="chip"><span class="chip-code">apiVersion</span><span class="chip-desc">Which API version you're using — e.g. <code>apps/v1</code></span></div>
+      <div class="chip"><span class="chip-code">kind</span><span class="chip-desc">What resource you're creating — <code>Deployment</code>, <code>Service</code>, etc.</span></div>
+      <div class="chip"><span class="chip-code">metadata</span><span class="chip-desc">Info about the resource — <code>name</code>, <code>namespace</code></span></div>
+      <div class="chip"><span class="chip-code">spec</span><span class="chip-desc">The desired configuration — e.g. <code>replicas: 2</code></span></div>
+    </div>
+
+    <div class="info-box box-tip">💡 <strong>Desired State:</strong> Kubernetes is declarative. You don't say "create Pod 1, then create Pod 2." You write <code>replicas: 2</code>, and Kubernetes continuously works to keep that state true — no matter what happens to individual Pods along the way.</div>
+
+    <!-- ==================== 3: DEPLOYMENT ==================== -->
+    <div class="section-divider" id="s3"><span>3. Deployment</span></div>
+
+    <p class="lead">For a backend app, you'll almost always use a <strong>Deployment</strong> rather than creating Pods by hand.</p>
+
+    <div class="tree-card">Deployment
+     │
+     ▼
+<span class="lvl1">ReplicaSet</span>
+     │
+     ▼
+<span class="lvl2">Pods</span>
+     │
+     ▼
+Container
+     │
+     ▼
+Your Node.js application</div>
+
+    <div class="yaml-block">
+      <pre><span class="k">apiVersion:</span> <span class="v">apps/v1</span>
+<span class="k">kind:</span> <span class="v">Deployment</span>
+
+<span class="k">metadata:</span>
+  <span class="k">name:</span> <span class="v">backend</span>
+
+<span class="k">spec:</span>
+  <span class="k">replicas:</span> <span class="v">2</span>
+
+  <span class="k">selector:</span>
+    <span class="k">matchLabels:</span>
+      <span class="k">app:</span> <span class="v">backend</span>
+
+  <span class="k">template:</span>
+    <span class="k">metadata:</span>
+      <span class="k">labels:</span>
+        <span class="k">app:</span> <span class="v">backend</span>
+
+    <span class="k">spec:</span>
+      <span class="k">containers:</span>
+        <span class="dash">-</span> <span class="k">name:</span> <span class="v">backend</span>
+          <span class="k">image:</span> <span class="v">my-backend:1.0</span>
+          <span class="k">ports:</span>
+            <span class="dash">-</span> <span class="k">containerPort:</span> <span class="v">3000</span></pre>
+    </div>
+
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">apply + check</span></div>
+      <pre><span class="cmd">kubectl apply -f</span> <span class="flag">deployment.yaml</span>
+<span class="cmd">kubectl get deployments</span>
+<span class="cmd">kubectl get pods</span></pre>
+    </div>
+
+    <p style="font-weight:800; color:#065f46; margin:20px 0 10px;">Why Deployment instead of a bare Pod?</p>
+
+    <div class="diagram-box">
+      <div class="diagram-center"><span class="diagram-node alt">Deployment</span></div>
+      <div class="diagram-arrow-down">│</div>
+      <div class="pod-pair">
+        <span class="diagram-node">Pod ✅</span>
+        <span class="diagram-node dim" style="background:linear-gradient(135deg,#dc2626,#991b1b); box-shadow:0 4px 12px rgba(220,38,38,0.25);">Pod ❌</span>
+      </div>
+      <div class="diagram-arrow-down">↓ Kubernetes notices and reconciles</div>
+      <div class="pod-pair">
+        <span class="diagram-node">Pod ✅</span>
+        <span class="diagram-node">Pod ✅ (new)</span>
+      </div>
+    </div>
+    <p class="lead">If a Pod disappears — crash, node failure, anything — the Deployment (via its ReplicaSet) notices the mismatch against <code>replicas: 2</code> and creates a replacement automatically. You never handle that manually.</p>
+
+    <p class="lead">Deployments also drive controlled, zero-downtime updates:</p>
+    <div class="tree-card">backend:1.0
+      ↓
+<span class="lvl1">rolling update</span>
+      ↓
+backend:2.0</div>
+
+    <div class="info-box box-warn">⚠️ <strong>Don't confuse the chain:</strong> Deployment → ReplicaSet → Pod → Container. A <strong>Deployment manages ReplicaSets</strong>; the <strong>ReplicaSet</strong> is what actually maintains the desired Pod count.</div>
+
+    <!-- ==================== 4: SERVICE ==================== -->
+    <div class="section-divider" id="s4"><span>4. Service</span></div>
+
+    <p class="lead">Extremely important for backend work: a Pod's IP address is <strong>not something you should ever rely on directly.</strong></p>
+
+    <div class="tree-card">backend Pod
+IP = 10.244.0.5
+
+<span class="bad">Pod gets deleted.</span>
+
+New Pod:
+backend Pod
+IP = <span class="lvl1">10.244.0.9</span></div>
+
+    <p class="lead">So how does another app reliably reach your backend when its IP keeps changing? A <strong>Service</strong> gives you a stable network endpoint that doesn't change, no matter what happens underneath it.</p>
+
+    <div class="diagram-box">
+      <div class="diagram-center"><span class="diagram-node alt">Service — backend-service</span></div>
+      <div class="diagram-arrow-down">┌─────────┴─────────┐</div>
+      <div class="pod-pair">
+        <span class="diagram-node">Pod 1 — 10.244.0.5</span>
+        <span class="diagram-node">Pod 2 — 10.244.0.9</span>
+      </div>
+    </div>
+    <p class="lead">Your frontend never needs to know either Pod IP — it just talks to <code>backend-service</code>.</p>
+
+    <div class="yaml-block">
+      <pre><span class="k">apiVersion:</span> <span class="v">v1</span>
+<span class="k">kind:</span> <span class="v">Service</span>
+
+<span class="k">metadata:</span>
+  <span class="k">name:</span> <span class="v">backend-service</span>
+
+<span class="k">spec:</span>
+  <span class="k">selector:</span>
+    <span class="k">app:</span> <span class="v">backend</span>
+
+  <span class="k">ports:</span>
+    <span class="dash">-</span> <span class="k">port:</span> <span class="v">80</span>
+      <span class="k">targetPort:</span> <span class="v">3000</span></pre>
+    </div>
+
+    <div class="info-box box-tip">💡 The <code>selector: app: backend</code> here is exactly what links this Service to your Deployment's <code>labels: app: backend</code>. That match is how the Service finds which Pods to send traffic to — Services never hard-code Pod names or IPs, only label selectors.</div>
+
+    <table>
+      <tr><th>Piece</th><th>Role</th></tr>
+      <tr><td><code>selector</code></td><td>Which Pods (by label) this Service sends traffic to</td></tr>
+      <tr><td><code>port</code></td><td>The port other things use to reach this Service</td></tr>
+      <tr><td><code>targetPort</code></td><td>The port your container actually listens on inside the Pod</td></tr>
+    </table>
+
+    <!-- ==================== 5: THE BIG PICTURE ==================== -->
+    <div class="section-divider" id="s5"><span>The Most Important Picture</span></div>
+
+    <p class="lead">As a backend developer, this is the architecture worth holding in your head:</p>
+
+    <div class="tree-card">                 Kubernetes Cluster
+                        │
+                     <span class="lvl1">Namespace</span>
+                        │
+                 backend namespace
+                        │
+                   <span class="lvl2">Deployment</span>
+                        │
+                  <span class="lvl3">ReplicaSet</span>
+                        │
+             ┌──────────┴──────────┐
+             ↓                     ↓
+          <span class="lvl4">Pod 1</span>                  <span class="lvl4">Pod 2</span>
+             │                     │
+        Node.js app            Node.js app
+             ↑                     ↑
+             └─────────┬───────────┘
+                       │
+                    <span class="lvl5">Service</span>
+                       │
+                       ↓
+                Other application</div>
+
+    <div class="info-box box-good">✅ <strong>Namespace</strong> groups it. <strong>YAML</strong> defines it. <strong>Deployment</strong> keeps it running. <strong>Service</strong> makes it reachable. That's the full loop for shipping a backend app to Kubernetes.</div>
+
+  </div>
+
+  <footer>Kubernetes Core Four — Namespace, YAML, Deployment, Service</footer>
+
+</body>
+</html>

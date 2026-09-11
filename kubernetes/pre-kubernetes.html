@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WSL2 + Docker + Kubernetes — Setup Guide</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1100px; margin: 60px auto; }
+@media (max-width: 768px) { .container { width: 100%; max-width: 100%; margin: 20px 0 40px; } }
+
+.header { background: linear-gradient(120deg, #0f172a, #1e40af); border-radius:16px; padding:40px 36px; margin-bottom:44px; box-shadow: 0 12px 30px rgba(30,64,175,0.3); }
+.header h1 { color:#fff; font-size:32px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#dbeafe; font-size:16px; margin-bottom:22px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:13.5px; font-weight:600; background:rgba(255,255,255,0.14); color:#fff; border:1px solid rgba(255,255,255,0.3); cursor:pointer; }
+.toc a:hover { background:#fff; color:#1e40af; }
+
+.section-divider { margin:50px 0 22px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#3b82f6,#8b5cf6,#f59e0b); opacity:.22; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:21px; font-weight:800; color:#1a1a1a; }
+
+code { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; font-size: 0.88em; background: rgba(0,0,0,0.06); padding: 2px 7px; border-radius: 5px; color: #1e40af; }
+
+/* callout / info boxes */
+.info-box { border-radius:10px; padding:16px 20px; margin:16px 0; font-size:15.5px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-quote  { background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#1e3a8a; border-left:4px solid #2563eb; font-weight:700; font-size:17px; }
+.box-tip    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-good   { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-warn   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-diff   { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+
+/* terminal blocks */
+.term { background:#0d1117; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.term-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.term-bar .dot { width:10px; height:10px; border-radius:50%; }
+.dot-red { background:#ff5f57; } .dot-grey { background:#febc2e; } .dot-green { background:#28c840; }
+.term-bar .label { color:#999; font-size:12px; margin-left:8px; font-family:monospace; }
+.term pre { padding:18px; margin:0; overflow-x:auto; font-size:14px; line-height:1.65; color:#d4d4d4; font-family:'Fira Code','Consolas',monospace; }
+.term .cmd { color:#82aaff; } .term .out { color:#9aa5b1; } .term .cmt { color:#7a7a7a; font-style:italic; } .term .ok { color:#4ade80; } .term .err { color:#f87171; }
+
+/* ascii tree cards */
+.tree-card { background:#0d1117; color:#c9d1d9; border-radius:12px; padding:20px 26px; margin:18px 0; font-family:"SF Mono","Fira Code",Consolas,monospace; font-size:14.5px; line-height:1.85; white-space:pre; overflow-x:auto; box-shadow:0 8px 22px rgba(0,0,0,0.15); }
+.tree-card .lvl1 { color:#60a5fa; font-weight:700; }
+.tree-card .lvl2 { color:#34d399; font-weight:700; }
+.tree-card .lvl3 { color:#fbbf24; font-weight:700; }
+.tree-card .lvl4 { color:#f472b6; font-weight:700; }
+.tree-card .lvl5 { color:#a78bfa; font-weight:700; }
+.tree-card .arrow { color:#6b7280; }
+
+/* comparison strip */
+.compare-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin:18px 0; }
+.compare-card { background:#fff; border-radius:12px; padding:18px 20px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.05); }
+.compare-card .cc-title { font-weight:800; font-size:15px; color:#1e293b; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+.compare-card .cc-icon { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+.compare-card .cc-desc { font-size:13.5px; color:#475569; line-height:1.6; font-weight:500; }
+.icon-blue   { background:#dbeafe; }
+.icon-teal   { background:#ccfbf1; }
+.icon-amber  { background:#fef3c7; }
+.icon-violet { background:#ede9fe; }
+
+/* stepper for docker desktop setup */
+.step-list { display:flex; flex-direction:column; gap:16px; margin:18px 0; }
+.step-item { display:flex; gap:16px; background:#fff; border-radius:14px; padding:18px 22px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 16px rgba(0,0,0,0.05); }
+.step-num { flex-shrink:0; width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#2563eb,#1e40af); color:#fff; font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; }
+.step-body h4 { font-size:16.5px; font-weight:800; color:#1e293b; margin-bottom:6px; }
+.step-body p { font-size:14.5px; color:#475569; line-height:1.7; font-weight:500; margin-bottom:8px; }
+.step-body p:last-child { margin-bottom:0; }
+.path-crumb { display:inline-flex; align-items:center; gap:6px; background:#eff6ff; color:#1e3a8a; font-weight:700; font-size:13.5px; padding:5px 12px; border-radius:8px; font-family:monospace; }
+.toggle-row { display:flex; align-items:center; justify-content:space-between; background:#0d1117; color:#e6edf3; border-radius:8px; padding:10px 16px; font-family:monospace; font-size:13.5px; margin-top:8px; }
+.toggle-on { background:#22c55e; color:#052e14; font-weight:800; padding:2px 10px; border-radius:6px; font-size:12px; }
+
+.pipeline { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:18px 0; }
+.pipeline .node { background:#fff; border:2px solid #2563eb; color:#1e3a8a; font-weight:800; font-size:13.5px; padding:10px 16px; border-radius:10px; box-shadow:0 3px 10px rgba(37,99,235,0.12); }
+.pipeline .arrow-h { color:#94a3b8; font-size:20px; font-weight:800; }
+
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+@media (max-width:768px) { .header h1 { font-size:24px; } }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <h1>WSL2 + Docker + Kubernetes — Setup Guide</h1>
+      <p>What WSL actually is, why you need it for Kubernetes, and getting Docker Desktop connected to your Ubuntu distro.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">What is WSL</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">First-time setup</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">Why for Kubernetes</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">WSL1 vs WSL2</a>
+        <a href="#s5" onclick="document.getElementById('s5').scrollIntoView({behavior:'smooth'});return false;">WSL ≠ Docker</a>
+        <a href="#s6" onclick="document.getElementById('s6').scrollIntoView({behavior:'smooth'});return false;">Connect Docker Desktop</a>
+      </div>
+    </div>
+
+    <!-- ==================== 1: WHAT IS WSL ==================== -->
+    <div class="section-divider" id="s1"><span>1. What is WSL?</span></div>
+
+    <div class="info-box box-quote">💬 <strong>WSL</strong> stands for <strong>Windows Subsystem for Linux.</strong><br/>It lets you run a Linux environment inside Windows, without installing a separate Linux operating system.</div>
+
+    <p style="font-size:15px; color:#475569; font-weight:500; margin:14px 0;">If you're setting up WSL for the first time, you normally need to install a Linux distribution too — most people go with Ubuntu. Think of the layers stacking on top of each other:</p>
+
+    <div class="tree-card"><span class="lvl1">WSL2</span>
+  <span class="arrow">↓</span>  Linux environment / technology
+  <span class="arrow">↓</span>  <span class="lvl2">Ubuntu</span>
+  <span class="arrow">↓</span>  Your Linux terminal</div>
+
+    <p style="font-size:15px; color:#475569; font-weight:500; margin:14px 0;">In your case, you already have this stack running:</p>
+
+    <div class="tree-card">Windows
+   │
+   └── <span class="lvl1">WSL2</span>
+        │
+        └── <span class="lvl2">Ubuntu 22.04</span></div>
+
+    <p style="font-size:15px; color:#475569; font-weight:500; margin:14px 0;">And your terminal output proves it:</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">uname -a</span></div>
+      <pre><span class="out">GNU/Linux 6.6.114.1-microsoft-standard-WSL2</span></pre>
+    </div>
+
+    <!-- ==================== 2: FIRST-TIME SETUP ==================== -->
+    <div class="section-divider" id="s2"><span>2. First-Time Setup</span></div>
+
+    <p style="font-size:15px; color:#475569; font-weight:500; margin-bottom:10px;">On a fresh Windows machine, one command handles everything:</p>
+
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">PowerShell (Admin)</span></div>
+      <pre><span class="cmd">wsl --install</span></pre>
+    </div>
+
+    <div class="info-box box-good">✅ <strong>This typically installs:</strong>
+    <ul style="margin:8px 0 0 22px; font-weight:600;">
+      <li>WSL</li>
+      <li>WSL2</li>
+      <li>A default Linux distribution (usually Ubuntu)</li>
+    </ul>
+    </div>
+
+    <!-- ==================== 3: WHY FOR KUBERNETES ==================== -->
+    <div class="section-divider" id="s3"><span>3. Why Do You Need It For Kubernetes?</span></div>
+
+    <p style="font-size:15px; color:#475569; font-weight:500; margin-bottom:14px;">A lot of Kubernetes tooling and examples are Linux-oriented. WSL gives you a real Linux terminal while you keep using Windows day-to-day.</p>
+
+    <div class="pipeline">
+      <div class="node">PowerShell / CMD</div>
+      <div class="arrow-h">→</div>
+      <div class="node" style="border-color:#059669;color:#065f46;">Ubuntu (WSL2)</div>
+      <div class="arrow-h">→</div>
+      <div class="node" style="border-color:#7c3aed;color:#5b21b6;">Linux commands</div>
+    </div>
+
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">Ubuntu</span></div>
+      <pre><span class="cmd">ls</span>
+<span class="cmd">cd</span>
+<span class="cmd">pwd</span>
+<span class="cmd">sudo apt update</span>
+<span class="cmd">curl</span>
+<span class="cmd">chmod</span></pre>
+    </div>
+
+    <p style="font-size:15px; color:#475569; font-weight:500; margin:16px 0 6px;">You can also install your Kubernetes tools directly inside that Ubuntu environment:</p>
+
+    <div class="tree-card">Ubuntu (WSL2)
+   │
+   ├── <span class="lvl3">kubectl</span>
+   ├── <span class="lvl3">kind</span>
+   └── <span class="lvl3">helm</span></div>
+
+    <!-- ==================== 4: WSL1 vs WSL2 ==================== -->
+    <div class="section-divider" id="s4"><span>4. What Does the "2" Mean?</span></div>
+
+    <p style="font-size:15px; color:#475569; font-weight:500; margin-bottom:14px;">There are two major architectures:</p>
+
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-blue">1️⃣</div>WSL1</div>
+        <div class="cc-desc">Translates Linux system calls to Windows — lighter but less compatible with some Linux tooling.</div>
+      </div>
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-teal">2️⃣</div>WSL2 <span style="color:#059669;">(you're on this)</span></div>
+        <div class="cc-desc">Runs a real, lightweight Linux kernel in a fast virtual machine — much better compatibility, this is the one you want.</div>
+      </div>
+    </div>
+
+    <p style="font-size:15px; color:#475569; font-weight:500; margin:14px 0 6px;">Your kernel string confirms it:</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">confirmed</span></div>
+      <pre><span class="ok">6.6.114.1-microsoft-standard-WSL2</span></pre>
+    </div>
+
+    <!-- ==================== 5: WSL is NOT Docker ==================== -->
+    <div class="section-divider" id="s5"><span>5. WSL Is Not the Same as Docker</span></div>
+
+    <div class="info-box box-diff">⚠️ <strong>This distinction matters</strong> — these four tools each do one specific job, and none of them substitute for another.</div>
+
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-blue">🐧</div>WSL2</div>
+        <div class="cc-desc">Gives Windows a Linux environment / terminal.</div>
+      </div>
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-teal">🐳</div>Docker</div>
+        <div class="cc-desc">Runs and manages containers.</div>
+      </div>
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-amber">☸️</div>kind</div>
+        <div class="cc-desc">Creates a Kubernetes cluster (using Docker containers as "nodes").</div>
+      </div>
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-violet">🎛️</div>kubectl</div>
+        <div class="cc-desc">Communicates with the Kubernetes cluster.</div>
+      </div>
+    </div>
+
+    <p style="font-size:15px; color:#475569; font-weight:500; margin:18px 0 6px;">Put together, your full Kubernetes learning stack looks like this:</p>
+
+    <div class="tree-card">Windows
+   │
+   └── <span class="lvl1">WSL2</span>
+        │
+        └── <span class="lvl2">Ubuntu</span>
+             │
+             ├── <span class="lvl3">kubectl</span>
+             ├── <span class="lvl3">kind</span>
+             └── <span class="lvl3">helm</span>
+                    │
+                    ▼
+             <span class="lvl4">Kubernetes Cluster</span>
+                    │
+                    ▼
+                  <span class="lvl5">Pods</span>
+                    │
+                    ▼
+               Containers</div>
+
+    <div class="info-box box-good">👍 <strong>You already have the WSL + Ubuntu part done.</strong> Next: check Docker, because <code>kind</code> needs a container runtime to actually create your Kubernetes cluster.</div>
+
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">Ubuntu (WSL2)</span></div>
+      <pre><span class="cmd">docker --version</span>
+
+<span class="err">The command 'docker' could not be found in this WSL 2 distro.</span>
+<span class="out">We recommend to activate the WSL integration in Docker Desktop settings.
+
+For details about using Docker Desktop with WSL 2, visit:
+https://docs.docker.com/go/wsl2/</span></pre>
+    </div>
+
+    <p style="font-size:15px; color:#475569; font-weight:500; margin:14px 0;">That's expected. WSL2 and Docker are separate — you have WSL2 + Ubuntu, but Docker isn't currently connected to that distribution.</p>
+
+    <div class="info-box box-tip">💡 Since you're on Windows, the easiest path is <strong>Docker Desktop + WSL2 integration</strong> — you do <u>not</u> need to install Docker Engine manually inside Ubuntu.</div>
+
+    <!-- ==================== 6: CONNECT DOCKER DESKTOP ==================== -->
+    <div class="section-divider" id="s6"><span>6. Connect Docker Desktop to Ubuntu</span></div>
+
+    <div class="step-list">
+
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Check Docker Desktop is installed &amp; running</h4>
+          <p>Open the Windows Start Menu and search:</p>
+          <span class="path-crumb">🔍 Docker Desktop</span>
+          <p style="margin-top:8px;">If it's installed, open it and wait until Docker reports it's running (green whale icon in the system tray, "Docker Desktop is running" status).</p>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Enable WSL integration</h4>
+          <p>In Docker Desktop, navigate to:</p>
+          <span class="path-crumb">Settings → Resources → WSL Integration</span>
+          <p style="margin-top:10px;">You should see your Ubuntu distribution listed:</p>
+          <div class="toggle-row"><span>Enable integration with my default WSL distro</span><span class="toggle-on">ON</span></div>
+          <div class="toggle-row"><span>Ubuntu-22.04</span><span class="toggle-on">ON</span></div>
+          <p style="margin-top:10px;">Turn Ubuntu <strong>ON</strong>, then click <strong>Apply &amp; Restart</strong>.</p>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Go back to your WSL terminal</h4>
+          <p>You can stay in PowerShell and run:</p>
+          <div class="term">
+            <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">PowerShell</span></div>
+            <pre><span class="cmd">wsl</span>
+
+<span class="out">root@LAPTOP-XXXXX:/mnt/c/Users/YourName#</span></pre>
+          </div>
+          <p>Now verify Docker is reachable from inside Ubuntu:</p>
+          <div class="term">
+            <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">Ubuntu (WSL2)</span></div>
+            <pre><span class="cmd">docker --version</span>
+<span class="ok">Docker version 27.x.x, build xxxxxxx</span>
+
+<span class="cmd">docker ps</span>
+<span class="out">CONTAINER ID   IMAGE   COMMAND   CREATED   STATUS   PORTS   NAMES</span></pre>
+          </div>
+          <p>Both commands should now work — Docker Desktop is sharing its engine with your Ubuntu distro over the WSL2 integration.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="info-box box-good">✅ Once <code>docker ps</code> runs cleanly inside Ubuntu, you're ready to move on to <code>kind create cluster</code> and start working with Kubernetes.</div>
+
+  </div>
+
+  <footer>WSL2 + Docker + Kubernetes — Setup Guide</footer>
+
+</body>
+</html>

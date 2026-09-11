@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Windows + WSL2 + Docker Desktop — Full Kubernetes Environment Setup</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1100px; margin: 60px auto; }
+@media (max-width: 768px) { .container { width: 100%; max-width: 100%; margin: 20px 0 40px; } }
+
+.header { background: linear-gradient(120deg, #0c4a6e, #0369a1); border-radius:16px; padding:40px 36px; margin-bottom:44px; box-shadow: 0 12px 30px rgba(3,105,161,0.28); }
+.header h1 { color:#fff; font-size:30px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#e0f2fe; font-size:16px; margin-bottom:22px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:13px; font-weight:600; background:rgba(255,255,255,0.16); color:#fff; border:1px solid rgba(255,255,255,0.3); cursor:pointer; }
+.toc a:hover { background:#fff; color:#0369a1; }
+
+.section-divider { margin:50px 0 22px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#0ea5e9,#8b5cf6,#f59e0b); opacity:.22; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:21px; font-weight:800; color:#1a1a1a; }
+
+code { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; font-size: 0.88em; background: rgba(0,0,0,0.06); padding: 2px 7px; border-radius: 5px; color: #0369a1; }
+p.lead { font-size:15px; color:#475569; font-weight:500; margin:10px 0 14px; line-height:1.75; }
+
+.info-box { border-radius:10px; padding:16px 20px; margin:16px 0; font-size:15.5px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-quote  { background:linear-gradient(135deg,#e0f2fe,#bae6fd); color:#075985; border-left:4px solid #0284c7; font-weight:700; font-size:17px; }
+.box-tip    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-good   { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-warn   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+
+.term { background:#0d1117; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.term-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.term-bar .dot { width:10px; height:10px; border-radius:50%; }
+.dot-red { background:#ff5f57; } .dot-grey { background:#febc2e; } .dot-green { background:#28c840; }
+.term-bar .label { color:#999; font-size:12px; margin-left:8px; font-family:monospace; }
+.term pre { padding:18px; margin:0; overflow-x:auto; font-size:13.5px; line-height:1.65; color:#d4d4d4; font-family:'Fira Code','Consolas',monospace; }
+.term .cmd { color:#82aaff; } .term .out { color:#9aa5b1; } .term .cmt { color:#7a7a7a; font-style:italic; } .term .ok{color:#4ade80;} .term .flag{color:#a5b4fc;} .term .str{color:#c3e88d;}
+
+.tree-card { background:#0d1117; color:#c9d1d9; border-radius:12px; padding:20px 26px; margin:18px 0; font-family:"SF Mono","Fira Code",Consolas,monospace; font-size:14.5px; line-height:1.85; white-space:pre; overflow-x:auto; box-shadow:0 8px 22px rgba(0,0,0,0.15); }
+.tree-card .lvl1 { color:#60a5fa; font-weight:700; } .tree-card .lvl2 { color:#34d399; font-weight:700; }
+.tree-card .lvl3 { color:#fbbf24; font-weight:700; } .tree-card .lvl4 { color:#f472b6; font-weight:700; }
+.tree-card .lvl5 { color:#a78bfa; font-weight:700; } .tree-card .arrow { color:#6b7280; }
+.tree-card .done { color:#4ade80; }
+
+table { width:100%; border-collapse:separate; border-spacing:0; margin:16px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(3,105,161,0.12); }
+table th { background:linear-gradient(120deg, #0c4a6e, #0369a1); color:#fff; font-size:13.5px; font-weight:700; padding:12px 16px; text-align:left; }
+table td { padding:11px 16px; font-size:13.5px; font-weight:600; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: #f0f9ff; }
+table td code { background:rgba(3,105,161,0.1); color:#0369a1; padding:2px 6px; border-radius:5px; font-size:12.5px; }
+.rec-best { color:#059669; font-weight:800; } .rec-good{color:#0891b2;font-weight:800;} .rec-no{color:#dc2626;font-weight:800;} .rec-ok{color:#d97706;font-weight:800;}
+
+.step-list { display:flex; flex-direction:column; gap:14px; margin:18px 0; }
+.step-item { display:flex; gap:16px; background:#fff; border-radius:14px; padding:16px 20px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 16px rgba(0,0,0,0.05); }
+.step-num { flex-shrink:0; width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#0284c7,#0c4a6e); color:#fff; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; }
+.step-body h4 { font-size:15.5px; font-weight:800; color:#1e293b; margin-bottom:4px; }
+.step-body p { font-size:14px; color:#475569; line-height:1.65; font-weight:500; margin-top:4px; }
+
+.chip-row { display:flex; flex-wrap:wrap; gap:10px; margin:14px 0; }
+.chip { background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px 16px; box-shadow:0 3px 10px rgba(0,0,0,0.05); flex:1 1 200px; min-width:180px; }
+.chip .chip-code { font-family:monospace; font-weight:800; color:#0369a1; font-size:14px; margin-bottom:4px; display:block; }
+.chip .chip-desc { font-size:13px; color:#475569; font-weight:500; line-height:1.5; }
+
+.roadmap { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0; }
+.roadmap .rstep { background:#fff; border:2px solid #0284c7; color:#075985; font-weight:700; font-size:13px; padding:8px 14px; border-radius:20px; display:flex; align-items:center; gap:6px; }
+.roadmap .rstep .rnum { background:#0284c7; color:#fff; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; }
+
+.checklist { display:flex; flex-direction:column; gap:8px; margin:16px 0; }
+.checklist .citem { display:flex; align-items:center; gap:10px; background:#fff; border-radius:10px; padding:10px 16px; border:1px solid rgba(0,0,0,0.06); font-weight:700; font-size:14px; color:#1e293b; }
+.checklist .cdone { color:#059669; }
+.checklist .cnow { color:#0369a1; }
+.checklist .cnext { color:#94a3b8; }
+
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+@media (max-width:768px) { .header h1 { font-size:23px; } }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <h1>Windows + WSL2 + Docker Desktop</h1>
+      <p>Full Kubernetes learning environment setup — from a bare Windows machine to a running <code style="background:rgba(255,255,255,0.15);color:#fff;">kind</code> cluster.</p>
+      <div class="toc">
+        <a href="#s0" onclick="document.getElementById('s0').scrollIntoView({behavior:'smooth'});return false;">Why This Setup</a>
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">1. WSL2</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">2. Ubuntu</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">3. Docker Desktop</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">4. kubectl</a>
+        <a href="#s5" onclick="document.getElementById('s5').scrollIntoView({behavior:'smooth'});return false;">5. kind</a>
+        <a href="#s6" onclick="document.getElementById('s6').scrollIntoView({behavior:'smooth'});return false;">6. Helm</a>
+        <a href="#s7" onclick="document.getElementById('s7').scrollIntoView({behavior:'smooth'});return false;">7. Create Cluster</a>
+        <a href="#s8" onclick="document.getElementById('s8').scrollIntoView({behavior:'smooth'});return false;">Learning Order</a>
+      </div>
+    </div>
+
+    <!-- ==================== 0: WHY THIS SETUP ==================== -->
+    <div class="section-divider" id="s0"><span>0. Why This Setup</span></div>
+
+    <p class="lead">For your situation, the recommendation is <strong>Windows + WSL2 + Docker Desktop</strong> — not a separate Linux install. You're already on Windows and learning Docker, so this gets you a real Linux environment without dual-booting anything.</p>
+
+    <div class="tree-card">Windows 11
+   │
+   ├── <span class="lvl1">WSL2</span>
+   │     │
+   │     └── <span class="lvl2">Ubuntu</span>
+   │            │
+   │            ├── <span class="lvl3">kubectl</span>
+   │            ├── <span class="lvl3">kind</span>
+   │            └── <span class="lvl3">Helm</span>
+   │
+   └── <span class="lvl4">Docker Desktop</span>
+          │
+          └── Docker Engine
+                 │
+                 └── <span class="lvl5">kind Kubernetes cluster</span></div>
+
+    <p class="lead">This mirrors the Linux-based environment you'll meet in real development jobs almost exactly.</p>
+
+    <table>
+      <tr><th>Option</th><th>Recommendation</th><th>Why</th></tr>
+      <tr><td>Windows + WSL2</td><td><span class="rec-best">⭐ Best for you</span></td><td>Linux commands + Windows convenience</td></tr>
+      <tr><td>Pure Linux</td><td><span class="rec-best">⭐ Excellent</span></td><td>Most natural Kubernetes environment</td></tr>
+      <tr><td>Windows without WSL2</td><td><span class="rec-no">❌ Not recommended</span></td><td>More friction with Linux-based tooling</td></tr>
+      <tr><td>Dual boot Linux</td><td><span class="rec-no">❌ Not necessary</span></td><td>Adds complexity for no real gain here</td></tr>
+      <tr><td>VM running Linux</td><td><span class="rec-ok">⚠️ Okay</span></td><td>More resource overhead than WSL2</td></tr>
+      <tr><td>Minikube on Windows</td><td><span class="rec-ok">⚠️ Fine</span></td><td>kind + WSL2 is the better fit here</td></tr>
+    </table>
+
+    <div class="info-box box-good">✅ <strong>Bottom line:</strong> don't reinstall your computer with Linux just to learn Kubernetes.</div>
+
+    <!-- ==================== 1: WSL2 ==================== -->
+    <div class="section-divider" id="s1"><span>Step 1 — Install WSL2</span></div>
+
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">PowerShell (Admin)</span></div>
+      <pre><span class="cmd">wsl --install</span></pre>
+    </div>
+    <p class="lead">Restart your computer when Windows asks. Afterward, verify:</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">verify</span></div>
+      <pre><span class="cmd">wsl --status</span>
+<span class="cmd">wsl -l -v</span>
+
+<span class="out">NAME      STATE    VERSION
+Ubuntu    Running  </span><span class="ok">2</span></pre>
+    </div>
+    <div class="info-box box-good">✅ <code>VERSION 2</code> confirms you're running <strong>WSL2</strong>, not the older WSL1.</div>
+
+    <!-- ==================== 2: UBUNTU ==================== -->
+    <div class="section-divider" id="s2"><span>Step 2 — Install Ubuntu</span></div>
+
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">PowerShell</span></div>
+      <pre><span class="cmd">wsl --install</span> <span class="flag">-d Ubuntu</span></pre>
+    </div>
+    <p class="lead">Start Ubuntu from the Windows Start menu. You'll land in a Linux terminal:</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">Ubuntu</span></div>
+      <pre><span class="out">username@computer:~$</span> <span class="cmd">ls</span>
+<span class="out">username@computer:~$</span> <span class="cmd">pwd</span>
+<span class="out">username@computer:~$</span> <span class="cmd">cd</span></pre>
+    </div>
+    <p class="lead">From this point on, you're genuinely working inside Linux.</p>
+
+    <!-- ==================== 3: DOCKER DESKTOP ==================== -->
+    <div class="section-divider" id="s3"><span>Step 3 — Install Docker Desktop</span></div>
+
+    <p class="lead">Install Docker Desktop for Windows, open it, and make sure the <strong>WSL 2 based engine</strong> is enabled in its settings.</p>
+
+    <div class="tree-card">Windows
+   ↓
+<span class="lvl1">Docker Desktop</span>
+   ↓
+<span class="lvl2">Docker Engine</span>
+   ↓
+<span class="lvl3">WSL2</span>
+   ↓
+<span class="lvl4">Ubuntu</span></div>
+
+    <p class="lead">Verify from inside Ubuntu:</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">Ubuntu (WSL2)</span></div>
+      <pre><span class="cmd">docker --version</span>
+<span class="cmd">docker ps</span></pre>
+    </div>
+    <div class="info-box box-good">✅ If both commands work, you're ready to move on to <code>kind</code>.</div>
+
+    <!-- ==================== 4: KUBECTL ==================== -->
+    <div class="section-divider" id="s4"><span>Step 4 — Install kubectl Inside Ubuntu</span></div>
+
+    <div class="info-box box-quote">💬 <code>kubectl</code> is the command-line tool used to <strong>communicate with Kubernetes.</strong></div>
+
+    <div class="tree-card">Your terminal
+     ↓
+  <span class="lvl1">kubectl</span>
+     ↓
+<span class="lvl2">Kubernetes API Server</span>
+     ↓
+<span class="lvl3">Kubernetes Cluster</span></div>
+
+    <p class="lead"><code>kubectl get pods</code> simply means: "Kubernetes, show me the Pods."</p>
+
+    <p style="font-weight:800; color:#0369a1; margin:20px 0 6px;">4.1 — Update Ubuntu packages first</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">apt</span></div>
+      <pre><span class="cmd">sudo apt update</span>
+<span class="cmd">sudo apt install</span> <span class="flag">-y curl</span></pre>
+    </div>
+
+    <div class="chip-row">
+      <div class="chip"><span class="chip-code">sudo</span><span class="chip-desc">Run this command with administrator (root) privileges. You may be asked for your Ubuntu password.</span></div>
+      <div class="chip"><span class="chip-code">apt</span><span class="chip-desc">Ubuntu's package manager — installs, updates, and removes software.</span></div>
+      <div class="chip"><span class="chip-code">update</span><span class="chip-desc">Refreshes the package <em>catalog</em> from configured repositories — does NOT upgrade installed software itself.</span></div>
+    </div>
+
+    <div class="tree-card">Ubuntu
+  ↓
+apt update
+  ↓
+Refresh package information
+  ↓
+Know which versions are available</div>
+
+    <table>
+      <tr><th>Command</th><th>What it does</th></tr>
+      <tr><td><code>sudo apt update</code></td><td>Refreshes the package list (catalog)</td></tr>
+      <tr><td><code>sudo apt upgrade</code></td><td>Upgrades already-installed packages</td></tr>
+      <tr><td><code>sudo apt install &lt;package&gt;</code></td><td>Installs a specific package</td></tr>
+    </table>
+    <p class="lead">Running <code>update</code> before <code>install</code> is just: refresh the catalog, then install from it — here, to get the tools Kubernetes work needs.</p>
+
+    <p style="font-weight:800; color:#0369a1; margin:20px 0 6px;">4.2 — Install kubectl</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">install kubectl</span></div>
+      <pre><span class="cmd">curl -LO</span> <span class="str">"https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"</span>
+
+<span class="cmd">sudo install</span> <span class="flag">-o root -g root -m 0755 kubectl /usr/local/bin/kubectl</span>
+
+<span class="cmd">kubectl version</span> <span class="flag">--client</span>
+<span class="out">Client Version: v1.xx.x</span></pre>
+    </div>
+    <p class="lead">Because <code>kubectl</code> lives inside Ubuntu (the bottom of your WSL2 stack), typing <code>kubectl get nodes</code> there talks directly to whatever Kubernetes cluster you point it at.</p>
+
+    <div class="info-box box-warn">⏸️ <strong>Don't create the cluster yet.</strong> For now, just confirm the tool exists: <code>kubectl version --client</code>. If it says "command not found," run the install commands above first.</div>
+
+    <!-- ==================== 5: KIND ==================== -->
+    <div class="section-divider" id="s5"><span>Step 5 — Install kind</span></div>
+
+    <div class="info-box box-quote">💬 <strong>kind</strong> means <strong>Kubernetes IN Docker</strong> — it creates a local Kubernetes cluster using Docker.</div>
+
+    <div class="tree-card">Docker Desktop
+      ↓
+     <span class="lvl1">kind</span>
+      ↓
+Kubernetes Cluster
+      ↓
+   Kubernetes Nodes
+      ↓
+     Pods
+      ↓
+  Your Node.js app</div>
+
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">install kind</span></div>
+      <pre><span class="cmt"># 1. Download kind</span>
+<span class="cmd">curl -Lo</span> <span class="str">./kind</span> https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
+
+<span class="cmt"># 2. Give it permission to execute</span>
+<span class="cmd">chmod</span> <span class="flag">+x ./kind</span>
+
+<span class="cmt"># 3. Put it somewhere available system-wide</span>
+<span class="cmd">sudo mv</span> <span class="flag">./kind /usr/local/bin/kind</span>
+
+<span class="cmt"># 4. Verify</span>
+<span class="cmd">kind version</span>
+<span class="ok">kind v0.30.0 go1.24.4 linux/amd64</span></pre>
+    </div>
+
+    <div class="chip-row">
+      <div class="chip"><span class="chip-code">chmod +x ./kind</span><span class="chip-desc">"Linux, this file is a program — allow me to run it." Without this: <em>Permission denied.</em></span></div>
+      <div class="chip"><span class="chip-code">mv ./kind /usr/local/bin/kind</span><span class="chip-desc">Moves the file into a folder that's already on your PATH, so <code>kind</code> works from any directory.</span></div>
+      <div class="chip"><span class="chip-code">kind version</span><span class="chip-desc">Verification only — confirms download, execute permission, and PATH placement all worked.</span></div>
+    </div>
+
+    <div class="tree-card">Download        <span class="done">✅</span>
+     ↓
+Executable      <span class="done">✅</span>
+     ↓
+Moved to PATH   <span class="done">✅</span>
+     ↓
+kind command    <span class="done">✅</span></div>
+
+    <div class="info-box box-tip">💡 <strong>Important distinction:</strong> <code>chmod</code> does not install kind — it only makes the downloaded file executable. <code>mv</code> is what puts it on your PATH, letting you run <code>kind</code> from anywhere. Since you may already be root in some WSL setups, <code>sudo</code> can sometimes be dropped — check your prompt.</div>
+
+    <p style="font-weight:800; color:#0369a1; margin:22px 0 10px;">Where you are in the order so far</p>
+    <div class="checklist">
+      <div class="citem cdone">✅ 1. WSL2</div>
+      <div class="citem cdone">✅ 2. Ubuntu</div>
+      <div class="citem cdone">✅ 3. Docker</div>
+      <div class="citem cdone">✅ 4. kubectl</div>
+      <div class="citem cnow">👉 5. kind — now</div>
+      <div class="citem cnext">6. Create cluster</div>
+      <div class="citem cnext">7. kubectl get nodes</div>
+      <div class="citem cnext">8. Create your first Pod</div>
+      <div class="citem cnext">9. Create Deployment</div>
+      <div class="citem cnext">10. Create Service</div>
+    </div>
+
+    <!-- ==================== 6: HELM ==================== -->
+    <div class="section-divider" id="s6"><span>Step 6 — Install Helm</span></div>
+
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">Ubuntu (WSL2)</span></div>
+      <pre><span class="cmd">curl -fsSL</span> <span class="str">https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3</span> <span class="flag">| bash</span>
+
+<span class="cmd">helm version</span></pre>
+    </div>
+
+    <div class="tree-card">Ubuntu / WSL2
+│
+├── <span class="lvl1">docker</span>
+├── <span class="lvl2">kubectl</span>
+├── <span class="lvl3">kind</span>
+└── <span class="lvl4">helm</span></div>
+
+    <div class="info-box box-quote">💬 <strong>Helm</strong> is a package manager for Kubernetes — the same relationship Docker has to images, Helm has to full sets of Kubernetes config.</div>
+
+    <table>
+      <tr><th>Tool</th><th>Role</th></tr>
+      <tr><td>Docker</td><td>Packages your application into an image</td></tr>
+      <tr><td>Kubernetes</td><td>Runs and manages your application</td></tr>
+      <tr><td>Helm</td><td>Packages and installs Kubernetes configuration</td></tr>
+    </table>
+
+    <p class="lead">Without Helm, one app might mean four separate YAML files applied one by one:</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">without Helm</span></div>
+      <pre><span class="cmd">kubectl apply -f</span> <span class="flag">deployment.yaml</span>
+<span class="cmd">kubectl apply -f</span> <span class="flag">service.yaml</span>
+<span class="cmd">kubectl apply -f</span> <span class="flag">configmap.yaml</span>
+<span class="cmd">kubectl apply -f</span> <span class="flag">secret.yaml</span></pre>
+    </div>
+    <p class="lead">With Helm, the same resources become one chart, installed in a single command:</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">with Helm</span></div>
+      <pre><span class="cmd">helm install</span> <span class="flag">my-app ./my-chart</span></pre>
+    </div>
+
+    <p class="lead">The value multiplies fast once you have several services:</p>
+    <div class="tree-card"><span class="lvl4">Without Helm</span>                    <span class="lvl2">With Helm</span>
+auth-service                    auth-service
+ ├── deployment.yaml              └── Helm Chart
+ ├── service.yaml
+ ├── configmap.yaml            payment-service
+ └── secret.yaml                 └── Helm Chart
+
+payment-service
+ ├── deployment.yaml
+ ├── service.yaml
+ ├── configmap.yaml
+ └── secret.yaml</div>
+    <p class="lead">You customize <em>values</em> per service instead of duplicating whole YAML files.</p>
+
+    <!-- ==================== 7: CREATE CLUSTER ==================== -->
+    <div class="section-divider" id="s7"><span>Step 7 — Create Your Kubernetes Cluster</span></div>
+
+    <div class="step-list">
+      <div class="step-item"><div class="step-num">1</div><div class="step-body"><h4>Create the cluster</h4><code>kind create cluster --name ms-demo</code></div></div>
+      <div class="step-item"><div class="step-num">2</div><div class="step-body"><h4>Check it's alive</h4><code>kubectl cluster-info</code></div></div>
+      <div class="step-item"><div class="step-num">3</div><div class="step-body"><h4>List the nodes</h4><code>kubectl get nodes</code>
+        <p>Expect: <code>ms-demo-control-plane   Ready   control-plane   1m</code></p></div></div>
+      <div class="step-item"><div class="step-num">4</div><div class="step-body"><h4>Confirm the active context</h4><code>kubectl config get-contexts</code>
+        <p>Expect: <code>* kind-ms-demo</code></p></div></div>
+    </div>
+
+    <div class="tree-card">Windows
+  ↓
+<span class="lvl1">WSL2</span>
+  ↓
+<span class="lvl2">Ubuntu</span>
+  ↓
+<span class="lvl3">Docker</span>
+  ↓
+<span class="lvl4">kind</span>
+  ↓
+Kubernetes cluster
+  ↓
+<span class="lvl5">ms-demo</span></div>
+
+    <!-- ==================== 8: LEARNING ORDER ==================== -->
+    <div class="section-divider" id="s8"><span>One Important Recommendation</span></div>
+
+    <div class="info-box box-warn">⚠️ You're learning Kubernetes <strong>as a software developer, not a DevOps specialist.</strong> Don't install everything at once and start memorizing commands.</div>
+
+    <p class="lead">Recommended environment stack, once and for all:</p>
+    <div class="tree-card">Windows
+   ↓
+<span class="lvl1">WSL2 + Ubuntu</span>
+   ↓
+<span class="lvl2">Docker</span>
+   ↓
+<span class="lvl3">kind</span>
+   ↓
+<span class="lvl4">kubectl</span>
+   ↓
+<span class="lvl5">Kubernetes</span></div>
+
+    <p class="lead">Then learn Kubernetes concepts in this order:</p>
+    <div class="roadmap">
+      <div class="rstep"><span class="rnum">1</span>Architecture</div>
+      <div class="rstep"><span class="rnum">2</span>Cluster / Node</div>
+      <div class="rstep"><span class="rnum">3</span>Pod</div>
+      <div class="rstep"><span class="rnum">4</span>Namespace</div>
+      <div class="rstep"><span class="rnum">5</span>YAML</div>
+      <div class="rstep"><span class="rnum">6</span>Deployment</div>
+      <div class="rstep"><span class="rnum">7</span>ReplicaSet</div>
+      <div class="rstep"><span class="rnum">8</span>Service</div>
+      <div class="rstep"><span class="rnum">9</span>ConfigMap</div>
+      <div class="rstep"><span class="rnum">10</span>Secret</div>
+      <div class="rstep"><span class="rnum">11</span>Volume</div>
+      <div class="rstep"><span class="rnum">12</span>Ingress</div>
+      <div class="rstep"><span class="rnum">13</span>RBAC</div>
+      <div class="rstep"><span class="rnum">14</span>Probes</div>
+      <div class="rstep"><span class="rnum">15</span>Requests/Limits</div>
+      <div class="rstep"><span class="rnum">16</span>Helm basics</div>
+    </div>
+
+  </div>
+
+  <footer>Windows + WSL2 + Docker Desktop — Full Kubernetes Environment Setup</footer>
+
+</body>
+</html>

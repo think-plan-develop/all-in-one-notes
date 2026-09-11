@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kubernetes — Debugging Pods, Ingress &amp; Pod Lifecycle</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1100px; margin: 60px auto; }
+@media (max-width: 768px) { .container { width: 100%; max-width: 100%; margin: 20px 0 40px; } }
+
+.header { background: linear-gradient(120deg, #7f1d1d, #b91c1c); border-radius:16px; padding:40px 36px; margin-bottom:44px; box-shadow: 0 12px 30px rgba(185,28,28,0.28); }
+.header h1 { color:#fff; font-size:32px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fee2e2; font-size:16px; margin-bottom:22px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:13.5px; font-weight:600; background:rgba(255,255,255,0.16); color:#fff; border:1px solid rgba(255,255,255,0.3); cursor:pointer; }
+.toc a:hover { background:#fff; color:#b91c1c; }
+
+/* Theme switches per section: red = debug, blue = ingress, purple = lifecycle */
+.theme-debug   { --accent-dark:#7f1d1d; --accent:#b91c1c; --accent-light:#ef4444; --content-bg:#fef2f2; --heading:#7f1d1d; --shadow-rgb:185,28,28; }
+.theme-ingress { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.theme-life    { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+
+.section-divider { margin:52px 0 22px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.22; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:21px; font-weight:800; color:#1a1a1a; }
+
+code { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; font-size: 0.88em; background: rgba(0,0,0,0.06); padding: 2px 7px; border-radius: 5px; color: var(--heading, #4338ca); }
+p.lead { font-size:15px; color:#475569; font-weight:500; margin:10px 0 14px; line-height:1.75; }
+
+.info-box { border-radius:10px; padding:16px 20px; margin:16px 0; font-size:15.5px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-quote  { background: var(--content-bg); color: var(--heading); border-left:4px solid var(--accent); font-weight:700; font-size:17px; }
+.box-tip    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-good   { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-warn   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+
+.term { background:#0d1117; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.term-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.term-bar .dot { width:10px; height:10px; border-radius:50%; }
+.dot-red { background:#ff5f57; } .dot-grey { background:#febc2e; } .dot-green { background:#28c840; }
+.term-bar .label { color:#999; font-size:12px; margin-left:8px; font-family:monospace; }
+.term pre { padding:18px; margin:0; overflow-x:auto; font-size:14px; line-height:1.65; color:#d4d4d4; font-family:'Fira Code','Consolas',monospace; }
+.term .cmd { color:#82aaff; } .term .out { color:#9aa5b1; } .term .cmt { color:#7a7a7a; font-style:italic; } .term .ok{color:#4ade80;} .term .warn{color:#fbbf24;} .term .err{color:#f87171;} .term .flag{color:#a5b4fc;} .term .str{color:#c3e88d;} .term .key{color:#c792ea;}
+
+.tree-card { background:#0d1117; color:#c9d1d9; border-radius:12px; padding:20px 26px; margin:18px 0; font-family:"SF Mono","Fira Code",Consolas,monospace; font-size:14.5px; line-height:1.85; white-space:pre; overflow-x:auto; box-shadow:0 8px 22px rgba(0,0,0,0.15); }
+.tree-card .lvl1 { color:#60a5fa; font-weight:700; } .tree-card .lvl2 { color:#34d399; font-weight:700; }
+.tree-card .lvl3 { color:#fbbf24; font-weight:700; } .tree-card .lvl4 { color:#f472b6; font-weight:700; }
+.tree-card .lvl5 { color:#a78bfa; font-weight:700; } .tree-card .arrow { color:#6b7280; }
+.tree-card .bad { color:#f87171; font-weight:700; }
+
+table { width:100%; border-collapse:separate; border-spacing:0; margin:16px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:14px; font-weight:700; padding:12px 18px; text-align:left; }
+table td { padding:11px 18px; font-size:14px; font-weight:600; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-size:13px; }
+.status-running{color:#059669;font-weight:800;} .status-crash{color:#dc2626;font-weight:800;} .status-pending{color:#d97706;font-weight:800;} .status-image{color:#dc2626;font-weight:800;}
+
+.pipeline { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:18px 0; }
+.pipeline .node { background:#fff; border:2px solid var(--accent,#2563eb); color: var(--heading,#1e3a8a); font-weight:800; font-size:13.5px; padding:10px 16px; border-radius:10px; box-shadow:0 3px 10px rgba(var(--shadow-rgb,37,99,235),0.12); }
+.pipeline .arrow-h { color:#94a3b8; font-size:20px; font-weight:800; }
+
+.flow-steps { display:flex; flex-direction:column; align-items:flex-start; gap:6px; margin:18px 0; }
+.flow-steps .fnode { background:#fff; border:2px solid var(--accent,#2563eb); color:var(--heading); font-weight:700; font-size:14px; padding:9px 18px; border-radius:10px; }
+.flow-steps .farrow { color:#94a3b8; font-size:16px; padding-left:22px; }
+
+.step-list { display:flex; flex-direction:column; gap:14px; margin:18px 0; }
+.step-item { display:flex; gap:16px; background:#fff; border-radius:14px; padding:16px 20px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 16px rgba(0,0,0,0.05); }
+.step-num { flex-shrink:0; width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg, var(--accent,#2563eb), var(--accent-dark,#1e3a8a)); color:#fff; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; }
+.step-body h4 { font-size:15.5px; font-weight:800; color:#1e293b; margin-bottom:4px; }
+.step-body p { font-size:14px; color:#475569; line-height:1.65; font-weight:500; margin-top:4px; }
+.step-body code.step-code { display:inline-block; margin-top:2px; }
+
+.compare-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; margin:18px 0; }
+.compare-card { background:#fff; border-radius:12px; padding:18px 20px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.05); }
+.compare-card .cc-title { font-weight:800; font-size:15px; color:#1e293b; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+.compare-card .cc-icon { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+.compare-card .cc-desc { font-size:13.5px; color:#475569; line-height:1.6; font-weight:500; }
+.icon-blue{background:#dbeafe;} .icon-teal{background:#ccfbf1;} .icon-amber{background:#fef3c7;} .icon-rose{background:#ffe4e6;} .icon-violet{background:#ede9fe;}
+
+.yaml-block { background:#0d1117; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.yaml-block pre { padding:18px; margin:0; overflow-x:auto; font-size:13.5px; line-height:1.6; color:#d4d4d4; font-family:'Fira Code','Consolas',monospace; }
+.yaml-block .k { color:#7dd3fc; } .yaml-block .v { color:#c3e88d; } .yaml-block .c { color:#7a7a7a; font-style:italic; } .yaml-block .dash{color:#f472b6;}
+
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+@media (max-width:768px) { .header h1 { font-size:24px; } }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <h1>Kubernetes — Debugging Pods, Ingress &amp; Pod Lifecycle</h1>
+      <p>The practical, backend-developer subset: why a Pod failed, how traffic actually reaches it, and how to start/stop/restart things correctly.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">Debug a Failed Pod</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">Understand Ingress</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">Pod Lifecycle Commands</a>
+      </div>
+    </div>
+
+    <!-- ==================== 1: DEBUG A FAILED POD ==================== -->
+    <div class="section-divider theme-debug" id="s1"><span>1. Debug a Failed Pod</span></div>
+    <div class="theme-debug">
+
+    <p class="lead">As a backend developer, the core skill is simple: <strong>knowing how to figure out why a Pod isn't working.</strong></p>
+
+    <p style="font-weight:800; color:var(--heading); margin:18px 0 6px;">Step 1 — Check Pod status</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">get pods</span></div>
+      <pre><span class="cmd">kubectl get pods</span>
+
+<span class="out">NAME       READY   STATUS             RESTARTS
+backend    0/1     </span><span class="err">CrashLoopBackOff</span><span class="out">   3</span></pre>
+    </div>
+
+    <table>
+      <tr><th>Status</th><th>Meaning</th></tr>
+      <tr><td><span class="status-running">Running</span></td><td>Pod is running</td></tr>
+      <tr><td><span class="status-pending">Pending</span></td><td>Pod hasn't started successfully</td></tr>
+      <tr><td>ContainerCreating</td><td>Container is being created</td></tr>
+      <tr><td><span class="status-crash">CrashLoopBackOff</span></td><td>Container keeps crashing/restarting</td></tr>
+      <tr><td><span class="status-image">ImagePullBackOff</span></td><td>Kubernetes cannot pull the image</td></tr>
+      <tr><td>Error</td><td>Container/application exited with an error</td></tr>
+      <tr><td><span class="status-running">Completed</span></td><td>Container finished successfully</td></tr>
+    </table>
+
+    <p style="font-weight:800; color:var(--heading); margin:20px 0 6px;">Step 2 — Check what happened</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">describe pod</span></div>
+      <pre><span class="cmd">kubectl describe pod</span> <span class="flag">backend</span>
+
+<span class="cmt">... scroll to the bottom ...</span>
+<span class="warn">Events:</span></pre>
+    </div>
+    <p class="lead">The <code>Events</code> section at the bottom is the goldmine here — it surfaces: image pull failures, containers that can't start, volume problems, scheduling problems, and configuration problems.</p>
+
+    <p style="font-weight:800; color:var(--heading); margin:20px 0 6px;">Step 3 — Check application logs</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">logs</span></div>
+      <pre><span class="cmd">kubectl logs</span> <span class="flag">backend</span>
+
+<span class="err">Error: DATABASE_URL is not defined</span></pre>
+    </div>
+    <p class="lead">Now you know: the problem is your app's configuration, not Kubernetes itself.</p>
+
+    <p style="font-weight:800; color:var(--heading); margin:20px 0 6px;">Step 4 — If the container already crashed</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">previous logs</span></div>
+      <pre><span class="cmd">kubectl logs</span> <span class="flag">backend --previous</span></pre>
+    </div>
+    <p class="lead">Pulls logs from the <strong>previous, already-dead container</strong> — essential when a Pod is stuck in <code>CrashLoopBackOff</code> and the current container has no useful output yet.</p>
+
+    <p style="font-weight:800; color:var(--heading); margin:24px 0 10px;">Common failure patterns</p>
+
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-rose">🔁</div>CrashLoopBackOff</div>
+        <div class="cc-desc">App starts → crashes → Kubernetes restarts it → crashes again. Check <code>kubectl logs backend</code> for the actual error.</div>
+      </div>
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-amber">🖼️</div>ImagePullBackOff</div>
+        <div class="cc-desc">Wrong image name/tag, private registry auth issue, or the image doesn't exist. Check <code>kubectl describe pod</code> → Events.</div>
+      </div>
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-blue">⏳</div>Pending</div>
+        <div class="cc-desc">Kubernetes hasn't started the Pod yet — often a scheduling or resource issue. Check <code>kubectl describe pod</code> → Events.</div>
+      </div>
+    </div>
+
+    <div class="info-box box-quote">💬 Don't memorize twenty commands — remember the flow.</div>
+
+    <div class="flow-steps">
+      <div class="fnode">Pod not working</div>
+      <div class="farrow">↓</div>
+      <div class="fnode">kubectl get pods</div>
+      <div class="farrow">↓ what is the STATUS?</div>
+      <div class="fnode">kubectl describe pod &lt;pod&gt;</div>
+      <div class="farrow">↓ check Events</div>
+      <div class="fnode">kubectl logs &lt;pod&gt;</div>
+      <div class="farrow">↓</div>
+      <div class="fnode">Find application/container error</div>
+      <div class="farrow">↓</div>
+      <div class="fnode" style="border-color:#059669;color:#065f46;">Fix the problem</div>
+    </div>
+
+    <div class="info-box box-good">✅ <strong>The 4 commands to know:</strong> <code>kubectl get pods</code> · <code>kubectl describe pod &lt;pod&gt;</code> · <code>kubectl logs &lt;pod&gt;</code> · <code>kubectl logs &lt;pod&gt; --previous</code></div>
+    </div>
+
+    <!-- ==================== 2: INGRESS ==================== -->
+    <div class="section-divider theme-ingress" id="s2"><span>2. Understand Ingress Practically</span></div>
+    <div class="theme-ingress">
+
+    <p class="lead">What you really need to understand: <strong>how an external HTTP request reaches your Kubernetes application.</strong></p>
+
+    <p style="font-weight:800; color:var(--heading); margin:18px 0 6px;">What is Ingress?</p>
+    <div class="info-box box-quote">💬 Ingress is a Kubernetes resource that defines <strong>rules for incoming HTTP/HTTPS traffic</strong>, routing requests to different Services.</div>
+
+    <div class="pipeline">
+      <div class="node">Browser</div><div class="arrow-h">→</div>
+      <div class="node">Ingress</div><div class="arrow-h">→</div>
+      <div class="node">Service</div><div class="arrow-h">→</div>
+      <div class="node">Pod</div><div class="arrow-h">→</div>
+      <div class="node">Node.js app</div>
+    </div>
+
+    <div class="tree-card">https://api.example.com
+          ↓
+     <span class="lvl1">Ingress</span>
+          ↓
+ <span class="lvl2">backend-service</span>
+          ↓
+    <span class="lvl3">backend Pod</span></div>
+
+    <p style="font-weight:800; color:var(--heading); margin:20px 0 6px;">Why do we need it?</p>
+    <p class="lead">Say you have two apps — a frontend and a backend, each with their own Service. Without Ingress you'd expose each separately via <code>NodePort</code> or <code>LoadBalancer</code>. Ingress lets you define all HTTP routing rules in <strong>one place</strong>:</p>
+
+    <div class="tree-card">example.com
+      ↓
+<span class="lvl1">frontend-service</span>
+
+api.example.com
+      ↓
+<span class="lvl2">backend-service</span></div>
+
+    <p style="font-weight:800; color:var(--heading); margin:20px 0 10px;">Ingress vs Service — don't mix these up</p>
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-blue">🔌</div>Service</div>
+        <div class="cc-desc">Connects traffic to Pods. Service → Pods.</div>
+      </div>
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-violet">🚦</div>Ingress</div>
+        <div class="cc-desc">Routes HTTP/HTTPS traffic to Services. Ingress → Service → Pods.</div>
+      </div>
+    </div>
+    <div class="info-box box-warn">⚠️ Don't think <code>Ingress → Pod</code>. It's always <code>Ingress → Service → Pod</code>.</div>
+
+    <p style="font-weight:800; color:var(--heading); margin:20px 0 6px;">What is an Ingress Controller?</p>
+    <p class="lead">An Ingress resource only holds the <strong>rules</strong> — something has to actually implement them. That's the <strong>Ingress Controller</strong>.</p>
+
+    <div class="tree-card">Ingress rules
+      ↓
+<span class="lvl1">Ingress Controller</span>
+      ↓
+Service
+      ↓
+Pod</div>
+
+    <div class="compare-grid">
+      <div class="compare-card"><div class="cc-title"><div class="cc-icon icon-teal">⚙️</div>NGINX Ingress Controller</div><div class="cc-desc">Most common choice for local (kind) clusters.</div></div>
+      <div class="compare-card"><div class="cc-title"><div class="cc-icon icon-amber">🚏</div>Traefik</div><div class="cc-desc">Popular alternative, dynamic config-focused.</div></div>
+      <div class="compare-card"><div class="cc-title"><div class="cc-icon icon-rose">☁️</div>Cloud controllers</div><div class="cc-desc">AWS/GCP/Azure-managed Ingress controllers in production.</div></div>
+    </div>
+
+    <p style="font-weight:800; color:var(--heading); margin:20px 0 6px;">Simple Ingress example</p>
+    <p class="lead">Backend Service <code>backend-service</code>, Node.js listening on port <code>3000</code>:</p>
+    <div class="yaml-block">
+      <pre><span class="k">apiVersion:</span> <span class="v">networking.k8s.io/v1</span>
+<span class="k">kind:</span> <span class="v">Ingress</span>
+<span class="k">metadata:</span>
+  <span class="k">name:</span> <span class="v">backend-ingress</span>
+
+<span class="k">spec:</span>
+  <span class="k">rules:</span>
+    <span class="dash">-</span> <span class="k">host:</span> <span class="v">api.example.com</span>
+      <span class="k">http:</span>
+        <span class="k">paths:</span>
+          <span class="dash">-</span> <span class="k">path:</span> <span class="v">/</span>
+            <span class="k">pathType:</span> <span class="v">Prefix</span>
+            <span class="k">backend:</span>
+              <span class="k">service:</span>
+                <span class="k">name:</span> <span class="v">backend-service</span>
+                <span class="k">port:</span>
+                  <span class="k">number:</span> <span class="v">3000</span></pre>
+    </div>
+    <p class="lead">Meaning: requests to <code>api.example.com</code> get sent to <code>backend-service</code> on port <code>3000</code>.</p>
+
+    <p style="font-weight:800; color:var(--heading); margin:20px 0 6px;">Host-based routing</p>
+    <div class="tree-card">api.example.com    → <span class="lvl1">backend-service</span>
+admin.example.com  → <span class="lvl2">admin-service</span>
+example.com         → <span class="lvl3">frontend-service</span></div>
+
+    <p style="font-weight:800; color:var(--heading); margin:20px 0 6px;">Path-based routing</p>
+    <div class="tree-card">example.com/     → <span class="lvl3">frontend-service</span>
+example.com/api  → <span class="lvl1">backend-service</span></div>
+    <div class="yaml-block">
+      <pre><span class="k">rules:</span>
+  <span class="dash">-</span> <span class="k">host:</span> <span class="v">example.com</span>
+    <span class="k">http:</span>
+      <span class="k">paths:</span>
+        <span class="dash">-</span> <span class="k">path:</span> <span class="v">/api</span>
+          <span class="k">pathType:</span> <span class="v">Prefix</span>
+          <span class="k">backend:</span>
+            <span class="k">service:</span> { <span class="k">name:</span> <span class="v">backend-service</span>, <span class="k">port:</span> { <span class="k">number:</span> <span class="v">3000</span> } }
+
+        <span class="dash">-</span> <span class="k">path:</span> <span class="v">/</span>
+          <span class="k">pathType:</span> <span class="v">Prefix</span>
+          <span class="k">backend:</span>
+            <span class="k">service:</span> { <span class="k">name:</span> <span class="v">frontend-service</span>, <span class="k">port:</span> { <span class="k">number:</span> <span class="v">80</span> } }</pre>
+    </div>
+
+    <p style="font-weight:800; color:var(--heading); margin:20px 0 6px;">Checking Ingress</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">get / describe ingress</span></div>
+      <pre><span class="cmd">kubectl get ingress</span>
+
+<span class="out">NAME              CLASS   HOSTS             ADDRESS
+backend-ingress   nginx   api.example.com   localhost</span>
+
+<span class="cmd">kubectl describe ingress</span> <span class="flag">backend-ingress</span></pre>
+    </div>
+
+    <p style="font-weight:800; color:var(--heading); margin:20px 0 6px;">Practical debugging — walk the whole chain</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">chain check</span></div>
+      <pre><span class="cmd">kubectl get ingress</span>
+<span class="cmd">kubectl describe ingress</span> <span class="flag">backend-ingress</span>
+<span class="cmd">kubectl get svc</span>
+<span class="cmd">kubectl get endpoints</span>
+<span class="cmd">kubectl get pods</span></pre>
+    </div>
+    <div class="tree-card">Ingress
+   ↓ <span class="bad">?</span>
+Service
+   ↓ <span class="bad">?</span>
+Pod
+   ↓ <span class="bad">?</span>
+Node.js</div>
+    <p class="lead">You're checking each link in the chain individually until you find where it breaks.</p>
+
+    <div class="info-box box-danger">🚨 <strong>Important:</strong> creating an <code>Ingress</code> resource does NOT automatically make your app reachable — you also need an <strong>Ingress Controller</strong> actually running in the cluster to implement those rules.</div>
+
+    <table>
+      <tr><th>Concept</th><th>What it means</th></tr>
+      <tr><td>Ingress</td><td>Routing rules (which host/path goes where)</td></tr>
+      <tr><td>Ingress Controller</td><td>The thing that actually implements those rules</td></tr>
+      <tr><td>Host-based routing</td><td>Different domains → different Services</td></tr>
+      <tr><td>Path-based routing</td><td>Different URL paths on one domain → different Services</td></tr>
+      <tr><td><code>kubectl get ingress</code></td><td>List Ingress resources</td></tr>
+      <tr><td><code>kubectl describe ingress &lt;name&gt;</code></td><td>Debug why a route isn't reaching your app</td></tr>
+    </table>
+    </div>
+
+    <!-- ==================== 3: POD LIFECYCLE ==================== -->
+    <div class="section-divider theme-life" id="s3"><span>3. Pod Start / Stop / Restart Commands</span></div>
+    <div class="theme-life">
+
+    <div class="info-box box-danger">🚨 <strong>Important correction first:</strong> a standalone Pod can't really be "stopped" and "started" the way a Docker container can. For Pods, the normal operation is <strong>delete → recreate</strong>. If a Pod belongs to a Deployment, use the Deployment-level commands instead.</div>
+
+    <p style="font-weight:800; color:var(--heading); margin:20px 0 10px;">Main Pod commands</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">pods</span></div>
+      <pre><span class="cmt"># Create a Pod quickly</span>
+<span class="cmd">kubectl run</span> <span class="flag">my-pod --image=nginx</span>
+
+<span class="cmt"># List all Pods</span>
+<span class="cmd">kubectl get pods</span>
+
+<span class="cmt"># List Pods with more details (IP, Node)</span>
+<span class="cmd">kubectl get pods</span> <span class="flag">-o wide</span>
+
+<span class="cmt"># Get details of a particular Pod</span>
+<span class="cmd">kubectl describe pod</span> <span class="flag">my-pod</span>
+
+<span class="cmt"># Show Pod logs</span>
+<span class="cmd">kubectl logs</span> <span class="flag">my-pod</span>
+
+<span class="cmt"># Follow Pod logs continuously</span>
+<span class="cmd">kubectl logs</span> <span class="flag">-f my-pod</span>
+
+<span class="cmt"># Show logs from the previous crashed container</span>
+<span class="cmd">kubectl logs</span> <span class="flag">my-pod --previous</span>
+
+<span class="cmt"># Open a shell inside the Pod</span>
+<span class="cmd">kubectl exec</span> <span class="flag">-it my-pod -- sh</span>
+
+<span class="cmt"># Execute one command inside the Pod</span>
+<span class="cmd">kubectl exec</span> <span class="flag">my-pod -- env</span>
+
+<span class="cmt"># Watch Pods continuously</span>
+<span class="cmd">kubectl get pods</span> <span class="flag">-w</span>
+
+<span class="cmt"># Delete a particular Pod</span>
+<span class="cmd">kubectl delete pod</span> <span class="flag">my-pod</span>
+
+<span class="cmt"># Force delete a stuck Pod</span>
+<span class="cmd">kubectl delete pod</span> <span class="flag">my-pod --grace-period=0 --force</span></pre>
+    </div>
+
+    <p style="font-weight:800; color:var(--heading); margin:24px 0 10px;">Start / Stop / Restart — the important part</p>
+
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-violet">▶️</div>"Start" a stopped Pod</div>
+        <div class="cc-desc">There's no <code>kubectl start pod</code>. Recreate it instead: <code>kubectl apply -f pod.yaml</code>, or <code>kubectl run my-pod --image=nginx</code>.</div>
+      </div>
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-rose">⏹️</div>"Stop" a running Pod</div>
+        <div class="cc-desc">There's no <code>kubectl stop pod</code> either. For a standalone Pod: <code>kubectl delete pod my-pod</code>. Bring it back with <code>kubectl apply -f pod.yaml</code>.</div>
+      </div>
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-amber">🔄</div>Restart a standalone Pod</div>
+        <div class="cc-desc">Delete then recreate: <code>kubectl delete pod my-pod</code> followed by <code>kubectl apply -f pod.yaml</code>.</div>
+      </div>
+      <div class="compare-card">
+        <div class="cc-title"><div class="cc-icon icon-blue">♻️</div>Restart a Deployment-managed Pod</div>
+        <div class="cc-desc">Don't recreate manually. Just delete it — the Deployment creates a replacement automatically: <code>kubectl delete pod &lt;pod-name&gt;</code>.</div>
+      </div>
+    </div>
+
+    <p style="font-weight:800; color:var(--heading); margin:20px 0 6px;">Restart every Pod in a Deployment at once</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">rollout restart</span></div>
+      <pre><span class="cmd">kubectl rollout restart deployment</span> <span class="flag">backend</span></pre>
+    </div>
+
+    <p style="font-weight:800; color:var(--heading); margin:20px 0 6px;">Check what happened after a restart</p>
+    <div class="term">
+      <div class="term-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="label">verify</span></div>
+      <pre><span class="cmd">kubectl get pods</span>
+<span class="cmd">kubectl get pods</span> <span class="flag">-w</span>            <span class="cmt"># watch Pods being recreated live</span>
+<span class="cmd">kubectl logs</span> <span class="flag">&lt;pod-name&gt;</span></pre>
+    </div>
+
+    <p style="font-weight:800; color:var(--heading); margin:24px 0 6px;">The main thing to remember</p>
+    <div class="tree-card">Standalone Pod
+    ↓
+<span class="lvl1">delete → recreate</span>
+
+Deployment-managed Pod
+    ↓
+<span class="lvl2">delete Pod → Deployment creates replacement</span>
+
+Restart entire application
+    ↓
+<span class="lvl3">kubectl rollout restart deployment &lt;name&gt;</span></div>
+
+    <div class="info-box box-good">
+      ✅ <strong>Core commands to memorize first:</strong>
+      <div style="font-weight:600; margin-top:10px; line-height:2; font-family:monospace; font-size:13.5px;">
+        kubectl run my-pod --image=nginx&nbsp;&nbsp;&nbsp;&nbsp;# Create<br/>
+        kubectl get pods&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Check<br/>
+        kubectl describe pod my-pod&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Details/debug<br/>
+        kubectl logs my-pod&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Logs<br/>
+        kubectl logs -f my-pod&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Follow logs<br/>
+        kubectl exec -it my-pod -- sh&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Enter Pod<br/>
+        kubectl delete pod my-pod&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Delete<br/>
+        kubectl get pods -w&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Watch<br/>
+        kubectl rollout restart deployment X&nbsp;# Restart app
+      </div>
+    </div>
+    </div>
+
+  </div>
+
+  <footer>Kubernetes — Debugging Pods, Ingress &amp; Pod Lifecycle</footer>
+
+</body>
+</html>

@@ -80,6 +80,14 @@ table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--h
 .qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
 .qa-answer .code-block code { background:none; padding:0; color:#d4d4d4; font-weight:400; }
 .qa-group-title { font-size:16px; font-weight:800; color:var(--heading); margin: 6px 0 -6px; }
+.folder-tree { font-family:"SF Mono","Fira Code",Consolas,monospace; font-size:14px; line-height:1.8; background:#0d1117; color:#c9d1d9; border-radius:10px; padding:16px 20px; margin:14px 0; white-space:pre; overflow-x:auto; }
+.mini-table { width:100%; border-collapse:separate; border-spacing:0; margin:14px 0; border-radius:10px; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,0.06); }
+.mini-table th { background:#1e3a8a; color:#fff; font-size:13px; padding:9px 14px; text-align:left; }
+.mini-table td { padding:9px 14px; font-size:13.5px; font-weight:600; background:#fff; border-bottom:1px solid #e8edf7; color:#28324a; }
+.mini-table tr:nth-child(even) td { background:#eff6ff; }
+.callout-step { display:flex; gap:12px; align-items:flex-start; margin:12px 0; padding:12px 16px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0; }
+.callout-step .num-badge { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:var(--accent,#2563eb); color:#fff; font-size:13px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+.callout-step .step-text { font-size:14.5px; line-height:1.7; color:#1e293b; font-weight:500; }
 footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
 @media (max-width:768px) { .header h1 { font-size:26px; } .toc a { padding:6px 12px; font-size:12px; } }
 </style>
@@ -168,6 +176,67 @@ footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
           <tr><td><code>docker history &lt;image&gt;</code></td><td>show image layers</td></tr>
           <tr><td><code>docker inspect &lt;image&gt;</code></td><td>full image metadata</td></tr>
         </table>
+
+        <div class="info-box box-tip" style="margin-top:22px;">🔍 <strong>Deep dive: <code>docker build -t name:tag .</code></strong> — see exactly what each part means and how <code>.</code> / <code>..</code> / a subfolder path changes what Docker can see.</div>
+
+        <div class="callout-step">
+          <div class="num-badge">1</div>
+          <div class="step-text"><code>-t name:tag</code> — <strong>names</strong> the image, like labeling a file. <code>name</code> is the image name (e.g. <code>myapp</code>), <code>tag</code> is the version label (e.g. <code>v1</code>, <code>latest</code>). If you skip the tag, Docker defaults to <code>:latest</code>.</div>
+        </div>
+        <div class="callout-step">
+          <div class="num-badge">2</div>
+          <div class="step-text"><code>.</code> at the end is the <strong>build context</strong> — the folder Docker looks in for the <code>Dockerfile</code> and any files (source code, configs) it needs to copy into the image. <code>.</code> = current folder, <code>..</code> = parent folder, or you can point at any path like <code>myapp/</code>.</div>
+        </div>
+        <div class="callout-step">
+          <div class="num-badge">3</div>
+          <div class="step-text">A <strong>Dockerfile must exist inside whichever folder you point to</strong>. Docker will not search outside that folder — it can only read files from inside the build context.</div>
+        </div>
+
+        <p style="margin-top:18px; font-weight:800; color:#1e3a8a;">Example 1 — terminal already inside the project folder</p>
+        <div class="folder-tree">myapp/
+├── Dockerfile
+├── app.py
+└── requirements.txt</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">from inside myapp/</span></div>
+          <pre><code><span class="fn">docker build</span> <span class="arg">-t myapp:v1 .</span></code></pre>
+        </div>
+        <p><code>myapp:v1</code> → <strong>name</strong> is <code>myapp</code>, <strong>tag</strong> is <code>v1</code>. <code>.</code> → build context is the current folder, so Docker finds the <code>Dockerfile</code> right there.</p>
+
+        <p style="margin-top:18px; font-weight:800; color:#1e3a8a;">Example 2 — terminal is one level above the project</p>
+        <div class="folder-tree">projects/
+└── myapp/
+    ├── Dockerfile
+    ├── app.py
+    └── requirements.txt</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">from inside projects/</span></div>
+          <pre><code><span class="fn">docker build</span> <span class="arg">-t myapp:v1 myapp/</span></code></pre>
+        </div>
+        <p>Point at <code>myapp/</code> directly — not <code>.</code> (that would be <code>projects/</code>, with no Dockerfile) and not <code>..</code> (that would go further up, away from the Dockerfile).</p>
+
+        <p style="margin-top:18px; font-weight:800; color:#1e3a8a;">Example 3 — using <code>-f</code> for a differently-named Dockerfile</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">custom dockerfile</span></div>
+          <pre><code><span class="fn">docker build</span> <span class="arg">-t myapp:v1 -f Dockerfile.prod .</span></code></pre>
+        </div>
+        <p>Context (<code>.</code>) stays the same, but <code>-f Dockerfile.prod</code> tells Docker to use that file instead of the default <code>Dockerfile</code>.</p>
+
+        <p style="margin-top:18px; font-weight:800; color:#1e3a8a;">Example 4 — ignoring the build cache</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">no-cache</span></div>
+          <pre><code><span class="fn">docker build</span> <span class="arg">-t myapp:v1 --no-cache .</span></code></pre>
+        </div>
+        <p>Docker normally reuses unchanged layers from previous builds (faster). <code>--no-cache</code> forces every step to rerun — useful when you suspect a stale cached layer is causing a bug.</p>
+
+        <table class="mini-table">
+          <tr><th>Part</th><th>Role</th></tr>
+          <tr><td><code>-t name:tag</code></td><td>names/labels the resulting image</td></tr>
+          <tr><td><code>.</code> / <code>..</code> / <code>path/</code></td><td>the build context — where Docker looks for the Dockerfile + files</td></tr>
+          <tr><td><code>-f &lt;file&gt;</code></td><td>overrides which file is treated as the Dockerfile</td></tr>
+          <tr><td><code>--no-cache</code></td><td>forces every build step to rerun, ignoring cached layers</td></tr>
+        </table>
+        <div class="info-box box-benefit">✅ <strong>Rule of thumb:</strong> the path at the end of <code>docker build</code> is always "where do I look for the Dockerfile and files," never "where does the output go." The output is the image itself, stored in Docker's internal image store and referenced later by the <code>name:tag</code> you gave it with <code>-t</code>.</div>
       </div>
     </div>
 
@@ -217,6 +286,85 @@ footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
           <tr><td><code>docker kill &lt;id&gt;</code></td><td>force stop immediately (SIGKILL)</td></tr>
           <tr><td><code>docker rm &lt;id&gt;</code></td><td>remove a stopped container</td></tr>
         </table>
+
+        <div class="info-box box-tip" style="margin-top:22px;">🔍 <strong>Deep dive: container commands with examples</strong> — running, listing, starting, stopping, killing, and removing, worked through one container.</div>
+
+        <p style="margin-top:18px; font-weight:800; color:#1e3a8a;">Example 1 — <code>docker run</code>: start an nginx web server</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">run</span></div>
+          <pre><code><span class="fn">docker run</span> <span class="arg">-d --name webserver -p 8080:80 nginx</span></code></pre>
+        </div>
+        <p><code>-d</code> runs it in the background and prints a container ID. <code>--name webserver</code> lets you refer to it by name instead of that ID. <code>-p 8080:80</code> maps port 8080 on your machine to port 80 inside the container, so <code>http://localhost:8080</code> reaches nginx.</p>
+
+        <p style="margin-top:18px; font-weight:800; color:#1e3a8a;">Example 2 — <code>docker run</code>: env vars, a volume, and a network</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">run with env + volume</span></div>
+          <pre><code><span class="fn">docker run</span> <span class="arg">-d --name db \
+  -e POSTGRES_PASSWORD=secret \
+  -v pgdata:/var/lib/postgresql/data \
+  --network mynet \
+  --restart=always \
+  postgres</span></code></pre>
+        </div>
+        <p><code>-e POSTGRES_PASSWORD=secret</code> sets a config value the postgres image reads on startup. <code>-v pgdata:/var/lib/postgresql/data</code> attaches a named volume so the database's data survives even if the container is removed. <code>--network mynet</code> puts it on a custom network so other containers (like an app container) can reach it by name. <code>--restart=always</code> means Docker restarts it automatically after a crash or reboot.</p>
+
+        <p style="margin-top:18px; font-weight:800; color:#1e3a8a;">Example 3 — <code>docker run -it --rm</code>: a throwaway interactive shell</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">interactive + auto-remove</span></div>
+          <pre><code><span class="fn">docker run</span> <span class="arg">-it --rm ubuntu bash</span></code></pre>
+        </div>
+        <p><code>-it</code> gives you an interactive terminal attached to the container (type commands, see output live). <code>--rm</code> deletes the container the moment you exit the shell — nothing left lying around. Great for quickly poking around inside an image without cluttering <code>docker ps -a</code>.</p>
+
+        <p style="margin-top:18px; font-weight:800; color:#1e3a8a;">Example 4 — <code>docker ps</code>: listing containers</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ps</span></div>
+          <pre><code><span class="fn">docker ps</span>                    <span class="cmt"># only shows the running webserver + db containers</span>
+<span class="fn">docker ps</span> <span class="arg">-a</span>                 <span class="cmt"># also shows the exited ubuntu container from Example 3</span>
+<span class="fn">docker stop</span> <span class="arg">$(docker ps -q)</span>  <span class="cmt"># -q gives just IDs, so this stops every running container</span></code></pre>
+        </div>
+
+        <p style="margin-top:18px; font-weight:800; color:#1e3a8a;">Example 5 — <code>docker start</code>: restarting a stopped container</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">start</span></div>
+          <pre><code><span class="fn">docker start</span> <span class="arg">webserver</span>       <span class="cmt"># starts it again in the background</span>
+<span class="fn">docker start</span> <span class="arg">-a -i webserver</span>  <span class="cmt"># starts it and attaches your terminal to its output/input</span></code></pre>
+        </div>
+        <p>Unlike <code>docker run</code>, <code>start</code> doesn't create a new container — it resumes the existing one with the same name, config, and any data in its writable layer.</p>
+
+        <p style="margin-top:18px; font-weight:800; color:#1e3a8a;">Example 6 — <code>docker stop</code> vs <code>docker kill</code></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">stop vs kill</span></div>
+          <pre><code><span class="fn">docker stop</span> <span class="arg">webserver</span>          <span class="cmt"># SIGTERM, waits 10s default, then SIGKILL if still up</span>
+<span class="fn">docker stop</span> <span class="arg">-t 30 webserver</span>    <span class="cmt"># give it 30s to shut down gracefully before force-kill</span>
+<span class="fn">docker kill</span> <span class="arg">webserver</span>          <span class="cmt"># SIGKILL immediately, no grace period</span></code></pre>
+        </div>
+        <p>Use <code>stop</code> for normal shutdowns (lets nginx finish in-flight requests). Reach for <code>kill</code> only when a container is unresponsive and <code>stop</code> isn't working.</p>
+
+        <p style="margin-top:18px; font-weight:800; color:#1e3a8a;">Example 7 — <code>docker restart</code></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">restart</span></div>
+          <pre><code><span class="fn">docker restart</span> <span class="arg">webserver</span>   <span class="cmt"># equivalent to stop + start, e.g. after editing a config volume</span></code></pre>
+        </div>
+
+        <p style="margin-top:18px; font-weight:800; color:#1e3a8a;">Example 8 — <code>docker rm</code>: cleaning up containers</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">rm</span></div>
+          <pre><code><span class="fn">docker rm</span> <span class="arg">webserver</span>        <span class="cmt"># fails if webserver is still running</span>
+<span class="fn">docker rm</span> <span class="arg">-f webserver</span>     <span class="cmt"># force: kills it first, then removes it — no graceful shutdown</span>
+<span class="fn">docker rm</span> <span class="arg">-v webserver</span>     <span class="cmt"># also deletes any anonymous volumes it created (named volumes are kept)</span></code></pre>
+        </div>
+
+        <table class="mini-table">
+          <tr><th>Command</th><th>Typical use</th></tr>
+          <tr><td><code>docker run -d -p ... --name ...</code></td><td>launch a long-running service (web server, database)</td></tr>
+          <tr><td><code>docker run -it --rm ...</code></td><td>one-off interactive debugging, nothing left behind</td></tr>
+          <tr><td><code>docker ps -a -q</code></td><td>script-friendly listing to pipe into stop/rm</td></tr>
+          <tr><td><code>docker start -a -i</code></td><td>resume a stopped container and watch/interact with it</td></tr>
+          <tr><td><code>docker stop -t &lt;sec&gt;</code></td><td>graceful shutdown with a custom grace period</td></tr>
+          <tr><td><code>docker kill</code></td><td>last resort when a container won't respond to SIGTERM</td></tr>
+          <tr><td><code>docker rm -f -v</code></td><td>force-delete a container and its anonymous volumes together</td></tr>
+        </table>
+        <div class="info-box box-warning">⚠️ <strong>Watch out:</strong> <code>docker rm -f</code> skips the graceful SIGTERM window entirely — it's the same abruptness as <code>kill</code>, just followed immediately by deletion. Prefer <code>stop</code> then <code>rm</code> for anything that should shut down cleanly.</div>
       </div>
     </div>
 
@@ -317,7 +465,54 @@ footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
       </div>
     </div>
 
- 
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Compose</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">compose</span></div>
+          <pre><code><span class="fn">docker compose up</span>                       <span class="cmt"># start all services</span>
+  <span class="cmt">-d        detached (run in background)</span>
+  <span class="cmt">--build   rebuild images before starting</span>
+
+<span class="fn">docker compose down</span>                     <span class="cmt"># stop and remove containers/networks</span>
+  <span class="cmt">-v          also remove named volumes</span>
+  <span class="cmt">--rmi all   also remove images</span>
+
+<span class="fn">docker compose restart</span> <span class="arg">&lt;service&gt;</span>       <span class="cmt"># restart a single service</span>
+
+<span class="fn">docker compose stop / start</span> <span class="arg">&lt;service&gt;</span>  <span class="cmt"># stop/start without removing</span>
+
+<span class="fn">docker compose exec</span> <span class="arg">&lt;service&gt; sh</span>        <span class="cmt"># shell into a running service</span>
+  <span class="cmt">(no -it needed) — exec is interactive by default in Compose</span>
+
+<span class="fn">docker compose logs</span>                     <span class="cmt"># view logs for all services</span>
+  <span class="cmt">-f            follow live</span>
+  <span class="cmt">&lt;service&gt;     logs for just one service</span>
+
+<span class="fn">docker compose ps</span>                       <span class="cmt"># list services and their status</span>
+
+<span class="fn">docker compose build</span>                    <span class="cmt"># rebuild images</span>
+  <span class="cmt">--no-cache    ignore build cache</span>
+
+<span class="fn">docker compose config</span>                   <span class="cmt"># validate and print the resolved config</span>
+
+<span class="fn">docker compose pull</span>                     <span class="cmt"># pull images for all services</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>docker compose up</code></td><td>start all services</td></tr>
+          <tr><td><code>docker compose down</code></td><td>stop and remove containers/networks</td></tr>
+          <tr><td><code>docker compose restart &lt;service&gt;</code></td><td>restart a single service</td></tr>
+          <tr><td><code>docker compose stop / start &lt;service&gt;</code></td><td>stop/start without removing</td></tr>
+          <tr><td><code>docker compose exec &lt;service&gt; sh</code></td><td>shell into a running service</td></tr>
+          <tr><td><code>docker compose logs</code></td><td>view logs for all services</td></tr>
+          <tr><td><code>docker compose ps</code></td><td>list services and their status</td></tr>
+          <tr><td><code>docker compose build</code></td><td>rebuild images</td></tr>
+          <tr><td><code>docker compose config</code></td><td>validate and print the resolved compose config</td></tr>
+          <tr><td><code>docker compose pull</code></td><td>pull images for all services</td></tr>
+        </table>
+      </div>
+    </div>
 
     <div class="card-sub cat-3">
       <div class="card-sub-title"><h4>Registry &amp; Cleanup</h4></div>
@@ -393,6 +588,11 @@ footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
           <div class="qa-answer">It auto-removes the container as soon as it stops, instead of leaving a stopped container sitting around. Useful for short-lived, one-off tasks (like running a script or a quick debug shell) where you don't need to inspect the container afterward.</div>
         </div>
 
+        <div class="qa-item">
+          <div class="qa-question">In <code>docker build -t name:tag .</code>, what exactly is the <code>.</code> for, and what happens if I use <code>..</code> instead?</div>
+          <div class="qa-answer">The trailing path is the <strong>build context</strong> — the folder Docker scans for the <code>Dockerfile</code> and any files it needs to copy into the image. <code>.</code> means "current folder"; <code>..</code> means "parent folder." Whichever one you pick, a <code>Dockerfile</code> must exist directly inside it, or the build fails with "unable to find Dockerfile." Switching to <code>..</code> only makes sense if your Dockerfile actually lives one level up from where you're standing — it doesn't change where the built image is stored, only where Docker looks for source material.</div>
+        </div>
+
         <div class="qa-group-title">Tricky / Follow-Up Questions</div>
 
         <div class="qa-item">
@@ -430,6 +630,11 @@ footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
         <div class="qa-item">
           <div class="qa-question">What's the practical difference between <code>docker compose down</code> and <code>docker compose stop</code>?</div>
           <div class="qa-answer"><code>stop</code> halts the containers but leaves them (and their networks) in place, ready to be started again with <code>start</code>. <code>down</code> stops and also removes the containers and networks entirely — add <code>-v</code> to also remove named volumes, or <code>--rmi all</code> to also remove the images.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">If your Dockerfile is named <code>Dockerfile.prod</code> instead of <code>Dockerfile</code>, how do you build with it?</div>
+          <div class="qa-answer">Keep the same build context but point Docker at the file explicitly: <code>docker build -t myapp:v1 -f Dockerfile.prod .</code>. The <code>.</code> still tells Docker where to look for source files; <code>-f</code> just overrides which file it treats as the build instructions.</div>
         </div>
 
         <div class="qa-group-title">Coding / Theoretical</div>
