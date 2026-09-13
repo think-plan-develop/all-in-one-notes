@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Redis — Fundamentals Reference — Backend Notes</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+@media (max-width: 768px) { .container { width: 100%; max-width: 100%; margin: 20px 0 40px; } }
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-4 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#fb923c; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+.summary-rose   { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#9f1239; } .summary-rose .summary-text strong { color:#e11d48; }
+.summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple .summary-text strong { color:#7c3aed; }
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+code, .token { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; font-size: 0.88em; background: rgba(0,0,0,0.06); padding: 2px 7px; border-radius: 5px; color: #4338ca; }
+pre { background: #0d1117; border: 1px solid #2d3a4f; border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; margin: 14px 0; color: #e6edf3; }
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#d4d4d4; font-size:14px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; } .arg { color:#a5b4fc; } .key{color:#7dd3fc;}
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #f5f3ff 70%, #fff7ed 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:14.5px; font-weight:700; padding:12px 18px; text-align:left; letter-spacing:.2px; }
+table td { padding:11px 18px; font-size:14px; font-weight:600; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table td:first-child { white-space:nowrap; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-size:13px; }
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+.qa-answer .code-block code { background:none; padding:0; color:#d4d4d4; font-weight:400; }
+.qa-group-title { font-size:16px; font-weight:800; color:var(--heading); margin: 6px 0 -6px; }
+.tree-card { background:#0d1117; color:#c9d1d9; border-radius:12px; padding:18px 24px; margin:14px 0; font-family:"SF Mono","Fira Code",Consolas,monospace; font-size:14px; line-height:1.85; white-space:pre; overflow-x:auto; box-shadow:0 8px 20px rgba(0,0,0,0.15); }
+.tree-card .lvl1 { color:#60a5fa; font-weight:700; } .tree-card .lvl2 { color:#34d399; font-weight:700; } .tree-card .lvl3 { color:#fbbf24; font-weight:700; }
+.star-badge { display:inline-block; color:#f59e0b; font-size:14px; letter-spacing:1px; margin-left:8px; }
+.type-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:16px 0; }
+.type-card { background:#fff; border-radius:12px; padding:16px 18px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.05); border-top:4px solid var(--accent); }
+.type-card .tc-title { font-weight:800; font-size:15px; color:var(--heading); margin-bottom:6px; }
+.type-card .tc-desc { font-size:13px; color:#475569; line-height:1.6; font-weight:500; }
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+@media (max-width:768px) { .header h1 { font-size:26px; } .toc a { padding:6px 12px; font-size:12px; } }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header theme-blue">
+      <h1>Redis — Fundamentals Reference</h1>
+      <p>For an MS/backend developer — fundamentals, data types, TTL/expiration, and Node.js integration.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">1. Fundamentals</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">2. Data Types</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">3. TTL &amp; Expiration</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">4. Redis + Node.js</a>
+        <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Key Takeaways</a>
+      </div>
+    </div>
+
+    <div class="info-box box-tip"><strong>💡 Important framing:</strong> Redis does <u>not</u> replace PostgreSQL/MongoDB. It sits alongside your primary database as a fast, memory-based layer for cache, sessions, and short-lived tokens.</div>
+
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">⚡</div>
+          <div class="summary-text"><strong>Redis:</strong> A very fast in-memory key-value data store — data lives in RAM, not primarily on disk.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">⏱️</div>
+          <div class="summary-text"><strong>TTL (Time To Live):</strong> Automatically deletes a key after a set number of seconds — perfect for OTPs, tokens, and cache.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🧩</div>
+          <div class="summary-text"><strong>Data types:</strong> String, Hash, List, Set, Sorted Set — five structures cover almost everything you'll need.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🖥️</div>
+          <div class="summary-text"><strong>Server vs Client:</strong> The Redis Server holds the data; a Client (like <code>redis-cli</code> or Node's <code>redis</code> package) connects to it.</div>
+        </div>
+        <div class="summary-item summary-rose">
+          <div class="summary-icon">🗄️</div>
+          <div class="summary-text"><strong>Not a replacement:</strong> Redis handles fast/temporary data; PostgreSQL/MongoDB stays your permanent source of truth.</div>
+        </div>
+        <div class="summary-item summary-purple">
+          <div class="summary-icon">🧠</div>
+          <div class="summary-text"><strong>Caching pattern:</strong> Check Redis first → miss → hit the database → store the result back in Redis.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1: FUNDAMENTALS ==================== -->
+    <div class="section-divider" id="s1"><span>1. Redis Fundamentals <span class="star-badge">⭐</span></span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>What Is Redis?</h4></div>
+      <div class="card-sub-content">
+        <p>Redis is a <strong>very fast in-memory key-value data store.</strong> Instead of storing data mainly on disk like PostgreSQL, Redis keeps frequently accessed data in RAM.</p>
+        <div class="tree-card">Node.js
+   ↓
+ <span class="lvl1">Redis</span>
+   ↓
+ <span class="lvl2">RAM</span></div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">redis-cli</span></div>
+          <pre><code><span class="fn">SET</span> <span class="arg">name</span> <span class="str">"Shivam"</span>
+<span class="fn">GET</span> <span class="arg">name</span></code></pre>
+        </div>
+        <p>Here <code>key = name</code>, <code>value = Shivam</code>.</p>
+        <div class="info-box box-tip">💡 <strong>Why is Redis fast?</strong> Data lives in memory, operations are simple key-value reads/writes, overhead is low, and everything is optimized specifically for speed.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Redis vs PostgreSQL/MongoDB</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Redis</th><th>PostgreSQL/MongoDB</th></tr>
+          <tr><td>Mainly memory-based</td><td>Primarily persistent storage</td></tr>
+          <tr><td>Extremely fast</td><td>Slower than Redis for simple key/value access</td></tr>
+          <tr><td>Key-value/data structures</td><td>Rich database/query capabilities</td></tr>
+          <tr><td>Commonly used for cache, sessions, tokens</td><td>Commonly used as primary database</td></tr>
+          <tr><td>Data can expire automatically</td><td>Usually persistent until explicitly changed/deleted</td></tr>
+        </table>
+        <div class="info-box box-warning">⚠️ <strong>Important:</strong> Redis does not normally replace your PostgreSQL/MongoDB database.</div>
+        <div class="tree-card">Node.js
+   ↓
+<span class="lvl1">Redis</span> ──→ Fast/cache data
+   ↓
+<span class="lvl2">PostgreSQL</span> ──→ Permanent application data</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Redis Server vs Redis Client</h4></div>
+      <div class="card-sub-content">
+        <p><strong>Redis Server</strong> = the actual Redis database/service. <strong>Redis Client</strong> = a tool/application that connects to it.</p>
+        <div class="tree-card">Node.js ── <span class="lvl1">Redis Client</span> ──→ <span class="lvl2">Redis Server</span></div>
+        <p><code>redis-cli</code> is a command-line client.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">basic commands</span></div>
+          <pre><code><span class="fn">redis-cli</span>                       <span class="cmt"># open Redis CLI</span>
+
+<span class="fn">PING</span>                            <span class="cmt"># check Redis connection</span>
+
+<span class="fn">SET</span> <span class="arg">name</span> <span class="str">"Shivam"</span>              <span class="cmt"># create/update value</span>
+
+<span class="fn">GET</span> <span class="arg">name</span>                       <span class="cmt"># read value</span>
+
+<span class="fn">DEL</span> <span class="arg">name</span>                       <span class="cmt"># delete key</span>
+
+<span class="fn">EXISTS</span> <span class="arg">name</span>                    <span class="cmt"># check whether key exists</span>
+
+<span class="fn">EXPIRE</span> <span class="arg">name 60</span>                 <span class="cmt"># expire key after 60 seconds</span>
+
+<span class="fn">TTL</span> <span class="arg">name</span>                       <span class="cmt"># check remaining time</span>
+
+<span class="fn">SET</span> <span class="arg">token abc123 EX 300</span>         <span class="cmt"># store token for 300 seconds</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>redis-cli</code></td><td>Open Redis CLI</td></tr>
+          <tr><td><code>PING</code></td><td>Check Redis connection</td></tr>
+          <tr><td><code>SET name "Shivam"</code></td><td>Create/update value</td></tr>
+          <tr><td><code>GET name</code></td><td>Read value</td></tr>
+          <tr><td><code>DEL name</code></td><td>Delete key</td></tr>
+          <tr><td><code>EXISTS name</code></td><td>Check whether key exists</td></tr>
+          <tr><td><code>EXPIRE name 60</code></td><td>Expire key after 60 seconds</td></tr>
+          <tr><td><code>TTL name</code></td><td>Check remaining time</td></tr>
+        </table>
+        <div class="info-box box-benefit">✅ <strong>TTL = Time To Live.</strong> <code>SET otp 123456 EX 300</code> means: store <code>otp = 123456</code>, then automatically delete it after 300 seconds. Very useful for OTPs, cache, sessions, refresh tokens, and password-reset tokens.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 2: DATA TYPES ==================== -->
+    <div class="section-divider" id="s2"><span>2. Redis Data Types <span class="star-badge">⭐⭐⭐</span></span></div>
+
+    <p style="font-size:16px; color:#333; font-weight:500; margin-bottom:16px;">Redis supports several value types — you mainly need to know these <strong>five</strong>.</p>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>String — the simplest type</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">string</span></div>
+          <pre><code><span class="fn">SET</span> <span class="arg">name</span> <span class="str">"Shivam"</span>
+<span class="fn">GET</span> <span class="arg">name</span></code></pre>
+        </div>
+        <p>Use for: cache, token, counter, simple value. Example key shape: <code>user:1:name → Shivam</code></p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Hash — multiple fields under one key</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">hash</span></div>
+          <pre><code><span class="fn">HSET</span> <span class="arg">user:101 name</span> <span class="str">"Shivam"</span> <span class="arg">role</span> <span class="str">"admin"</span>
+
+<span class="fn">HGET</span> <span class="arg">user:101 name</span>       <span class="cmt"># read one field</span>
+<span class="fn">HGETALL</span> <span class="arg">user:101</span>          <span class="cmt"># read everything</span></code></pre>
+        </div>
+        <div class="tree-card">user:101
+ ├── <span class="lvl1">name</span> → Shivam
+ └── <span class="lvl2">role</span> → admin</div>
+        <p>Useful for representing small objects.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>List — an ordered collection</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">list</span></div>
+          <pre><code><span class="fn">LPUSH</span> <span class="arg">queue</span> <span class="str">"job1"</span>
+<span class="fn">LPUSH</span> <span class="arg">queue</span> <span class="str">"job2"</span>
+
+<span class="fn">RPOP</span> <span class="arg">queue</span>              <span class="cmt"># remove from the other end</span></code></pre>
+        </div>
+        <div class="tree-card">job2 → job1</div>
+        <p>Can be used for simple queue-like processing — though for production Node.js job processing, you'll more commonly reach for <strong>BullMQ</strong>.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>Set — a collection of unique values</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">set</span></div>
+          <pre><code><span class="fn">SADD</span> <span class="arg">users:online user1</span>
+<span class="fn">SADD</span> <span class="arg">users:online user2</span>
+<span class="fn">SADD</span> <span class="arg">users:online user1</span>   <span class="cmt"># not duplicated</span>
+
+<span class="fn">SMEMBERS</span> <span class="arg">users:online</span></code></pre>
+        </div>
+        <p>Useful for: unique users, online users, tags, membership checking.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Sorted Set — a Set with a score</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">sorted set</span></div>
+          <pre><code><span class="fn">ZADD</span> <span class="arg">leaderboard 100 user1</span>
+<span class="fn">ZADD</span> <span class="arg">leaderboard 200 user2</span>
+
+<span class="fn">ZREVRANGE</span> <span class="arg">leaderboard 0 10 WITHSCORES</span></code></pre>
+        </div>
+        <div class="tree-card">user1 → 100
+user2 → 200</div>
+        <p>Useful for: leaderboards, rankings, priority-based data.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <p style="font-size:16px; color:#333; font-weight:600; margin:20px 0 14px;">Remember the purpose of each type:</p>
+    <div class="type-grid">
+      <div class="type-card cat-2"><div class="tc-title">String</div><div class="tc-desc">Simple value / cache / token</div></div>
+      <div class="type-card cat-2"><div class="tc-title">Hash</div><div class="tc-desc">Object-like data</div></div>
+      <div class="type-card cat-2"><div class="tc-title">List</div><div class="tc-desc">Ordered items</div></div>
+      <div class="type-card cat-2"><div class="tc-title">Set</div><div class="tc-desc">Unique items</div></div>
+      <div class="type-card cat-2"><div class="tc-title">Sorted Set</div><div class="tc-desc">Unique items + score/ranking</div></div>
+    </div>
+    <div class="info-box box-tip">💡 You don't need to memorize every Redis command — just which structure fits which shape of data.</div>
+
+    <!-- ==================== 3: TTL & EXPIRATION ==================== -->
+    <div class="section-divider" id="s3"><span>3. TTL &amp; Expiration <span class="star-badge">⭐⭐⭐</span></span></div>
+
+    <p style="font-size:16px; color:#333; font-weight:500; margin-bottom:16px;">Extremely important in real backend applications — Redis can automatically remove temporary data after a specified time.</p>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>Setting expiration</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ttl</span></div>
+          <pre><code><span class="fn">SET</span> <span class="arg">otp:9876 123456 EX 300</span></code></pre>
+        </div>
+        <div class="tree-card">Key:   otp:9876
+Value: 123456
+TTL:   <span class="lvl1">300 seconds</span>
+
+<span class="cmt"># after 300 seconds:</span>
+otp:9876 → <span class="lvl2">automatically removed</span></div>
+        <table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>EXPIRE key 60</code></td><td>Set expiration on an existing key</td></tr>
+          <tr><td><code>TTL key</code></td><td>Check remaining time</td></tr>
+          <tr><td><code>SET key value EX 300</code></td><td>Set value + expiration together (seconds)</td></tr>
+          <tr><td><code>SET key value PX 5000</code></td><td>Set expiration in milliseconds</td></tr>
+          <tr><td><code>PERSIST key</code></td><td>Remove expiration, make the key persistent</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Common backend examples</h4></div>
+      <div class="card-sub-content">
+        <div class="tree-card">OTP
+ ↓
+<span class="lvl1">Redis</span>
+ ↓
+Expire after 5 minutes
+
+Refresh Token
+ ↓
+<span class="lvl1">Redis</span>
+ ↓
+Expire after 7 days
+
+API Cache
+ ↓
+<span class="lvl1">Redis</span>
+ ↓
+Expire after 5 minutes</div>
+        <div class="info-box box-benefit">✅ <strong>The core concept:</strong> Redis can automatically remove temporary data after a specified time — no cron job or cleanup script required.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 4: REDIS + NODE.JS ==================== -->
+    <div class="section-divider" id="s4"><span>4. Redis with Node.js <span class="star-badge">⭐⭐⭐⭐⭐</span></span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4 no-border">
+      <div class="card-sub-title"><h4>Install &amp; connect</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code><span class="fn">npm install</span> <span class="arg">redis</span></code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">redis.js</span></div>
+          <pre><code><span class="kw">import</span> { createClient } <span class="kw">from</span> <span class="str">"redis"</span>;
+
+<span class="kw">const</span> redis = <span class="fn">createClient</span>({
+  url: process.env.REDIS_URL
+});
+
+redis.<span class="fn">on</span>(<span class="str">"error"</span>, (err) => {
+  console.<span class="fn">error</span>(<span class="str">"Redis Error:"</span>, err);
+});
+
+<span class="kw">await</span> redis.<span class="fn">connect</span>();</code></pre>
+        </div>
+        <p>Now Node.js can communicate with Redis.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4 accent-left">
+      <div class="card-sub-title"><h4>Store, read, TTL, delete</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">store</span></div>
+          <pre><code><span class="kw">await</span> redis.<span class="fn">set</span>(<span class="str">"name"</span>, <span class="str">"Shivam"</span>);</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">read</span></div>
+          <pre><code><span class="kw">const</span> name = <span class="kw">await</span> redis.<span class="fn">get</span>(<span class="str">"name"</span>);
+console.<span class="fn">log</span>(name);   <span class="cmt">// Shivam</span></code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">store with TTL</span></div>
+          <pre><code><span class="kw">await</span> redis.<span class="fn">set</span>(<span class="str">"otp"</span>, <span class="str">"123456"</span>, {
+  EX: <span class="num">300</span>
+});</code></pre>
+        </div>
+        <div class="tree-card">otp
+ ↓
+123456
+ ↓
+<span class="lvl1">expires after 300 seconds</span></div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">delete</span></div>
+          <pre><code><span class="kw">await</span> redis.<span class="fn">del</span>(<span class="str">"otp"</span>);</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><h4>Where should Redis code go?</h4></div>
+      <div class="card-sub-content">
+        <p>Don't put Redis operations directly inside controllers — keep a clean layered structure:</p>
+        <div class="tree-card">src/
+│
+├── config/
+│   └── redis.js
+│
+├── services/
+│   └── cache.service.js
+│
+├── controllers/
+│
+├── routes/
+│
+└── server.js</div>
+        <div class="tree-card">Controller
+    ↓
+<span class="lvl1">Service</span>
+    ↓
+<span class="lvl2">Redis</span></div>
+        <div class="info-box box-benefit">✅ Keeping Redis calls inside a service layer (not controllers) makes your application far easier to maintain and test.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== KEY TAKEAWAYS ==================== -->
+    <div class="section-divider" id="qa"><span>Key Takeaways</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 What You Should Remember From These 4 Steps</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-group-title">The Core Four</div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is Redis, in one line?</div>
+          <div class="qa-answer">A fast in-memory data store — data lives in RAM instead of primarily on disk, which is what makes reads and writes so quick.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What are the 5 core Redis data types?</div>
+          <div class="qa-answer">String, Hash, List, Set, Sorted Set — covering simple values, object-like data, ordered items, unique items, and ranked/scored items respectively.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What does TTL let you do?</div>
+          <div class="qa-answer">Automatically expire temporary data — OTPs, sessions, tokens, and cache entries can all be set to disappear on their own after a fixed time, with no manual cleanup needed.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">How does Node.js talk to Redis?</div>
+          <div class="qa-answer">Through the official <code>redis</code> npm package — create a client with <code>createClient()</code>, <code>connect()</code> it, then use <code>set</code>, <code>get</code>, and <code>del</code> just like the CLI equivalents, ideally from inside a service layer rather than directly in controllers.</div>
+        </div>
+
+        <div class="qa-group-title">Next Step: Caching</div>
+
+        <div class="qa-item">
+          <div class="qa-question">After these 4 topics, what's the most important Redis concept for an MS developer?</div>
+          <div class="qa-answer">
+            <strong>Caching.</strong> This is where Redis becomes directly useful in real Node.js applications:
+            <div class="tree-card" style="margin-top:12px;">Node.js API
+    ↓
+Check Redis
+    ↓
+Data found? ── YES → Return Redis data
+    │
+    NO
+    ↓
+Database
+    ↓
+Store result in Redis
+    ↓
+Return response</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Redis — Fundamentals Reference — Backend Notes</footer>
+
+</body>
+</html>

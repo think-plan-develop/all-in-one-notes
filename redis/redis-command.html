@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Redis CLI Command Reference &amp; Running Redis on Docker</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+@media (max-width: 768px) { .container { width: 100%; max-width: 100%; margin: 20px 0 40px; } }
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+.summary-rose   { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#9f1239; } .summary-rose .summary-text strong { color:#e11d48; }
+.summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple .summary-text strong { color:#7c3aed; }
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+code, .token { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; font-size: 0.88em; background: rgba(0,0,0,0.06); padding: 2px 7px; border-radius: 5px; color: #4338ca; }
+pre { background: #0d1117; border: 1px solid #2d3a4f; border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; margin: 14px 0; color: #e6edf3; }
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#d4d4d4; font-size:14px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; } .arg { color:#a5b4fc; }
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #fff7ed 70%, #f5f3ff 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:14.5px; font-weight:700; padding:12px 18px; text-align:left; letter-spacing:.2px; }
+table td { padding:11px 18px; font-size:14px; font-weight:600; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table td:first-child { white-space:nowrap; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-size:13px; }
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+.qa-answer .code-block code { background:none; padding:0; color:#d4d4d4; font-weight:400; }
+.qa-group-title { font-size:16px; font-weight:800; color:var(--heading); margin: 6px 0 -6px; }
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+@media (max-width:768px) { .header h1 { font-size:26px; } .toc a { padding:6px 12px; font-size:12px; } }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header theme-blue">
+      <h1>Redis CLI Command Reference</h1>
+      <p>Every core <code style="background:rgba(255,255,255,0.18);color:#fff;">redis-cli</code> command with its exact response — plus running Redis itself with Docker.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">Server &amp; Keys</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">Expiration &amp; Counters</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">Hashes &amp; Discovery</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">Redis on Docker</a>
+        <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-tip"><strong>💡 Reading tip:</strong> every command below shows exactly what Redis sends back. <code>(integer)</code> responses are Redis's native reply type for counts and booleans — <code>1</code> almost always means "yes/succeeded," <code>0</code> means "no/already-existed."</div>
+
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🏓</div>
+          <div class="summary-text"><strong>PING → PONG:</strong> The universal "is Redis alive?" health check.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🔢</div>
+          <div class="summary-text"><strong>(integer) reply:</strong> Redis's native numeric response type — used for counts, booleans (1/0), and TTL seconds.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🔍</div>
+          <div class="summary-text"><strong>SCAN vs KEYS:</strong> SCAN iterates safely without blocking; KEYS blocks the whole server on large datasets — avoid it in production.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🐳</div>
+          <div class="summary-text"><strong>Redis on Docker:</strong> No local install needed — pull the image, run it detached, and connect with <code>redis-cli</code> inside the container.</div>
+        </div>
+        <div class="summary-item summary-rose">
+          <div class="summary-icon">⏳</div>
+          <div class="summary-text"><strong>TTL responses:</strong> A positive number = seconds left. <code>-1</code> = no expiry set. <code>-2</code> = key doesn't exist at all.</div>
+        </div>
+        <div class="summary-item summary-purple">
+          <div class="summary-icon">🧱</div>
+          <div class="summary-text"><strong>TYPE:</strong> Tells you which structure a key holds — string, hash, list, set, zset, or none.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="categories-wrap" style="margin-bottom:50px;">
+      <div class="card-sub cat-1 no-border">
+        <div class="card-sub-title"><h4>⚡ Important Commands — Quick Reference</h4></div>
+        <div class="card-sub-content">
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">must-know commands</span></div>
+            <pre><code><span class="fn">SET</span> <span class="arg">user:1</span> <span class="str">"Shivam"</span>       <span class="cmt"># store value</span>
+
+<span class="fn">GET</span> <span class="arg">user:1</span>                <span class="cmt"># retrieve value</span>
+
+<span class="fn">DEL</span> <span class="arg">user:1</span>                <span class="cmt"># delete key</span>
+
+<span class="fn">EXISTS</span> <span class="arg">user:1</span>             <span class="cmt"># check whether key exists</span>
+
+<span class="fn">TTL</span> <span class="arg">user:1</span>                <span class="cmt"># remaining expiration time</span>
+
+<span class="fn">EXPIRE</span> <span class="arg">user:1 60</span>          <span class="cmt"># expire after 60 seconds</span>
+
+<span class="fn">SET</span> <span class="arg">user:1</span> <span class="str">"Shivam"</span> <span class="arg">EX 60</span> <span class="cmt"># set + expiration</span>
+
+<span class="fn">KEYS</span> <span class="arg">*</span>                    <span class="cmt"># show keys; avoid in production</span>
+
+<span class="fn">FLUSHDB</span>                    <span class="cmt"># delete current DB; NEVER casually use in production</span></code></pre>
+          </div>
+          <table>
+            <tr><th>Command</th><th>What it does</th></tr>
+            <tr><td><code>SET user:1 "Shivam"</code></td><td>Store a value</td></tr>
+            <tr><td><code>GET user:1</code></td><td>Retrieve a value</td></tr>
+            <tr><td><code>DEL user:1</code></td><td>Delete a key</td></tr>
+            <tr><td><code>EXISTS user:1</code></td><td>Check whether a key exists</td></tr>
+            <tr><td><code>TTL user:1</code></td><td>Check remaining expiration time</td></tr>
+            <tr><td><code>EXPIRE user:1 60</code></td><td>Expire the key after 60 seconds</td></tr>
+            <tr><td><code>SET user:1 "Shivam" EX 60</code></td><td>Set a value and expiration together</td></tr>
+            <tr><td><code>KEYS *</code></td><td>Show all keys — avoid in production</td></tr>
+            <tr><td><code>FLUSHDB</code></td><td>Delete the entire current DB — never use casually in production</td></tr>
+          </table>
+          <div class="info-box box-danger">🚨 <strong><code>KEYS *</code></strong> blocks the server on large datasets, and <strong><code>FLUSHDB</code></strong> wipes every key in the current database with no confirmation and no undo. Both are fine for local development — treat them as forbidden on anything touching production.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1: SERVER & KEYS ==================== -->
+    <div class="section-divider" id="s1"><span>1. Server Check &amp; Basic Key-Value Ops</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>Server Check</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">redis-cli</span></div>
+          <pre><code><span class="fn">PING</span>
+<span class="cmt"># Checks if Redis server is alive/reachable.</span>
+<span class="cmt"># Response: PONG</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Command</th><th>What it does</th><th>Response</th></tr>
+          <tr><td><code>PING</code></td><td>Checks if the Redis server is alive/reachable</td><td><code>PONG</code></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Basic Key-Value Operations</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">key-value</span></div>
+          <pre><code><span class="fn">SET</span> <span class="arg">user:101</span> <span class="str">"Shivam"</span>
+<span class="cmt"># Stores the string "Shivam" under key "user:101"</span>
+<span class="cmt"># Response: OK</span>
+
+<span class="fn">GET</span> <span class="arg">user:101</span>
+<span class="cmt"># Reads the value stored at "user:101"</span>
+<span class="cmt"># Response: "Shivam"</span>
+
+<span class="fn">DEL</span> <span class="arg">user:101</span>
+<span class="cmt"># Deletes the key "user:101" (and its value)</span>
+<span class="cmt"># Response: (integer) 1  -> 1 key deleted, 0 if key didn't exist</span>
+
+<span class="fn">EXISTS</span> <span class="arg">user:101</span>
+<span class="cmt"># Checks whether "user:101" exists</span>
+<span class="cmt"># Response: (integer) 1 if exists, 0 if not</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Command</th><th>What it does</th><th>Response</th></tr>
+          <tr><td><code>SET user:101 "Shivam"</code></td><td>Stores a string value under a key</td><td><code>OK</code></td></tr>
+          <tr><td><code>GET user:101</code></td><td>Reads the value stored at that key</td><td><code>"Shivam"</code></td></tr>
+          <tr><td><code>DEL user:101</code></td><td>Deletes the key and its value</td><td><code>(integer) 1</code> deleted, <code>0</code> if it didn't exist</td></tr>
+          <tr><td><code>EXISTS user:101</code></td><td>Checks whether the key exists</td><td><code>(integer) 1</code> yes, <code>0</code> no</td></tr>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 2: EXPIRATION & COUNTERS ==================== -->
+    <div class="section-divider" id="s2"><span>2. Expiration / TTL &amp; Counters</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>Expiration / TTL</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ttl</span></div>
+          <pre><code><span class="fn">EXPIRE</span> <span class="arg">user:101 300</span>
+<span class="cmt"># Sets key "user:101" to auto-delete after 300 seconds (5 min)</span>
+<span class="cmt"># Response: (integer) 1 if expiry was set, 0 if key doesn't exist</span>
+
+<span class="fn">TTL</span> <span class="arg">user:101</span>
+<span class="cmt"># Checks remaining time-to-live (in seconds) for "user:101"</span>
+<span class="cmt"># Response: seconds left, -1 if no expiry set, -2 if key doesn't exist</span>
+
+<span class="fn">SET</span> <span class="arg">token:101</span> <span class="str">"abc"</span> <span class="arg">EX 900</span>
+<span class="cmt"># Stores "abc" under "token:101" AND sets it to expire in 900 seconds (15 min)</span>
+<span class="cmt"># Shortcut for SET + EXPIRE in one command — common for auth tokens/OTPs</span>
+<span class="cmt"># Response: OK</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Command</th><th>What it does</th><th>Response</th></tr>
+          <tr><td><code>EXPIRE user:101 300</code></td><td>Auto-deletes the key after 300 seconds</td><td><code>(integer) 1</code> set, <code>0</code> key missing</td></tr>
+          <tr><td><code>TTL user:101</code></td><td>Checks remaining time-to-live</td><td>Seconds left · <code>-1</code> no expiry · <code>-2</code> no key</td></tr>
+          <tr><td><code>SET token:101 "abc" EX 900</code></td><td>Sets value + expiry in one shot</td><td><code>OK</code></td></tr>
+        </table>
+        <div class="info-box box-tip">💡 <code>SET ... EX &lt;seconds&gt;</code> is the shortcut you'll use constantly for auth tokens and OTPs — one command instead of <code>SET</code> followed by a separate <code>EXPIRE</code>.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Counters</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">counters</span></div>
+          <pre><code><span class="fn">INCR</span> <span class="arg">api:requests</span>
+<span class="cmt"># Increments the integer value of "api:requests" by 1</span>
+<span class="cmt"># If key doesn't exist, it's created and set to 1</span>
+<span class="cmt"># Useful for rate limiting, request counting, view counts</span>
+<span class="cmt"># Response: (integer) new value after increment</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Command</th><th>What it does</th><th>Response</th></tr>
+          <tr><td><code>INCR api:requests</code></td><td>Atomically increments an integer key by 1; creates it at 1 if missing</td><td><code>(integer)</code> new value</td></tr>
+        </table>
+        <div class="info-box box-benefit">✅ <code>INCR</code> is atomic — safe for rate limiting, request counters, and view counts even under concurrent traffic.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 3: HASHES & DISCOVERY ==================== -->
+    <div class="section-divider" id="s3"><span>3. Hashes &amp; Discovering Keys Safely</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>Hash (object-like data)</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">hash</span></div>
+          <pre><code><span class="fn">HSET</span> <span class="arg">user:101 name</span> <span class="str">"Shivam"</span>
+<span class="cmt"># Sets field "name" to "Shivam" inside hash "user:101"</span>
+<span class="cmt"># A hash can hold multiple fields, like a mini JSON object</span>
+<span class="cmt"># Response: (integer) 1 if new field, 0 if field was updated</span>
+
+<span class="fn">HGET</span> <span class="arg">user:101 name</span>
+<span class="cmt"># Reads only the "name" field from hash "user:101"</span>
+<span class="cmt"># Response: "Shivam"</span>
+
+<span class="fn">HGETALL</span> <span class="arg">user:101</span>
+<span class="cmt"># Reads ALL fields and values from hash "user:101"</span>
+<span class="cmt"># Response: field1, value1, field2, value2, ...</span>
+<span class="cmt"># Example: name "Shivam" role "admin"</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Command</th><th>What it does</th><th>Response</th></tr>
+          <tr><td><code>HSET user:101 name "Shivam"</code></td><td>Sets one field inside a hash</td><td><code>(integer) 1</code> new field, <code>0</code> updated</td></tr>
+          <tr><td><code>HGET user:101 name</code></td><td>Reads a single field from a hash</td><td><code>"Shivam"</code></td></tr>
+          <tr><td><code>HGETALL user:101</code></td><td>Reads every field + value from a hash</td><td>Flat list: <code>name "Shivam" role "admin"</code></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Discovering Keys Safely</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">discovery</span></div>
+          <pre><code><span class="fn">SCAN</span> <span class="arg">0 MATCH user:*</span>
+<span class="cmt"># Iterates over keys matching pattern "user:*" without blocking Redis</span>
+<span class="cmt"># Safer alternative to KEYS command in production (KEYS blocks server on large datasets)</span>
+<span class="cmt"># Response: cursor (for next scan) + list of matching keys</span>
+<span class="cmt"># Repeat SCAN with returned cursor until cursor = 0 (full scan done)</span>
+
+<span class="fn">TYPE</span> <span class="arg">user:101</span>
+<span class="cmt"># Returns the data type stored at "user:101"</span>
+<span class="cmt"># Response: string, hash, list, set, zset, or none (key doesn't exist)</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Command</th><th>What it does</th><th>Response</th></tr>
+          <tr><td><code>SCAN 0 MATCH user:*</code></td><td>Safely iterates matching keys without blocking the server</td><td>Cursor + list of matching keys</td></tr>
+          <tr><td><code>TYPE user:101</code></td><td>Returns the data structure stored at a key</td><td><code>string</code> / <code>hash</code> / <code>list</code> / <code>set</code> / <code>zset</code> / <code>none</code></td></tr>
+        </table>
+        <div class="info-box box-danger">🚨 <strong>Avoid <code>KEYS *</code> in production.</strong> It blocks the entire Redis server while it scans, which can stall every other client on a large dataset. <code>SCAN</code> does the same job incrementally, without blocking.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 4: REDIS ON DOCKER ==================== -->
+    <div class="section-divider" id="s4"><span>4. Run Redis on Docker</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>Pull &amp; verify the image</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">pull</span></div>
+          <pre><code><span class="fn">docker pull</span> <span class="arg">redis</span>
+<span class="fn">docker images</span></code></pre>
+        </div>
+        <p><code>docker pull redis</code> downloads the official Redis image; <code>docker images</code> confirms it landed locally.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Run the container</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">run</span></div>
+          <pre><code><span class="fn">docker run</span> <span class="arg">-d --name redis -p 6379:6379 redis</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Flag</th><th>Meaning</th></tr>
+          <tr><td><code>-d</code></td><td>Run detached, in the background</td></tr>
+          <tr><td><code>--name redis</code></td><td>Name the container <code>redis</code> so you can reference it easily</td></tr>
+          <tr><td><code>-p 6379:6379</code></td><td>Map container port 6379 (Redis's default) to the same port on your host</td></tr>
+        </table>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">check running containers</span></div>
+          <pre><code><span class="fn">docker ps</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Test it with redis-cli inside the container</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">test</span></div>
+          <pre><code><span class="fn">docker exec</span> <span class="arg">-it redis redis-cli</span>
+
+<span class="fn">PING</span>
+<span class="cmt"># Response: PONG</span></code></pre>
+        </div>
+        <p><code>docker exec -it redis redis-cli</code> opens an interactive <code>redis-cli</code> session running inside the same container — no local Redis install needed at all.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>Lifecycle: stop, start, restart, logs</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">lifecycle</span></div>
+          <pre><code><span class="fn">docker stop</span> <span class="arg">redis</span>       <span class="cmt"># gracefully stop the container</span>
+
+<span class="fn">docker start</span> <span class="arg">redis</span>      <span class="cmt"># start it again (same container, same data)</span>
+
+<span class="fn">docker restart</span> <span class="arg">redis</span>    <span class="cmt"># stop + start in one command</span>
+
+<span class="fn">docker logs</span> <span class="arg">redis</span>       <span class="cmt"># view Redis server logs</span></code></pre>
+        </div>
+        <table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>docker stop redis</code></td><td>Stops the running Redis container</td></tr>
+          <tr><td><code>docker start redis</code></td><td>Starts the same (already-created) container back up</td></tr>
+          <tr><td><code>docker restart redis</code></td><td>Stop then start in a single command</td></tr>
+          <tr><td><code>docker logs redis</code></td><td>Shows the Redis server's log output — useful for debugging startup issues</td></tr>
+        </table>
+        <div class="info-box box-benefit">✅ Since the container is named <code>redis</code>, every command after the first <code>docker run</code> can reference it by name — no need to look up a container ID.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="qa"><span>Interview Q&amp;A</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-group-title">Standard Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">What does <code>SET token:101 "abc" EX 900</code> actually do, in one command?</div>
+          <div class="qa-answer">It stores the value <code>"abc"</code> under <code>token:101</code> AND sets it to expire in 900 seconds — a shortcut that combines what would otherwise be a separate <code>SET</code> followed by <code>EXPIRE</code>. This pattern is the standard way to store auth tokens and OTPs.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What do TTL's three possible response ranges mean?</div>
+          <div class="qa-answer">A positive number is the number of seconds remaining before the key expires. <code>-1</code> means the key exists but has no expiry set. <code>-2</code> means the key doesn't exist at all.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why use <code>INCR</code> instead of reading a value, adding 1 in your app, and writing it back?</div>
+          <div class="qa-answer"><code>INCR</code> is atomic at the Redis server level — the read-modify-write happens as one indivisible operation. Doing it manually in application code introduces a race condition under concurrent requests, where two increments could both read the same starting value and clobber each other.</div>
+        </div>
+
+        <div class="qa-group-title">Tricky / Follow-Up Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why is <code>KEYS *</code> dangerous in production but <code>SCAN</code> isn't?</div>
+          <div class="qa-answer"><code>KEYS</code> walks the entire keyspace in one blocking operation — on a large dataset, that can freeze the Redis server for every other connected client while it runs. <code>SCAN</code> does the same discovery incrementally, returning a small batch plus a cursor each call, so the server stays responsive between calls.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">If you run <code>docker stop redis</code> and then <code>docker start redis</code>, do you lose your cached data?</div>
+          <div class="qa-answer">No — <code>stop</code>/<code>start</code> operate on the same container, which retains its filesystem between the two commands. You'd only lose data if you removed the container entirely (<code>docker rm redis</code>) without a persistent volume attached, or if the data was never configured to persist to disk in the first place.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What does <code>docker exec -it redis redis-cli</code> actually let you avoid?</div>
+          <div class="qa-answer">Installing Redis (or its CLI tools) on your host machine at all. The <code>redis-cli</code> binary already lives inside the official Redis image, so you open an interactive shell into the running container and use its bundled client directly.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Redis CLI Command Reference &amp; Running Redis on Docker</footer>
+
+</body>
+</html>

@@ -1,0 +1,379 @@
+AWS ElastiCache — detailed explanation
+
+Since you're learning Redis first and then AWS, think of ElastiCache as:
+
+AWS-managed Redis/Valkey infrastructure that your application uses instead of running Redis yourself.
+
+With Docker locally, you did:
+
+Node.js
+   ↓
+Redis container
+   ↓
+localhost:6379
+
+In AWS production, you typically do:
+
+Node.js application
+       ↓
+   ElastiCache
+       ↓
+ Redis / Valkey
+
+AWS manages much of the underlying cache infrastructure for you. ElastiCache currently supports Valkey, Redis OSS, and Memcached.
+
+1. First understand the problem
+
+Suppose your Node.js API has:
+
+GET /api/products
+
+Without caching:
+
+Client
+  ↓
+Node.js
+  ↓
+PostgreSQL
+  ↓
+Return products
+
+Every request may hit PostgreSQL.
+
+If 10,000 users request the same products:
+
+10,000 requests
+       ↓
+10,000 DB queries
+
+This can increase:
+
+database load
+response time
+CPU usage
+database cost
+
+With Redis caching:
+
+Client
+  ↓
+Node.js
+  ↓
+Redis / ElastiCache
+  │
+  ├── Cache HIT → return data
+  │
+  └── Cache MISS
+          ↓
+      PostgreSQL
+          ↓
+       Redis
+          ↓
+       Client
+
+That's the main reason you use ElastiCache.
+
+2. What exactly is Amazon ElastiCache?
+
+Amazon Web Services ElastiCache is a managed in-memory caching service.
+
+Instead of you doing:
+
+EC2
+ ↓
+Install Redis
+ ↓
+Configure Redis
+ ↓
+Manage updates
+ ↓
+Manage failures
+ ↓
+Manage replication
+ ↓
+Manage backups
+
+AWS provides managed cache infrastructure.
+
+AWS handles many infrastructure responsibilities, while you interact with the cache using Redis/Valkey commands and a client library.
+
+3. ElastiCache is NOT Redis itself
+
+This distinction is important.
+
+Redis
+
+Redis is the database/cache engine.
+
+For example:
+
+SET user:101 "Shivam"
+GET user:101
+ElastiCache
+
+ElastiCache is the AWS managed service running the caching engine.
+
+So:
+
+Redis / Valkey
+     ↑
+     │
+Amazon ElastiCache
+     ↑
+     │
+AWS infrastructure
+4. Local Redis vs AWS ElastiCache
+Local development
+
+You can run:
+
+docker run -d --name redis -p 6379:6379 redis
+
+Then:
+
+Node.js
+   ↓
+localhost:6379
+   ↓
+Redis Docker container
+
+You manage the container.
+
+AWS production
+
+You create an ElastiCache cache.
+
+Then AWS gives you an endpoint such as:
+
+my-cache.xxxxxx.use1.cache.amazonaws.com
+
+Your application uses that endpoint:
+
+Node.js
+   ↓
+ElastiCache endpoint
+   ↓
+Redis / Valkey
+
+AWS recommends connecting using DNS names rather than relying on underlying IP addresses because the IP can change.
+
+5. Where does ElastiCache run?
+
+This is one of the most important AWS concepts.
+
+ElastiCache works inside an Amazon VPC.
+
+Think:
+
+AWS
+│
+└── VPC
+    │
+    ├── Application
+    │    └── EC2 / ECS
+    │
+    ├── Database
+    │    └── RDS
+    │
+    └── ElastiCache
+         └── Redis / Valkey
+
+Your application communicates with ElastiCache over the private AWS network.
+
+ElastiCache is fully integrated with Amazon VPC.
+
+6. Typical Node.js architecture
+
+For your backend learning, this is the architecture you should understand:
+
+                   Internet
+                       │
+                       ↓
+                  API Gateway
+                       │
+                       ↓
+                    ALB
+                       │
+                       ↓
+                Node.js / Express
+                       │
+             ┌─────────┴─────────┐
+             ↓                   ↓
+       ElastiCache              RDS
+       Redis/Valkey           PostgreSQL
+
+Node.js decides when to use Redis and when to use PostgreSQL.
+
+7. Cache-aside pattern with ElastiCache
+
+This is probably the most important Redis + ElastiCache pattern for you to learn.
+
+Suppose:
+
+GET /users/101
+Step 1 — Node checks Redis
+Node.js
+   ↓
+GET user:101
+
+If Redis contains it:
+
+Redis
+ ↓
+Cache HIT
+ ↓
+Return user
+
+No PostgreSQL query.
+
+Step 2 — Cache miss
+
+If Redis doesn't contain it:
+
+Redis
+ ↓
+Cache MISS
+ ↓
+Node.js
+ ↓
+PostgreSQL
+
+PostgreSQL returns:
+
+{
+  "id": 101,
+  "name": "Shivam"
+}
+
+Node stores it in Redis:
+
+SET user:101 '{"id":101,"name":"Shivam"}' EX 300
+
+Then returns the response.
+
+So:
+
+Request
+   ↓
+Redis
+   │
+   ├── HIT → response
+   │
+   └── MISS
+         ↓
+       PostgreSQL
+         ↓
+       Redis SET
+         ↓
+       response
+8. Why is Redis fast?
+
+Redis primarily works with memory.
+
+Traditional database:
+
+Application
+    ↓
+Database
+    ↓
+Disk / database storage
+
+Redis:
+
+Application
+    ↓
+Redis
+    ↓
+RAM
+
+RAM access is extremely fast compared with disk-based database operations.
+
+That's why Redis is useful for:
+
+caching
+sessions
+rate limiting
+counters
+temporary data
+queues
+distributed locks
+frequently accessed data
+9. ElastiCache deployment options
+
+AWS currently provides two major deployment approaches:
+
+1. Serverless
+ElastiCache Serverless
+
+You don't have to manage individual cache nodes or capacity planning in the traditional way.
+
+AWS automatically manages scaling of the underlying cache infrastructure.
+
+2. Node-based clusters
+
+You choose/cache nodes and configure the cluster architecture yourself.
+
+Conceptually:
+
+ElastiCache
+   │
+   ├── Primary
+   │
+   ├── Replica
+   │
+   └── Replica
+
+Node-based deployments give you more explicit control over the infrastructure.
+
+10. ElastiCache Serverless
+
+For newer AWS deployments, you should understand this.
+
+Instead of thinking:
+
+How many cache nodes do I need?
+Which node size?
+How much memory?
+When should I scale?
+
+Serverless abstracts much of this capacity management.
+
+AWS says ElastiCache Serverless automatically monitors memory, compute and network utilization and scales vertically and horizontally.
+
+The application receives an endpoint:
+
+Node.js
+   ↓
+ElastiCache Serverless endpoint
+
+The proxy layer handles the underlying cache topology.
+
+11. Serverless pricing concept
+
+This is different from simply paying for an EC2-like instance.
+
+ElastiCache Serverless pricing is based on:
+
+Data stored
+
+Measured in:
+
+GB-hours
+Cache processing
+
+Measured using:
+
+ECPU
+
+AWS defines ECPU as a unit incorporating vCPU time and data transferred for requests.
+
+So conceptually:
+
+Serverless cost
+=
+data stored
++
+cache processing
+
+For exact current prices, always check the AWS pricing page for your region.
+

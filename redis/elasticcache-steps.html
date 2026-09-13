@@ -1,0 +1,1475 @@
+Now that you have created the IAM Role, the next step in our AWS environment setup is VPC.
+
+Our sequence is:
+
+1. AWS Account
+2. IAM                 ✅ DONE
+3. VPC                 ← NEXT
+4. Subnet
+5. Internet Gateway
+6. Route Table
+7. Security Group
+8. EC2
+9. Node.js
+10. RDS
+11. ElastiCache
+Step 3 — Create a VPC
+
+A VPC (Virtual Private Cloud) is your private network inside AWS.
+
+Think of it like:
+
+AWS
+└── Your VPC
+    ├── Subnet
+    │   ├── EC2
+    │   └── Node.js
+    │
+    ├── RDS
+    │
+    └── ElastiCache
+
+For your backend learning, the important idea is:
+
+EC2, RDS and ElastiCache will eventually communicate inside your VPC.
+
+3.1 Open VPC
+
+AWS Console → search:
+
+VPC
+
+Open VPC.
+
+Then:
+
+VPC Dashboard → Create VPC
+
+3.2 Select
+
+Choose:
+
+Resources to create:
+VPC only
+
+Don't choose the full VPC and more option yet. I want you to understand each component individually.
+
+3.3 Enter these values
+
+Name tag:
+
+nodejs-learning-vpc
+
+IPv4 CIDR:
+
+10.0.0.0/16
+
+Leave IPv6 disabled.
+
+Then click:
+
+Create VPC
+
+3.4 What does 10.0.0.0/16 mean?
+
+It defines the private IP range available inside your VPC.
+
+VPC
+10.0.0.0/16
+
+Later we can divide it into subnets:
+
+VPC: 10.0.0.0/16
+
+Public Subnet:
+10.0.1.0/24
+
+Private Subnet:
+10.0.2.0/24
+
+For example:
+
+10.0.1.x → EC2
+10.0.2.x → RDS / ElastiCache
+
+Don't worry about subnet CIDR calculations yet. We'll do that in the next step.
+
+Important
+
+Creating the VPC does not make your EC2 accessible to the internet.
+
+We still need:
+
+VPC
+ ↓
+Subnet
+ ↓
+Internet Gateway
+ ↓
+Route Table
+ ↓
+Security Group
+ ↓
+EC2
+
+So 
+create only the VPC now with:
+
+Name: nodejs-learning-vpc
+CIDR: 10.0.0.0/16
+
+Once that's created, the next step is Subnet, where we'll create the public/private network structure.
+
+next step
+Step 4 — Create a Subnet
+
+You have now created:
+
+VPC: nodejs-learning-vpc
+CIDR: 10.0.0.0/16
+
+Now we create a Subnet inside that VPC.
+
+4.1 Open Subnets
+
+AWS Console:
+
+VPC → Subnets → Create subnet
+
+4.2 Select your VPC
+
+Under VPC ID, select:
+
+nodejs-learning-vpc
+4.3 Subnet settings
+
+Enter:
+
+Subnet name:
+nodejs-public-subnet
+
+Select an Availability Zone, for example:
+
+ap-south-1a
+
+Since you're learning in the Mumbai AWS region (ap-south-1), this is fine.
+
+For IPv4 CIDR:
+
+10.0.1.0/24
+
+So your structure is now:
+
+VPC
+10.0.0.0/16
+│
+└── Public Subnet
+    10.0.1.0/24
+
+Click:
+
+Create subnet
+
+Why /24?
+
+Your VPC has:
+
+10.0.0.0/16
+
+We're taking a smaller range from it:
+
+10.0.1.0/24
+
+This gives the subnet its own IP range inside the VPC.
+
+Important: Don't create the second subnet yet
+
+For your learning, we'll first build the public subnet + EC2 path.
+
+After this subnet, the next step is:
+
+Step 5 → Internet Gateway
+
+The Internet Gateway is what allows resources in the public subnet to communicate with the internet, when the route table and security rules also allow it.
+
+So after creating nodejs-public-subnet, tell me done, and we'll create the Internet Gateway.
+
+next
+Step 5 — Create an Internet Gateway
+
+You currently have:
+
+VPC: nodejs-learning-vpc
+        │
+        └── Subnet: nodejs-public-subnet
+            CIDR: 10.0.1.0/24
+
+Now we create an Internet Gateway (IGW).
+
+5.1 Open Internet Gateways
+
+AWS Console:
+
+VPC → Internet gateways
+
+Click:
+
+Create internet gateway
+
+5.2 Name it
+
+Use:
+
+nodejs-learning-igw
+
+Click:
+
+Create internet gateway
+
+5.3 Attach it to your VPC
+
+Creating the Internet Gateway is not enough. You must attach it to your VPC.
+
+Select:
+
+nodejs-learning-igw
+
+Then:
+
+Actions → Attach to a VPC
+
+Select:
+
+nodejs-learning-vpc
+
+Click:
+
+Attach internet gateway
+
+Now:
+
+AWS
+│
+└── VPC: nodejs-learning-vpc
+    │
+    ├── Subnet: nodejs-public-subnet
+    │
+    └── Internet Gateway
+        nodejs-learning-igw
+What does the Internet Gateway do?
+
+It provides the VPC with a path to/from the internet.
+
+But your subnet is not public yet.
+
+We still need a Route Table that says:
+
+10.0.0.0/16 → stay inside VPC
+
+0.0.0.0/0 → Internet Gateway
+
+That's our next step: Route Table.
+
+Don't create another VPC or subnet. Just make sure the Internet Gateway is attached to nodejs-learning-vpc.
+
+## Step 6 — Create a Route Table
+
+You now have:
+
+```text
+VPC
+└── nodejs-learning-vpc
+    ├── nodejs-public-subnet
+    └── nodejs-learning-igw
+```
+
+Now we need to tell AWS:
+
+> “Traffic going to the internet should go through the Internet Gateway.”
+
+### 6.1 Open Route Tables
+
+AWS Console:
+
+**VPC → Route tables → Create route table**
+
+Enter:
+
+```text
+Name:
+nodejs-public-route-table
+
+VPC:
+nodejs-learning-vpc
+```
+
+Click **Create route table**.
+
+---
+
+### 6.2 Add Internet route
+
+Select your newly created route table.
+
+Go to:
+
+**Routes → Edit routes → Add route**
+
+Enter:
+
+```text
+Destination:
+0.0.0.0/0
+```
+
+For **Target**, select:
+
+```text
+Internet Gateway
+```
+
+Then select:
+
+```text
+nodejs-learning-igw
+```
+
+It should look like:
+
+```text
+Destination     Target
+--------------------------------
+10.0.0.0/16     local
+0.0.0.0/0       nodejs-learning-igw
+```
+
+The `10.0.0.0/16 → local` route is normally created automatically.
+
+Click **Save changes**.
+
+---
+
+### 6.3 Associate the route table with your subnet
+
+This is important.
+
+Go to:
+
+**Subnet associations → Edit subnet associations**
+
+Select:
+
+```text
+nodejs-public-subnet
+```
+
+Click:
+
+**Save associations**
+
+Now the relationship is:
+
+```text
+VPC
+│
+├── Internet Gateway
+│
+├── Route Table
+│   │
+│   └── 0.0.0.0/0 → Internet Gateway
+│
+└── Public Subnet
+    └── associated with Route Table
+```
+
+### Why is it called a Public Subnet?
+
+Because the subnet now has a route:
+
+```text
+0.0.0.0/0
+      ↓
+Internet Gateway
+```
+
+So resources placed in this subnet **can potentially communicate with the internet**, provided they also have the required public IP and security-group rules.
+
+---
+
+### Your progress
+
+```text
+1. AWS Account       ✅
+2. IAM               ✅
+3. VPC               ✅
+4. Subnet            ✅
+5. Internet Gateway  ✅
+6. Route Table       ✅
+7. Security Group    ← NEXT
+8. EC2
+9. Node.js
+```
+
+**Next: Security Group** — we'll create one specifically for your Node.js EC2 server and learn why ports like `22` and `3000` need to be allowed.
+
+
+## Step 8 — Create the EC2 Instance
+
+Now we'll create the actual server where your **Node.js application** will run.
+
+Your setup so far:
+
+```text
+VPC
+└── Public Subnet
+    └── Security Group
+```
+
+And we also have:
+
+```text
+IAM Role: nodejs-ec2-role
+```
+
+### 8.1 Open EC2
+
+AWS Console → **EC2**
+
+Click:
+
+**Launch instance**
+
+---
+
+### 8.2 Name the instance
+
+```text
+nodejs-learning-server
+```
+
+---
+
+### 8.3 Choose AMI
+
+Under **Application and OS Images**, select:
+
+```text
+Amazon Linux 2023
+```
+
+This is a good choice for learning AWS + Node.js.
+
+---
+
+### 8.4 Instance type
+
+For learning, choose:
+
+```text
+t3.micro
+```
+
+If your AWS account shows a free-tier eligible option such as `t2.micro` or `t3.micro`, choose the eligible one for your account/region.
+
+You don't need a powerful instance for a basic Node.js application.
+
+---
+
+## 8.5 Create/select key pair
+
+Under **Key pair**, click:
+
+**Create new key pair**
+
+Use:
+
+```text
+Name: nodejs-learning-key
+```
+
+For Windows, choose:
+
+```text
+Private key file format: .pem
+```
+
+Click **Create key pair**.
+
+⚠️ The `.pem` file will download to your computer.
+
+**Keep it safe. AWS won't let you download the same private key again.**
+
+---
+
+## 8.6 Network settings
+
+This is very important.
+
+Click **Edit** under Network settings.
+
+Set:
+
+```text
+VPC:
+nodejs-learning-vpc
+```
+
+For subnet:
+
+```text
+nodejs-public-subnet
+```
+
+Auto-assign Public IP:
+
+```text
+Enable
+```
+
+Security group:
+
+```text
+Select existing security group
+```
+
+Choose:
+
+```text
+nodejs-ec2-sg
+```
+
+So EC2 will have:
+
+```text
+VPC
+ ↓
+nodejs-public-subnet
+ ↓
+nodejs-ec2-sg
+ ↓
+EC2
+```
+
+---
+
+## 8.7 Attach the IAM Role
+
+Depending on the current EC2 console UI, look for:
+
+**Advanced details → IAM instance profile**
+
+Select:
+
+```text
+nodejs-ec2-role
+```
+
+This is the role you created earlier.
+
+So now:
+
+```text
+EC2
+ │
+ └── IAM Role
+       └── nodejs-ec2-role
+```
+
+---
+
+## 8.8 Storage
+
+For learning, the default root volume is sufficient.
+
+Something like:
+
+```text
+8 GiB gp3
+```
+
+is enough for a basic Node.js server.
+
+---
+
+## 8.9 Launch
+
+Click:
+
+**Launch instance**
+
+Wait until the instance becomes:
+
+```text
+Instance state: Running
+```
+
+You should now see something similar to:
+
+```text
+nodejs-learning-server
+Running
+Public IPv4 address: xxx.xxx.xxx.xxx
+```
+
+---
+
+# What you have built
+
+You now have a real AWS server:
+
+```text
+Internet
+   │
+   ▼
+Internet Gateway
+   │
+   ▼
+Public Subnet
+10.0.1.0/24
+   │
+   ▼
+Security Group
+   │
+   ├── 22  → SSH
+   └── 3000 → Node.js
+   │
+   ▼
+EC2
+nodejs-learning-server
+   │
+   └── IAM Role
+       nodejs-ec2-role
+```
+
+## Next: Connect to EC2
+
+The next step is **not installing Node.js yet**.
+
+First we'll connect to your EC2 from **Windows PowerShell**, verify the server, and understand where commands are being executed.
+
+We'll then install:
+
+```text
+Node.js
+npm
+Git
+PM2
+```
+
+and deploy a small Express application.
+
+
+Yes. Since you **already created `nodejs-ec2-role`**, you don't need to create it again. You can attach it to your existing EC2 instance.
+
+## Attach existing IAM Role to EC2
+
+### 1. Open EC2
+
+AWS Console → **EC2 → Instances**
+
+Select your instance:
+
+```text
+nodejs-learning-server
+```
+
+### 2. Find the IAM role option
+
+At the top, click:
+
+**Actions → Security → Modify IAM role**
+
+You should see:
+
+```text
+IAM role
+[ Select an IAM role ▼ ]
+```
+
+Select:
+
+```text
+nodejs-ec2-role
+```
+
+Then click:
+
+**Update IAM role**
+
+That's it.
+
+---
+
+### 3. Verify it
+
+Select your EC2 instance and look under the **Details** section.
+
+You should see something like:
+
+```text
+IAM Role:
+nodejs-ec2-role
+```
+
+Your setup is now:
+
+```text
+EC2
+ │
+ └── IAM Role
+       │
+       └── nodejs-ec2-role
+```
+
+### Important distinction
+
+You created the role here:
+
+```text
+IAM → Roles → nodejs-ec2-role
+```
+
+You attach that existing role here:
+
+```text
+EC2 → Instances
+    → Select instance
+    → Actions
+    → Security
+    → Modify IAM role
+```
+
+You **do not** need to modify the IAM role just to attach it.
+
+**After this, the next step is connecting to your EC2 instance from Windows PowerShell.**
+
+
+## Step 9 — Connect to your EC2
+
+Now that the IAM role is attached, let's connect to your server.
+
+Since you're on **Windows**, we'll use **PowerShell + SSH**.
+
+### 9.1 Get the EC2 public IP
+
+Go to:
+
+**AWS Console → EC2 → Instances**
+
+Select:
+
+```text
+nodejs-learning-server
+```
+
+Copy:
+
+```text
+Public IPv4 address
+```
+
+It will look like:
+
+```text
+13.xx.xx.xx
+```
+
+---
+
+### 9.2 Find your `.pem` file
+
+You downloaded:
+
+```text
+nodejs-learning-key.pem
+```
+
+For example, if it's in Downloads:
+
+```text
+C:\Users\YourName\Downloads\nodejs-learning-key.pem
+```
+
+---
+
+### 9.3 Open PowerShell
+
+Go to your Downloads folder:
+
+```powershell
+cd $HOME\Downloads
+```
+
+Check the file:
+
+```powershell
+dir nodejs-learning-key.pem
+```
+
+You should see the file.
+
+---
+
+### 9.4 Connect using SSH
+
+For **Amazon Linux 2023**, the default username is:
+
+```text
+ec2-user
+```
+
+Run:
+
+```powershell
+ssh -i .\nodejs-learning-key.pem ec2-user@YOUR_EC2_PUBLIC_IP
+```
+
+Example:
+
+```powershell
+ssh -i .\nodejs-learning-key.pem ec2-user@13.234.56.78
+```
+
+The first time you'll see something similar to:
+
+```text
+Are you sure you want to continue connecting (yes/no/[fingerprint])?
+```
+
+Enter:
+
+```text
+yes
+```
+
+---
+
+## 9.5 You are now inside EC2
+
+Your prompt should change from something like:
+
+```text
+PS C:\Users\YourName>
+```
+
+to something similar to:
+
+```text
+[ec2-user@ip-10-0-1-xxx ~]$
+```
+
+This is important:
+
+```text
+Windows PowerShell
+       │
+       │ SSH
+       ▼
+AWS EC2
+       │
+       └── Amazon Linux
+```
+
+From this point, commands such as:
+
+```bash
+pwd
+ls
+```
+
+are running **inside your EC2 server**, not on Windows.
+
+---
+
+## 9.6 Test the server
+
+Run:
+
+```bash
+whoami
+```
+
+Expected:
+
+```text
+ec2-user
+```
+
+Check OS:
+
+```bash
+cat /etc/os-release
+```
+
+Check hostname:
+
+```bash
+hostname
+```
+
+Check IP:
+
+```bash
+hostname -I
+```
+
+---
+
+### Your AWS setup is now
+
+```text
+AWS
+│
+└── VPC
+    │
+    └── Public Subnet
+        │
+        └── EC2
+            │
+            ├── Security Group
+            │     ├── 22 → SSH
+            │     └── 3000 → Node.js
+            │
+            └── IAM Role
+                  └── nodejs-ec2-role
+```
+if error followe
+
+Yes — the issue is the PowerShell variable expansion inside the `icacls` argument. Use this exact command instead.
+
+### 1. Run this
+
+```powershell
+icacls ".\node-valike-elasticcache-key-pair.pem" /inheritance:r
+```
+
+You already ran this successfully, so **don't need to repeat it** if it worked.
+
+### 2. Get your Windows username
+
+Run:
+
+```powershell
+$env:USERNAME
+```
+
+It should return something like:
+
+```text
+Shivam Singh
+```
+
+### 3. Grant yourself read permission
+
+Use:
+
+```powershell
+icacls ".\node-valike-elasticcache-key-pair.pem" /grant:r "${env:USERNAME}:(R)"
+```
+
+The important difference is:
+
+```text
+"${env:USERNAME}:(R)"
+```
+
+rather than:
+
+```text
+"$env:USERNAME:(R)"
+```
+
+PowerShell was interpreting the `:` incorrectly in your previous command.
+
+### 4. Verify
+
+```powershell
+icacls ".\node-valike-elasticcache-key-pair.pem"
+```
+
+Then try SSH again:
+
+```powershell
+ssh -i ".\node-valike-elasticcache-key-pair.pem" ec2-user@44.192.132.124
+```
+
+You should now get into:
+
+```text
+[ec2-user@ip-10-0-x-x ~]$
+```
+
+**Your AWS networking is already working now** — the current issue is only the Windows permission on the `.pem` file.
+
+
+
+### Next step
+
+Once you're connected to EC2, the next step is:
+
+**Step 10 — Install Node.js + npm on EC2 and run your first Express application.**
+
+Great. Since **SSH is working**, your network setup is done. Let’s move to the next AWS-learning step: **install Node.js on EC2 and run a Node.js application**.
+
+## Step 3 — Set up Node.js on EC2
+
+You should now be inside EC2 and see something like:
+
+```bash
+[ec2-user@ip-10-0-x-x ~]$
+```
+
+### 1. Check OS
+
+Run inside **EC2 terminal**:
+
+```bash
+cat /etc/os-release
+```
+
+You should see **Amazon Linux 2023**.
+
+### 2. Check whether Node.js exists
+
+```bash
+node -v
+npm -v
+```
+
+If not installed, install Node.js:
+
+```bash
+sudo dnf install -y nodejs
+```
+
+Then verify:
+
+```bash
+node -v
+npm -v
+```
+
+### 3. Create a small Node.js application
+
+```bash
+mkdir node-app
+cd node-app
+```
+
+Create the file:
+
+```bash
+nano server.js
+```
+
+Add:
+
+```js
+const http = require("http");
+
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("Hello from AWS EC2 Node.js!");
+});
+
+server.listen(3000, "0.0.0.0", () => {
+  console.log("Server running on port 3000");
+});
+```
+
+Save in nano:
+
+```text
+Ctrl + O
+Enter
+Ctrl + X
+```
+
+### 4. Start the application
+
+```bash
+node server.js
+```
+
+You should see:
+
+```text
+Server running on port 3000
+```
+
+### 5. Allow port 3000 in AWS
+
+Go to:
+
+**AWS Console → EC2 → Security Groups → `node-valike-security-group` → Inbound rules → Edit inbound rules**
+
+Add:
+
+```text
+Type:     Custom TCP
+Port:     3000
+Source:   0.0.0.0/0
+```
+
+For learning this is okay. Later we'll restrict access properly.
+
+### 6. Test from your Windows browser
+
+Open:
+
+```text
+http://44.192.132.124:3000
+```
+
+You should get:
+
+```text
+Hello from AWS EC2 Node.js!
+```
+
+### What you have learned so far
+
+```text
+VPC
+ ↓
+Subnet
+ ↓
+Internet Gateway
+ ↓
+Route Table
+ ↓
+Security Group
+ ↓
+EC2
+ ↓
+Node.js application
+ ↓
+Port 3000
+```
+
+**After this works, the next step is RDS PostgreSQL**, followed by **ElastiCache Redis**, and then we'll connect your Node.js application to both.
+
+
+
+
+
+
+
+
+
+Great. Your **EC2 + Node.js setup is working**. Now move to the next important AWS backend step:
+
+# Step 4 — Create RDS PostgreSQL
+
+We’ll create a PostgreSQL database that your Node.js application running on EC2 can connect to.
+
+### 4.1 Create RDS
+
+AWS Console:
+
+**RDS → Databases → Create database**
+
+Choose:
+
+```text
+Creation method: Standard create
+Engine: PostgreSQL
+```
+
+For learning:
+
+```text
+Template: Free tier
+DB instance identifier: node-learning-db
+
+Master username: postgres
+Master password: <create your own strong password>
+```
+
+### 4.2 Instance configuration
+
+Choose the **Free tier** option if AWS offers it for your account/region.
+
+Don't choose a large instance.
+
+### 4.3 Connectivity
+
+This part is important.
+
+Choose:
+
+```text
+VPC: node-valike
+```
+
+For the subnet group, use the VPC's subnets.
+
+For learning, the database should **not be publicly accessible**:
+
+```text
+Public access: No
+```
+
+### 4.4 Security Group
+
+Create a dedicated security group, for example:
+
+```text
+node-rds-sg
+```
+
+Don't use your EC2 security group directly.
+
+The desired architecture is:
+
+```text
+EC2
+ │
+ │ PostgreSQL : 5432
+ ↓
+RDS PostgreSQL
+```
+
+Therefore the RDS security group should eventually allow:
+
+```text
+Inbound
+Type: PostgreSQL
+Port: 5432
+Source: node-valike-security-group
+```
+
+**Important:** Don't use:
+
+```text
+0.0.0.0/0
+```
+
+for PostgreSQL.
+
+### 4.5 Create database
+
+Click:
+
+**Create database**
+
+Wait until the status becomes:
+
+```text
+Available
+```
+
+Then open the database and find:
+
+```text
+Endpoint
+Port
+```
+
+You'll see something similar to:
+
+```text
+Endpoint:
+node-learning-db.xxxxxxxxx.us-east-1.rds.amazonaws.com
+
+Port:
+5432
+```
+
+**Don't share your database password here.**
+
+---
+
+### Your AWS architecture after this step
+
+```text
+Internet
+   │
+   ▼
+EC2
+Node.js :3000
+   │
+   │ PostgreSQL :5432
+   ▼
+RDS PostgreSQL
+```
+
+After RDS is created, the next step will be **connect your Node.js application on EC2 → RDS PostgreSQL**, and we'll test an actual query.
+
+Great. Now we connect your **Node.js application on EC2 → RDS PostgreSQL**.
+
+## Step 5 — Connect EC2 Node.js to RDS
+
+### 1. Get your RDS endpoint
+
+AWS:
+
+**RDS → Databases → `node-learning-db` → Connectivity & security**
+
+Copy:
+
+```text
+Endpoint
+Port: 5432
+```
+
+Your endpoint will look like:
+
+```text
+node-learning-db.xxxxx.us-east-1.rds.amazonaws.com
+```
+
+### 2. Install PostgreSQL client on EC2
+
+In your **second EC2 SSH terminal**:
+
+```bash
+sudo dnf install -y postgresql15
+```
+
+Check:
+
+```bash
+psql --version
+```
+
+### 3. Test RDS connection
+
+Run:
+
+```bash
+psql -h YOUR_RDS_ENDPOINT -U postgres -d postgres -p 5432
+```
+
+Example:
+
+```bash
+psql -h node-learning-db.xxxxx.us-east-1.rds.amazonaws.com -U postgres -d postgres -p 5432
+```
+
+It will ask:
+
+```text
+Password for user postgres:
+```
+
+Enter the RDS password you created.
+
+If successful:
+
+```text
+postgres=>
+```
+
+### 4. Test with SQL
+
+Run:
+
+```sql
+SELECT version();
+```
+
+Then:
+
+```sql
+SELECT current_database();
+```
+
+You should get:
+
+```text
+postgres
+```
+
+Exit:
+
+```sql
+\q
+```
+
+### If connection fails
+
+The most likely issue is the **RDS Security Group**.
+
+It must have:
+
+```text
+Inbound
+Type: PostgreSQL
+Port: 5432
+Source: node-valike-security-group
+```
+
+Not:
+
+```text
+0.0.0.0/0
+```
+
+---
+
+### What you're learning here
+
+```text
+Internet
+   ↓
+EC2
+   ↓
+Node.js
+   ↓
+RDS PostgreSQL
+     :5432
+```
+
+This is the normal backend pattern: **your application server talks privately to the database**.
+
+Once `psql` connects successfully, the next step is to connect **your actual Node.js code** to RDS using the `pg` package.
+
+
+elastic cache 
+
+This is a useful clue. The package **is installed**, but the `redis-cli` executable isn't in your PATH. Let's locate exactly where Amazon Linux installed it.
+
+Run this inside EC2:
+
+```bash
+rpm -ql redis6 | grep redis-cli
+```
+
+You should get a path such as:
+
+```text
+/usr/bin/redis6-cli
+```
+
+If you see `redis6-cli`, run:
+
+```bash
+redis6-cli --version
+```
+
+Then we can use:
+
+```bash
+redis6-cli -h <YOUR_ELASTICACHE_ENDPOINT> -p 6379
+```
+
+### Why this happened
+
+You installed:
+
+```bash
+sudo dnf install -y redis6
+```
+
+but Amazon Linux 2023's package can expose the executable as **`redis6-cli`** rather than `redis-cli`.
+
+So don't install anything else yet.
+
+**Run:**
+
+```bash
+rpm -ql redis6 | grep redis-cli
+```
+
+and send me the output.

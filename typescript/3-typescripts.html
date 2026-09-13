@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — TypeScript · Generics & Advanced Types</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1040px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
+
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:25px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.55; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
+
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
+
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; white-space:pre; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; }
+.ty { color:#fda4af; font-weight:600; } .cmt { color:#64748b; font-style:italic; } .num { color:#fdba74; }
+
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:14.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-tip { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-note { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a; border-color:#93c5fd; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+.box-danger { background:linear-gradient(135deg,#fee2e2,#fecaca); color:#991b1b; border-color:#fca5a5; }
+
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:16px 18px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.04);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box.blue { border-left:5px solid #2563eb; background:linear-gradient(135deg,#fff,#eff6ff); }
+.compare-box.purple { border-left:5px solid #7c3aed; background:linear-gradient(135deg,#fff,#f5f3ff); }
+.compare-box.bad { border-left:5px solid #e11d48; background:linear-gradient(135deg,#fff,#fff1f2); }
+.compare-box h4 { font-size:14px; margin-bottom:8px; font-weight:800; }
+.compare-box.good h4 { color:#047857; }
+.compare-box.blue h4 { color:#1e40af; }
+.compare-box.purple h4 { color:#5b21b6; }
+.compare-box.bad h4 { color:#9f1239; }
+.compare-box p { margin:0; font-size:0.88rem; line-height:1.75; color:#334155; }
+
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.step-num {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:26px; height:22px; padding:0 6px; border-radius:8px;
+  background:linear-gradient(135deg,#1e3a8a,#2563eb); color:#fff;
+  font-size:11px; font-weight:800;
+}
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+
+/* ---- Improved bullet / numbered list styling (applies everywhere) ---- */
+.card-sub-content ul,
+.card-sub-content ol {
+  list-style: none;
+  margin: 10px 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.card-sub-content ul:last-child,
+.card-sub-content ol:last-child { margin-bottom: 0; }
+.card-sub-content li {
+  position: relative;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: #334155;
+  font-weight: 500;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #2563eb;
+  border-radius: 9px;
+  padding: 9px 14px 9px 38px;
+  margin: 0;
+  transition: background 0.15s ease;
+}
+.card-sub-content li::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #6366f1);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.14);
+}
+.card-sub-content li:hover { background: linear-gradient(135deg, #eff6ff, #e0e7ff); }
+.card-sub-content li strong { color: #1e3a8a; font-weight: 800; }
+.card-sub-content li code { font-size: 12.5px; }
+
+/* Ordered / priority lists get numbered circular badges (purple) */
+.card-sub-content ol { counter-reset: item; }
+.card-sub-content ol li {
+  counter-increment: item;
+  border-left: 3px solid #7c3aed;
+  padding-left: 44px;
+  background: linear-gradient(135deg, #faf5ff, #f5f3ff);
+  color: #4c1d95;
+  font-weight: 600;
+}
+.card-sub-content ol li::before {
+  content: counter(item);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  left: 8px;
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.14);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-sub-content ol li:hover { background: linear-gradient(135deg, #f5f3ff, #ede9fe); }
+
+/* "Remember" style callout badge list (green check style) */
+.card-sub-content ul.remember li {
+  border-left: 3px solid #10b981;
+  background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+  color: #065f46;
+  font-weight: 700;
+}
+.card-sub-content ul.remember li::before {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.16);
+}
+.card-sub-content ul.remember li:hover { background: linear-gradient(135deg, #d1fae5, #ecfdf5); }
+
+.chip-row { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 4px; }
+.chip {
+  background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a;
+  padding:6px 12px; border-radius:20px; font-size:13px; font-weight:700;
+  border:1px solid #93c5fd;
+}
+.chip.priority { background:linear-gradient(135deg,#ede9fe,#ddd6fe); color:#5b21b6; border-color:#c4b5fd; }
+
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb); color:#fff;
+  font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td {
+  padding:10px 14px; font-size:14px; font-weight:600; border:none;
+  color:#1e3a8a; background:#eff6ff; vertical-align:top;
+}
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a; padding:2px 6px;
+  border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — TypeScript · Generics & Advanced Types</h1>
+    <p>Stage 3 (Generics) + Stage 4 (Advanced Types) — definitions, when/why to use, tiny examples.</p>
+    <div class="toc">
+      <a href="#s3">Stage 3 · Generics</a>
+      <a href="#s4">Stage 4 · Advanced Types</a>
+      <a href="#revision">Revision Table</a>
+      <a href="#priority">Interview Priority</a>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s3"><span>Stage 3 — Generics</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">1</span><h4>Why Generics Exist</h4></div>
+      <div class="card-sub-content">
+        <p>Generics let you write <strong>reusable code that remains type-safe</strong>.</p>
+        <p>Without generics:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">identity</span>(value: <span class="ty">any</span>) {
+  <span class="kw">return</span> value;
+}</code></pre>
+        </div>
+        <p>With generics:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">identity</span>&lt;T&gt;(value: T): T {
+  <span class="kw">return</span> value;
+}</code></pre>
+        </div>
+        <p><code>T</code> represents the type provided by the caller.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code>identity(<span class="str">"hello"</span>); <span class="cmt">// string</span>
+identity(<span class="num">100</span>);     <span class="cmt">// number</span></code></pre>
+        </div>
+        <ul class="remember">
+          <li>Generic = reusable + type-safe.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">2</span><h4>Generic Functions</h4></div>
+      <div class="card-sub-content">
+        <p>A function that can work with different types.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">getFirst</span>&lt;T&gt;(items: T[]): T {
+  <span class="kw">return</span> items[<span class="num">0</span>];
+}
+
+getFirst([<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>]);        <span class="cmt">// number</span>
+getFirst([<span class="str">"a"</span>, <span class="str">"b"</span>, <span class="str">"c"</span>]);  <span class="cmt">// string</span></code></pre>
+        </div>
+        <p>TypeScript automatically <strong>infers</strong> <code>T</code>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">3</span><h4>Generic Interfaces</h4></div>
+      <div class="card-sub-content">
+        <p>An interface that can work with different types.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">interface</span> <span class="ty">ApiResponse</span>&lt;T&gt; {
+  success: <span class="ty">boolean</span>;
+  data: T;
+}</code></pre>
+        </div>
+        <p>Use it:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code>ApiResponse&lt;User&gt;
+ApiResponse&lt;Product&gt;
+ApiResponse&lt;User[]&gt;</code></pre>
+        </div>
+        <p>Very common for API response structures.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">4</span><h4>Generic Classes</h4></div>
+      <div class="card-sub-content">
+        <p>A class that can work with different types.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">class</span> <span class="ty">Box</span>&lt;T&gt; {
+  <span class="kw">constructor</span>(<span class="kw">private</span> value: T) {}
+
+  <span class="fn">getValue</span>(): T {
+    <span class="kw">return</span> <span class="kw">this</span>.value;
+  }
+}
+
+<span class="kw">const</span> box = <span class="kw">new</span> <span class="fn">Box</span>&lt;<span class="ty">string</span>&gt;(<span class="str">"Hello"</span>);
+<span class="kw">const</span> numberBox = <span class="kw">new</span> <span class="fn">Box</span>&lt;<span class="ty">number</span>&gt;(<span class="num">100</span>);</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">5</span><h4>Generic Constraints — <code>extends</code></h4></div>
+      <div class="card-sub-content">
+        <p>Restricts what types can be passed.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">getLength</span>&lt;T <span class="kw">extends</span> { length: <span class="ty">number</span> }&gt;(value: T) {
+  <span class="kw">return</span> value.length;
+}</code></pre>
+        </div>
+        <div class="compare">
+          <div class="compare-box good">
+            <h4>Works</h4>
+            <p><code>getLength("hello")</code><br><code>getLength([1, 2, 3])</code></p>
+          </div>
+          <div class="compare-box bad">
+            <h4>Doesn't work</h4>
+            <p><code>getLength(100)</code></p>
+          </div>
+        </div>
+        <ul class="remember">
+          <li><code>T extends X</code> means <strong>T must satisfy X</strong>.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">6</span><h4><code>keyof</code> with Generics</h4></div>
+      <div class="card-sub-content">
+        <p><code>keyof</code> gets the keys of a type.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">interface</span> <span class="ty">User</span> {
+  id: <span class="ty">number</span>;
+  name: <span class="ty">string</span>;
+}
+
+<span class="kw">type</span> <span class="ty">Keys</span> = <span class="kw">keyof</span> User; <span class="cmt">// "id" | "name"</span></code></pre>
+        </div>
+        <p>Common generic pattern:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">getProperty</span>&lt;T, K <span class="kw">extends</span> <span class="kw">keyof</span> T&gt;(
+  obj: T,
+  key: K
+) {
+  <span class="kw">return</span> obj[key];
+}</code></pre>
+        </div>
+        <p>Now invalid keys are rejected.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">7</span><h4>Default Generic Types</h4></div>
+      <div class="card-sub-content">
+        <p>You can give a generic a default.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">interface</span> <span class="ty">ApiResponse</span>&lt;T = <span class="ty">string</span>&gt; {
+  data: T;
+}</code></pre>
+        </div>
+        <p>So <code>ApiResponse</code> means <code>ApiResponse&lt;string&gt;</code>, but you can override it with <code>ApiResponse&lt;number&gt;</code>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">8</span><h4>Generic <code>ApiResponse&lt;T&gt;</code></h4></div>
+      <div class="card-sub-content">
+        <p>Very important for backend/frontend projects.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">interface</span> <span class="ty">ApiResponse</span>&lt;T&gt; {
+  success: <span class="ty">boolean</span>;
+  data: T;
+  message: <span class="ty">string</span>;
+}</code></pre>
+        </div>
+        <p>Then: <code>ApiResponse&lt;User&gt;</code>, <code>ApiResponse&lt;Product&gt;</code>, <code>ApiResponse&lt;User[]&gt;</code> — one structure works for multiple response types.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">9</span><h4>Generic <code>fetchData&lt;T&gt;</code></h4></div>
+      <div class="card-sub-content">
+        <p>Common API pattern:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">async function</span> <span class="fn">fetchData</span>&lt;T&gt;(url: <span class="ty">string</span>): <span class="ty">Promise</span>&lt;T&gt; {
+  <span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(url);
+  <span class="kw">return</span> response.json() <span class="kw">as</span> <span class="ty">Promise</span>&lt;T&gt;;
+}</code></pre>
+        </div>
+        <p>Usage:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">const</span> user = <span class="kw">await</span> <span class="fn">fetchData</span>&lt;User&gt;(<span class="str">"/api/user"</span>);</code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ Generics provide compile-time typing. They do <strong>not</strong> validate actual API data at runtime.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="s4"><span>Stage 4 — Advanced Types</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><span class="step-num">1</span><h4><code>Partial&lt;T&gt;</code></h4></div>
+      <div class="card-sub-content">
+        <p>Makes all properties optional.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">interface</span> <span class="ty">User</span> {
+  id: <span class="ty">number</span>;
+  name: <span class="ty">string</span>;
+  email: <span class="ty">string</span>;
+}
+
+<span class="kw">const</span> update: <span class="ty">Partial</span>&lt;User&gt; = {
+  name: <span class="str">"Shivam"</span>
+};</code></pre>
+        </div>
+        <ul class="remember">
+          <li>Use: very common for <strong>PATCH/update APIs</strong>.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">2</span><h4><code>Readonly&lt;T&gt;</code></h4></div>
+      <div class="card-sub-content">
+        <p>Makes properties readonly.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">const</span> user: <span class="ty">Readonly</span>&lt;User&gt; = {
+  id: <span class="num">1</span>,
+  name: <span class="str">"Shivam"</span>,
+  email: <span class="str">"x@test.com"</span>
+};</code></pre>
+        </div>
+        <div class="info-box box-danger">🚫 Not allowed: <code>user.name = "Rahul"</code></div>
+        <ul class="remember">
+          <li>Use: when an object should not be modified.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">3</span><h4><code>Pick&lt;T, K&gt;</code></h4></div>
+      <div class="card-sub-content">
+        <p>Select only specific properties.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">type</span> <span class="ty">PublicUser</span> = <span class="ty">Pick</span>&lt;User, <span class="str">"id"</span> | <span class="str">"name"</span>&gt;;
+<span class="cmt">// { id: number; name: string; }</span></code></pre>
+        </div>
+        <ul class="remember">
+          <li><strong>Pick = choose</strong></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">4</span><h4><code>Omit&lt;T, K&gt;</code></h4></div>
+      <div class="card-sub-content">
+        <p>Remove specific properties.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">type</span> <span class="ty">PublicUser</span> = <span class="ty">Omit</span>&lt;User, <span class="str">"email"</span>&gt;;</code></pre>
+        </div>
+        <ul class="remember">
+          <li><strong>Omit = remove</strong></li>
+        </ul>
+        <p>Very useful for removing fields like <code>password</code>, <code>refreshToken</code> from API types.</p>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">5</span><h4><code>Record&lt;K, T&gt;</code></h4></div>
+      <div class="card-sub-content">
+        <p>Creates an object type with specific keys and a value type.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">type</span> <span class="ty">Role</span> = <span class="str">"admin"</span> | <span class="str">"user"</span>;
+
+<span class="kw">const</span> permissions: <span class="ty">Record</span>&lt;Role, <span class="ty">string</span>[]&gt; = {
+  admin: [<span class="str">"create"</span>, <span class="str">"delete"</span>],
+  user: [<span class="str">"read"</span>]
+};</code></pre>
+        </div>
+        <ul class="remember">
+          <li><code>Record&lt;Key, Value&gt;</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">6</span><h4>Conditional Types</h4></div>
+      <div class="card-sub-content">
+        <p>Conditional types are basically <strong>if/else at the type level</strong>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">type</span> <span class="ty">IsString</span>&lt;T&gt; =
+  T <span class="kw">extends</span> <span class="ty">string</span> ? <span class="kw">true</span> : <span class="kw">false</span>;
+
+IsString&lt;string&gt; <span class="cmt">// true</span>
+IsString&lt;number&gt; <span class="cmt">// false</span></code></pre>
+        </div>
+        <ul class="remember">
+          <li><code>T extends U ? X : Y</code> means: if T extends U → X, otherwise → Y.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">7</span><h4><code>infer</code></h4></div>
+      <div class="card-sub-content">
+        <p><code>infer</code> lets TypeScript <strong>extract a type</strong>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">type</span> <span class="ty">ArrayElement</span>&lt;T&gt; =
+  T <span class="kw">extends</span> <span class="ty">Array</span>&lt;<span class="kw">infer</span> U&gt;
+    ? U
+    : <span class="kw">never</span>;
+
+<span class="kw">type</span> <span class="ty">Result</span> = ArrayElement&lt;<span class="ty">string</span>[]&gt;; <span class="cmt">// string</span></code></pre>
+        </div>
+        <ul class="remember">
+          <li><strong><code>infer</code> = extract a type</strong></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">8</span><h4>Template Literal Types</h4></div>
+      <div class="card-sub-content">
+        <p>Used to create specific string types.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">type</span> <span class="ty">Direction</span> = <span class="str">"top"</span> | <span class="str">"bottom"</span>;
+
+<span class="kw">type</span> <span class="ty">Margin</span> = `margin-${Direction}`;
+<span class="cmt">// "margin-top" | "margin-bottom"</span></code></pre>
+        </div>
+        <ul class="remember">
+          <li>It's like JavaScript template strings, but at the <strong>type level</strong>.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">9</span><h4>Discriminated Unions</h4></div>
+      <div class="card-sub-content">
+        <p>A union where one common property identifies which type you have.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">type</span> <span class="ty">Result</span> =
+  | { status: <span class="str">"success"</span>; data: User; }
+  | { status: <span class="str">"error"</span>; message: <span class="ty">string</span>; };
+
+<span class="kw">if</span> (result.status === <span class="str">"success"</span>) {
+  result.data; <span class="cmt">// TS knows this is the success type</span>
+}</code></pre>
+        </div>
+        <p><code>status</code> is the <strong>discriminator</strong>.</p>
+        <p>Very useful for:</p>
+        <ul>
+          <li>API states</li>
+          <li>Redux actions</li>
+          <li>Loading / success / error states</li>
+          <li>Event handling</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">10</span><h4>Type Guards</h4></div>
+      <div class="card-sub-content">
+        <p>Type guards help TypeScript <strong>narrow a type</strong>.</p>
+        <ul>
+          <li><strong><code>typeof</code></strong> — checks primitive types.</li>
+          <li><strong><code>instanceof</code></strong> — checks class/object instances.</li>
+          <li><strong><code>in</code></strong> — checks property existence.</li>
+        </ul>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">typeof</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">print</span>(value: <span class="ty">string</span> | <span class="ty">number</span>) {
+  <span class="kw">if</span> (<span class="kw">typeof</span> value === <span class="str">"string"</span>) {
+    value.toUpperCase();
+  }
+}</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">instanceof</span></div>
+          <pre><code><span class="kw">if</span> (value <span class="kw">instanceof</span> User) {
+  value.name;
+}</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">in</span></div>
+          <pre><code><span class="kw">if</span> (<span class="str">"email"</span> <span class="kw">in</span> value) {
+  value.email;
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">11</span><h4>Custom Type Predicate — <code>is</code></h4></div>
+      <div class="card-sub-content">
+        <p>You can create your own type guard.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">isString</span>(value: <span class="ty">unknown</span>): value <span class="kw">is</span> <span class="ty">string</span> {
+  <span class="kw">return</span> <span class="kw">typeof</span> value === <span class="str">"string"</span>;
+}
+
+<span class="kw">if</span> (<span class="fn">isString</span>(value)) {
+  value.toUpperCase();
+}</code></pre>
+        </div>
+        <ul class="remember">
+          <li><code>value is string</code> tells TypeScript: if this function returns true, treat <code>value</code> as a string.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><span class="step-num">12</span><h4><code>in</code> Operator</h4></div>
+      <div class="card-sub-content">
+        <p>Used to check whether an object contains a property.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">type</span> <span class="ty">Admin</span> = { permissions: <span class="ty">string</span>[]; };
+<span class="kw">type</span> <span class="ty">User</span> = { email: <span class="ty">string</span>; };
+
+<span class="kw">function</span> <span class="fn">handle</span>(account: Admin | User) {
+  <span class="kw">if</span> (<span class="str">"permissions"</span> <span class="kw">in</span> account) {
+    account.permissions;
+  } <span class="kw">else</span> {
+    account.email;
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub">
+      <div class="card-sub-title"><span class="step-num">13</span><h4><code>never</code> and Exhaustiveness</h4></div>
+      <div class="card-sub-content">
+        <p><code>never</code> represents something that <strong>should never happen</strong>.</p>
+        <p>Common pattern:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">assertNever</span>(value: <span class="kw">never</span>): <span class="kw">never</span> {
+  <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"Unexpected value"</span>);
+}</code></pre>
+        </div>
+        <p>Used with a discriminated union:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">ts</span></div>
+          <pre><code><span class="kw">switch</span> (action.type) {
+  <span class="kw">case</span> <span class="str">"login"</span>:
+    <span class="kw">break</span>;
+  <span class="kw">case</span> <span class="str">"logout"</span>:
+    <span class="kw">break</span>;
+  <span class="kw">default</span>:
+    <span class="fn">assertNever</span>(action);
+}</code></pre>
+        </div>
+        <p>If you later add a new action but forget to handle it, TypeScript can catch the problem.</p>
+        <ul class="remember">
+          <li><strong><code>never</code> = impossible/unhandled state</strong></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="revision"><span>Quick Revision Table</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Topic</th><th>Remember</th></tr>
+          <tr><td>Generics</td><td>Reusable + type-safe</td></tr>
+          <tr><td><code>&lt;T&gt;</code></td><td>Type parameter</td></tr>
+          <tr><td><code>extends</code></td><td>Restrict generic</td></tr>
+          <tr><td><code>keyof</code></td><td>Get object keys</td></tr>
+          <tr><td><code>ApiResponse&lt;T&gt;</code></td><td>Reusable API response</td></tr>
+          <tr><td><code>Partial&lt;T&gt;</code></td><td>All optional</td></tr>
+          <tr><td><code>Readonly&lt;T&gt;</code></td><td>Cannot modify</td></tr>
+          <tr><td><code>Pick&lt;T,K&gt;</code></td><td>Select properties</td></tr>
+          <tr><td><code>Omit&lt;T,K&gt;</code></td><td>Remove properties</td></tr>
+          <tr><td><code>Record&lt;K,T&gt;</code></td><td>Key-value object type</td></tr>
+          <tr><td>Conditional type</td><td>Type-level if/else</td></tr>
+          <tr><td><code>infer</code></td><td>Extract a type</td></tr>
+          <tr><td>Template literal</td><td>Build string types</td></tr>
+          <tr><td>Discriminated union</td><td>Union identified by a common field</td></tr>
+          <tr><td><code>typeof</code></td><td>Primitive type guard</td></tr>
+          <tr><td><code>instanceof</code></td><td>Class/object type guard</td></tr>
+          <tr><td><code>in</code></td><td>Property existence check</td></tr>
+          <tr><td><code>is</code></td><td>Custom type predicate</td></tr>
+          <tr><td><code>never</code></td><td>Impossible/unhandled state</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="priority"><span>Most Important for Your Interview</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>If you have limited time, prioritize (in order)</h4></div>
+      <div class="card-sub-content">
+        <ol>
+          <li>Generics</li>
+          <li><code>extends</code></li>
+          <li><code>keyof</code></li>
+          <li><code>ApiResponse&lt;T&gt;</code></li>
+          <li><code>Partial</code> / <code>Pick</code> / <code>Omit</code> / <code>Record</code></li>
+          <li>Conditional Types</li>
+          <li>Discriminated Unions</li>
+          <li>Type Guards</li>
+          <li><code>never</code></li>
+        </ol>
+        <div class="info-box box-tip">💡 <code>infer</code> and template literal types are important, but understand their basic purpose rather than mastering advanced type-level programming.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Notes — TypeScript · Generics & Advanced Types · Stage 3 & 4</footer>
+</div>
+</body>
+</html>

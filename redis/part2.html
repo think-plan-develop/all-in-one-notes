@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Redis — Caching &amp; Cache Invalidation — Backend Notes</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+@media (max-width: 768px) { .container { width: 100%; max-width: 100%; margin: 20px 0 40px; } }
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-4 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#fb923c; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+.summary-rose   { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#9f1239; } .summary-rose .summary-text strong { color:#e11d48; }
+.summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple .summary-text strong { color:#7c3aed; }
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+code, .token { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; font-size: 0.88em; background: rgba(0,0,0,0.06); padding: 2px 7px; border-radius: 5px; color: #4338ca; }
+pre { background: #0d1117; border: 1px solid #2d3a4f; border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; margin: 14px 0; color: #e6edf3; }
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#d4d4d4; font-size:14px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; } .arg { color:#a5b4fc; } .key{color:#7dd3fc;}
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #f5f3ff 70%, #fff7ed 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:14.5px; font-weight:700; padding:12px 18px; text-align:left; letter-spacing:.2px; }
+table td { padding:11px 18px; font-size:14px; font-weight:600; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table td:first-child { white-space:nowrap; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-size:13px; }
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+.qa-container { display: flex; flex-direction: column; gap: 30px; }
+.qa-item { background: #ffffff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+.qa-question { font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px; }
+.qa-question::before { content: "Q"; background: var(--accent); color: #fff; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 800; flex-shrink:0; }
+.qa-answer { background: #fffef2; padding: 20px; border-left: 4px solid #f59e0b; border-bottom: 1px solid #fcebb6; font-size: 17px; line-height: 1.9; color: #000000; font-weight: 600; }
+.qa-answer::before { content: "⚡ Answer"; display: block; font-size: 12px; font-weight: 800; color: #b45309; margin-bottom: 8px; text-transform: uppercase; }
+.qa-answer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #e11d48; font-weight: 600; }
+.qa-answer .code-block code { background:none; padding:0; color:#d4d4d4; font-weight:400; }
+.qa-group-title { font-size:16px; font-weight:800; color:var(--heading); margin: 6px 0 -6px; }
+.tree-card { background:#0d1117; color:#c9d1d9; border-radius:12px; padding:18px 24px; margin:14px 0; font-family:"SF Mono","Fira Code",Consolas,monospace; font-size:14px; line-height:1.85; white-space:pre; overflow-x:auto; box-shadow:0 8px 20px rgba(0,0,0,0.15); }
+.tree-card .lvl1 { color:#60a5fa; font-weight:700; } .tree-card .lvl2 { color:#34d399; font-weight:700; } .tree-card .lvl3 { color:#fbbf24; font-weight:700; } .tree-card .lvl4 { color:#f472b6; font-weight:700; }
+.tree-card .bad { color:#f87171; font-weight:700; } .tree-card .good { color:#4ade80; font-weight:700; }
+.star-badge { display:inline-block; color:#f59e0b; font-size:14px; letter-spacing:1px; margin-left:8px; }
+.type-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:16px 0; }
+.type-card { background:#fff; border-radius:12px; padding:16px 18px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.05); border-top:4px solid var(--accent); }
+.type-card .tc-title { font-weight:800; font-size:15px; color:var(--heading); margin-bottom:6px; }
+.type-card .tc-desc { font-size:13px; color:#475569; line-height:1.6; font-weight:500; }
+.flow-pill-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:16px 0; }
+.flow-pill { background:#fff; border:2px solid var(--accent); color:var(--heading); font-weight:800; font-size:13px; padding:8px 16px; border-radius:20px; box-shadow:0 3px 10px rgba(var(--shadow-rgb),0.12); }
+.flow-pill.miss { border-color:#dc2626; color:#991b1b; }
+.flow-pill.hit { border-color:#059669; color:#065f46; }
+.flow-arrow { color:#94a3b8; font-size:18px; font-weight:800; }
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+@media (max-width:768px) { .header h1 { font-size:26px; } .toc a { padding:6px 12px; font-size:12px; } }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header theme-blue">
+      <h1>Redis — Caching &amp; Cache Invalidation</h1>
+      <p>The Cache-Aside pattern, a real Node.js implementation, and how to keep Redis from serving stale data.</p>
+      <div class="toc">
+        <a href="#s1" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'});return false;">1. Why Caching</a>
+        <a href="#s2" onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'});return false;">2. Cache-Aside Pattern</a>
+        <a href="#s3" onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'});return false;">3. Node.js Implementation</a>
+        <a href="#s4" onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'});return false;">4. Cache Invalidation</a>
+        <a href="#s5" onclick="document.getElementById('s5').scrollIntoView({behavior:'smooth'});return false;">5. Strategies &amp; Trade-offs</a>
+        <a href="#qa" onclick="document.getElementById('qa').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+      </div>
+    </div>
+
+    <div class="info-box box-tip"><strong>💡 Core idea:</strong> Caching means keeping frequently needed data in Redis so your application doesn't have to query the main database every time. The database stays the <u>source of truth</u>; Redis is a <u>fast copy</u>.</div>
+
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🎯</div>
+          <div class="summary-text"><strong>Cache-Aside:</strong> The application checks Redis first; on a miss it fetches from the database and writes the result back into Redis.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">✅</div>
+          <div class="summary-text"><strong>Cache Hit:</strong> Redis already has the data — the database is never touched.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">❌</div>
+          <div class="summary-text"><strong>Cache Miss:</strong> Redis doesn't have the data yet — fall through to the database, then populate Redis.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🗑️</div>
+          <div class="summary-text"><strong>Cache Invalidation:</strong> Removing or updating cached data when the underlying database record changes.</div>
+        </div>
+        <div class="summary-item summary-rose">
+          <div class="summary-icon">⏱️</div>
+          <div class="summary-text"><strong>TTL ≠ Invalidation:</strong> TTL is time-based expiry; invalidation is data-change-based removal. You typically use both.</div>
+        </div>
+        <div class="summary-item summary-purple">
+          <div class="summary-icon">🌀</div>
+          <div class="summary-text"><strong>Stale data:</strong> The main risk of caching — Redis still serving an old value after the database has already changed.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1: WHY CACHING ==================== -->
+    <div class="section-divider" id="s1"><span>1. Why Do We Need Caching?</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>Without Redis vs With Redis</h4></div>
+      <div class="card-sub-content">
+        <div class="tree-card"><span class="lvl1">Without Redis:</span>
+
+Client
+  ↓
+API
+  ↓
+PostgreSQL / MongoDB
+  ↓
+Response</div>
+        <div class="tree-card"><span class="lvl2">With Redis:</span>
+
+Client
+  ↓
+API
+  ↓
+Redis
+  ↓
+Data found?
+ ├── YES → Return data
+ │
+ └── NO
+      ↓
+   Database
+      ↓
+   Store in Redis
+      ↓
+   Return data</div>
+        <p>Suppose <code>GET /users/101</code> is requested repeatedly. Without Redis, every single request hits the database:</p>
+        <div class="tree-card">Request 1 → <span class="bad">Database</span>
+Request 2 → <span class="bad">Database</span>
+Request 3 → <span class="bad">Database</span>
+Request 4 → <span class="bad">Database</span>
+...</div>
+        <p>With Redis, only the first request touches the database — everything after that is served from memory:</p>
+        <div class="tree-card">Request 1 → Redis ❌ → Database → Redis ✅
+Request 2 → Redis <span class="good">✅</span>
+Request 3 → Redis <span class="good">✅</span>
+Request 4 → Redis <span class="good">✅</span></div>
+        <div class="info-box box-benefit">✅ Redis absorbs the repeated reads, so your database only handles genuinely new lookups instead of every single request.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 2: CACHE-ASIDE PATTERN ==================== -->
+    <div class="section-divider" id="s2"><span>2. Cache-Aside Pattern <span class="star-badge">⭐⭐⭐⭐⭐</span></span></div>
+
+    <div class="info-box box-tip">💬 <strong>The simple idea:</strong> the application checks Redis first. If the data isn't there, it fetches from the database and puts a copy into Redis. The application manages the cache itself — that's why it's called <em>Cache-Aside</em>.</div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>The complete flow: GET /users/101</h4></div>
+      <div class="card-sub-content">
+        <div class="tree-card">                 Client
+                    │
+                    ↓
+                Node.js API
+                    │
+                    ↓
+                 Redis
+                    │
+              Data exists?
+             /             \
+           YES              NO
+            │                │
+            ↓                ↓
+       Return data       Database
+                             │
+                             ↓
+                        Get data
+                             │
+                             ↓
+                        Store Redis
+                             │
+                             ↓
+                        Return data</div>
+
+        <p style="font-weight:800; color:var(--heading);">Step 1 — Client sends the request</p>
+        <div class="tree-card">Client
+   ↓
+GET /users/101</div>
+
+        <p style="font-weight:800; color:var(--heading); margin-top:16px;">Step 2 — API checks Redis</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">check cache</span></div>
+          <pre><code><span class="kw">const</span> cachedUser = <span class="kw">await</span> redis.<span class="fn">get</span>(<span class="str">"user:101"</span>);</code></pre>
+        </div>
+
+        <p style="font-weight:800; color:var(--heading); margin-top:16px;">Step 3 — Two possibilities</p>
+        <div class="flow-pill-row">
+          <div class="flow-pill hit">Case A — Cache Hit</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-pill hit">Return Redis data, DB untouched</div>
+        </div>
+        <div class="flow-pill-row">
+          <div class="flow-pill miss">Case B — Cache Miss</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-pill">Query Database</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-pill">Store in Redis</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-pill">Return data</div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 3: NODE.JS IMPLEMENTATION ==================== -->
+    <div class="section-divider" id="s3"><span>3. Real Node.js Implementation</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>The full Cache-Aside function</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">user.service.js</span></div>
+          <pre><code><span class="kw">const</span> cachedUser = <span class="kw">await</span> redis.<span class="fn">get</span>(<span class="arg">`user:${userId}`</span>);
+
+<span class="kw">if</span> (cachedUser) {
+  <span class="kw">return</span> <span class="fn">JSON.parse</span>(cachedUser);
+}
+
+<span class="kw">const</span> user = <span class="kw">await</span> User.<span class="fn">findById</span>(userId);
+
+<span class="kw">await</span> redis.<span class="fn">set</span>(
+  <span class="arg">`user:${userId}`</span>,
+  <span class="fn">JSON.stringify</span>(user),
+  {
+    EX: <span class="num">300</span>
+  }
+);
+
+<span class="kw">return</span> user;</code></pre>
+        </div>
+
+        <p style="font-weight:800; color:var(--heading);">Step 1 — Build the Redis key</p>
+        <p>If <code>userId = 101</code>, <code>`user:${userId}`</code> becomes <code>user:101</code>.</p>
+
+        <p style="font-weight:800; color:var(--heading); margin-top:14px;">Step 2 — Check Redis</p>
+        <p>Redis returns either a JSON string, or <code>null</code> if the key doesn't exist.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Cache Hit vs Cache Miss</h4></div>
+      <div class="card-sub-content">
+        <p style="font-weight:800; color:var(--heading);">Cache Hit — the fast path</p>
+        <div class="tree-card">GET /users/101
+       ↓
+Redis
+       ↓
+user:101 exists ✅
+       ↓
+JSON.parse()
+       ↓
+Return user</div>
+        <p>The database isn't called at all.</p>
+
+        <p style="font-weight:800; color:var(--heading); margin-top:16px;">Cache Miss</p>
+        <div class="tree-card">Redis
+  ↓
+<span class="bad">MISS ❌</span>
+  ↓
+MongoDB</div>
+        <p>Once MongoDB returns the record, that result is written into Redis with a TTL:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">store result</span></div>
+          <pre><code><span class="kw">await</span> redis.<span class="fn">set</span>(
+  <span class="arg">`user:${userId}`</span>,
+  <span class="fn">JSON.stringify</span>(user),
+  { EX: <span class="num">300</span> }
+);</code></pre>
+        </div>
+        <div class="tree-card">Key:   user:101
+Value: {"id":101,"name":"Shivam"}
+TTL:   <span class="lvl1">300 seconds</span></div>
+        <p>For the next 5 minutes, <code>GET /users/101</code> is a guaranteed cache hit — the database isn't queried again until the TTL expires.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Why <code>JSON.stringify()</code> / <code>JSON.parse()</code>?</h4></div>
+      <div class="card-sub-content">
+        <p>Redis stores values as strings, so JavaScript objects need to be serialized before storing and parsed back after reading:</p>
+        <div class="tree-card">JavaScript Object
+       ↓
+<span class="lvl1">JSON.stringify()</span>
+       ↓
+Redis
+       ↓
+<span class="lvl2">JSON.parse()</span>
+       ↓
+JavaScript Object</div>
+
+        <p style="font-weight:800; color:var(--heading); margin-top:16px;">Why TTL is used</p>
+        <p>You don't normally want cached data to live forever — <code>{ EX: 300 }</code> means "expire after 300 seconds":</p>
+        <div class="tree-card">10:00 → Cache created
+10:01 → Cache available
+10:03 → Cache available
+10:05 → <span class="bad">Cache expires</span>
+10:06 → Redis MISS</div>
+        <p>After expiration, the very next request naturally refreshes the cache — miss → database → store → return.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 4: CACHE INVALIDATION ==================== -->
+    <div class="section-divider" id="s4"><span>4. Cache Invalidation <span class="star-badge">⭐⭐⭐⭐⭐</span></span></div>
+
+    <div class="info-box box-danger">🚨 <strong>The problem:</strong> if the database data changes, make sure Redis doesn't keep serving the old value. This is the main risk you need to manage in any caching setup.</div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>How stale data happens</h4></div>
+      <div class="card-sub-content">
+        <div class="tree-card">Database:              Redis (cached copy):
+user:101               user:101
+name = Shivam          name = Shivam
+role = user             role = user
+
+<span class="lvl2">✅ synchronized</span></div>
+        <p>Now the user updates their name via <code>PUT /users/101</code>:</p>
+        <div class="tree-card">Database becomes:      Redis still has:
+user:101               user:101
+name = <span class="lvl1">Rahul</span>          name = <span class="bad">Shivam ❌</span></div>
+        <p>The next <code>GET /users/101</code> checks Redis first and returns <strong>Shivam</strong> — stale data — even though the database already says <strong>Rahul</strong>.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>The fix: delete cache after update</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">update handler</span></div>
+          <pre><code><span class="kw">await</span> User.<span class="fn">findByIdAndUpdate</span>(userId, updateData);
+
+<span class="kw">await</span> redis.<span class="fn">del</span>(<span class="arg">`user:${userId}`</span>);</code></pre>
+        </div>
+        <div class="tree-card">UPDATE USER
+    ↓
+Update Database
+    ↓
+<span class="lvl1">Delete Redis Cache</span></div>
+        <p>Now the next <code>GET</code> is a guaranteed miss, which naturally repopulates Redis with the fresh value:</p>
+        <div class="tree-card">GET /users/101
+       ↓
+Redis
+       ↓
+MISS
+       ↓
+Database
+       ↓
+Rahul
+       ↓
+Store in Redis
+       ↓
+Return Rahul</div>
+        <div class="info-box box-benefit">✅ Database and Redis are synchronized again — both now say <code>Rahul</code>.</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>Delete vs Update the cache</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Approach</th><th>What happens</th></tr>
+          <tr><td><strong>Delete cache</strong> ⭐</td><td>Next request gets fresh data from the DB (Cache-Aside repopulates it)</td></tr>
+          <tr><td><strong>Update cache</strong></td><td>Immediately put the new data into Redis — avoids the next miss, but you must be careful the cached shape is exactly correct</td></tr>
+        </table>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">update-in-place variant</span></div>
+          <pre><code><span class="kw">const</span> updatedUser = <span class="kw">await</span> User.<span class="fn">findByIdAndUpdate</span>(
+  userId,
+  updateData,
+  { new: <span class="kw">true</span> }
+);
+
+<span class="kw">await</span> redis.<span class="fn">set</span>(
+  <span class="arg">`user:${userId}`</span>,
+  <span class="fn">JSON.stringify</span>(updatedUser),
+  { EX: <span class="num">300</span> }
+);</code></pre>
+        </div>
+        <p>The simpler and safer default for most applications is: update the database, then delete the cache, and let Cache-Aside repopulate it on the next read.</p>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 5: STRATEGIES & TRADE-OFFS ==================== -->
+    <div class="section-divider" id="s5"><span>5. Strategies, Trade-offs &amp; What To Cache</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4 no-border">
+      <div class="card-sub-title"><h4>CREATE / UPDATE / DELETE — the pattern to memorize</h4></div>
+      <div class="card-sub-content">
+        <div class="type-grid">
+          <div class="type-card cat-4"><div class="tc-title">GET</div><div class="tc-desc">Check Redis → HIT: return. MISS: query DB → store in Redis → return.</div></div>
+          <div class="type-card cat-4"><div class="tc-title">UPDATE</div><div class="tc-desc">Update Database → delete the Redis cache key.</div></div>
+          <div class="type-card cat-4"><div class="tc-title">DELETE</div><div class="tc-desc">Delete the Database record → delete the Redis cache key.</div></div>
+          <div class="type-card cat-4"><div class="tc-title">CREATE</div><div class="tc-desc">Insert into Database → invalidate any affected list/aggregate cache keys, if they exist.</div></div>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">delete handler</span></div>
+          <pre><code><span class="kw">await</span> User.<span class="fn">findByIdAndDelete</span>(userId);
+
+<span class="kw">await</span> redis.<span class="fn">del</span>(<span class="arg">`user:${userId}`</span>);</code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ <strong>The real rule isn't</strong> "whenever the database changes, delete Redis" — it's <strong>"whenever data changes, invalidate every cache entry that depends on it."</strong> A single record can be duplicated across several cached keys (e.g. <code>product:501</code>, <code>products:page:1</code>, <code>category:electronics</code>).</div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4 accent-left">
+      <div class="card-sub-title"><h4>TTL vs Invalidation — not the same thing</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Mechanism</th><th>Trigger</th></tr>
+          <tr><td><strong>TTL</strong></td><td>Time-based — the key disappears automatically after N seconds, regardless of whether the data changed</td></tr>
+          <tr><td><strong>Invalidation</strong></td><td>Data-change-based — the application explicitly deletes/updates a key because the underlying record changed</td></tr>
+        </table>
+        <p>In practice you usually use both together — TTL as a safety net, invalidation for immediate correctness:</p>
+        <div class="tree-card">Cache created
+   ↓
+TTL = 5 minutes
+   ↓
+If data changes before 5 minutes
+   ↓
+<span class="lvl1">Invalidate immediately</span></div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><h4>What's worth caching (and what isn't)</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Good candidates</th><th>Be careful caching</th></tr>
+          <tr><td>Product details</td><td>Bank account balance</td></tr>
+          <tr><td>Product categories</td><td>Payment status</td></tr>
+          <tr><td>User profile</td><td>Inventory count</td></tr>
+          <tr><td>Configuration / reference data</td><td>Anything highly volatile or sensitive to staleness</td></tr>
+          <tr><td>Dashboard summaries</td><td>—</td></tr>
+        </table>
+        <p>The pattern for a good candidate: <strong>frequently read + doesn't change often + expensive to fetch.</strong></p>
+
+        <p style="font-weight:800; color:var(--heading); margin-top:16px;">Advantages</p>
+        <div class="type-grid">
+          <div class="type-card cat-4"><div class="tc-title">Faster responses</div><div class="tc-desc">Redis reads are far faster than hitting the primary database.</div></div>
+          <div class="type-card cat-4"><div class="tc-title">Less DB load</div><div class="tc-desc">Redis absorbs most repeated reads; only misses reach the database.</div></div>
+          <div class="type-card cat-4"><div class="tc-title">Simple control</div><div class="tc-desc">Your application explicitly decides when to read, write, and invalidate the cache.</div></div>
+        </div>
+
+        <p style="font-weight:800; color:var(--heading); margin-top:16px;">Disadvantages</p>
+        <div class="type-grid">
+          <div class="type-card cat-4"><div class="tc-title">Stale data</div><div class="tc-desc">Redis can serve an outdated value if invalidation is missed.</div></div>
+          <div class="type-card cat-4"><div class="tc-title">Invalidation complexity</div><div class="tc-desc">Knowing every cache key that depends on a changed record isn't always obvious.</div></div>
+          <div class="type-card cat-4"><div class="tc-title">First-miss cost</div><div class="tc-desc">The first request after expiry still pays the full database cost.</div></div>
+          <div class="type-card cat-4"><div class="tc-title">Cache stampede</div><div class="tc-desc">A popular key expiring under heavy load can send many requests to the DB at once. Just know the problem exists for now.</div></div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== INTERVIEW Q&A ==================== -->
+    <div class="section-divider" id="qa"><span>Interview Q&amp;A</span></div>
+
+    <div class="card theme-blue">
+      <div class="card-title">💡 Interview Q&amp;A</div>
+      <div class="card-content qa-container">
+
+        <div class="qa-group-title">Standard Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is the Cache-Aside pattern?</div>
+          <div class="qa-answer">The application checks Redis first for a given key. On a hit, it returns the cached value directly. On a miss, it queries the database, stores the result in Redis (usually with a TTL), and then returns it. The application — not Redis itself — is responsible for managing what gets cached and when.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is cache invalidation, in one sentence?</div>
+          <div class="qa-answer">Removing or updating cached data when the underlying database record changes, so Redis doesn't keep serving an old value after the source of truth has moved on.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why use <code>JSON.stringify()</code> before storing an object in Redis?</div>
+          <div class="qa-answer">Redis stores values as strings. A JavaScript object has to be serialized to a JSON string to store it, and parsed back with <code>JSON.parse()</code> when reading it out again.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What's the difference between TTL and invalidation?</div>
+          <div class="qa-answer">TTL is time-based — the key expires automatically after a fixed duration regardless of whether anything changed. Invalidation is data-change-based — the application explicitly deletes or updates a key the moment it knows the underlying record changed. Most real systems use both together.</div>
+        </div>
+
+        <div class="qa-group-title">Tricky / Follow-Up Questions</div>
+
+        <div class="qa-item">
+          <div class="qa-question">If you only delete <code>product:501</code> after a price change, is that always enough?</div>
+          <div class="qa-answer">Not necessarily. The same product may also be duplicated inside other cached results — like <code>products:page:1</code>, <code>category:electronics</code>, or <code>homepage:featured-products</code>. You need to invalidate every cache entry that depends on the changed record, not just the record's own key.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Why not just always update the cache instead of deleting it?</div>
+          <div class="qa-answer">Updating avoids the next cache miss, but it requires you to construct the exact correct representation of the new state every time you write to Redis — any mismatch introduces a subtle bug. Deleting is simpler and safer: you let Cache-Aside naturally repopulate the key from the database on the next read.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">Should you cache a bank account balance the same way you'd cache product details?</div>
+          <div class="qa-answer">No — good caching candidates are frequently read, don't change often, and are expensive to fetch. A balance changes with every transaction and staleness has real consequences, so it needs careful consistency handling rather than a blind Cache-Aside TTL.</div>
+        </div>
+
+        <div class="qa-item">
+          <div class="qa-question">What is a "cache stampede"?</div>
+          <div class="qa-answer">When a popular cache key expires and a burst of simultaneous requests all experience a miss at once, all of them can hit the database in parallel — momentarily defeating the purpose of the cache. You don't need to master prevention techniques yet, just recognize the failure mode.</div>
+        </div>
+
+        <div class="qa-group-title">The One You Should Be Ready For</div>
+
+        <div class="qa-item">
+          <div class="qa-question">How would you implement Redis caching for <code>GET /users/:id</code>?</div>
+          <div class="qa-answer">"I'd use the Cache-Aside pattern. The API checks Redis using a key like <code>user:{id}</code>. If it exists, that's a cache hit and I return the cached data directly. If it doesn't, that's a cache miss — I fetch the user from the database, store the result in Redis with an appropriate TTL, and return it. When the user is updated or deleted, I invalidate the corresponding Redis key so the next read fetches the fresh value instead of stale data."</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Redis — Caching &amp; Cache Invalidation — Backend Notes</footer>
+
+</body>
+</html>
