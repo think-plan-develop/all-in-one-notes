@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notes — Next.js · Routing Basics</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: linear-gradient(165deg, #eef2ff 0%, #f0f9ff 35%, #ecfdf5 65%, #fff7ed 100%);
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1e293b; min-height: 100vh;
+}
+.container { width: 94%; max-width: 1040px; margin: 40px auto 60px; }
+@media (max-width: 768px) { .container { width: 100%; margin: 16px 0 40px; padding: 0 12px; } }
+
+.header {
+  background: linear-gradient(125deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 70%, #3b82f6 100%);
+  border-radius: 18px; padding: 36px 34px; margin-bottom: 36px;
+  box-shadow: 0 14px 36px rgba(37,99,235,0.35); position: relative; overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%); border-radius: 50%;
+}
+.header h1 { color:#fff; font-size:25px; margin-bottom:8px; font-weight:800; position:relative; }
+.header p { color:rgba(255,255,255,0.9); font-size:15px; margin-bottom:18px; position:relative; line-height:1.55; }
+.toc { display:flex; flex-wrap:wrap; gap:7px; position:relative; }
+.toc a {
+  text-decoration:none; padding:6px 13px; border-radius:18px; font-size:12px; font-weight:600;
+  background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3);
+}
+.toc a:hover { background:#fff; color:#2563eb; }
+
+.section-divider { margin:40px 0 16px; position:relative; }
+.section-divider::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, #3b82f6, #6366f1, #10b981); opacity:.3;
+}
+.section-divider span {
+  background: linear-gradient(165deg, #eef2ff, #f0f9ff);
+  padding:0 14px 0 0; position:relative; font-size:18px; font-weight:800; color:#1e293b;
+}
+
+code {
+  font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 0.88em;
+  background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 5px; color: #1e40af;
+}
+.code-block {
+  background:#0f172a; border-radius:12px; overflow:hidden; margin:12px 0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.22); border:1px solid #1e293b;
+}
+.code-bar {
+  background:linear-gradient(90deg, #1e293b, #0f172a); padding:8px 14px;
+  display:flex; align-items:center; gap:6px; border-bottom:1px solid #334155;
+}
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#f87171; }
+.code-bar .dot-grey { background:#fbbf24; }
+.code-bar .dot-green { background:#34d399; }
+.code-bar .filename { color:#94a3b8; font-size:12px; margin-left:8px; }
+.code-block pre { padding:16px 18px; overflow-x:auto; margin:0; background:transparent; }
+.code-block code { color:#e2e8f0; font-size:13.5px; background:none; padding:0; font-family:'Fira Code',Consolas,monospace; white-space:pre; }
+.tag { color:#f472b6; font-weight:600; } .attr { color:#7dd3fc; } .val { color:#86efac; }
+.kw { color:#c084fc; font-weight:600; } .str { color:#86efac; } .fn { color:#7dd3fc; }
+.ty { color:#fda4af; font-weight:600; } .prop { color:#7dd3fc; } .cmt { color:#64748b; font-style:italic; } .num { color:#fdba74; } .arg { color:#a5b4fc; }
+
+.info-box {
+  border-radius:12px; padding:13px 16px; margin:12px 0;
+  font-size:14.5px; line-height:1.7; font-weight:600; border:1px solid transparent;
+}
+.box-tip { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-color:#a5b4fc; }
+.box-note { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a; border-color:#93c5fd; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-color:#6ee7b7; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-color:#fcd34d; }
+.box-danger { background:linear-gradient(135deg,#fee2e2,#fecaca); color:#991b1b; border-color:#fca5a5; }
+
+.compare { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0; }
+@media (max-width:700px){ .compare { grid-template-columns:1fr; } }
+.compare-box {
+  background:#fff; border-radius:14px; padding:16px 18px;
+  border:1px solid rgba(0,0,0,0.06); box-shadow:0 4px 14px rgba(0,0,0,0.04);
+}
+.compare-box.good { border-left:5px solid #10b981; background:linear-gradient(135deg,#fff,#ecfdf5); }
+.compare-box.blue { border-left:5px solid #2563eb; background:linear-gradient(135deg,#fff,#eff6ff); }
+.compare-box.purple { border-left:5px solid #7c3aed; background:linear-gradient(135deg,#fff,#f5f3ff); }
+.compare-box.amber { border-left:5px solid #f59e0b; background:linear-gradient(135deg,#fff,#fffbeb); }
+.compare-box h4 { font-size:14px; margin-bottom:8px; font-weight:800; }
+.compare-box.good h4 { color:#047857; }
+.compare-box.blue h4 { color:#1e40af; }
+.compare-box.purple h4 { color:#5b21b6; }
+.compare-box.amber h4 { color:#b45309; }
+.compare-box p { margin:0; font-size:0.88rem; line-height:1.75; color:#334155; }
+
+.categories-wrap {
+  background: rgba(255,255,255,0.78); border:1px solid rgba(37,99,235,0.12);
+  border-radius:16px; padding:22px; margin-bottom:26px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.07);
+}
+.card-sub {
+  border-radius:12px; margin-bottom:14px; overflow:hidden; background:#fff;
+  border:1px solid rgba(37,99,235,0.12); box-shadow:0 4px 14px rgba(37,99,235,0.06);
+}
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid #2563eb; }
+.card-sub-title {
+  display:flex; align-items:center; gap:10px; padding:12px 18px;
+  background: linear-gradient(120deg, #eff6ff, #ffffff 75%);
+  border-bottom:1px solid rgba(37,99,235,0.1);
+}
+.card-sub-title h4 { margin:0; font-size:15px; font-weight:800; color:#1e3a8a; }
+.step-num {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:26px; height:24px; padding:0 7px; border-radius:8px;
+  background:linear-gradient(135deg,#1e3a8a,#2563eb); color:#fff;
+  font-size:12px; font-weight:800; flex-shrink:0;
+}
+.star { color:#ec4899; font-size:13px; margin-left:2px; }
+.card-sub-content { padding:16px 20px; background:#fff; }
+.card-sub-content p { color:#334155; font-size:15px; line-height:1.7; font-weight:500; margin:0 0 10px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+
+/* ---- Improved bullet / numbered list styling (applies everywhere) ---- */
+.card-sub-content ul,
+.card-sub-content ol {
+  list-style: none;
+  margin: 10px 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.card-sub-content ul:last-child,
+.card-sub-content ol:last-child { margin-bottom: 0; }
+.card-sub-content li {
+  position: relative;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: #334155;
+  font-weight: 500;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #2563eb;
+  border-radius: 9px;
+  padding: 9px 14px 9px 38px;
+  margin: 0;
+  transition: background 0.15s ease;
+}
+.card-sub-content li::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #6366f1);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.14);
+}
+.card-sub-content li:hover { background: linear-gradient(135deg, #eff6ff, #e0e7ff); }
+.card-sub-content li strong { color: #1e3a8a; font-weight: 800; }
+.card-sub-content li code { font-size: 12.5px; }
+
+/* Ordered lists get numbered circular badges (purple) */
+.card-sub-content ol { counter-reset: item; }
+.card-sub-content ol li {
+  counter-increment: item;
+  border-left: 3px solid #7c3aed;
+  padding-left: 44px;
+  background: linear-gradient(135deg, #faf5ff, #f5f3ff);
+  color: #4c1d95;
+  font-weight: 600;
+}
+.card-sub-content ol li::before {
+  content: counter(item);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  left: 8px;
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.14);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-sub-content ol li:hover { background: linear-gradient(135deg, #f5f3ff, #ede9fe); }
+
+/* "Remember / Important" callout badge list (green) */
+.card-sub-content ul.remember li {
+  border-left: 3px solid #10b981;
+  background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+  color: #065f46;
+  font-weight: 700;
+}
+.card-sub-content ul.remember li::before {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.16);
+}
+.card-sub-content ul.remember li:hover { background: linear-gradient(135deg, #d1fae5, #ecfdf5); }
+
+.chip-row { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 4px; }
+.chip {
+  background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1e3a8a;
+  padding:6px 12px; border-radius:20px; font-size:13px; font-weight:700;
+  border:1px solid #93c5fd;
+}
+
+table { width:100%; border-collapse:collapse; margin:12px 0; border-radius:12px; overflow:hidden; }
+table th {
+  background:linear-gradient(120deg, #1e3a8a, #2563eb); color:#fff;
+  font-size:13px; font-weight:700; padding:11px 14px; text-align:left; border:none;
+}
+table td {
+  padding:10px 14px; font-size:14px; font-weight:600; border:none;
+  color:#1e3a8a; background:#eff6ff; vertical-align:top;
+}
+table tr:nth-child(even) td { background:#dbeafe; }
+table tr:hover td { background:#bfdbfe; }
+table td code {
+  background:rgba(37,99,235,0.12); color:#1e3a8a; padding:2px 6px;
+  border-radius:4px; font-family:'Fira Code',Consolas,monospace; font-size:12.5px;
+}
+
+.tree {
+  background:#0f172a; border-radius:12px; padding:16px 20px; margin:12px 0;
+  font-family:'Fira Code',Consolas,monospace; font-size:13px; color:#e2e8f0; line-height:1.65;
+  overflow-x:auto; white-space:pre;
+}
+.tree .b { color:#7dd3fc; } .tree .g { color:#86efac; } .tree .p { color:#c084fc; } .tree .a { color:#fdba74; }
+
+.flow {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  margin:16px 0; background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  border-radius:16px; padding:24px 20px; border:1px solid #312e81;
+}
+.flow-step {
+  background: linear-gradient(135deg, #1e293b, #334155); border: 1.5px solid #475569;
+  border-radius:12px; padding:11px 20px; text-align:center;
+  min-width:180px; max-width:560px; color:#f1f5f9; font-weight:600; font-size:14px;
+  font-family:'Fira Code',Consolas,monospace;
+}
+.flow-arrow { color:#818cf8; font-size:1.3rem; line-height:1.5; }
+.flow-step.start { background: linear-gradient(135deg, #1d4ed8, #3b82f6); border-color: #60a5fa; color:#fff; }
+.flow-step.success { background: linear-gradient(135deg, #047857, #10b981); border-color: #34d399; color:#fff; }
+.flow-step.purple { background: linear-gradient(135deg, #5b21b6, #7c3aed); border-color: #a78bfa; color:#fff; }
+
+footer { text-align:center; padding:28px 16px; color:#94a3b8; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Notes — Next.js · Routing Basics</h1>
+    <p>App Router fundamentals: file-based routing, nested routes, dynamic routes, and slugs — no react-router-dom required.</p>
+    <div class="toc">
+      <a href="#setup">Setup</a>
+      <a href="#basics">Routing Basics</a>
+      <a href="#nested">Nested Routes ⭐</a>
+      <a href="#normal">1 Normal Route</a>
+      <a href="#dynamic">2 Dynamic Route ⭐</a>
+      <a href="#slug">Slug</a>
+      <a href="#idvsslug">[id] vs [slug]</a>
+    </div>
+  </div>
+
+  <div class="section-divider" id="setup"><span>Setup</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Create a Next.js App</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code><span class="fn">npx</span> <span class="arg">create-next-app@latest my-app</span></code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="basics"><span>Next.js Routing Basics</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>Project structure</h4></div>
+      <div class="card-sub-content">
+        <p>When you create a modern Next.js app, you normally have:</p>
+        <div class="tree">my-app/
+├── <span class="b">app/</span>
+│   ├── page.tsx
+│   ├── layout.tsx
+│   └── ...
+├── public/
+├── package.json
+└── ...</div>
+        <p>The important folder is:</p>
+        <ul class="remember">
+          <li><code>app/</code></li>
+          <li><code>page.tsx</code> = route</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>File → URL mapping</h4></div>
+      <div class="card-sub-content">
+        <p>For example:</p>
+        <div class="tree">app/
+├── page.tsx
+├── about/
+│   └── page.tsx
+└── contact/
+    └── page.tsx</div>
+        <p>This automatically creates:</p>
+        <div class="tree"><span class="g">/</span>           → app/page.tsx
+<span class="g">/about</span>      → app/about/page.tsx
+<span class="g">/contact</span>    → app/contact/page.tsx</div>
+        <p>So <code>app/about/page.tsx</code> means:</p>
+        <div class="tree">http://localhost:3000/about</div>
+        <div class="info-box box-benefit">✅ No <code>react-router-dom</code> is required.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="nested"><span>Nested Routes <span class="star">⭐⭐⭐⭐⭐</span></span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-content">
+        <p>This is one of the most important parts. Suppose you need:</p>
+        <div class="tree">/products
+/products/mobile
+/products/laptop</div>
+        <p>Folder structure:</p>
+        <div class="tree">app/
+└── <span class="b">products/</span>
+    ├── page.tsx
+    ├── <span class="p">mobile/</span>
+    │   └── page.tsx
+    └── <span class="p">laptop/</span>
+        └── page.tsx</div>
+        <p>Mapping:</p>
+        <table>
+          <tr><th>URL</th><th>File</th></tr>
+          <tr><td><code>/products</code></td><td><code>products/page.tsx</code></td></tr>
+          <tr><td><code>/products/mobile</code></td><td><code>products/mobile/page.tsx</code></td></tr>
+          <tr><td><code>/products/laptop</code></td><td><code>products/laptop/page.tsx</code></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="normal"><span>1. Normal Route</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-content">
+        <p>URL:</p>
+        <div class="tree">/products</div>
+        <p>Folder structure:</p>
+        <div class="tree">app/
+└── <span class="b">products/</span>
+    └── page.tsx</div>
+        <p><code>page.tsx</code>:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/products/page.tsx</span></div>
+          <pre><code><span class="kw">export default function</span> <span class="fn">Products</span>() {
+  <span class="kw">return</span> &lt;<span class="tag">h1</span>&gt;Products Page&lt;/<span class="tag">h1</span>&gt;;
+}</code></pre>
+        </div>
+        <div class="flow">
+          <div class="flow-step start">app/products/page.tsx</div>
+          <div class="flow-arrow">↓</div>
+          <div class="flow-step success">/products</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="dynamic"><span>2. Dynamic Route <span class="star">⭐</span></span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-content">
+        <p>Used when part of the URL changes.</p>
+        <p>URLs:</p>
+        <div class="tree">/products/101
+/products/102
+/products/103</div>
+        <p>Folder structure:</p>
+        <div class="tree">app/
+└── <span class="b">products/</span>
+    └── <span class="p">[id]/</span>
+        └── page.tsx</div>
+        <p><code>page.tsx</code>:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/products/[id]/page.tsx</span></div>
+          <pre><code><span class="kw">export default async function</span> <span class="fn">Product</span>({
+  params,
+}: {
+  params: <span class="ty">Promise</span>&lt;{ id: <span class="ty">string</span> }&gt;;
+}) {
+  <span class="kw">const</span> { id } = <span class="kw">await</span> params;
+
+  <span class="kw">return</span> &lt;<span class="tag">h1</span>&gt;Product ID: {id}&lt;/<span class="tag">h1</span>&gt;;
+}</code></pre>
+        </div>
+        <p>Now:</p>
+        <table>
+          <tr><th>URL</th><th>id</th></tr>
+          <tr><td><code>/products/101</code></td><td><code>"101"</code></td></tr>
+          <tr><td><code>/products/102</code></td><td><code>"102"</code></td></tr>
+          <tr><td><code>/products/103</code></td><td><code>"103"</code></td></tr>
+        </table>
+        <p><strong>Key difference:</strong></p>
+        <div class="compare">
+          <div class="compare-box blue">
+            <h4>Normal</h4>
+            <p><code>products/page.tsx</code> → <code>/products</code></p>
+          </div>
+          <div class="compare-box purple">
+            <h4>Dynamic</h4>
+            <p><code>products/[id]/page.tsx</code> → <code>/products/101</code>, <code>/products/102</code>, <code>/products/103</code></p>
+          </div>
+        </div>
+        <ul class="remember">
+          <li><code>[id]</code> means <strong>dynamic value from the URL</strong>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="slug"><span>Slug in Next.js</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-title"><h4>What is a slug?</h4></div>
+      <div class="card-sub-content">
+        <p>A <strong>slug is a dynamic value used in the URL</strong>, usually a <strong>readable name</strong> instead of an ID.</p>
+        <p>For example:</p>
+        <div class="tree">/products/iphone-15
+/products/macbook-pro
+/products/samsung-s24</div>
+        <p>Here, <code>iphone-15</code>, <code>macbook-pro</code>, and <code>samsung-s24</code> are <strong>slugs</strong>.</p>
+      </div>
+    </div>
+    <div class="card-sub accent-left">
+      <div class="card-sub-title"><h4>Folder structure &amp; page.tsx</h4></div>
+      <div class="card-sub-content">
+        <div class="tree">app/
+└── <span class="b">products/</span>
+    └── <span class="p">[slug]/</span>
+        └── page.tsx</div>
+        <p><code>[slug]</code> means the URL value is dynamic.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/products/[slug]/page.tsx</span></div>
+          <pre><code><span class="kw">export default async function</span> <span class="fn">Product</span>({
+  params,
+}: {
+  params: <span class="ty">Promise</span>&lt;{ slug: <span class="ty">string</span> }&gt;;
+}) {
+  <span class="kw">const</span> { slug } = <span class="kw">await</span> params;
+
+  <span class="kw">return</span> &lt;<span class="tag">h1</span>&gt;Product: {slug}&lt;/<span class="tag">h1</span>&gt;;
+}</code></pre>
+        </div>
+        <table>
+          <tr><th>URL</th><th>slug</th></tr>
+          <tr><td><code>/products/iphone-15</code></td><td><code>"iphone-15"</code></td></tr>
+          <tr><td><code>/products/macbook-pro</code></td><td><code>"macbook-pro"</code></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="idvsslug"><span>[id] vs [slug]</span></div>
+  <div class="categories-wrap">
+    <div class="card-sub no-border">
+      <div class="card-sub-content">
+        <p>Both are <strong>dynamic routes</strong>. The difference is what the value represents.</p>
+        <div class="compare">
+          <div class="compare-box blue">
+            <h4><code>/products/[id]</code></h4>
+            <p>Example: <code>/products/101</code> — usually identifies a record by ID.</p>
+          </div>
+          <div class="compare-box purple">
+            <h4><code>/products/[slug]</code></h4>
+            <p>Example: <code>/products/iphone-15</code> — usually identifies a resource using a human-readable URL name.</p>
+          </div>
+        </div>
+        <div class="info-box box-warning">⚠️ <strong>Important:</strong> <code>slug</code> is not a special Next.js keyword. You could name it <code>[productName]</code>, <code>[username]</code>, <code>[anything]</code>. The name simply becomes the parameter name.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Notes — Next.js · Routing Basics · App Router</footer>
+</div>
+</body>
+</html>
