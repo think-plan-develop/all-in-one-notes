@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Manual Implementation vs Built-in</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+@media (max-width: 768px) { .container { width: 100%; max-width: 100%; margin: 20px 0 40px; } }
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+.cat-4 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#fb923c; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.35); }
+.toc a:hover { background:#fff; color:var(--accent); }
+.intro-summary { margin:0 0 50px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+.summary-rose   { background:linear-gradient(135deg,#fff1f2,#ffe4e6); color:#9f1239; } .summary-rose .summary-text strong { color:#e11d48; }
+.summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple .summary-text strong { color:#7c3aed; }
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+code, .token { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace; font-size: 0.88em; background: rgba(0,0,0,0.06); padding: 2px 7px; border-radius: 5px; color: #4338ca; }
+pre { background: #0d1117; border: 1px solid #2d3a4f; border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; margin: 14px 0; color: #e6edf3; }
+pre code { background: none; padding: 0; color: inherit; font-size: 1em; }
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #333; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; margin:0; border:none; border-radius:0; background:transparent; }
+.code-block code { color:#d4d4d4; font-size:14px; font-family:'Fira Code','Consolas',monospace; background:none; padding:0; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; } .arg { color:#a5b4fc; } .ty{color:#7dd3fc;}
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+.box-danger  { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.categories-wrap { background: linear-gradient(120deg, #eff6ff 0%, #ecfdf5 35%, #f5f3ff 70%, #fff7ed 100%); border:1px solid rgba(37,99,235,0.16); border-radius:18px; padding:24px; margin-bottom:30px; box-shadow: 0 10px 26px rgba(37,99,235,0.1); }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:1px solid rgba(var(--shadow-rgb),0.18); box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-border { border: none; }
+.card-sub.accent-left { border-left: 5px solid var(--accent); }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border-bottom:1px solid rgba(var(--shadow-rgb),0.16); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(var(--shadow-rgb,37,99,235),0.12); }
+table th { background:linear-gradient(120deg, var(--accent-dark,#1e3a8a), var(--accent,#2563eb)); color:#fff; font-size:14.5px; font-weight:700; padding:12px 18px; text-align:left; letter-spacing:.2px; }
+table td { padding:11px 18px; font-size:14px; font-weight:600; border-bottom:1px solid #e8edf7; color:#28324a; background:#fff; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background: var(--content-bg,#eff6ff); }
+table td:first-child { white-space:nowrap; }
+table td code { background:rgba(var(--shadow-rgb,37,99,235),0.1); color: var(--heading,#1e3a8a); padding:2px 6px; border-radius:5px; font-size:13px; }
+.star-badge { display:inline-block; color:#f59e0b; font-size:14px; letter-spacing:1px; margin-left:8px; }
+footer { text-align:center; padding:30px 20px; color:#9aa3b5; font-size:13px; }
+@media (max-width:768px) { .header h1 { font-size:26px; } .toc a { padding:6px 12px; font-size:12px; } }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header theme-blue">
+      <h1>Manual Implementation vs Built-in</h1>
+      <p><code style="background:rgba(255,255,255,0.18);color:#fff;">map</code>, <code style="background:rgba(255,255,255,0.18);color:#fff;">filter</code>, <code style="background:rgba(255,255,255,0.18);color:#fff;">reduce</code>, and <code style="background:rgba(255,255,255,0.18);color:#fff;">forEach</code> — how each works, written by hand, then compared to the real thing.</p>
+      <div class="toc">
+        <a href="#compare" onclick="document.getElementById('compare').scrollIntoView({behavior:'smooth'});return false;">Quick Comparison</a>
+        <a href="#map" onclick="document.getElementById('map').scrollIntoView({behavior:'smooth'});return false;">map()</a>
+        <a href="#filter" onclick="document.getElementById('filter').scrollIntoView({behavior:'smooth'});return false;">filter()</a>
+        <a href="#reduce" onclick="document.getElementById('reduce').scrollIntoView({behavior:'smooth'});return false;">reduce()</a>
+        <a href="#foreach" onclick="document.getElementById('foreach').scrollIntoView({behavior:'smooth'});return false;">forEach()</a>
+        <a href="#improve" onclick="document.getElementById('improve').scrollIntoView({behavior:'smooth'});return false;">Faithful Versions</a>
+        <a href="#mistakes" onclick="document.getElementById('mistakes').scrollIntoView({behavior:'smooth'});return false;">Common Mistakes</a>
+        <a href="#chain" onclick="document.getElementById('chain').scrollIntoView({behavior:'smooth'});return false;">Chaining</a>
+      </div>
+    </div>
+
+    <div class="info-box box-tip"><strong>💡 How these notes work:</strong> each method below covers three things in order — what it does, a manual (polyfill-style) implementation, and the real built-in usage.</div>
+
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🔁</div>
+          <div class="summary-text"><strong>map():</strong> Returns a new array of the same length — one transformed value per input element.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🧹</div>
+          <div class="summary-text"><strong>filter():</strong> Returns a new array containing only elements where the callback is truthy — length ≤ input.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">📦</div>
+          <div class="summary-text"><strong>reduce():</strong> Walks the array carrying an accumulator, and returns one final combined value.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🎬</div>
+          <div class="summary-text"><strong>forEach():</strong> Runs a callback for its side effects and returns <code>undefined</code> — can't be chained.</div>
+        </div>
+        <div class="summary-item summary-rose">
+          <div class="summary-icon">⚠️</div>
+          <div class="summary-text"><strong>Arrow + braces:</strong> <code>(e) => { e * 2 }</code> returns nothing — braces need an explicit <code>return</code>.</div>
+        </div>
+        <div class="summary-item summary-purple">
+          <div class="summary-icon">🔗</div>
+          <div class="summary-text"><strong>Chaining:</strong> <code>filter().map().reduce()</code> works because each returns an array except the last; <code>forEach</code> breaks any chain.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== QUICK COMPARISON ==================== -->
+    <div class="section-divider" id="compare"><span>Quick Comparison</span></div>
+
+    <table>
+      <tr><th>Method</th><th>Returns</th><th>Callback receives</th><th>Modifies original?</th><th>Use when</th></tr>
+      <tr><td><code>map</code></td><td>New array (same length)</td><td><code>(element, index, array)</code></td><td>No</td><td>Transform every element</td></tr>
+      <tr><td><code>filter</code></td><td>New array (≤ length)</td><td><code>(element, index, array)</code></td><td>No</td><td>Keep only elements that pass a condition</td></tr>
+      <tr><td><code>reduce</code></td><td>Single value</td><td><code>(accumulator, element, index, array)</code></td><td>No</td><td>Combine all elements into one result</td></tr>
+      <tr><td><code>forEach</code></td><td><code>undefined</code></td><td><code>(element, index, array)</code></td><td>No (unless you mutate inside)</td><td>Run side effects (log, DOM, etc.)</td></tr>
+    </table>
+
+    <div class="code-block">
+      <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">sample-data.js</span></div>
+      <pre><code><span class="kw">let</span> a = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>];
+<span class="kw">let</span> arr = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>];</code></pre>
+    </div>
+    <p style="font-size:14px; color:#64748b; font-weight:500;">These two arrays are reused throughout every example below.</p>
+
+    <!-- ==================== 1: MAP ==================== -->
+    <div class="section-divider" id="map"><span>1. map()</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>What It Does</h4></div>
+      <div class="card-sub-content">
+        <p>Runs a callback on <strong>every element</strong> and returns a <strong>new array</strong> of the returned values. Output length always equals input length.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>Manual Implementation</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">mapManually.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">mapManually</span>(arr, callBackFn) {
+    <span class="kw">let</span> result = [];
+
+    <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; arr.length; i++) {
+        result.<span class="fn">push</span>(<span class="fn">callBackFn</span>(arr[i], i));
+    }
+
+    <span class="kw">return</span> result;
+}
+
+<span class="kw">let</span> res = <span class="fn">mapManually</span>(a, (e, i) => {
+    <span class="kw">return</span> e * <span class="num">2</span>;
+});
+
+console.<span class="fn">log</span>(<span class="str">"result of map"</span>, res); <span class="cmt">// [2, 4, 6, 8]</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1">
+      <div class="card-sub-title"><h4>Built-in</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">built-in.js</span></div>
+          <pre><code><span class="kw">let</span> res = a.<span class="fn">map</span>((e, i) => e * <span class="num">2</span>);
+console.<span class="fn">log</span>(<span class="str">"result of map"</span>, res); <span class="cmt">// [2, 4, 6, 8]</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 2: FILTER ==================== -->
+    <div class="section-divider" id="filter"><span>2. filter()</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>What It Does</h4></div>
+      <div class="card-sub-content">
+        <p>Runs a callback on every element and keeps only those where the callback returns a <strong>truthy</strong> value. Output length is less than or equal to input length.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2 accent-left">
+      <div class="card-sub-title"><h4>Manual Implementation</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">filterManually.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">filterManually</span>(arr, callbackFn) {
+    <span class="kw">let</span> result = [];
+
+    <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; arr.length; i++) {
+        <span class="kw">if</span> (<span class="fn">callbackFn</span>(arr[i])) {
+            result.<span class="fn">push</span>(arr[i]);
+        }
+    }
+
+    <span class="kw">return</span> result;
+}
+
+<span class="kw">let</span> res1 = <span class="fn">filterManually</span>(a, (e) => e != <span class="num">2</span>);
+console.<span class="fn">log</span>(<span class="str">"result of filter"</span>, res1); <span class="cmt">// [1, 3, 4]</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-2">
+      <div class="card-sub-title"><h4>Built-in</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">built-in.js</span></div>
+          <pre><code><span class="kw">let</span> res1 = a.<span class="fn">filter</span>((e) => e != <span class="num">2</span>);
+console.<span class="fn">log</span>(<span class="str">"result of filter"</span>, res1); <span class="cmt">// [1, 3, 4]</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 3: REDUCE ==================== -->
+    <div class="section-divider" id="reduce"><span>3. reduce()</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>What It Does</h4></div>
+      <div class="card-sub-content">
+        <p>Walks through the array carrying an <strong>accumulator</strong>. On each step the callback combines the accumulator with the current element and returns the new accumulator. The final accumulator is the result.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3 accent-left">
+      <div class="card-sub-title"><h4>Manual Implementation</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">reduceManually.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">reduceManually</span>(arr, callbackFn, accumulator) {
+    <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; arr.length; i++) {
+        accumulator = <span class="fn">callbackFn</span>(accumulator, arr[i]);
+    }
+
+    <span class="kw">return</span> accumulator;
+}
+
+<span class="kw">const</span> res = <span class="fn">reduceManually</span>(arr, (acc, curr) => curr * acc, <span class="num">1</span>);
+console.<span class="fn">log</span>(<span class="str">"result of reduce"</span>, res); <span class="cmt">// 120 (1*2*3*4*5)</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-3">
+      <div class="card-sub-title"><h4>Built-in</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">built-in.js</span></div>
+          <pre><code><span class="kw">const</span> res = arr.<span class="fn">reduce</span>((acc, curr) => acc * curr, <span class="num">1</span>);
+console.<span class="fn">log</span>(<span class="str">"result of reduce"</span>, res); <span class="cmt">// 120</span></code></pre>
+        </div>
+
+        <p style="font-weight:800; color:var(--heading); margin-top:16px;">Step-by-step trace — product of <code>[1,2,3,4,5]</code>, initial = 1</p>
+        <table>
+          <tr><th>Step</th><th>acc</th><th>curr</th><th>returns</th></tr>
+          <tr><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+          <tr><td>2</td><td>1</td><td>2</td><td>2</td></tr>
+          <tr><td>3</td><td>2</td><td>3</td><td>6</td></tr>
+          <tr><td>4</td><td>6</td><td>4</td><td>24</td></tr>
+          <tr><td>5</td><td>24</td><td>5</td><td>120</td></tr>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== 4: FOREACH ==================== -->
+    <div class="section-divider" id="foreach"><span>4. forEach()</span></div>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-4 no-border">
+      <div class="card-sub-title"><h4>What It Does</h4></div>
+      <div class="card-sub-content">
+        <p>Runs a callback on every element for its <strong>side effects</strong>. It returns <code>undefined</code>, so it cannot be chained.</p>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4 accent-left">
+      <div class="card-sub-title"><h4>Manual Implementation</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">forEachManually.js</span></div>
+          <pre><code><span class="kw">function</span> <span class="fn">forEachManually</span>(arr, callbackFn) {
+    <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; arr.length; i++) {
+        <span class="fn">callbackFn</span>(arr[i], i, arr);
+    }
+}
+
+<span class="fn">forEachManually</span>(a, (e, i) => {
+    console.<span class="fn">log</span>(<span class="str">`index ${i} -> ${e}`</span>);
+});
+<span class="cmt">// index 0 -> 1
+// index 1 -> 2
+// index 2 -> 3
+// index 3 -> 4</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-4">
+      <div class="card-sub-title"><h4>Built-in</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">built-in.js</span></div>
+          <pre><code>a.<span class="fn">forEach</span>((e, i) => {
+    console.<span class="fn">log</span>(<span class="str">`index ${i} -> ${e}`</span>);
+});</code></pre>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== FAITHFUL VERSIONS ==================== -->
+    <div class="section-divider" id="improve"><span>Improvement Notes — More Faithful Manual Versions</span></div>
+
+    <p style="font-size:16px; color:#333; font-weight:500; margin-bottom:16px;">The manual versions above are good for learning. The built-ins also pass extra arguments and handle edge cases. A more faithful version looks like this:</p>
+
+    <div class="categories-wrap">
+
+    <div class="card-sub cat-1 no-border">
+      <div class="card-sub-title"><h4>map &amp; filter — Pass (element, index, array)</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">faithful-map-filter.js</span></div>
+          <pre><code><span class="cmt">// Pass (element, index, array), like the real thing</span>
+<span class="kw">function</span> <span class="fn">mapManually</span>(arr, callbackFn) {
+    <span class="kw">let</span> result = [];
+    <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; arr.length; i++) {
+        result.<span class="fn">push</span>(<span class="fn">callbackFn</span>(arr[i], i, arr));
+    }
+    <span class="kw">return</span> result;
+}
+
+<span class="kw">function</span> <span class="fn">filterManually</span>(arr, callbackFn) {
+    <span class="kw">let</span> result = [];
+    <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; arr.length; i++) {
+        <span class="kw">if</span> (<span class="fn">callbackFn</span>(arr[i], i, arr)) {
+            result.<span class="fn">push</span>(arr[i]);
+        }
+    }
+    <span class="kw">return</span> result;
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-sub cat-1 accent-left">
+      <div class="card-sub-title"><h4>reduce — Support an Optional Initial Value</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">faithful-reduce.js</span></div>
+          <pre><code><span class="cmt">// Support optional initial value like the real reduce</span>
+<span class="kw">function</span> <span class="fn">reduceManually</span>(arr, callbackFn, initialValue) {
+    <span class="kw">let</span> start = <span class="num">0</span>;
+    <span class="kw">let</span> accumulator = initialValue;
+
+    <span class="kw">if</span> (arguments.length &lt; <span class="num">3</span>) {
+        <span class="kw">if</span> (arr.length === <span class="num">0</span>) {
+            <span class="kw">throw new</span> TypeError(<span class="str">"Reduce of empty array with no initial value"</span>);
+        }
+        accumulator = arr[<span class="num">0</span>];
+        start = <span class="num">1</span>;
+    }
+
+    <span class="kw">for</span> (<span class="kw">let</span> i = start; i &lt; arr.length; i++) {
+        accumulator = <span class="fn">callbackFn</span>(accumulator, arr[i], i, arr);
+    }
+    <span class="kw">return</span> accumulator;
+}</code></pre>
+        </div>
+        <div class="info-box box-tip">💡 When no initial value is passed, real <code>reduce</code> uses the array's first element as the starting accumulator and begins looping from index 1 — and throws if the array is empty with no initial value at all.</div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- ==================== COMMON MISTAKES ==================== -->
+    <div class="section-divider" id="mistakes"><span>Common Mistakes</span></div>
+
+    <div class="categories-wrap">
+    <div class="card-sub cat-2 no-border">
+      <div class="card-sub-title"><h4>Watch Out For These</h4></div>
+      <div class="card-sub-content">
+        <table>
+          <tr><th>Mistake</th><th>Why it bites you</th></tr>
+          <tr><td>Forgetting <code>return</code> inside <code>{ }</code></td><td>Arrow functions with braces need an explicit <code>return</code> — <code>(e) => { e * 2 }</code> returns <code>undefined</code> for every element</td></tr>
+          <tr><td>Using <code>map</code> when the result is unused</td><td>Wastes a new array allocation — use <code>forEach</code> for pure side effects instead</td></tr>
+          <tr><td><code>reduce</code> with no initial value on a possibly-empty array</td><td>Throws <code>TypeError: Reduce of empty array with no initial value</code></td></tr>
+          <tr><td>Expecting <code>forEach</code> to return a value or support <code>break</code></td><td>It always returns <code>undefined</code> and has no way to exit early — use a plain <code>for</code> loop or <code>some</code>/<code>every</code> if you need early exit</td></tr>
+        </table>
+      </div>
+    </div>
+    </div>
+
+    <!-- ==================== CHAINING ==================== -->
+    <div class="section-divider" id="chain"><span>Chaining Example</span></div>
+
+    <div class="categories-wrap">
+    <div class="card-sub cat-3 no-border">
+      <div class="card-sub-title"><h4>filter → map → reduce</h4></div>
+      <div class="card-sub-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">chain.js</span></div>
+          <pre><code><span class="kw">const</span> total = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>]
+    .<span class="fn">filter</span>((n) => n % <span class="num">2</span> === <span class="num">1</span>)   <span class="cmt">// [1, 3, 5]</span>
+    .<span class="fn">map</span>((n) => n * <span class="num">10</span>)           <span class="cmt">// [10, 30, 50]</span>
+    .<span class="fn">reduce</span>((acc, n) => acc + n, <span class="num">0</span>); <span class="cmt">// 90</span>
+
+console.<span class="fn">log</span>(total); <span class="cmt">// 90</span></code></pre>
+        </div>
+        <div class="info-box box-warning">⚠️ <code>forEach</code> cannot be part of a chain, since it returns <code>undefined</code> — there's nothing for the next method in the chain to call <code>.map()</code> or <code>.filter()</code> on.</div>
+      </div>
+    </div>
+    </div>
+
+  </div>
+
+  <footer>Manual Implementation vs Built-in — JavaScript Array Methods</footer>
+
+</body>
+</html>

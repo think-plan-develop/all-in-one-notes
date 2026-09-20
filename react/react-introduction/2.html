@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>React - Introduction (Part 2) - Virtual DOM, Reconciliation & Fiber</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: #eef1f8;
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(37,99,235,0.06), transparent 40%),
+    radial-gradient(circle at 100% 20%, rgba(37,99,235,0.05), transparent 35%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #1a1a1a;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+.container,
+.theme-blue {
+  --accent-dark:  #1e3a8a;
+  --accent:       #2563eb;
+  --accent-light: #3b82f6;
+  --content-bg:   #eff6ff;
+  --heading:      #1e3a8a;
+  --shadow-rgb:   37,99,235;
+  --qa-q-a: #bfdbfe; --qa-q-b: #93c5fd;
+  --qa-a-a: #d1fae5; --qa-a-b: #a7f3d0;
+}
+
+/* HEADER */
+.header {
+  position: relative;
+  background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 55%, var(--accent-light) 100%);
+  border-radius: 20px;
+  padding: 46px 40px;
+  margin-bottom: 54px;
+  box-shadow:
+    0 20px 40px -12px rgba(var(--shadow-rgb), 0.45),
+    0 2px 6px rgba(var(--shadow-rgb), 0.25);
+  overflow: hidden;
+  isolation: isolate;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 85% -10%, rgba(255,255,255,0.22), transparent 45%),
+    radial-gradient(circle at 0% 120%, rgba(255,255,255,0.12), transparent 40%);
+  z-index: -1;
+}
+.header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.14) 1px, transparent 1px);
+  background-size: 18px 18px;
+  opacity: 0.35;
+  z-index: -1;
+  mask-image: linear-gradient(120deg, black, transparent 65%);
+}
+.header h1 {
+  color: #fff;
+  font-size: 36px;
+  margin-bottom: 10px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.15);
+}
+.header p {
+  color: rgba(255,255,255,0.88);
+  font-size: 17px;
+  margin-bottom: 26px;
+  font-weight: 500;
+}
+.toc { display: flex; flex-wrap: wrap; gap: 9px; }
+.toc a {
+  text-decoration: none;
+  padding: 8px 17px;
+  border-radius: 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: all 0.22s cubic-bezier(.4,0,.2,1);
+  cursor: pointer;
+  background: rgba(255,255,255,0.14);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  backdrop-filter: blur(4px);
+}
+.toc a:hover {
+  background: #fff;
+  color: var(--accent-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+}
+.part-nav { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.25); }
+.part-nav a {
+  text-decoration: none; padding: 6px 15px; border-radius: 8px; font-size: 12.5px; font-weight: 700;
+  color: rgba(255,255,255,0.85); background: rgba(0,0,0,0.15); transition: all 0.2s ease;
+}
+.part-nav a:hover { background: #fff; color: var(--accent-dark); }
+.part-nav a.current { background: rgba(255,255,255,0.9); color: var(--accent-dark); pointer-events: none; }
+
+/* KEY TERMS SUMMARY */
+.intro-summary { margin: 0 0 54px; }
+.intro-summary-title {
+  font-size: 23px;
+  font-weight: 800;
+  color: #16213e;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.summary-grid { display: flex; flex-direction: column; gap: 11px; }
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  border-radius: 12px;
+  padding: 16px 22px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+}
+.summary-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 6px 16px rgba(16,24,40,0.08);
+}
+.summary-icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  background: rgba(255,255,255,0.65);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.7), 0 2px 6px rgba(0,0,0,0.05);
+}
+.summary-text { font-size: 15px; line-height: 1.7; font-weight: 500; }
+.summary-text strong { font-weight: 800; margin-right: 4px; }
+
+.summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; }
+.summary-teal   .summary-text strong { color: #0d9488; }
+.summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; }
+.summary-pink   .summary-text strong { color: #db2777; }
+.summary-indigo { background: linear-gradient(135deg,#eef2ff,#e0e7ff); color: #3730a3; }
+.summary-indigo .summary-text strong { color: #4338ca; }
+.summary-orange { background: linear-gradient(135deg,#fff7ed,#ffedd5); color: #9a3412; }
+.summary-orange .summary-text strong { color: #ea580c; }
+
+/* SECTION DIVIDER */
+.section-divider { margin: 56px 0 26px; position: relative; }
+.section-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent 85%);
+  opacity: 0.3;
+}
+.section-divider span {
+  background: #eef1f8;
+  padding: 0 18px 0 0;
+  position: relative;
+  font-size: 23px;
+  font-weight: 800;
+  color: #16213e;
+  letter-spacing: -0.3px;
+}
+
+/* CARDS */
+.card {
+  border-radius: 16px;
+  margin-bottom: 32px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 12px 28px -8px rgba(16,24,40,0.10);
+  border: 1px solid rgba(16,24,40,0.05);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+  background: #fff;
+}
+.card:hover {
+  box-shadow: 0 1px 2px rgba(16,24,40,0.05), 0 20px 36px -10px rgba(var(--shadow-rgb), 0.20);
+}
+.card-title {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  padding: 19px 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(120deg, var(--accent-dark), var(--accent) 55%, var(--accent-light));
+  letter-spacing: -0.2px;
+}
+.card-content { padding: 28px 28px 30px; background: var(--content-bg); }
+.card-content p { color: #303a4a; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+.card-content h3 {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--heading);
+  margin: 26px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgba(var(--shadow-rgb), 0.15);
+}
+.card-content h3:first-child { margin-top: 0; }
+.card-content h4 { font-size: 17px; margin-bottom: 6px; margin-top: 18px; font-weight: 800; color: var(--heading); }
+.card-content code {
+  background: rgba(var(--shadow-rgb), 0.08);
+  color: var(--accent-dark);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+/* ---- Improved list styling: dot-marker cards, consistent everywhere ---- */
+.card-content ul,
+.card-content ol {
+  list-style: none;
+  margin: 10px 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.card-content ul:last-child,
+.card-content ol:last-child { margin-bottom: 0; }
+.card-content li {
+  position: relative;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #303a4a;
+  font-weight: 500;
+  background: rgba(255,255,255,0.65);
+  border: 1px solid rgba(16,24,40,0.06);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  padding: 10px 16px 10px 40px;
+  margin: 0;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.card-content li::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-dark), var(--accent-light));
+  box-shadow: 0 0 0 3px rgba(var(--shadow-rgb),0.15);
+}
+.card-content li:hover { background: #fff; transform: translateX(2px); }
+.card-content li strong { color: var(--heading); font-weight: 800; }
+.card-content li code { font-size: 13px; }
+
+/* Ordered lists (steps) get numbered circular badges */
+.card-content ol { counter-reset: item; }
+.card-content ol li {
+  counter-increment: item;
+  border-left: 3px solid #7c3aed;
+  padding-left: 46px;
+  background: linear-gradient(135deg, #faf5ff, #f5f3ff);
+  color: #4c1d95;
+  font-weight: 600;
+}
+.card-content ol li::before {
+  content: counter(item);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  left: 9px;
+  background: linear-gradient(135deg, #7c3aed, #a78bfa);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.short-answer {
+  font-size: 17px;
+  line-height: 1.75;
+  font-weight: 600;
+  color: var(--heading);
+  background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(255,255,255,0.35));
+  border-left: 4px solid var(--accent);
+  padding: 16px 20px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(16,24,40,0.05);
+}
+
+/* ---- Q&A blocks (cleaned up: one clear Q style, one clear A style) ---- */
+.card-content-QA h4 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  margin: 24px 0 10px;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.6), 0 2px 6px rgba(16,24,40,0.05);
+  background: linear-gradient(135deg, var(--qa-q-a), var(--qa-q-b));
+  color: var(--heading);
+  border-left: 4px solid var(--accent);
+}
+.card-content-QA h4::before {
+  content: 'Q';
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-dark);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+.card-content-QA p {
+  position: relative;
+  padding: 14px 20px 14px 52px;
+  margin: 0 0 18px;
+  border-radius: 12px;
+  font-size: 15.5px;
+  line-height: 1.85;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.6), 0 2px 6px rgba(16,24,40,0.04);
+  background: linear-gradient(135deg, var(--qa-a-a), var(--qa-a-b));
+  color: #065f46;
+}
+.card-content-QA p::before {
+  content: 'A';
+  position: absolute;
+  left: 18px;
+  top: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #059669;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+.card-content-QA p strong:first-child { color: #047857; }
+/* Q&A blocks can also contain their own lists (e.g. diffing rules) — keep them readable against the tinted background */
+.card-content-QA ul { margin-top: 4px; }
+.card-content-QA li { background: rgba(255,255,255,0.75); }
+
+/* FEATURE GRID */
+.feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 10px; }
+.feature-item {
+  background: rgba(255,255,255,0.7);
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 8px rgba(16,24,40,0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.feature-item:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(var(--shadow-rgb),0.12); }
+.feature-item h4 { display: flex; align-items: center; gap: 10px; margin-top: 0; }
+.feature-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 8px;
+  background: linear-gradient(120deg, var(--accent), var(--accent-light));
+  color: #fff; font-size: 13px; font-weight: 800;
+}
+.feature-item p { font-size: 14.5px; margin-bottom: 0; color: #4a5568; }
+
+/* CODE BLOCKS */
+.code-block {
+  background: #14161f;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 16px 0;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.code-bar { background: #0d0f16; padding: 9px 15px; display: flex; align-items: center; gap: 7px; border-bottom: 1px solid #262a38; }
+.code-bar .dot { width: 11px; height: 11px; border-radius: 50%; }
+.code-bar .dot-red { background: #ff5f57; }
+.code-bar .dot-grey { background: #febc2e; }
+.code-bar .dot-green { background: #28c840; }
+.code-bar .filename { color: #8a8fa3; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', 'Consolas', monospace; }
+.code-block pre { padding: 20px; overflow-x: auto; }
+.code-block code { color: #e2e4ed; font-size: 14.5px; font-family: 'Fira Code', 'Consolas', monospace; line-height: 1.7; background: none; padding: 0; }
+.kw  { color: #c792ea; font-weight: 600; }
+.str { color: #a8e08f; }
+.fn  { color: #82b1ff; }
+.type{ color: #7dd3fc; }
+.cmt { color: #6b7280; font-style: italic; }
+.num { color: #f78c6c; }
+
+/* INFO BOXES */
+.info-box {
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin: 14px 0;
+  font-size: 15.5px;
+  line-height: 1.8;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5), 0 2px 6px rgba(16,24,40,0.04);
+  position: relative;
+  padding-left: 24px;
+}
+.info-box::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 4px 0 0 4px; }
+.box-benefit { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+.box-benefit::before { background: #059669; }
+.box-tip     { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+.box-tip::before { background: #db2777; }
+.box-note    { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+.box-note::before { background: #4338ca; }
+.box-warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+.box-warning::before { background: #dc2626; }
+.info-box pre { margin-top: 10px; }
+.info-box code { background: rgba(255,255,255,0.5); }
+
+/* TABLES */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 18px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(16,24,40,0.08);
+  background: #fff;
+}
+table th {
+  background: linear-gradient(120deg, var(--accent-dark), var(--accent));
+  color: #fff;
+  font-size: 15.5px;
+  font-weight: 700;
+  padding: 14px 18px;
+  text-align: left;
+}
+table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; }
+table tr:last-child td { border-bottom: none; }
+table tr:nth-child(even) td { background: #f8fafc; }
+table tr td:hover { background: rgba(var(--shadow-rgb),0.05); }
+
+/* DIAGRAMS */
+.diagram {
+  background: #101223;
+  color: #9fd3ff;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  padding: 20px 24px;
+  border-radius: 12px;
+  white-space: pre;
+  overflow-x: auto;
+  margin: 16px 0;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.step-flow { display: flex; align-items: stretch; flex-wrap: wrap; gap: 4px; margin: 14px 0 22px; }
+.step-box {
+  position: relative;
+  background: linear-gradient(150deg, var(--accent-dark), var(--accent) 60%, var(--accent-light));
+  color: #fff;
+  border-radius: 14px;
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 155px;
+  flex: 1 1 155px;
+  box-shadow: 0 8px 18px rgba(var(--shadow-rgb),0.28);
+}
+.step-num-badge {
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--accent-dark);
+  font-size: 15px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(16,24,40,0.25), 0 0 0 3px rgba(255,255,255,0.4);
+  border: 2px solid var(--accent-light);
+}
+.step-box strong { font-size: 11px; opacity: 0.85; letter-spacing: 0.6px; text-transform: uppercase; margin-top: 4px; }
+.step-box span { font-size: 14.5px; font-weight: 700; line-height: 1.3; }
+.step-arrow { font-size: 22px; color: var(--accent); font-weight: 800; display: flex; align-items: center; padding: 0 2px; }
+@media (max-width: 768px) { .step-flow { flex-direction: column; } .step-box { flex: 1 1 auto; } }
+
+/* ---- Visual Virtual DOM diagram (replaces plain ASCII box) ---- */
+.vdom-visual {
+  background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 60%, #0f172a 100%);
+  border-radius: 18px;
+  padding: 30px 26px;
+  margin: 16px 0;
+  border: 1px solid #312e81;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+}
+.vdom-row { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; }
+.vdom-row + .vdom-row { margin-top: 18px; }
+.vdom-node {
+  border-radius: 12px;
+  padding: 14px 20px;
+  text-align: center;
+  min-width: 150px;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.vdom-node small { display: block; font-weight: 500; opacity: 0.75; font-size: 11px; margin-top: 3px; }
+.vdom-node.new { background: linear-gradient(135deg, #1d4ed8, #3b82f6); }
+.vdom-node.old { background: linear-gradient(135deg, #475569, #64748b); }
+.vdom-node.diff { background: linear-gradient(135deg, #7c3aed, #a78bfa); }
+.vdom-node.patch { background: linear-gradient(135deg, #059669, #34d399); }
+.vdom-connector { color: #818cf8; font-size: 22px; font-weight: 800; }
+.vdom-connector.down { transform: rotate(90deg); }
+.vdom-caption { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 6px; font-style: italic; }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .container { width: 94%; margin: 32px auto; }
+  .header { padding: 30px 22px; border-radius: 16px; }
+  .header h1 { font-size: 24px; }
+  .header p { font-size: 15px; }
+  .toc a { padding: 6px 13px; font-size: 12px; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .card-content { padding: 20px; }
+  .card-title { font-size: 18px; padding: 16px 20px; }
+  .step-flow { flex-direction: column; align-items: stretch; }
+  .step-arrow { transform: rotate(90deg); align-self: center; }
+  table { font-size: 13px; }
+  .card-content-QA p { padding-left: 46px; }
+}
+</style>
+</head>
+<body>
+  <div class="container theme-blue">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header">
+      <h1>⚛️ React - Introduction (Part 2 of 3)</h1>
+      <p>Virtual DOM, Diffing Algorithm, Reconciliation and React Fiber</p>
+      <div class="toc">
+        <a href="#virtual-dom">★ Virtual DOM</a>
+        <a href="#reconciliation">★ Diffing Algorithm &amp; Reconciliation</a>
+        <a href="#fiber">★ React Fiber</a>
+      </div>
+      <div class="part-nav">
+        <a href="react-part1-what-is-react-features.html">Part 1: What is React &amp; Features</a>
+        <a href="react-part2-virtual-dom-reconciliation-fiber.html" class="current">Part 2: Virtual DOM, Reconciliation &amp; Fiber</a>
+        <a href="react-part3-react18-spa-comparison.html">Part 3: React 18, SPA &amp; React vs Others</a>
+      </div>
+    </div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">⚛️</div>
+          <div class="summary-text"><strong>Virtual DOM:</strong> A lightweight JavaScript copy of the real UI tree. It is treated as <strong>immutable</strong>, so React does not change it directly. <strong>Mutable</strong> means a value can be changed, while immutable means React creates a new copy instead of editing the old one.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">🔍</div>
+          <div class="summary-text"><strong>Diffing Algorithm:</strong> React's comparison method that checks the new Virtual DOM against the old one to find exactly what changed.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🔄</div>
+          <div class="summary-text"><strong>Reconciliation:</strong> React's update step that applies only the minimum necessary changes after comparing the old and new UI trees.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🧵</div>
+          <div class="summary-text"><strong>React Fiber:</strong> React's rendering engine that splits work into smaller tasks, making updates faster and more responsive.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 3. VIRTUAL DOM ==================== -->
+    <div class="section-divider" id="virtual-dom"><span>3. Virtual DOM</span></div>
+
+    <div class="card">
+      <div class="card-title">What is Virtual DOM?</div>
+      <div class="card-content">
+        <div class="short-answer">
+          The <strong>Virtual DOM</strong> is a lightweight JavaScript representation (copy) of the Real DOM. React uses it to minimize direct DOM manipulations by calculating the minimum number of changes needed and batching updates.
+        </div>
+        <p>The Real DOM is the browser's tree representation of the HTML page. Every time you change something in the DOM, the browser has to recalculate CSS, layout, and repaint — which is slow. React solves this with the Virtual DOM approach.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">How Virtual DOM Works</div>
+      <div class="card-content">
+        <h3>The Process (Reconciliation)</h3>
+        <div class="step-flow">
+          <div class="step-box"><span class="step-num-badge">1</span><strong>Trigger</strong><span>State changes</span></div>
+          <span class="step-arrow">→</span>
+          <div class="step-box"><span class="step-num-badge">2</span><strong>Build</strong><span>New Virtual DOM created</span></div>
+          <span class="step-arrow">→</span>
+          <div class="step-box"><span class="step-num-badge">3</span><strong>Compare</strong><span>Diffing old vs new</span></div>
+          <span class="step-arrow">→</span>
+          <div class="step-box"><span class="step-num-badge">4</span><strong>Apply</strong><span>Patch Real DOM (only changes)</span></div>
+        </div>
+
+        <div class="vdom-visual">
+          <div class="vdom-row">
+            <div class="vdom-node old">Old Virtual DOM<small>previous render</small></div>
+            <span class="vdom-connector">＋</span>
+            <div class="vdom-node new">New Virtual DOM<small>after state change</small></div>
+          </div>
+          <div class="vdom-row">
+            <span class="vdom-connector down">↓</span>
+          </div>
+          <div class="vdom-row">
+            <div class="vdom-node diff">Diffing Algorithm<small>finds what's different</small></div>
+          </div>
+          <div class="vdom-row">
+            <span class="vdom-connector down">↓</span>
+          </div>
+          <div class="vdom-row">
+            <div class="vdom-node patch">Patch → Real DOM<small>updates only changed nodes</small></div>
+          </div>
+          <p class="vdom-caption">Only the differences found by diffing are ever touched on the real, browser-rendered DOM.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Real DOM vs Virtual DOM</div>
+      <div class="card-content">
+        <table>
+          <tr><th>Feature</th><th>Real DOM</th><th>Virtual DOM</th></tr>
+          <tr><td><strong>What is it?</strong></td><td>Browser's actual DOM tree</td><td>Lightweight JS object copy</td></tr>
+          <tr><td><strong>Update Speed</strong></td><td>Slow (recalculates entire tree)</td><td>Fast (updates only changed nodes)</td></tr>
+          <tr><td><strong>Memory</strong></td><td>High memory consumption</td><td>Low memory (just JS objects)</td></tr>
+          <tr><td><strong>DOM Manipulation</strong></td><td>Direct manipulation</td><td>Indirect (through reconciliation)</td></tr>
+          <tr><td><strong>Re-rendering</strong></td><td>Re-renders entire DOM</td><td>Re-renders only changed parts</td></tr>
+          <tr><td><strong>Performance</strong></td><td>Degrades with complexity</td><td>Stays efficient at scale</td></tr>
+        </table>
+        <div class="info-box box-warning">
+          <strong>⚠️ Common Misconception:</strong> Virtual DOM is NOT always faster than direct DOM manipulation for simple changes. Its real advantage comes with complex UIs where many elements change frequently — it batches and optimizes these updates.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Diffing Algorithm &amp; React Fiber</div>
+      <div class="card-content">
+        <div class="info-box box-tip"><strong>Big idea:</strong> Reconciliation finds <strong>what changed</strong>, and Fiber decides <strong>how React should process it</strong> without freezing the UI.</div>
+
+        <h3 id="reconciliation">Diffing Algorithm &amp; Reconciliation</h3>
+
+        <div class="card-content-QA">
+          <h4>What is Reconciliation?</h4>
+          <p><strong>Reconciliation</strong> is React's update process for spotting changes when a component's <strong>state</strong> or <strong>props</strong> change. When data changes, React builds a <strong>new Virtual DOM tree</strong> and compares it with the previous one. That comparison shows exactly what changed, so React updates only the affected parts of the <strong>real DOM</strong>. React uses the <strong>Diffing Algorithm</strong> to make this comparison fast, efficient, and predictable.</p>
+        </div>
+
+        <div class="info-box box-note"><strong>In short:</strong> Reconciliation tells React <strong>what changed</strong>, the Diffing Algorithm finds those changes, and Fiber helps React process them efficiently without blocking the UI.</div>
+
+        <div class="card-content-QA">
+          <h4>How does the Diffing Algorithm work?</h4>
+          <p>React keeps comparisons fast by following two simple rules — see below.</p>
+        </div>
+
+        <ul>
+          <li><strong>Different element types:</strong> If two elements have different types, React treats them as different UI structures and replaces the entire subtree.</li>
+        </ul>
+        <div class="diagram">&lt;div&gt;Hello&lt;/div&gt;
+
+becomes
+
+&lt;span&gt;Hello&lt;/span&gt;</div>
+        <div class="short-answer">Because <code>&lt;div&gt;</code> and <code>&lt;span&gt;</code> are different types, React replaces the old subtree instead of checking every child.</div>
+
+        <ul>
+          <li><strong>Stable keys for lists:</strong> When rendering lists, React uses the <code>key</code> prop to identify each item consistently.</li>
+        </ul>
+        <div class="diagram">users.map(user =&gt; (
+  &lt;UserCard key={user.id} user={user} /&gt;
+))</div>
+
+        <div class="info-box box-tip"><strong>Keys help React track:</strong></div>
+        <ul>
+          <li>Which items stay the same</li>
+          <li>Which items are added</li>
+          <li>Which items are removed</li>
+          <li>Which items move to a new position</li>
+        </ul>
+
+        <p>Stable, unique keys help React update lists efficiently while preserving component state.</p>
+
+        <div class="info-box box-warning"><strong>Best practice:</strong> Avoid using the array index as a key when items can be added, removed, or reordered. It can lead to incorrect UI updates.</div>
+
+        <div class="short-answer"><strong>Why it matters:</strong> Without reconciliation, React would have to rebuild the whole UI on every change. With it, React updates only what changed, which improves performance and keeps the experience smooth.</div>
+
+        <h3 id="fiber">React Fiber (React 16+)</h3>
+        <div class="info-box box-tip"><strong>Fiber at a glance:</strong> React Fiber is the engine that makes reconciliation interruptible, prioritized, and responsive, so it can handle the changes found by the Diffing Algorithm more smoothly.</div>
+
+        <div class="card-content-QA">
+          <h4>What is React Fiber?</h4>
+          <p><strong>React Fiber</strong> is React's internal rendering engine for powering reconciliation. Before React 16, reconciliation was synchronous, so React had to finish all rendering work before the browser could respond. Large updates could block the UI and make apps feel slow. Fiber breaks rendering into <strong>small units of work</strong>, letting React pause, resume, and prioritize tasks. You can think of Fiber as React's <strong>scheduler</strong> or <strong>work manager</strong> deciding <strong>how and when</strong> rendering should happen.</p>
+        </div>
+
+        <div class="info-box box-benefit"><strong>Fiber powers:</strong> incremental rendering, priority-based updates, pause and resume, and the foundation for concurrent rendering.</div>
+
+        <div class="card-content-QA">
+          <h4>What features does React Fiber enable?</h4>
+          <p>Fiber enables incremental rendering, priority-based updates, pause and resume behavior, and the foundation for concurrent rendering.</p>
+        </div>
+
+        <ul>
+          <li><strong>Incremental Rendering:</strong> Fiber splits rendering into smaller chunks so the browser stays responsive.</li>
+          <li><strong>Priority-Based Updates:</strong> Urgent work like typing or clicking is handled before lower-priority tasks such as large list rendering.</li>
+          <li><strong>Pause and Resume:</strong> If something urgent appears, Fiber can pause the current work, handle it, and then continue.</li>
+          <li><strong>Foundation for Concurrent Features:</strong> Fiber is the base for React 18's concurrent rendering, helping React prepare updates in the background.</li>
+        </ul>
+
+        <div class="info-box box-note"><strong>Comparison:</strong> Reconciliation answers <strong>what changed</strong>. Fiber answers <strong>how and when</strong> React should handle it.</div>
+
+        <div class="card-content-QA">
+          <h4>Reconciliation vs. React Fiber</h4>
+          <p>These concepts are closely related, but they do different jobs — see the comparison table below.</p>
+        </div>
+
+        <table>
+          <tr>
+            <th>Reconciliation</th>
+            <th>React Fiber</th>
+          </tr>
+          <tr>
+            <td>Compares the old and new Virtual DOM to identify changes.</td>
+            <td>Provides the internal architecture that makes reconciliation efficient.</td>
+          </tr>
+          <tr>
+            <td>Focuses on <strong>what changed</strong>.</td>
+            <td>Focuses on <strong>how and when</strong> the changes are processed.</td>
+          </tr>
+        </table>
+
+        <div class="info-box box-note">
+          <strong>Simple analogy:</strong>
+          <p style="margin-top: 8px; margin-bottom: 0; padding: 0; background: none; box-shadow: none; color: inherit; font-weight: 600;">Reconciliation is like comparing two document versions to spot the differences. React Fiber is the project manager that decides the best way to handle those differences without interrupting other important work.</p>
+        </div>
+
+        <div class="info-box box-benefit"><strong>💡 Remember:</strong> Always use stable, unique <code>key</code> props for list items. Using the array index as a key can cause bugs when items are reordered, added, or deleted.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Interview Q&amp;A — Virtual DOM</div>
+      <div class="card-content card-content-QA">
+        <h4>What is Virtual DOM and how does it work?</h4>
+        <p>Virtual DOM is a lightweight JavaScript object that is a copy of the Real DOM.</p>
+        <ul>
+          <li>When state changes, a new Virtual DOM tree is created</li>
+          <li>It is compared with the previous Virtual DOM using a diffing algorithm</li>
+          <li>Only the differences, or patches, are applied to the Real DOM</li>
+          <li>This minimizes expensive DOM operations and improves performance</li>
+        </ul>
+
+        <h4>What is Reconciliation in React?</h4>
+        <p>Reconciliation is React's decision-making process for updates. When state or props change, React compares the new element tree with the previous one, identifies what actually changed, and then applies the smallest possible set of DOM updates.</p>
+
+        <h4>Why are keys important in React lists?</h4>
+        <p>Keys help React identify which items in a list have changed, been added, or removed during reconciliation. Without keys, React re-renders all list items. With stable unique keys, React can efficiently match old and new elements, reorder DOM nodes instead of recreating them, and maintain component state correctly.</p>
+
+        <h4>What is React Fiber?</h4>
+        <p>React Fiber is the architecture that powers React's modern reconciliation. It breaks rendering into small units of work, lets React prioritize urgent updates, and can pause and resume rendering so the UI stays responsive. This is what makes concurrent features possible in React 18.</p>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
