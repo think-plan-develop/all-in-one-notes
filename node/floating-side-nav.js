@@ -3,6 +3,18 @@
     var sideNav = document.querySelector('.side-nav');
     if (!sideNav) return;
 
+    var dismissed = false;
+    var closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'side-nav-close';
+    closeButton.setAttribute('aria-label', 'Close section navigation');
+    closeButton.textContent = '\u00d7';
+    sideNav.appendChild(closeButton);
+    closeButton.addEventListener('click', function () {
+      dismissed = true;
+      sideNav.classList.remove('show');
+    });
+
     var source = document.querySelector('.toc, nav:not(.side-nav), [role="navigation"]:not(.side-nav)');
     var links = source ? Array.from(source.querySelectorAll('a[href^="#"]')) : [];
     var sections = [];
@@ -50,7 +62,8 @@
     if (!links.length) return;
 
     var update = function () {
-      sideNav.classList.toggle('show', window.scrollY > 200);
+      if (window.scrollY <= 200) dismissed = false;
+      sideNav.classList.toggle('show', window.scrollY > 200 && !dismissed);
       var current = links[0];
       links.forEach(function (item) {
         if (item.target.getBoundingClientRect().top <= 160) current = item;
