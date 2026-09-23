@@ -205,6 +205,53 @@
         <h4>📋 What interviewers watch for</h4>
         <p>Do you debounce with a <code>setTimeout</code> + cleanup instead of a library? Do you cancel/ignore stale requests? Do you handle the empty-query case and show loading/no-results states?</p>
 
+        <h4>🅰️ Approach 1 — Manual Timer Stored in a Ref</h4>
+        <p>The most common answer people reach for first: store the timer id itself in a <code>useRef</code> and clear it on every keystroke before scheduling a new one. No custom hook, no second state variable — just one ref holding the pending timer.</p>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">DebounceWithRef.jsx</span>
+          </div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useEffect</span>, <span class="fn">useState</span>, <span class="fn">useRef</span> } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">const</span> [<span class="type">text</span>, <span class="fn">setText</span>] = <span class="fn">useState</span>(<span class="num">0</span>);
+  <span class="kw">const</span> [<span class="type">users</span>, <span class="fn">setUsers</span>] = <span class="fn">useState</span>({});
+
+  <span class="kw">const</span> <span class="type">inputRef</span> = <span class="fn">useRef</span>(<span class="num">null</span>); <span class="cmt">// holds the pending setTimeout id</span>
+
+  <span class="kw">const</span> <span class="fn">handleChange</span> = (<span class="type">e</span>) =&gt; {
+    <span class="kw">const</span> <span class="type">input</span> = <span class="type">e</span>.target.value;
+    <span class="fn">setText</span>(<span class="type">input</span>.<span class="fn">slice</span>(-<span class="num">1</span>));
+
+    clearTimeout(<span class="type">inputRef</span>.current); <span class="cmt">// cancel the previous pending call</span>
+    <span class="type">inputRef</span>.current = setTimeout(() =&gt; {
+      <span class="fn">fetch</span>(<span class="str">`https://jsonplaceholder.typicode.com/todos/${input}`</span>)
+        .<span class="fn">then</span>((<span class="type">res</span>) =&gt; <span class="type">res</span>.<span class="fn">json</span>())
+        .<span class="fn">then</span>((<span class="type">user</span>) =&gt; <span class="fn">setUsers</span>(<span class="type">user</span>));
+    }, <span class="num">500</span>);
+  };
+
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">h1</span>&gt;Debounced Input&lt;/<span class="type">h1</span>&gt;
+      &lt;<span class="type">input</span> <span class="type">type</span>=<span class="str">"number"</span> <span class="type">value</span>={<span class="type">text</span>} <span class="fn">onChange</span>={<span class="type">handleChange</span>} /&gt;
+      &lt;<span class="type">p</span>&gt;{<span class="type">users</span>?.title}&lt;/<span class="type">p</span>&gt;
+    &lt;/&gt;
+  );
+}
+
+<span class="kw">export</span> <span class="kw">default</span> <span class="type">App</span>;</code></pre>
+        </div>
+
+        <div class="warning">
+          <strong>⚠️ Classic gotcha in this pattern:</strong> using the value captured in <code>e.target.value</code> (renamed <code>input</code> above) inside the timeout callback is correct, but a very common mistake is reading the <em>state variable</em> (<code>text</code>) instead — since <code>setText</code> hasn't re-rendered yet when the callback is defined, that closes over a stale value from the previous keystroke. Always debounce off the local variable you just read from the event, not the state you just set.
+        </div>
+
+        <h4>🅱️ Approach 2 — Reusable Hook</h4>
+        <p>The version below extracts the same idea into a <code>useDebouncedValue</code> hook so the debouncing logic is reusable across components, and separates it from the fetch entirely.</p>
+
         <div class="code-block">
           <div class="code-bar">
             <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
@@ -269,7 +316,7 @@
         </div>
 
         <div class="remember">
-          <strong>💡 Interview Answer:</strong> I separated the debouncing into a reusable <code>useDebouncedValue</code> hook, then fired the API call in a <code>useEffect</code> keyed on the debounced value. I used an <code>ignore</code> flag returned from the cleanup function to prevent a slow, stale response from overwriting a newer one — the classic race-condition bug in search boxes.
+          <strong>💡 Interview Answer:</strong> Both approaches debounce the same way underneath — clear the pending timer on every change, schedule a new one. The ref-based version (Approach 1) is the fastest thing to write on a whiteboard; the hook version (Approach 2) is what I'd ship, since it separates "when do I have a settled value" from "what do I do with it," and its cleanup runs through <code>useEffect</code> instead of manual <code>clearTimeout</code> calls in the handler. I'd also call out the stale-closure trap in Approach 1 as something I specifically avoided.
         </div>
       </div>
     </div>
