@@ -1,10 +1,10 @@
 window.notePageData = {
-  "title": "SQL Practice Questions 3",
+  "title": "28. SQL Practice Questions 3",
   "navLabel": "SQL Practice sections",
   "hero": {
     "type": "introduction",
     "label": "Introduction",
-    "heading": "SQL Practice Questions 3",
+    "heading": "28. SQL Practice Questions 3",
     "text": "Advanced SQL practice questions using Departments, Employees, Customers, Products, and Orders tables with joins, grouping, window functions, subqueries, and relational division."
   },
   "nav": [

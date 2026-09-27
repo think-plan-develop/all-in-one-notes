@@ -1,10 +1,10 @@
 window.notePageData = {
-  "title": "PostgreSQL Basics Practice",
+  "title": "25. PostgreSQL Basics Practice",
   "navLabel": "PostgreSQL basics",
   "hero": {
     "type": "introduction",
     "label": "Introduction",
-    "heading": "PostgreSQL Basics Practice",
+    "heading": "25. PostgreSQL Basics Practice",
     "text": "A beginner-friendly PostgreSQL practice note covering SELECT, WHERE, ORDER BY, GROUP BY, JOINs, subqueries, string/date functions, CASE, and window functions."
   },
   "nav": [

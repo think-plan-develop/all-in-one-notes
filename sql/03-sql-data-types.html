@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>03. PostgreSQL Data Types — Interview-Style Reference</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#f4f5fa; font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif; color:#1a1a1a; }
+.container { width:92%; max-width:1080px; margin:50px auto; }
+.container { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+.header { background:linear-gradient(120deg,var(--accent-dark),var(--accent-light)); border-radius:20px; padding:40px 36px; margin-bottom:24px; box-shadow:0 16px 36px rgba(var(--shadow-rgb),0.3); position:relative; overflow:hidden; }
+.header::after { content:''; position:absolute; top:-60px; right:-60px; width:220px; height:220px; border-radius:50%; background:rgba(255,255,255,0.08); }
+.header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:12px; }
+.header h1 { color:#fff; font-size:30px; font-weight:800; letter-spacing:-0.5px; margin-bottom:8px; }
+.header p { color:#dbe6ff; font-size:15.5px; line-height:1.6; max-width:700px; }
+.meta { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+.meta span { background:rgba(255,255,255,0.14); color:#fff; font-size:13px; font-weight:700; padding:6px 14px; border-radius:20px; border:1px solid rgba(255,255,255,0.28); cursor:pointer; }
+.meta span:hover { background:rgba(255,255,255,0.24); }
+
+.section-divider { margin:44px 0 20px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity:0.25; }
+.section-divider span { background:#f4f5fa; padding:0 18px 0 0; position:relative; font-size:21px; font-weight:800; color:#1a1a1a; display:inline-flex; align-items:center; gap:8px; }
+.section-time { font-size:13px; font-weight:700; color:var(--accent); background:var(--content-bg); padding:3px 12px; border-radius:14px; margin-left:6px; }
+
+.card { border-radius:16px; margin-bottom:16px; overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.04); background:#fff; }
+.q-header { display:flex; align-items:flex-start; gap:14px; padding:18px 22px; background:var(--content-bg); }
+.q-num { flex-shrink:0; width:34px; height:34px; border-radius:10px; background:linear-gradient(120deg,var(--accent),var(--accent-light)); color:#fff; font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.3); }
+.q-text { font-size:16.5px; line-height:1.5; font-weight:700; color:#1a1a1a; padding-top:5px; }
+.q-body { padding:20px 22px 22px 70px; }
+.q-body p { font-size:14.5px; line-height:1.75; color:#334155; font-weight:500; margin-bottom:8px; }
+
+.qa { background:#fff7ed; border-left:4px solid #f97316; color:#7c2d12; padding:12px 16px; border-radius:0 10px 10px 0; margin-bottom:12px; }
+.qa .qlabel { color:#9a3412; background:#ffedd5; border:1px solid #fb923c; font-weight:800; padding:2px 9px; border-radius:7px; display:inline-block; margin-bottom:5px; font-size:12.5px; }
+.qa .ans-label { color:#0f6e56; background:#e1f5ee; border:1px solid #9fe1cb; font-weight:800; padding:2px 9px; border-radius:7px; display:inline-block; margin:6px 0 4px; font-size:12.5px; }
+.qa p { color:#7c2d12; font-size:14.5px; }
+
+.code-block { background:#1a1a1a; border-radius:12px; overflow:hidden; margin:14px 0; box-shadow:0 8px 20px rgba(0,0,0,0.2); }
+.code-bar { background:#111; padding:9px 16px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #2b2b2b; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.dot-red{background:#ff5f57;} .dot-grey{background:#febc2e;} .dot-green{background:#28c840;}
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; font-family:'Fira Code',monospace; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:13px; font-family:'Fira Code','Consolas',monospace; line-height:1.65; white-space:pre; }
+.kw{color:#c792ea;font-weight:600;} .str{color:#c3e88d;} .fn{color:#82aaff;} .type{color:#f07178;} .cmt{color:#7a7a7a;font-style:italic;} .num{color:#f78c6c;} .op{color:#f472b6;}
+
+.badge { display:inline-block; font-size:11px; font-weight:800; letter-spacing:0.5px; padding:4px 11px; border-radius:14px; margin:2px 6px 10px 0; }
+.badge-blue { background:#dbeafe; color:#1e3a8a; }
+.badge-green { background:#dcfce7; color:#166534; }
+.badge-purple { background:#ede9fe; color:#5b21b6; }
+.badge-teal { background:#ccfbf1; color:#0f766e; }
+.badge-red { background:#fce7f3; color:#9d174d; }
+
+.tg { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:12px 0 16px; }
+.tc {
+  position:relative; background:#fff; border:1px solid #e6e9f0; border-radius:14px; padding:16px 16px 15px;
+  box-shadow:0 4px 14px rgba(30,58,138,0.06); border-top:4px solid var(--accent);
+  transition:transform 0.15s ease, box-shadow 0.15s ease;
+}
+.tc:hover { transform:translateY(-2px); box-shadow:0 10px 22px rgba(30,58,138,0.12); }
+.tc.warn { border-top-color:#f43f5e; }
+.tc.good { border-top-color:#16a34a; }
+.tc .t-name {
+  font-family:'Fira Code',monospace; font-size:15px; font-weight:800; color:var(--heading);
+  margin-bottom:8px; display:flex; align-items:center; gap:7px; letter-spacing:-0.2px;
+}
+.tc .t-name::before { content:'◆'; font-size:10px; color:var(--accent); }
+.tc.warn .t-name { color:#be123c; }
+.tc.warn .t-name::before { content:'⚠'; color:#f43f5e; font-size:12px; }
+.tc.good .t-name { color:#166534; }
+.tc.good .t-name::before { content:'✓'; color:#16a34a; font-size:12px; }
+.tc .t-size {
+  display:inline-block; font-size:11px; color:#475569; background:#f1f5f9; margin-bottom:9px;
+  font-weight:700; padding:3px 9px; border-radius:20px; letter-spacing:0.2px;
+}
+.tc.warn .t-size { background:#ffe4e6; color:#9f1239; }
+.tc.good .t-size { background:#dcfce7; color:#166534; }
+.tc .t-desc { font-size:13px; color:#475569; line-height:1.65; margin-bottom:11px; }
+.tc .t-ex {
+  font-family:'Fira Code',monospace; font-size:12px; color:#1e3a8a; background:var(--content-bg);
+  border:1px solid #dbeafe; padding:5px 10px; border-radius:7px; display:block; overflow-x:auto; white-space:nowrap;
+}
+.tc.warn .t-ex { background:#fff1f2; border-color:#fecdd3; color:#9f1239; }
+.tc.good .t-ex { background:#f0fdf4; border-color:#bbf7d0; color:#166534; }
+@media (max-width:700px){ .tg{ grid-template-columns:1fr 1fr; } }
+
+.table-wrap { border-radius:14px; overflow:hidden; box-shadow:0 8px 22px rgba(30,58,138,0.09); margin:16px 0; border:1px solid #e6e9f0; }
+table { width:100%; border-collapse:collapse; font-size:13.5px; background:#fff; }
+table th {
+  background:linear-gradient(120deg,var(--accent-dark),var(--accent)); color:#fff; padding:13px 18px;
+  text-align:left; font-weight:800; font-size:12.5px; letter-spacing:0.3px; text-transform:uppercase;
+}
+table th:first-child { border-top-left-radius:0; }
+table td { padding:13px 18px; border-bottom:1px solid #eef0f4; color:#334155; line-height:1.6; }
+table tr:last-child td { border-bottom:none; }
+table tr:nth-child(even) td { background:#f8fafc; }
+table tr:hover td { background:var(--content-bg); }
+table td code {
+  font-family:'Fira Code',monospace; font-size:12px; background:#eef2ff; padding:3px 8px;
+  border-radius:6px; color:#4338ca; font-weight:600; border:1px solid #e0e7ff;
+}
+
+.warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; border-radius:12px; padding:14px 18px; margin:14px 0; font-size:14.5px; line-height:1.7; font-weight:600; }
+.tip { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; border-radius:12px; padding:14px 18px; margin:14px 0; font-size:14.5px; line-height:1.7; font-weight:600; }
+.remember { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; border-radius:12px; padding:14px 18px; margin:14px 0; font-size:14.5px; line-height:1.7; font-weight:600; }
+.followup { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; border-radius:10px; padding:10px 16px; margin-top:10px; font-size:14px; font-weight:700; line-height:1.7; }
+
+.toggle-btn { display:inline-flex; align-items:center; gap:8px; background:linear-gradient(120deg,var(--accent),var(--accent-light)); color:#fff; border:none; padding:11px 22px; border-radius:10px; font-size:14.5px; font-weight:700; cursor:pointer; box-shadow:0 6px 16px rgba(var(--shadow-rgb),0.35); margin-top:6px; }
+.toggle-btn:hover { filter:brightness(1.06); }
+.solution-wrap { display:none; margin-top:16px; }
+.solution-wrap.open { display:block; }
+.checklist-item { display:flex; align-items:flex-start; gap:10px; padding:6px 0; }
+.checklist-item input { margin-top:4px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <span class="tag">DATA TYPES REFERENCE</span>
+    <h1>🐘 03. PostgreSQL Data Types — Complete Reference</h1>
+    <p>Numeric, text, boolean, date/time, binary, network, geometric, and special types — with column examples, common pitfalls, and a practice section at the end.</p>
+    <div class="meta">
+      <span onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'})">🔢 Numeric</span>
+      <span onclick="document.getElementById('s2').scrollIntoView({behavior:'smooth'})">🔤 Text</span>
+      <span onclick="document.getElementById('s3').scrollIntoView({behavior:'smooth'})">☑️ Boolean</span>
+      <span onclick="document.getElementById('s4').scrollIntoView({behavior:'smooth'})">📅 Date &amp; Time</span>
+      <span onclick="document.getElementById('s5').scrollIntoView({behavior:'smooth'})">📦 Binary</span>
+      <span onclick="document.getElementById('s6').scrollIntoView({behavior:'smooth'})">🌐 Network</span>
+      <span onclick="document.getElementById('s7').scrollIntoView({behavior:'smooth'})">📐 Geometric</span>
+      <span onclick="document.getElementById('s8').scrollIntoView({behavior:'smooth'})">✨ Special</span>
+      <span onclick="document.getElementById('s9').scrollIntoView({behavior:'smooth'})">⭐ Cheat Sheet</span>
+      <span onclick="document.getElementById('s10').scrollIntoView({behavior:'smooth'})">🧑‍💻 Practice</span>
+    </div>
+  </div>
+
+  <!-- NUMERIC -->
+  <div class="section-divider" id="s1"><span>🔢 Numeric Types</span></div>
+  <div class="card">
+    <div class="q-header"><div class="q-num">01</div><div class="q-text">What numeric types does PostgreSQL offer, and when do you use each?</div></div>
+    <div class="q-body">
+      <div class="qa">
+        <span class="ans-label">ANSWER</span>
+        <p>Three families — integers (whole numbers, no decimals), floating point (approximate decimals, fast), and numeric/decimal (exact decimals, used for money). Choose based on whether you need exact precision or are OK with approximation.</p>
+      </div>
+
+      <span class="badge badge-blue">Integer Types</span>
+      <div class="tg">
+        <div class="tc"><div class="t-name">SMALLINT</div><div class="t-size">2 bytes · -32,768 to 32,767</div><div class="t-desc">Tiny whole numbers. Saves space when range is small.</div><span class="t-ex">age SMALLINT</span></div>
+        <div class="tc"><div class="t-name">INTEGER / INT</div><div class="t-size">4 bytes · -2.1B to 2.1B</div><div class="t-desc">Standard whole number. Default choice for IDs and counts.</div><span class="t-ex">quantity INT</span></div>
+        <div class="tc"><div class="t-name">BIGINT</div><div class="t-size">8 bytes · ±9.2 quintillion</div><div class="t-desc">Large whole numbers. Use for IDs at scale.</div><span class="t-ex">user_id BIGINT</span></div>
+        <div class="tc"><div class="t-name">SERIAL</div><div class="t-size">4 bytes · auto-increment</div><div class="t-desc">Auto-incrementing INTEGER.</div><span class="t-ex">id SERIAL PRIMARY KEY</span></div>
+        <div class="tc"><div class="t-name">BIGSERIAL</div><div class="t-size">8 bytes · auto-increment</div><div class="t-desc">Auto-incrementing BIGINT for high-volume tables.</div><span class="t-ex">id BIGSERIAL PRIMARY KEY</span></div>
+        <div class="tc"><div class="t-name">SMALLSERIAL</div><div class="t-size">2 bytes · rare</div><div class="t-desc">Auto-incrementing SMALLINT. Rarely used.</div><span class="t-ex">id SMALLSERIAL</span></div>
+      </div>
+
+      <span class="badge badge-purple">Floating Point</span>
+      <div class="tg" style="grid-template-columns:1fr 1fr">
+        <div class="tc"><div class="t-name">REAL</div><div class="t-size">4 bytes · ~6 digits</div><div class="t-desc">Single-precision float. Approximate, fast.</div><span class="t-ex">temperature REAL</span></div>
+        <div class="tc"><div class="t-name">DOUBLE PRECISION</div><div class="t-size">8 bytes · ~15 digits</div><div class="t-desc">More accurate than REAL. Still approximate.</div><span class="t-ex">score DOUBLE PRECISION</span></div>
+      </div>
+
+      <span class="badge badge-green">Exact Decimal</span>
+      <div class="tg" style="grid-template-columns:1fr 1fr">
+        <div class="tc good"><div class="t-name">NUMERIC(p,s)</div><div class="t-size">Variable · exact precision</div><div class="t-desc">p = total digits, s = digits after decimal. Use for money.</div><span class="t-ex">price NUMERIC(10,2)</span></div>
+        <div class="tc"><div class="t-name">DECIMAL(p,s)</div><div class="t-size">Same as NUMERIC</div><div class="t-desc">Alias — NUMERIC is preferred in PostgreSQL.</div><span class="t-ex">amount DECIMAL(12,4)</span></div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">numeric_types.sql</span></div>
+        <pre><code><span class="kw">CREATE TABLE</span> demo_numeric (
+  id            <span class="type">BIGSERIAL PRIMARY KEY</span>,
+  age           <span class="type">SMALLINT</span>,
+  quantity      <span class="type">INTEGER</span>,
+  price         <span class="type">NUMERIC</span>(<span class="num">10</span>,<span class="num">2</span>)          <span class="cmt">-- exact! never REAL for money</span>
+);
+
+<span class="cmt">-- Float rounding issue</span>
+<span class="kw">SELECT</span> <span class="num">0.1</span>::<span class="type">REAL</span> + <span class="num">0.2</span>::<span class="type">REAL</span>;     <span class="cmt">-- 0.3000000119... ❌</span>
+<span class="kw">SELECT</span> <span class="num">0.1</span>::<span class="type">NUMERIC</span> + <span class="num">0.2</span>::<span class="type">NUMERIC</span>; <span class="cmt">-- 0.3 ✅</span></code></pre>
+      </div>
+      <div class="warning">⚠️ Never use REAL or DOUBLE PRECISION for money — use NUMERIC(p,s) for any financial value.</div>
+      <div class="remember">✅ Integer for whole numbers · NUMERIC for money · REAL/DOUBLE for approximations</div>
+    </div>
+  </div>
+
+  <!-- TEXT -->
+  <div class="section-divider" id="s2"><span>🔤 Text / String Types</span></div>
+  <div class="card">
+    <div class="q-header"><div class="q-num">02</div><div class="q-text">What are the text types, and which should you default to?</div></div>
+    <div class="q-body">
+      <div class="qa">
+        <span class="ans-label">ANSWER</span>
+        <p>TEXT (unlimited, recommended), VARCHAR(n) (limited length), CHAR(n) (fixed length, pads with spaces). TEXT and VARCHAR have identical performance in PostgreSQL — use TEXT by default.</p>
+      </div>
+      <div class="tg" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="tc good"><div class="t-name">TEXT</div><div class="t-size">Unlimited length</div><div class="t-desc">Best general-purpose string type. Preferred in PostgreSQL.</div><span class="t-ex">description TEXT</span></div>
+        <div class="tc"><div class="t-name">VARCHAR(n)</div><div class="t-size">Max n characters</div><div class="t-desc">Enforces a max length as a constraint.</div><span class="t-ex">email VARCHAR(255)</span></div>
+        <div class="tc warn"><div class="t-name">CHAR(n)</div><div class="t-size">Fixed n · pads spaces</div><div class="t-desc">Almost never useful — avoid it.</div><span class="t-ex">code CHAR(3) → 'US '</span></div>
+      </div>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">text_types.sql</span></div>
+        <pre><code><span class="kw">CREATE TABLE</span> users (
+  username     <span class="type">VARCHAR</span>(<span class="num">50</span>),
+  email        <span class="type">VARCHAR</span>(<span class="num">255</span>),
+  bio          <span class="type">TEXT</span>,
+  country_code <span class="type">CHAR</span>(<span class="num">2</span>)   <span class="cmt">-- 'US', 'IN', 'GB'</span>
+);
+
+<span class="kw">SELECT</span> <span class="str">'hi'</span>::<span class="type">CHAR</span>(<span class="num">5</span>) = <span class="str">'hi   '</span>;   <span class="cmt">-- true (spaces added)</span>
+<span class="kw">SELECT</span> <span class="str">'hello'</span> <span class="op">||</span> <span class="str">' world'</span>;        <span class="cmt">-- concatenate</span></code></pre>
+      </div>
+      <div class="tip">💡 Use TEXT for most columns. Use VARCHAR(n) only to enforce a max length. Avoid CHAR(n) entirely.</div>
+    </div>
+  </div>
+
+  <!-- BOOLEAN -->
+  <div class="section-divider" id="s3"><span>☑️ Boolean Type</span></div>
+  <div class="card">
+    <div class="q-header"><div class="q-num">03</div><div class="q-text">How does BOOLEAN work in PostgreSQL?</div></div>
+    <div class="q-body">
+      <div class="qa">
+        <span class="ans-label">ANSWER</span>
+        <p>Stores TRUE, FALSE, or NULL. Accepts many input formats ('true', 'yes', '1', 't'). Uses 1 byte. Never use INTEGER 0/1 for flags — use BOOLEAN.</p>
+      </div>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">boolean.sql</span></div>
+        <pre><code><span class="kw">CREATE TABLE</span> products (
+  id        <span class="type">SERIAL PRIMARY KEY</span>,
+  is_active <span class="type">BOOLEAN</span> <span class="kw">DEFAULT</span> <span class="kw">true</span>,
+  in_stock  <span class="type">BOOLEAN</span> <span class="kw">DEFAULT</span> <span class="kw">false</span>
+);
+
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> products <span class="kw">WHERE</span> is_active;      <span class="cmt">-- same as = true</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> products <span class="kw">WHERE NOT</span> is_active;</code></pre>
+      </div>
+      <div class="remember">✅ 1 byte · TRUE/FALSE/NULL · use for every flag/status column.</div>
+    </div>
+  </div>
+
+  <!-- DATE/TIME -->
+  <div class="section-divider" id="s4"><span>📅 Date &amp; Time Types</span></div>
+  <div class="card">
+    <div class="q-header"><div class="q-num">04</div><div class="q-text">What date/time types exist, and which should you use in production?</div></div>
+    <div class="q-body">
+      <div class="qa">
+        <span class="ans-label">ANSWER</span>
+        <p>DATE, TIME, TIMESTAMP (no timezone), TIMESTAMPTZ (with timezone — recommended), and INTERVAL (duration). Always use TIMESTAMPTZ over TIMESTAMP — it stores UTC and converts on read.</p>
+      </div>
+      <div class="tg" style="grid-template-columns:1fr 1fr">
+        <div class="tc"><div class="t-name">DATE</div><div class="t-size">4 bytes · date only</div><div class="t-desc">Year, month, day. No time.</div><span class="t-ex">birth_date DATE</span></div>
+        <div class="tc"><div class="t-name">TIME</div><div class="t-size">8 bytes · time only</div><div class="t-desc">Time of day, no date.</div><span class="t-ex">opening_time TIME</span></div>
+        <div class="tc warn"><div class="t-name">TIMESTAMP</div><div class="t-size">8 bytes · no timezone</div><div class="t-desc">Ambiguous across timezones. Avoid in production.</div><span class="t-ex">created_at TIMESTAMP ⚠️</span></div>
+        <div class="tc good"><div class="t-name">TIMESTAMPTZ</div><div class="t-size">8 bytes · with timezone</div><div class="t-desc">Correct choice for production timestamps.</div><span class="t-ex">created_at TIMESTAMPTZ ✅</span></div>
+        <div class="tc"><div class="t-name">INTERVAL</div><div class="t-size">16 bytes · duration</div><div class="t-desc">A period of time for date arithmetic.</div><span class="t-ex">duration INTERVAL</span></div>
+      </div>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">datetime.sql</span></div>
+        <pre><code><span class="kw">CREATE TABLE</span> events (
+  id         <span class="type">BIGSERIAL PRIMARY KEY</span>,
+  event_date <span class="type">DATE</span>,
+  created_at <span class="type">TIMESTAMPTZ</span> <span class="kw">DEFAULT NOW</span>(),
+  duration   <span class="type">INTERVAL</span>
+);
+
+<span class="kw">SELECT</span> <span class="fn">NOW</span>() - <span class="kw">INTERVAL</span> <span class="str">'7 days'</span>;
+<span class="kw">SELECT</span> <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, <span class="fn">NOW</span>());</code></pre>
+      </div>
+      <div class="warning">⚠️ Always use TIMESTAMPTZ, not TIMESTAMP — TIMESTAMP has no timezone info and becomes ambiguous across servers.</div>
+    </div>
+  </div>
+
+  <!-- BINARY -->
+  <div class="section-divider" id="s5"><span>📦 Binary Type</span></div>
+  <div class="card">
+    <div class="q-header"><div class="q-num">05</div><div class="q-text">What is BYTEA, and when do you use it?</div></div>
+    <div class="q-body">
+      <div class="qa">
+        <span class="ans-label">ANSWER</span>
+        <p>BYTEA stores raw binary data — file contents, encrypted blobs, hashes. It's the PostgreSQL equivalent of BLOB in other databases.</p>
+      </div>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">bytea.sql</span></div>
+        <pre><code><span class="kw">CREATE TABLE</span> files (
+  id       <span class="type">SERIAL PRIMARY KEY</span>,
+  content  <span class="type">BYTEA</span>,
+  checksum <span class="type">BYTEA</span>
+);
+
+<span class="kw">SELECT</span> <span class="fn">encode</span>(content, <span class="str">'hex'</span>) <span class="kw">FROM</span> files;</code></pre>
+      </div>
+      <div class="tip">💡 For large files, store them in object storage (S3, GCS) and keep only the URL in PostgreSQL. BYTEA fits small blobs — hashes, keys, thumbnails.</div>
+    </div>
+  </div>
+
+  <!-- NETWORK -->
+  <div class="section-divider" id="s6"><span>🌐 Network Address Types</span></div>
+  <div class="card">
+    <div class="q-header"><div class="q-num">06</div><div class="q-text">Why use network types instead of TEXT for IP addresses?</div></div>
+    <div class="q-body">
+      <div class="qa">
+        <span class="ans-label">ANSWER</span>
+        <p>Network types give built-in validation, indexing, and operators like "is this IP in this subnet?" — all lost if you store IPs as TEXT.</p>
+      </div>
+      <div class="tg" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="tc good"><div class="t-name">INET</div><div class="t-size">7–19 bytes</div><div class="t-desc">IPv4/IPv6, optionally with subnet mask.</div><span class="t-ex">ip INET</span></div>
+        <div class="tc"><div class="t-name">CIDR</div><div class="t-size">7–19 bytes</div><div class="t-desc">Network ranges, not individual hosts.</div><span class="t-ex">network CIDR</span></div>
+        <div class="tc"><div class="t-name">MACADDR</div><div class="t-size">6 bytes</div><div class="t-desc">MAC hardware address.</div><span class="t-ex">mac MACADDR</span></div>
+      </div>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">network_types.sql</span></div>
+        <pre><code><span class="kw">CREATE TABLE</span> access_log (
+  id         <span class="type">BIGSERIAL PRIMARY KEY</span>,
+  client_ip  <span class="type">INET</span>
+);
+
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> access_log
+<span class="kw">WHERE</span>  client_ip <span class="op"><<</span>= <span class="str">'192.168.1.0/24'</span>;</code></pre>
+      </div>
+      <div class="remember">✅ INET validates IP format automatically and gives subnet operators for free.</div>
+    </div>
+  </div>
+
+  <!-- GEOMETRIC -->
+  <div class="section-divider" id="s7"><span>📐 Geometric Types</span></div>
+  <div class="card">
+    <div class="q-header"><div class="q-num">07</div><div class="q-text">What geometric types does PostgreSQL support natively?</div></div>
+    <div class="q-body">
+      <div class="qa">
+        <span class="ans-label">ANSWER</span>
+        <p>POINT, LINE, LSEG, BOX, PATH, POLYGON, CIRCLE — with operators for distance, intersection, and containment. For real GIS work, use the PostGIS extension.</p>
+      </div>
+      <div class="tg">
+        <div class="tc"><div class="t-name">POINT</div><div class="t-size">16 bytes · (x,y)</div><div class="t-desc">A single point in 2D space.</div><span class="t-ex">location POINT</span></div>
+        <div class="tc"><div class="t-name">CIRCLE</div><div class="t-size">24 bytes</div><div class="t-desc">Centre point + radius.</div><span class="t-ex">zone CIRCLE</span></div>
+        <div class="tc"><div class="t-name">POLYGON</div><div class="t-size">Variable</div><div class="t-desc">Closed shape from a list of points.</div><span class="t-ex">region POLYGON</span></div>
+      </div>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">geometric.sql</span></div>
+        <pre><code><span class="kw">SELECT</span> <span class="str">'(0,0)'</span>::<span class="type">POINT</span> <span class="op">&lt;-&gt;</span> <span class="str">'(3,4)'</span>::<span class="type">POINT</span>;  <span class="cmt">-- 5.0</span>
+<span class="kw">SELECT</span> <span class="str">'(1,1)'</span>::<span class="type">POINT</span> <span class="op">&lt;@</span> <span class="str">'&lt;(0,0),2&gt;'</span>::<span class="type">CIRCLE</span>;  <span class="cmt">-- true</span></code></pre>
+      </div>
+      <div class="tip">💡 For GPS coordinates, use PostGIS's GEOGRAPHY type — native POINT treats the world as flat.</div>
+    </div>
+  </div>
+
+  <!-- SPECIAL -->
+  <div class="section-divider" id="s8"><span>✨ Special Types</span></div>
+  <div class="card">
+    <div class="q-header"><div class="q-num">08</div><div class="q-text">What other special types exist, and which should you avoid?</div></div>
+    <div class="q-body">
+      <div class="table-wrap">
+<table>
+        <tr><th>Type</th><th>What it stores</th><th>Note</th></tr>
+        <tr><td><code>MONEY</code></td><td>Currency, fixed 2 decimals</td><td>Locale-dependent ⚠️ — use NUMERIC(p,2)</td></tr>
+        <tr><td><code>XML</code></td><td>Valid XML documents</td><td>Use JSONB unless XML is required</td></tr>
+        <tr><td><code>TSVECTOR</code></td><td>Pre-processed search document</td><td>Pairs with TSQUERY</td></tr>
+        <tr><td><code>OID</code></td><td>Internal object identifier</td><td>System use only</td></tr>
+      </table>
+</div>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">special_types.sql</span></div>
+        <pre><code><span class="kw">CREATE TABLE</span> articles (
+  id     <span class="type">SERIAL PRIMARY KEY</span>,
+  title  <span class="type">TEXT</span>,
+  body   <span class="type">TEXT</span>,
+  tokens <span class="type">TSVECTOR</span>
+);
+
+<span class="kw">UPDATE</span> articles <span class="kw">SET</span> tokens = <span class="fn">to_tsvector</span>(<span class="str">'english'</span>, title <span class="op">||</span> <span class="str">' '</span> <span class="op">||</span> body);
+
+<span class="kw">SELECT</span> title <span class="kw">FROM</span> articles
+<span class="kw">WHERE</span>  tokens <span class="op">@@</span> <span class="fn">to_tsquery</span>(<span class="str">'english'</span>, <span class="str">'postgres & replication'</span>);
+
+<span class="kw">CREATE INDEX</span> idx_articles_fts <span class="kw">ON</span> articles <span class="kw">USING</span> GIN (tokens);</code></pre>
+      </div>
+      <div class="warning">⚠️ Avoid MONEY — locale-dependent. Always use NUMERIC(p,2) for currency.</div>
+    </div>
+  </div>
+
+  <!-- CHEAT SHEET -->
+  <div class="section-divider" id="s9"><span>⭐ Complete Cheat Sheet</span></div>
+  <div class="card">
+    <div class="q-header"><div class="q-num">⭐</div><div class="q-text">Pick the right type for the job</div></div>
+    <div class="q-body">
+      <div class="table-wrap">
+<table>
+        <tr><th>Use Case</th><th>Best Type</th><th>Avoid</th></tr>
+        <tr><td>Auto-increment PK (large scale)</td><td><code>BIGSERIAL</code></td><td><code>SERIAL</code> (2.1B limit)</td></tr>
+        <tr><td>Money / price / tax</td><td><code>NUMERIC(p,s)</code></td><td><code>REAL</code>, <code>MONEY</code></td></tr>
+        <tr><td>Long / unlimited text</td><td><code>TEXT</code></td><td><code>VARCHAR</code> (no benefit)</td></tr>
+        <tr><td>Yes/No flags</td><td><code>BOOLEAN</code></td><td><code>INTEGER</code> 0/1</td></tr>
+        <tr><td>Date + time (events)</td><td><code>TIMESTAMPTZ</code></td><td><code>TIMESTAMP</code> (no TZ)</td></tr>
+        <tr><td>Binary / file bytes / hash</td><td><code>BYTEA</code></td><td><code>TEXT</code></td></tr>
+        <tr><td>IP address</td><td><code>INET</code></td><td><code>TEXT</code></td></tr>
+        <tr><td>Full-text search</td><td><code>TSVECTOR</code> + GIN index</td><td><code>LIKE '%keyword%'</code></td></tr>
+      </table>
+</div>
+      <div class="remember">✅ Money → NUMERIC · Timestamps → TIMESTAMPTZ · Text → TEXT · Flags → BOOLEAN · IPs → INET · Binary → BYTEA</div>
+    </div>
+  </div>
+
+  <!-- PRACTICE — built entirely from content already above -->
+  <div class="section-divider" id="s10"><span>🧑‍💻 Practice — Coding Section <span class="section-time">Uses only types covered above</span></span></div>
+
+  <div class="card">
+    <div class="q-header"><div class="q-num">P1</div><div class="q-text">Design a request_log table</div></div>
+    <div class="q-body">
+      <div class="qa">
+        <span class="qlabel">TASK</span>
+        <p>Using only the types covered above, design a <code>request_log</code> table recording: a large-scale auto-increment key, the client IP (validated), a length-limited status code, a success flag, a whole-number response time, a timezone-correct timestamp, a processing duration, and an optional small binary hash.</p>
+      </div>
+      <button class="toggle-btn" onclick="document.getElementById('sol-p1').classList.toggle('open'); this.textContent = this.textContent.includes('Show') ? 'Hide Solution ▲' : 'Show Solution ▼';">Show Solution ▼</button>
+      <div class="solution-wrap" id="sol-p1">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">request_log.sql</span></div>
+          <pre><code><span class="kw">CREATE TABLE</span> request_log (
+  id              <span class="type">BIGSERIAL PRIMARY KEY</span>,      <span class="cmt">-- §01</span>
+  client_ip       <span class="type">INET</span>,                       <span class="cmt">-- §06</span>
+  status_code     <span class="type">VARCHAR</span>(<span class="num">10</span>),               <span class="cmt">-- §02</span>
+  succeeded       <span class="type">BOOLEAN</span> <span class="kw">DEFAULT</span> <span class="kw">true</span>,     <span class="cmt">-- §03</span>
+  response_ms     <span class="type">INTEGER</span>,                    <span class="cmt">-- §01</span>
+  requested_at    <span class="type">TIMESTAMPTZ</span> <span class="kw">DEFAULT NOW</span>(),  <span class="cmt">-- §04</span>
+  processing_time <span class="type">INTERVAL</span>,                   <span class="cmt">-- §04</span>
+  payload_hash    <span class="type">BYTEA</span>                       <span class="cmt">-- §05</span>
+);</code></pre>
+        </div>
+        <div class="remember">✅ Every type traces back to a section above — no new type introduced.</div>
+        <div class="checklist-item"><input type="checkbox"/><span>BIGSERIAL used for a high-volume log table, not SERIAL</span></div>
+        <div class="checklist-item"><input type="checkbox"/><span>INET used instead of TEXT for the IP column</span></div>
+        <div class="checklist-item"><input type="checkbox"/><span>TIMESTAMPTZ used instead of TIMESTAMP</span></div>
+        <div class="checklist-item"><input type="checkbox"/><span>INTERVAL used for a duration, not a raw integer of ms</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="q-header"><div class="q-num">P2</div><div class="q-text">Spot the wrong type</div></div>
+    <div class="q-body">
+      <div class="qa">
+        <span class="qlabel">TASK</span>
+        <p>This table compiles but repeats four mistakes already flagged above. Find each and name the correct type.</p>
+      </div>
+      <div class="code-block">
+        <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">orders_bad.sql</span></div>
+        <pre><code><span class="kw">CREATE TABLE</span> orders (
+  id          <span class="type">SERIAL PRIMARY KEY</span>,
+  total_price <span class="type">REAL</span>,               <span class="cmt">-- ①</span>
+  created_at  <span class="type">TIMESTAMP</span>,           <span class="cmt">-- ②</span>
+  is_paid     <span class="type">INTEGER</span>,             <span class="cmt">-- ③</span>
+  client_ip   <span class="type">TEXT</span>                 <span class="cmt">-- ④</span>
+);</code></pre>
+      </div>
+      <button class="toggle-btn" onclick="document.getElementById('sol-p2').classList.toggle('open'); this.textContent = this.textContent.includes('Show') ? 'Hide Solution ▲' : 'Show Solution ▼';">Show Solution ▼</button>
+      <div class="solution-wrap" id="sol-p2">
+        <div class="table-wrap">
+<table>
+          <tr><th>#</th><th>Wrong</th><th>Correct</th><th>Why</th></tr>
+          <tr><td>①</td><td><code>REAL</code></td><td><code>NUMERIC(10,2)</code></td><td>REAL is approximate — money needs exact decimals (§01).</td></tr>
+          <tr><td>②</td><td><code>TIMESTAMP</code></td><td><code>TIMESTAMPTZ</code></td><td>No timezone info — becomes ambiguous (§04).</td></tr>
+          <tr><td>③</td><td><code>INTEGER</code></td><td><code>BOOLEAN</code></td><td>Flags should be BOOLEAN, not 0/1 (§03).</td></tr>
+          <tr><td>④</td><td><code>TEXT</code></td><td><code>INET</code></td><td>No validation or subnet operators (§06).</td></tr>
+        </table>
+</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="q-header"><div class="q-num">P3</div><div class="q-text">Extend the full-text search example</div></div>
+    <div class="q-body">
+      <div class="qa">
+        <span class="qlabel">TASK</span>
+        <p>Using the <code>articles</code> example from the Special Types section, write the query that searches for articles containing both "postgres" and "index".</p>
+      </div>
+      <button class="toggle-btn" onclick="document.getElementById('sol-p3').classList.toggle('open'); this.textContent = this.textContent.includes('Show') ? 'Hide Solution ▲' : 'Show Solution ▼';">Show Solution ▼</button>
+      <div class="solution-wrap" id="sol-p3">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">search.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> title <span class="kw">FROM</span> articles
+<span class="kw">WHERE</span>  tokens <span class="op">@@</span> <span class="fn">to_tsquery</span>(<span class="str">'english'</span>, <span class="str">'postgres & index'</span>);</code></pre>
+        </div>
+        <div class="followup">🔁 Same pattern as the original example — only the search terms inside <code>to_tsquery()</code> change.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

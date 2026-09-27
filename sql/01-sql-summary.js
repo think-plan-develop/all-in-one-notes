@@ -1,10 +1,10 @@
 window.notePageData = {
-  "title": "SQL Summary",
+  "title": "01. SQL Summary",
   "navLabel": "SQL summary",
   "hero": {
     "type": "introduction",
     "label": "Introduction",
-    "heading": "SQL Summary",
+    "heading": "01. SQL Summary",
     "text": "A quick-reference guide covering core SQL and PostgreSQL concepts such as databases, keys, constraints, normalization, joins, indexes, transactions, views, and CTEs."
   },
   "nav": [

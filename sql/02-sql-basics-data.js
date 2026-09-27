@@ -1,11 +1,11 @@
 window.notePageData = 
   {
-  "title": "SQL & Database Fundamentals",
+  "title": "02. SQL & Database Fundamentals",
   "navLabel": "SQL Sections",
   "hero": {
     "type": "introduction",
     "label": "Introduction",
-    "heading": "SQL & Database Fundamentals",
+    "heading": "02. SQL & Database Fundamentals",
     "text": "A complete guide to Database Fundamentals, Relational Concepts, Keys, Constraints, Data Types, Relationships, Joins, Normalization, and SQL Language Categories — everything you need to master SQL from the ground up."
   },
   "nav": [

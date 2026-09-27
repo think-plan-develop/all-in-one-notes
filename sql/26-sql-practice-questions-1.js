@@ -1,10 +1,10 @@
 window.notePageData = {
-  "title": "SQL Practice Questions - Employees",
+  "title": "26. SQL Practice Questions - Employees",
   "navLabel": "Employee SQL sections",
   "hero": {
     "type": "introduction",
     "label": "Introduction",
-    "heading": "SQL Practice Questions - Employees",
+    "heading": "26. SQL Practice Questions - Employees",
     "text": "Practice SQL questions based on Employees and Departments tables, covering self joins, grouping, subqueries, and window functions."
   },
   "nav": [

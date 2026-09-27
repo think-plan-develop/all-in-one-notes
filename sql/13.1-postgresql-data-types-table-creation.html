@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PostgreSQL Data Types and Table Creation</title>
+</head>
+<style>
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
+
+  /* ═══════════════════ HEADER ═══════════════════ */
+  .header {
+    background: linear-gradient(120deg, var(--accent-dark), var(--accent-light));
+    border-radius: 20px;
+    padding: 46px 40px;
+    margin-bottom: 44px;
+    box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 220px; height: 220px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:14px; position:relative; }
+  .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 700px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a {
+    text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700;
+    transition: all 0.2s ease; cursor: pointer;
+    background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28);
+  }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* ═══════════════════ KEY TERMS SUMMARY ═══════════════════ */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; color: #1a1a1a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-2px); }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; }
+  .summary-blue   .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; }
+  .summary-pink   .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; }
+  .summary-amber  .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; }
+  .summary-green  .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; }
+  .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; }
+  .summary-teal   .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* ═══════════════════ SECTION DIVIDER ═══════════════════ */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; color: #1a1a1a; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* ═══════════════════ CARDS ═══════════════════ */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h3 { font-size: 18.5px; margin: 22px 0 10px; font-weight: 800; color: var(--heading); padding-left: 12px; border-left: 4px solid var(--accent); }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+
+  /* ── short-answer ── */
+  .short-answer {
+    position: relative;
+    background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%);
+    border: 1px solid rgba(var(--shadow-rgb), 0.16);
+    border-left: 4px solid var(--accent);
+    border-radius: 14px;
+    padding: 20px 24px 22px;
+    margin-bottom: 24px;
+    font-size: 17px;
+    line-height: 1.75;
+    font-weight: 500;
+    color: #293244;
+    box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1);
+  }
+  .short-answer::before {
+    content: "QUICK TAKE";
+    display: block; width: fit-content;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff;
+    background: linear-gradient(120deg, var(--accent), var(--accent-light));
+    padding: 5px 13px; border-radius: 20px; margin-bottom: 13px;
+    box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35);
+  }
+  .short-answer strong { color: var(--heading); }
+  .short-answer code {
+    background: rgba(var(--shadow-rgb), 0.1); color: var(--heading);
+    padding: 2px 7px; border-radius: 5px; font-size: 14.5px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+  }
+
+  /* ── code block ── */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .code-bar .dot-red { background: #ff5f57; }
+  .code-bar .dot-grey { background: #febc2e; }
+  .code-bar .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code', 'Consolas', monospace; line-height: 1.65; white-space: pre; tab-size: 2; }
+  .kw  { color: #c792ea; font-weight: 600; }
+  .str { color: #c3e88d; }
+  .fn  { color: #82aaff; }
+  .type { color: #f07178; }
+  .cmt { color: #7a7a7a; font-style: italic; }
+  .num { color: #f78c6c; }
+
+  /* ── callout boxes ── */
+  .tip, .note, .warning, .remember {
+    border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+  }
+  .tip      { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note     { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning  { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; }
+  table td:first-child { font-weight: 700; color: var(--heading); white-space: nowrap; }
+  table tr:nth-child(even) { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+
+  .sources { font-size: 12.5px !important; color: #64748b !important; font-weight: 500 !important; margin-top: 6px !important; }
+
+  @media (max-width: 768px) {
+    .header h1 { font-size: 26px; }
+    .toc a { padding: 6px 12px; font-size: 12px; }
+    .card-content { padding: 20px; }
+    table td:first-child { white-space: normal; }
+  }
+  @media print {
+    body { background: #fff; }
+    .container { width: 100%; max-width: none; margin: 0; }
+    .card, .code-block { box-shadow: none; }
+  }
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header">
+      <span class="tag">POSTGRESQL · QUICK REVISION NOTES</span>
+      <h1>🐘 13.1 PostgreSQL Data Types &amp; Table Creation</h1>
+      <p>Core types, PostgreSQL-specific features, and two related tables you can practice in order — concise explanations with basic and advanced SQL examples.</p>
+      <div class="toc">
+        <a onclick="document.getElementById('types').scrollIntoView({behavior:'smooth'});return false;">Core Types</a>
+        <a onclick="document.getElementById('keys').scrollIntoView({behavior:'smooth'});return false;">Keys &amp; IDs</a>
+        <a onclick="document.getElementById('basic-table').scrollIntoView({behavior:'smooth'});return false;">Basic Table</a>
+        <a onclick="document.getElementById('pg-features').scrollIntoView({behavior:'smooth'});return false;">PG Features</a>
+        <a onclick="document.getElementById('advanced-table').scrollIntoView({behavior:'smooth'});return false;">Advanced Table</a>
+        <a onclick="document.getElementById('reminders').scrollIntoView({behavior:'smooth'});return false;">Reminders</a>
+      </div>
+    </div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🧩 At a Glance — What Each Section Covers</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-blue" onclick="document.getElementById('types').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🔤</div>
+          <div class="summary-text"><strong>Core &amp; less-common types:</strong> numbers, text, dates, network, geometry, full-text search.</div>
+        </div>
+        <div class="summary-item summary-amber" onclick="document.getElementById('keys').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🔑</div>
+          <div class="summary-text"><strong>Keys &amp; automatic values:</strong> IDENTITY, SERIAL, UUID, and why generation alone isn't uniqueness.</div>
+        </div>
+        <div class="summary-item summary-pink" onclick="document.getElementById('basic-table').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🧱</div>
+          <div class="summary-text"><strong>Basic table:</strong> a customers table covering identity, checks, and defaults.</div>
+        </div>
+        <div class="summary-item summary-purple" onclick="document.getElementById('pg-features').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🐘</div>
+          <div class="summary-text"><strong>PostgreSQL-specific:</strong> ENUM, ARRAY, JSON vs JSONB, generated columns.</div>
+        </div>
+        <div class="summary-item summary-green" onclick="document.getElementById('advanced-table').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">⚙️</div>
+          <div class="summary-text"><strong>Advanced table:</strong> UUID, ENUM, foreign key, ARRAY, JSONB, GIN indexes together.</div>
+        </div>
+        <div class="summary-item summary-teal" onclick="document.getElementById('reminders').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">📌</div>
+          <div class="summary-text"><strong>Query reminders:</strong> JSON/array operators and common gotchas to remember.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1. Core Data Types ==================== -->
+    <div class="section-divider" id="types"><span>🔤 1. Core Data Types</span></div>
+
+    <div class="card">
+      <div class="card-title">Numbers, Text, Time, Booleans &amp; Network Types</div>
+      <div class="card-content">
+        <div class="short-answer">
+          These are the types you'll reach for in almost every table: <strong>whole numbers</strong> and <strong>exact/approximate decimals</strong>, <strong>text</strong> variants with different length behavior, <strong>booleans</strong>, <strong>date/time</strong> types (note the timezone distinction), <strong>binary data</strong>, and <strong>network address</strong> types.
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th>Type</th><th>Purpose &amp; Example</th></tr>
+            <tr><td>SMALLINT / INTEGER / BIGINT</td><td>Whole numbers; 2 / 4 / 8 bytes. <code>quantity INTEGER</code>. SMALLINT range: −32,768 to 32,767.</td></tr>
+            <tr><td>NUMERIC(p,s) / DECIMAL(p,s)</td><td>Exact decimal; <code>p</code> = total digits, <code>s</code> = decimal places. <code>NUMERIC(10,2)</code> allows 8 digits before the decimal.</td></tr>
+            <tr><td>REAL / DOUBLE PRECISION</td><td>Approximate decimals; about 6 / 15 significant digits. Use for measurements, not exact currency calculations.</td></tr>
+            <tr><td>TEXT / VARCHAR(n) / CHAR(n)</td><td>TEXT has no declared length limit; VARCHAR(n) limits characters; CHAR(n) pads spaces. TEXT is not literally unlimited.</td></tr>
+            <tr><td>BOOLEAN</td><td>TRUE, FALSE or NULL. <code>is_active BOOLEAN NOT NULL DEFAULT TRUE</code>.</td></tr>
+            <tr><td>DATE / TIME</td><td>Date only / time of day. <code>DATE '2026-09-27'</code>; <code>TIME '09:30'</code>.</td></tr>
+            <tr><td>TIMESTAMP / TIMESTAMPTZ</td><td>Local date and time / an instant displayed in the session timezone. TIMESTAMPTZ does not retain the original zone name.</td></tr>
+            <tr><td>INTERVAL</td><td>Duration or calendar interval. <code>INTERVAL '2 hours'</code> or <code>INTERVAL '1 month'</code>.</td></tr>
+            <tr><td>BYTEA</td><td>Raw bytes. <code>decode('deadbeef', 'hex')</code>. For large files, consider object storage plus a stored reference.</td></tr>
+            <tr><td>INET / CIDR / MACADDR</td><td>IP address / network / hardware address. <code>'192.168.1.5'</code>, <code>'192.168.1.0/24'</code>, <code>'08:00:2b:01:02:03'</code>.</td></tr>
+          </table>
+        </div>
+
+        <h4>📋 Less common types</h4>
+        <p>POINT, LINE, LSEG, BOX, PATH, POLYGON and CIRCLE represent planar geometry. For geographic coordinates and Earth distances, consider PostGIS. XML stores XML; TSVECTOR and TSQUERY support full text search. MONEY is locale dependent — NUMERIC gives explicit precision. OID identifies database objects; VOID is a function return pseudo-type, not a table column type.</p>
+
+        <div class="note">
+          <strong>📝 Remember:</strong> Prefer NUMERIC over REAL/DOUBLE PRECISION for money. Prefer TIMESTAMPTZ over TIMESTAMP unless you specifically need timezone-naive local times.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 2. Keys and automatic values ==================== -->
+    <div class="section-divider" id="keys"><span>🔑 2. Keys &amp; Automatic Values</span></div>
+
+    <div class="card">
+      <div class="card-title">IDENTITY, SERIAL &amp; UUID</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>IDENTITY</strong> generates integer IDs; <strong>SERIAL</strong> and <strong>BIGSERIAL</strong> are older sequence-based shorthand for the same idea. Neither ID generation alone nor a <code>DEFAULT</code> guarantees uniqueness — you still need <code>PRIMARY KEY</code> or <code>UNIQUE</code>. <strong>UUID</strong> is a 128-bit identifier; collisions are extremely unlikely, not impossible.
+        </div>
+        <p>UUIDs are useful when IDs need to be generated independently (e.g. client-side, or across services, before a row is inserted); integer IDs also work fine in scalable systems and are smaller to index.</p>
+
+        <div class="warning">
+          <strong>⚠️ Common mistake:</strong> writing <code>id INTEGER GENERATED ALWAYS AS IDENTITY</code> and assuming that alone makes it a valid row identifier. Without <code>PRIMARY KEY</code> (or a separate <code>UNIQUE</code> constraint), nothing stops duplicate values from being inserted directly.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 3. Basic Table Creation ==================== -->
+    <div class="section-divider" id="basic-table"><span>🧱 3. Basic Table Creation</span></div>
+
+    <div class="card">
+      <div class="card-title">customers — Identity, Text, Numbers, Dates, Booleans &amp; Constraints</div>
+      <div class="card-content">
+        <div class="short-answer">
+          A single table that exercises the fundamentals: an <strong>IDENTITY primary key</strong>, required and unique text, a <strong>DATE</strong> column, a constrained <strong>NUMERIC</strong> with a <code>CHECK</code>, a <strong>BOOLEAN</strong> default, and a <strong>TIMESTAMPTZ</strong> default. Run this first — the advanced table below references it via foreign key.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">basic-table.sql</span>
+          </div>
+          <pre><code><span class="kw">CREATE TABLE</span> <span class="type">customers</span> (
+  customer_id <span class="kw">BIGINT</span> <span class="kw">GENERATED ALWAYS AS IDENTITY</span>
+    <span class="kw">PRIMARY KEY</span>,
+  name <span class="kw">VARCHAR</span>(<span class="num">100</span>) <span class="kw">NOT NULL</span>,
+  email <span class="kw">VARCHAR</span>(<span class="num">255</span>) <span class="kw">NOT NULL UNIQUE</span>,
+  birth_date <span class="kw">DATE</span>,
+  credit_limit <span class="kw">NUMERIC</span>(<span class="num">10</span>,<span class="num">2</span>) <span class="kw">NOT NULL DEFAULT</span> <span class="num">0</span>
+    <span class="kw">CHECK</span> (credit_limit &gt;= <span class="num">0</span>),
+  is_active <span class="kw">BOOLEAN NOT NULL DEFAULT TRUE</span>,
+  created_at <span class="kw">TIMESTAMPTZ NOT NULL DEFAULT</span> <span class="fn">NOW</span>()
+);
+
+<span class="kw">INSERT INTO</span> <span class="type">customers</span> (name, email, birth_date)
+<span class="kw">VALUES</span> (<span class="str">'Shivam'</span>, <span class="str">'shivam@example.com'</span>, <span class="str">'1998-06-15'</span>);
+
+<span class="kw">SELECT</span> customer_id, name, credit_limit
+<span class="kw">FROM</span> customers <span class="kw">WHERE</span> is_active;</code></pre>
+        </div>
+
+        <h4>🧷 Constraints to remember</h4>
+        <div class="table-scroll">
+          <table>
+            <tr><th>Constraint</th><th>What It Enforces</th></tr>
+            <tr><td>PRIMARY KEY</td><td>Unique and non-null row identifier; may span columns.</td></tr>
+            <tr><td>NOT NULL / UNIQUE</td><td>Required value / no duplicate non-null values by default.</td></tr>
+            <tr><td>CHECK</td><td>Rejects FALSE. NULL can pass, so add NOT NULL when required.</td></tr>
+            <tr><td>FOREIGN KEY</td><td>Value must match a referenced key, unless NULL is allowed.</td></tr>
+            <tr><td>DEFAULT</td><td>Used when the column is omitted or DEFAULT is supplied; explicit NULL is not replaced.</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 4. PostgreSQL specific features ==================== -->
+    <div class="section-divider" id="pg-features"><span>🐘 4. PostgreSQL-Specific Features</span></div>
+
+    <div class="card">
+      <div class="card-title">ENUM, ARRAY, JSON/JSONB &amp; Generated Columns</div>
+      <div class="card-content">
+        <div class="short-answer">
+          The features that go beyond plain ANSI SQL: a <strong>named ENUM type</strong> for a fixed set of labels, native <strong>ARRAY</strong> columns, the <strong>JSON vs JSONB</strong> tradeoff, and <strong>generated columns</strong> computed from other columns in the same row.
+        </div>
+
+        <h4>🏷️ ENUM</h4>
+        <p>A named set of allowed labels. Create the type before the table. Labels are case sensitive and sort in declaration order. Values can be added or renamed; removing a value requires a migration. TEXT with a CHECK constraint is a more flexible alternative.</p>
+
+        <h4>📚 ARRAY</h4>
+        <p>A list of one element type, such as <code>TEXT[]</code>. Ordinary arrays start at index 1, though custom lower bounds are possible. Use a child table instead when elements need foreign keys or independent records.</p>
+
+        <h4>🔄 JSON vs JSONB</h4>
+        <p>JSON preserves input text formatting and duplicate keys. JSONB stores a parsed representation, discards formatting, and keeps the last duplicate key. Prefer JSONB for querying and indexing — both validate JSON syntax, not your business schema.</p>
+
+        <h4>🧮 Generated columns</h4>
+        <p>Calculated from other columns in the same row. <code>STORED</code> recalculates on writes and saves the result. Expressions must be immutable, with no subqueries or references to other generated columns. PostgreSQL 18 also supports virtual generated columns.</p>
+
+        <div class="tip">
+          <strong>💡 Rule of thumb:</strong> reach for JSONB by default unless you specifically need to preserve exact input formatting or duplicate keys — the indexing and query-operator support make JSONB the better fit almost every time.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 5. Advanced Table Creation ==================== -->
+    <div class="section-divider" id="advanced-table"><span>⚙️ 5. Advanced Table Creation</span></div>
+
+    <div class="card">
+      <div class="card-title">purchases — UUID, ENUM, Foreign Key, ARRAY, JSON/JSONB, INET &amp; Generated Total</div>
+      <div class="card-content">
+        <div class="short-answer">
+          One purchase line that combines everything above: a <strong>UUID</strong> primary key, an <strong>ENUM</strong> status, a <strong>FOREIGN KEY</strong> back to <code>customers</code>, <code>CHECK</code>-constrained numbers, a <strong>STORED generated column</strong> for the total, a <strong>TEXT[]</strong> array, both <strong>JSONB</strong> and <strong>JSON</strong> columns, an <strong>INET</strong> address, and two <strong>GIN</strong> indexes.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">advanced-table.sql</span>
+          </div>
+          <pre><code><span class="kw">CREATE TYPE</span> <span class="type">purchase_status</span> <span class="kw">AS ENUM</span>
+  (<span class="str">'pending'</span>, <span class="str">'paid'</span>, <span class="str">'cancelled'</span>);
+
+<span class="kw">CREATE TABLE</span> <span class="type">purchases</span> (
+  purchase_id <span class="kw">UUID PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+  customer_id <span class="kw">BIGINT NOT NULL</span>
+    <span class="kw">REFERENCES</span> customers(customer_id) <span class="kw">ON DELETE RESTRICT</span>,
+  status <span class="type">purchase_status</span> <span class="kw">NOT NULL DEFAULT</span> <span class="str">'pending'</span>,
+  quantity <span class="kw">INTEGER NOT NULL CHECK</span> (quantity &gt; <span class="num">0</span>),
+  unit_price <span class="kw">NUMERIC</span>(<span class="num">10</span>,<span class="num">2</span>) <span class="kw">NOT NULL CHECK</span> (unit_price &gt;= <span class="num">0</span>),
+  total <span class="kw">NUMERIC</span>(<span class="num">20</span>,<span class="num">2</span>) <span class="kw">GENERATED ALWAYS AS</span>
+    (quantity * unit_price) <span class="kw">STORED</span>,
+  tags <span class="kw">TEXT</span>[] <span class="kw">NOT NULL DEFAULT</span> <span class="str">'{}'</span>::<span class="kw">TEXT</span>[],
+  metadata <span class="kw">JSONB NOT NULL DEFAULT</span> <span class="str">'{}'</span>::<span class="kw">JSONB</span>
+    <span class="kw">CHECK</span> (<span class="fn">jsonb_typeof</span>(metadata) = <span class="str">'object'</span>),
+  raw_payload <span class="kw">JSON</span>,
+  client_ip <span class="kw">INET</span>,
+  created_at <span class="kw">TIMESTAMPTZ NOT NULL DEFAULT</span> <span class="fn">NOW</span>()
+);
+
+<span class="kw">CREATE INDEX</span> purchases_customer_idx <span class="kw">ON</span> purchases(customer_id);
+<span class="kw">CREATE INDEX</span> purchases_metadata_idx <span class="kw">ON</span> purchases <span class="kw">USING GIN</span> (metadata);
+<span class="kw">CREATE INDEX</span> purchases_tags_idx <span class="kw">ON</span> purchases <span class="kw">USING GIN</span> (tags);
+
+<span class="kw">INSERT INTO</span> purchases
+  (customer_id, quantity, unit_price, tags, metadata,
+   raw_payload, client_ip)
+<span class="kw">SELECT</span> customer_id, <span class="num">2</span>, <span class="num">499.50</span>, <span class="kw">ARRAY</span>[<span class="str">'online'</span>, <span class="str">'priority'</span>],
+  <span class="str">'{"city":"Noida","gift":true}'</span>::<span class="kw">JSONB</span>,
+  <span class="str">'{ "source": "web" }'</span>::<span class="kw">JSON</span>, <span class="str">'192.168.1.5'</span>::<span class="kw">INET</span>
+<span class="kw">FROM</span> customers <span class="kw">WHERE</span> email = <span class="str">'shivam@example.com'</span>;
+
+<span class="kw">SELECT</span> total, metadata-&gt;&gt;<span class="str">'city'</span> <span class="kw">AS</span> city, tags[<span class="num">1</span>] <span class="kw">AS</span> first_tag
+<span class="kw">FROM</span> purchases
+<span class="kw">WHERE</span> metadata @&gt; <span class="str">'{"gift":true}'</span>::<span class="kw">JSONB</span>
+  <span class="kw">AND</span> tags @&gt; <span class="kw">ARRAY</span>[<span class="str">'online'</span>];
+<span class="cmt">-- Result: total 999.00, city Noida, first_tag online</span></code></pre>
+        </div>
+
+        <div class="remember">
+          <strong>💡 Don't supply <code>total</code> on insert</strong> — PostgreSQL calculates it from <code>quantity * unit_price</code> automatically since it's a <code>STORED</code> generated column. Supplying a value for it manually raises an error.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 6. Query and design reminders ==================== -->
+    <div class="section-divider" id="reminders"><span>📌 6. Query &amp; Design Reminders</span></div>
+
+    <div class="card">
+      <div class="card-title">Operators &amp; Common Gotchas</div>
+      <div class="card-content">
+        <div class="short-answer">
+          A handful of operators cover most JSONB and array querying: <code>-&gt;</code> / <code>-&gt;&gt;</code> for JSON access, <code>@&gt;</code> for containment on both JSONB and arrays, <code>?</code> for a top-level JSONB key, <code>&amp;&amp;</code> for array overlap, and <code>unnest()</code> to expand an array into rows.
+        </div>
+
+        <h4>🔍 JSON &amp; array operators</h4>
+        <p><code>-&gt;</code> returns JSON/JSONB; <code>-&gt;&gt;</code> returns text; <code>@&gt;</code> tests JSONB containment; <code>?</code> tests a top-level key. Arrays use <code>@&gt;</code> for containment, <code>&amp;&amp;</code> for overlap, and <code>unnest()</code> to expand elements. GIN supports containment searches — <code>scalar = ANY(array)</code> is not directly a GIN array search.</p>
+
+        <h4>⚠️ Easy-to-miss gotchas</h4>
+        <p>A foreign key does not automatically index its referencing column — you add that index yourself, as done above for <code>customer_id</code>. <code>DEFAULT NOW()</code> sets an insertion-time value; it does not maintain an <code>updated_at</code> column on later updates (that needs a trigger). Index availability does not guarantee the planner will actually use it.</p>
+
+        <div class="note">
+          <strong>🎯 Practice:</strong> try inserting a purchase with a negative <code>unit_price</code> and one with a nonexistent <code>customer_id</code> — both should be rejected. Then insert with <code>quantity = 3</code> and <code>unit_price = 499.50</code> and confirm <code>total = 1498.50</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== Quick Reference ==================== -->
+    <div class="section-divider"><span>📊 Quick Reference</span></div>
+
+    <div class="card">
+      <div class="card-title">Type Choice Cheat Sheet</div>
+      <div class="card-content">
+        <table>
+          <tr><th>Need</th><th>Reach For</th><th>Watch Out For</th></tr>
+          <tr><td>Exact currency</td><td>NUMERIC(p,s)</td><td>REAL/DOUBLE PRECISION lose precision</td></tr>
+          <tr><td>Unbounded text</td><td>TEXT</td><td>Not literally unlimited; still has a practical cap</td></tr>
+          <tr><td>An instant in time</td><td>TIMESTAMPTZ</td><td>Doesn't retain the original zone name</td></tr>
+          <tr><td>Fixed label set</td><td>ENUM (or TEXT + CHECK)</td><td>Removing an ENUM value needs a migration</td></tr>
+          <tr><td>Semi-structured data</td><td>JSONB</td><td>Discards formatting and duplicate keys</td></tr>
+          <tr><td>Client-generated ID</td><td>UUID</td><td>Larger to index than a BIGINT</td></tr>
+        </table>
+
+        <p class="sources">Sources: supplied PostgreSQL Data Types Quick Reference and PostgreSQL Specific Data Types notes. Corrections checked against PostgreSQL documentation: postgresql.org/docs/current/ (Data Types, ALTER TYPE, Generated Columns and GIN Indexes).</p>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

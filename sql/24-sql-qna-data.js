@@ -1,10 +1,10 @@
 window.notePageData = {
-  "title": "PostgreSQL Interview Questions",
+  "title": "24. PostgreSQL Interview Questions",
   "navLabel": "PostgreSQL sections",
   "hero": {
     "type": "introduction",
     "label": "Introduction",
-    "heading": "PostgreSQL Interview Questions",
+    "heading": "24. PostgreSQL Interview Questions",
     "text": "Top 25 most asked PostgreSQL interview questions covering core concepts, data types, joins, indexing, transactions, and performance optimization."
   },
   "nav": [

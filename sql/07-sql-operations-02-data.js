@@ -1,10 +1,10 @@
 window.notePageData = {
-    "title": "SQL Operations — 02 SQL Reference",
+    "title": "07. SQL Operations — 02 SQL Reference",
     "navLabel": "SQL operations sections-02",
     "hero": {
         "type": "introduction",
         "label": "Introduction",
-        "heading": "SQL Operations — 02",
+        "heading": "07. SQL Operations — 02",
         "text": "A practical reference covering sorting, result limiting, pagination, aggregate functions, grouping, string functions, date functions, and mathematical functions in PostgreSQL — each with real-world syntax and examples you'll actually use."
     },
     "nav": [

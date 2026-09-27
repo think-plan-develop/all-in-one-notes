@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PSQL Table Creation Practice</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f6f7fb; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.container { width: 92%; max-width: 1200px; margin: 60px auto; }
+
+@media (max-width: 768px) {
+  .container { width: 100%; max-width: 100%; margin: 20px 0 40px; }
+}
+
+/* ═══════════ THEME VARIABLES ═══════════ */
+.theme-blue { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-1 { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+.cat-2 { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+.cat-3 { --accent-dark:#9a3412; --accent:#ea580c; --accent-light:#f97316; --content-bg:#fff7ed; --heading:#9a3412; --shadow-rgb:234,88,12; }
+.cat-4 { --accent-dark:#5b21b6; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+
+/* ═══════════ HEADER ═══════════ */
+.header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius:16px; padding:40px 36px; margin-bottom:50px; box-shadow: 0 12px 30px rgba(var(--shadow-rgb),0.3); }
+.header h1 { color:#fff; font-size:34px; margin-bottom:8px; font-weight:800; letter-spacing:-0.5px; }
+.header p { color:#fdf6ec; font-size:17px; margin-bottom:24px; }
+.toc { display:flex; flex-wrap:wrap; gap:8px; }
+.toc a { text-decoration:none; padding:7px 16px; border-radius:20px; font-size:14px; font-weight:600; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,0.18); color:#fff; border:0; }
+.toc a:hover { background:#fff; color:var(--accent); }
+
+/* ═══════════ CARDS ═══════════ */
+.card { border-radius:14px; margin-bottom:30px; overflow:hidden; box-shadow:0 10px 24px rgba(0,0,0,0.06); border:0; }
+.card-title { color:#fff; font-size:21px; font-weight:700; padding:18px 26px; display:flex; align-items:center; gap:10px; background:linear-gradient(120deg, var(--accent), var(--accent-light)); }
+.card-content { padding:26px; background: var(--content-bg); }
+
+/* ═══════════ KEY TERMS SUMMARY ═══════════ */
+.intro-summary { margin:0 0 32px; }
+.intro-summary-title { font-size:22px; font-weight:800; color:#1a1a1a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.summary-grid { display:flex; flex-direction:column; gap:10px; }
+.summary-item { display:flex; align-items:center; gap:14px; width:100%; border-radius:10px; padding:14px 20px; }
+.summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,0.55); box-shadow:none; }
+.summary-text { font-size:15px; line-height:1.7; font-weight:500; }
+.summary-text strong { font-weight:800; margin-right:4px; }
+.summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal .summary-text strong { color:#0d9488; }
+.summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink .summary-text strong { color:#db2777; }
+.summary-indigo { background:linear-gradient(135deg,#eef2ff,#e0e7ff); color:#3730a3; } .summary-indigo .summary-text strong { color:#4338ca; }
+.summary-orange { background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412; } .summary-orange .summary-text strong { color:#ea580c; }
+
+/* ═══════════ SECTION DIVIDER ═══════════ */
+.section-divider { margin:48px 0 24px; position:relative; }
+.section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#ec4899,#f59e0b); opacity:.25; }
+.section-divider span { background:#f6f7fb; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; color:#1a1a1a; }
+
+/* ═══════════ CODE BLOCK ═══════════ */
+.code-block { background:#1a1a1a; border-radius:10px; overflow:hidden; margin:14px 0; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
+.code-bar { background:#111; padding:8px 14px; display:flex; align-items:center; gap:6px; border:0; }
+.code-bar .dot { width:10px; height:10px; border-radius:50%; }
+.code-bar .dot-red { background:#ff5f57; } .code-bar .dot-grey { background:#febc2e; } .code-bar .dot-green { background:#28c840; }
+.code-bar .filename { color:#999; font-size:12px; margin-left:8px; }
+.code-block pre { padding:18px; overflow-x:auto; }
+.code-block code { color:#d4d4d4; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+.kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a7a7a; font-style:italic; } .num { color:#f78c6c; }
+
+/* ═══════════ DIAGRAM ═══════════ */
+.diagram { background:#0f172a; color:#a5f3fc; font-family:'Fira Code','Consolas',monospace; font-size:14px; line-height:1.7; padding:20px 24px; border-radius:10px; margin:14px 0; overflow-x:auto; white-space:pre; box-shadow:none; }
+
+/* ═══════════ INFO BOXES ═══════════ */
+.info-box { border-radius:10px; padding:14px 18px; margin:12px 0; font-size:16px; line-height:1.8; font-weight:600; box-shadow:none; }
+.box-benefit { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+.box-tip     { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+.box-note    { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+.box-warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+.box-extra   { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; }
+
+/* ═══════════ SHORT ANSWER ═══════════ */
+.short-answer { position:relative; background:linear-gradient(160deg,#ffffff 0%, var(--content-bg) 100%); border:0; border:0; border-radius:12px; padding:18px 22px 20px; margin-bottom:14px; font-size:17px; line-height:1.75; font-weight:500; color:#293244; box-shadow:0 6px 18px rgba(var(--shadow-rgb),0.1); }
+.short-answer::before { content:"QUICK ANSWER"; display:block; width:fit-content; font-size:11px; font-weight:800; letter-spacing:.8px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; margin-bottom:12px; box-shadow:0 3px 8px rgba(var(--shadow-rgb),0.35); }
+.short-answer strong { color: var(--heading); }
+.short-answer code { background:rgba(var(--shadow-rgb),0.1); color:var(--heading); padding:2px 6px; border-radius:5px; font-size:15px; font-family:'Fira Code','Consolas',monospace; }
+
+/* ═══════════ SUBSECTIONS (card-sub) ═══════════ */
+.categories-wrap { background:transparent; border:0; padding:0; margin-bottom:30px; }
+.card-sub { border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fff; border:0; border:0; box-shadow:0 4px 14px rgba(var(--shadow-rgb),0.1); }
+.card-sub:last-child { margin-bottom:0; }
+.card-sub.no-left { border:0; }
+.card-sub-title { display:flex; align-items:center; gap:14px; padding:16px 22px; background: linear-gradient(120deg, var(--content-bg), #ffffff 70%); border:0; }
+.card-sub-num { flex-shrink:0; width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent-light)); box-shadow:0 4px 10px rgba(var(--shadow-rgb),0.35); }
+.card-sub-title h4 { margin:0; font-size:17px; font-weight:800; color:var(--heading); }
+.card-sub-badge { font-size:11px; font-weight:800; letter-spacing:.5px; color:#fff; background:linear-gradient(120deg, var(--accent), var(--accent-light)); padding:4px 12px; border-radius:20px; }
+.card-sub-content { padding:20px 24px; background:#fff; }
+.card-sub-content p { color:#333; font-size:16px; line-height:1.8; font-weight:500; margin:0 0 14px; }
+.card-sub-content p:last-child { margin-bottom:0; }
+.card-sub-content p + .code-block { margin-top:14px; }
+.card-sub-content h3 { font-size:16px; margin:16px 0 6px; font-weight:800; color:var(--heading); }
+.card-sub-content h3:first-child { margin-top:0; }
+.card-sub-content ul { margin:8px 0 14px 20px; }
+.card-sub-content li { font-size:15px; line-height:1.85; color:#333; font-weight:500; margin-bottom:4px; }
+.card-sub-content .diagram:last-child,
+.card-sub-content .info-box:last-child,
+.card-sub-content table:last-child,
+.card-sub-content .code-block:last-child { margin-bottom:0; }
+
+/* ═══════════ TABLE ═══════════ */
+table { width:100%; border-collapse:separate; border-spacing:0; margin:15px 0; border-radius:14px; overflow:hidden; box-shadow:0 10px 24px rgba(37,99,235,0.12); }
+table th { background:linear-gradient(120deg,#1e3a8a,#2563eb); color:#fff; font-size:16px; font-weight:700; padding:14px 20px; text-align:left; letter-spacing:.2px; }
+table th:first-child { border-top-left-radius:14px; }
+table th:last-child { border-top-right-radius:14px; }
+table td { padding:13px 20px; font-size:15px; font-weight:500; border:0; color:#28324a; background:#fff; }
+table tr:last-child td { border:0; }
+table tr:nth-child(even) td { background:#eff6ff; }
+table tr:hover td { background:#dbeafe; transition:background .15s ease; }
+table td code { background:rgba(37,99,235,0.1); color:#1e3a8a; padding:2px 6px; border-radius:5px; font-family:'Fira Code','Consolas',monospace; font-size:14px; }
+
+@media (max-width:768px) {
+  .header h1 { font-size:26px; }
+  .toc a { padding:6px 12px; font-size:12px; }
+}
+
+/* Consistent themes: blue requirements, green explanations, orange warnings. */
+.explanation-section {
+  --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981;
+  --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105;
+}
+.requirements-section {
+  --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6;
+  --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235;
+  border:2px solid #2563eb;
+}
+.card-sub { box-shadow:none; }
+.summary-item, .box-benefit, .box-note, .box-tip, .box-extra {
+  background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46;
+}
+.summary-item .summary-text strong { color:#047857; }
+.box-warning {
+  background:linear-gradient(135deg,#fff7ed,#ffedd5); color:#9a3412;
+}
+.section-divider::before { background:#059669; }
+table, table th, table td { border:0; }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header theme-blue">
+      <h1>🐘 PSQL Table Creation Practice</h1>
+      <p>Three practice tables — departments, employees, projects — covering IDENTITY/SERIAL/UUID, CHECK constraints, foreign keys with cascading, and TIMESTAMP vs TIMESTAMPTZ</p>
+      <div class="toc">
+        <a href="#part1" onclick="document.getElementById('part1').scrollIntoView({behavior:'smooth'});return false;">Part 1 — departments</a>
+        <a href="#part2" onclick="document.getElementById('part2').scrollIntoView({behavior:'smooth'});return false;">Part 2 — employees</a>
+        <a href="#part3" onclick="document.getElementById('part3').scrollIntoView({behavior:'smooth'});return false;">Part 3 — projects</a>
+      </div>
+    </div>
+
+    <div class="info-box box-benefit"><strong>📌 In short:</strong> Each table builds on the last — <strong>departments</strong> introduces auto-generated IDs (<code>IDENTITY</code>, <code>SERIAL</code>, <code>UUID</code>) and default timestamps; <strong>employees</strong> adds <code>CHECK</code> constraints, <code>NUMERIC(p,s)</code> precision, and foreign keys with <code>ON DELETE</code>/<code>ON UPDATE</code> cascading; <strong>projects</strong> combines all of it with <code>CHECK ... IN (...)</code> enum-style validation, optional columns, and <code>TIMESTAMP</code> vs <code>TIMESTAMPTZ</code>.</div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🔑 Key Terms at a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-teal">
+          <div class="summary-icon">🆔</div>
+          <div class="summary-text"><strong>IDENTITY:</strong> The modern way to auto-generate primary key values — replaces the older <code>SERIAL</code>.</div>
+        </div>
+        <div class="summary-item summary-pink">
+          <div class="summary-icon">✅</div>
+          <div class="summary-text"><strong>CHECK:</strong> A constraint that validates a column's value against a condition before insert/update.</div>
+        </div>
+        <div class="summary-item summary-indigo">
+          <div class="summary-icon">🔗</div>
+          <div class="summary-text"><strong>REFERENCES:</strong> Creates a foreign key linking a column to another table's primary key.</div>
+        </div>
+        <div class="summary-item summary-orange">
+          <div class="summary-icon">🕒</div>
+          <div class="summary-text"><strong>TIMESTAMPTZ:</strong> A timezone-aware timestamp — preferred for <code>created_at</code>/<code>updated_at</code> audit fields.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PART 1: DEPARTMENTS ==================== -->
+    <div class="section-divider" id="part1"><span>Part 1 — departments Table</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub requirements-section">
+        <div class="card-sub-title"><h4>Requirements</h4></div>
+        <div class="card-sub-content">
+          <table>
+            <tr><th>Column</th><th>Data Type</th><th>Requirement</th></tr>
+            <tr><td><code>id</code></td><td><code>INTEGER</code></td><td>Auto-generated using <code>IDENTITY</code>, primary key</td></tr>
+            <tr><td><code>name</code></td><td><code>VARCHAR(100)</code></td><td>Mandatory and unique</td></tr>
+            <tr><td><code>location</code></td><td><code>VARCHAR(100)</code></td><td>Default value: <code>'Noida'</code></td></tr>
+            <tr><td><code>created_at</code></td><td><code>TIMESTAMPTZ</code></td><td>Default value: current timestamp</td></tr>
+          </table>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">departments.sql</span></div>
+            <pre><code><span class="kw">CREATE TABLE IF NOT EXISTS</span> departments (
+    id <span class="kw">INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY</span>,
+    name <span class="kw">VARCHAR</span>(<span class="num">100</span>) <span class="kw">NOT NULL UNIQUE</span>,
+    location <span class="kw">VARCHAR</span>(<span class="num">100</span>) <span class="kw">DEFAULT</span> <span class="str">'Noida'</span>,
+    created_at <span class="kw">TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP</span>
+);</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>1. CREATE TABLE IF NOT EXISTS</h4></div>
+        <div class="card-sub-content">
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">if-not-exists.sql</span></div>
+            <pre><code><span class="kw">CREATE TABLE IF NOT EXISTS</span> departments</code></pre>
+          </div>
+          <ul>
+            <li>Creates the table only if it does not already exist.</li>
+            <li>Prevents an error if the table already exists.</li>
+            <li>Existing table structure is <strong>not updated</strong>.</li>
+          </ul>
+          <p>Without it:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">without.sql</span></div>
+            <pre><code><span class="kw">CREATE TABLE</span> departments (...);</code></pre>
+          </div>
+          <div class="info-box box-warning">⚠️ If the table already exists, PostgreSQL throws an error.</div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>2. Auto-Generating id</h4></div>
+        <div class="card-sub-content">
+          <p>Current approach:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">identity.sql</span></div>
+            <pre><code>id <span class="kw">INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY</span></code></pre>
+          </div>
+          <ul>
+            <li>Automatically generates IDs such as <code>1, 2, 3...</code></li>
+            <li>Modern PostgreSQL approach.</li>
+            <li><code>PRIMARY KEY</code> means: <code>UNIQUE</code> + <code>NOT NULL</code></li>
+          </ul>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">insert-example.sql</span></div>
+            <pre><code><span class="kw">INSERT INTO</span> departments (name)
+<span class="kw">VALUES</span> (<span class="str">'IT'</span>);</code></pre>
+          </div>
+          <div class="info-box box-note">💡 PostgreSQL automatically generates the <code>id</code>.</div>
+
+          <h3>Option 1 — Identity</h3>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">identity-recommended.sql</span></div>
+            <pre><code>id <span class="kw">INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY</span></code></pre>
+          </div>
+          <p>Recommended modern approach. Another version:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">identity-by-default.sql</span></div>
+            <pre><code>id <span class="kw">INT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY</span></code></pre>
+          </div>
+          <div class="diagram">ALWAYS      → PostgreSQL normally controls the ID
+BY DEFAULT  → manual ID can also be provided</div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>3. SERIAL Option</h4></div>
+        <div class="card-sub-content">
+          <p>Older PostgreSQL style:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">serial.sql</span></div>
+            <pre><code>id <span class="kw">SERIAL PRIMARY KEY</span></code></pre>
+          </div>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">serial-example.sql</span></div>
+            <pre><code><span class="kw">CREATE TABLE</span> departments (
+    id <span class="kw">SERIAL PRIMARY KEY</span>,
+    name <span class="kw">VARCHAR</span>(<span class="num">100</span>)
+);</code></pre>
+          </div>
+          <div class="info-box box-note">💡 <code>SERIAL</code> automatically creates a sequence internally. Prefer <code>GENERATED ... AS IDENTITY</code> for newer applications.</div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>4. UUID Option</h4></div>
+        <div class="card-sub-content">
+          <p>Instead of numeric IDs:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">uuid.sql</span></div>
+            <pre><code>id <span class="kw">UUID PRIMARY KEY DEFAULT</span> gen_random_uuid()</code></pre>
+          </div>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">uuid-example.sql</span></div>
+            <pre><code><span class="kw">CREATE TABLE</span> departments (
+    id <span class="kw">UUID PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+    name <span class="kw">VARCHAR</span>(<span class="num">100</span>) <span class="kw">NOT NULL UNIQUE</span>
+);</code></pre>
+          </div>
+          <p>Generated ID example:</p>
+          <div class="diagram">550e8400-e29b-41d4-a716-446655440000</div>
+          <p>UUID is useful when:</p>
+          <ul>
+            <li>IDs need to be globally unique.</li>
+            <li>Multiple services/databases generate records.</li>
+            <li>You don't want sequential IDs exposed externally.</li>
+          </ul>
+          <div class="diagram">IDENTITY → 1, 2, 3, 4...
+SERIAL   → 1, 2, 3, 4... (older approach)
+UUID     → random globally unique value</div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>TIMESTAMPTZ</h4></div>
+        <div class="card-sub-content">
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">timestamptz.sql</span></div>
+            <pre><code>created_at <span class="kw">TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP</span></code></pre>
+          </div>
+          <ul>
+            <li>Stores the exact date and time.</li>
+            <li>Handles timezone-aware timestamps.</li>
+            <li><code>CURRENT_TIMESTAMP</code> automatically stores the current time during insert.</li>
+          </ul>
+          <div class="diagram">2026-09-27 21:30:00+05:30</div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>Quick Revision</h4></div>
+        <div class="card-sub-content">
+          <table>
+            <tr><th>Term</th><th>Meaning</th></tr>
+            <tr><td><code>IF NOT EXISTS</code></td><td>Don't fail if table already exists</td></tr>
+            <tr><td><code>IDENTITY</code></td><td>Modern auto-increment ID</td></tr>
+            <tr><td><code>SERIAL</code></td><td>Older PostgreSQL auto-increment approach</td></tr>
+            <tr><td><code>UUID</code></td><td>Globally unique ID</td></tr>
+            <tr><td><code>PRIMARY KEY</code></td><td>UNIQUE + NOT NULL</td></tr>
+            <tr><td><code>NOT NULL</code></td><td>Value is compulsory</td></tr>
+            <tr><td><code>UNIQUE</code></td><td>Duplicate values not allowed</td></tr>
+            <tr><td><code>DEFAULT</code></td><td>Automatically uses a predefined value</td></tr>
+            <tr><td><code>TIMESTAMPTZ</code></td><td>Timezone-aware timestamp</td></tr>
+            <tr><td><code>CURRENT_TIMESTAMP</code></td><td>Current date and time</td></tr>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== PART 2: EMPLOYEES ==================== -->
+    <div class="section-divider" id="part2"><span>Part 2 — employees Table</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub requirements-section">
+        <div class="card-sub-title"><h4>Requirements</h4></div>
+        <div class="card-sub-content">
+          <table>
+            <tr><th>Column</th><th>Data Type</th><th>Requirement</th></tr>
+            <tr><td><code>id</code></td><td><code>INTEGER</code></td><td>Auto-generated using <code>IDENTITY</code>, primary key</td></tr>
+            <tr><td><code>name</code></td><td><code>VARCHAR(100)</code></td><td>Mandatory</td></tr>
+            <tr><td><code>email</code></td><td><code>VARCHAR(150)</code></td><td>Mandatory and unique</td></tr>
+            <tr><td><code>age</code></td><td><code>INTEGER</code></td><td>Mandatory; must be between 18 and 60</td></tr>
+            <tr><td><code>salary</code></td><td><code>NUMERIC(10,2)</code></td><td>Mandatory; must be greater than 0</td></tr>
+            <tr><td><code>department_id</code></td><td><code>INTEGER</code></td><td>Foreign key referencing <code>departments.id</code>; optional</td></tr>
+            <tr><td><code>joining_date</code></td><td><code>DATE</code></td><td>Default value: current date</td></tr>
+            <tr><td><code>is_active</code></td><td><code>BOOLEAN</code></td><td>Mandatory; default value: <code>true</code></td></tr>
+          </table>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">employees.sql</span></div>
+            <pre><code><span class="kw">CREATE TABLE IF NOT EXISTS</span> employees (
+    id <span class="kw">INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY</span>,
+
+    name <span class="kw">VARCHAR</span>(<span class="num">100</span>) <span class="kw">NOT NULL</span>,
+
+    email <span class="kw">VARCHAR</span>(<span class="num">150</span>) <span class="kw">NOT NULL UNIQUE</span>,
+
+    age <span class="kw">INTEGER NOT NULL</span>
+        <span class="kw">CHECK</span> (age >= <span class="num">18</span> <span class="kw">AND</span> age <= <span class="num">60</span>),
+
+    <span class="cmt">-- Alternative:</span>
+    <span class="cmt">-- age INTEGER NOT NULL CHECK (age BETWEEN 18 AND 60),</span>
+
+    salary <span class="kw">NUMERIC</span>(<span class="num">10</span>,<span class="num">2</span>) <span class="kw">NOT NULL</span>
+        <span class="kw">CHECK</span> (salary > <span class="num">0</span>),
+
+    department_id <span class="kw">INTEGER</span>
+        <span class="kw">REFERENCES</span> departments(id),
+
+    joining_date <span class="kw">DATE DEFAULT CURRENT_DATE</span>,
+
+    is_active <span class="kw">BOOLEAN NOT NULL DEFAULT TRUE</span>
+);</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>1. CHECK Constraint</h4></div>
+        <div class="card-sub-content">
+          <p>From the table:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">check-age.sql</span></div>
+            <pre><code>age <span class="kw">INTEGER NOT NULL</span>
+    <span class="kw">CHECK</span> (age >= <span class="num">18</span> <span class="kw">AND</span> age <= <span class="num">60</span>)</code></pre>
+          </div>
+          <ul>
+            <li><code>NOT NULL</code> → age is mandatory.</li>
+            <li><code>CHECK</code> → validates the value before insert/update.</li>
+            <li>Only values from <code>18</code> to <code>60</code> are allowed.</li>
+          </ul>
+          <p>Alternative (equivalent):</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">check-between.sql</span></div>
+            <pre><code>age <span class="kw">INTEGER NOT NULL</span>
+    <span class="kw">CHECK</span> (age <span class="kw">BETWEEN</span> <span class="num">18</span> <span class="kw">AND</span> <span class="num">60</span>)</code></pre>
+          </div>
+          <p>Other examples:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">check-examples.sql</span></div>
+            <pre><code>rating <span class="kw">INTEGER CHECK</span> (rating <span class="kw">BETWEEN</span> <span class="num">1</span> <span class="kw">AND</span> <span class="num">5</span>)
+
+quantity <span class="kw">INTEGER CHECK</span> (quantity >= <span class="num">0</span>)
+
+status <span class="kw">VARCHAR</span>(<span class="num">20</span>)
+    <span class="kw">CHECK</span> (status <span class="kw">IN</span> (<span class="str">'ACTIVE'</span>, <span class="str">'INACTIVE'</span>, <span class="str">'BLOCKED'</span>))</code></pre>
+          </div>
+          <div class="info-box box-note">💡 <code>CHECK</code> → validates data using a condition.</div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>2. NUMERIC(10,2)</h4></div>
+        <div class="card-sub-content">
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">numeric.sql</span></div>
+            <pre><code>salary <span class="kw">NUMERIC</span>(<span class="num">10</span>,<span class="num">2</span>) <span class="kw">NOT NULL</span>
+    <span class="kw">CHECK</span> (salary > <span class="num">0</span>)</code></pre>
+          </div>
+          <div class="diagram">NUMERIC(10,2)
+10 → total number of digits
+ 2 → digits allowed after decimal</div>
+          <p><strong>Valid values:</strong></p>
+          <div class="diagram">50000.50
+99999999.99
+1200.00</div>
+          <p><strong>Invalid</strong> (exceeds allowed precision):</p>
+          <div class="diagram">123456789.12</div>
+          <p><code>NOT NULL</code> means salary is mandatory. <code>CHECK (salary &gt; 0)</code> means zero or negative salary is not allowed.</p>
+          <p>Other examples:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">numeric-examples.sql</span></div>
+            <pre><code>price <span class="kw">NUMERIC</span>(<span class="num">8</span>,<span class="num">2</span>) <span class="kw">CHECK</span> (price >= <span class="num">0</span>)
+
+percentage <span class="kw">NUMERIC</span>(<span class="num">5</span>,<span class="num">2</span>)
+    <span class="kw">CHECK</span> (percentage <span class="kw">BETWEEN</span> <span class="num">0</span> <span class="kw">AND</span> <span class="num">100</span>)</code></pre>
+          </div>
+          <div class="info-box box-note">💡 <code>NUMERIC(p,s)</code> — <code>p</code> = total digits, <code>s</code> = digits after decimal.</div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>3. Foreign Key / REFERENCES</h4></div>
+        <div class="card-sub-content">
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">fk.sql</span></div>
+            <pre><code>department_id <span class="kw">INTEGER</span>
+    <span class="kw">REFERENCES</span> departments(id)</code></pre>
+          </div>
+          <ul>
+            <li><code>department_id</code> stores a department ID.</li>
+            <li>That value must already exist in <code>departments.id</code>.</li>
+            <li>It creates a foreign key relationship.</li>
+          </ul>
+          <div class="info-box box-warning">⚠️ Common mistake: <code>REFERENCE departments(id)</code> — the correct keyword is <code>REFERENCES</code> (with an S).</div>
+          <p>You can also write the foreign key separately:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">fk-separate.sql</span></div>
+            <pre><code>department_id <span class="kw">INTEGER</span>,
+
+<span class="kw">FOREIGN KEY</span> (department_id)
+    <span class="kw">REFERENCES</span> departments(id)</code></pre>
+          </div>
+          <p>If department is mandatory vs optional:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">fk-mandatory-optional.sql</span></div>
+            <pre><code><span class="cmt">-- Mandatory</span>
+department_id <span class="kw">INTEGER NOT NULL</span>
+    <span class="kw">REFERENCES</span> departments(id)
+
+<span class="cmt">-- Optional</span>
+department_id <span class="kw">INTEGER</span>
+    <span class="kw">REFERENCES</span> departments(id)</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>4. Cascading Foreign Keys</h4></div>
+        <div class="card-sub-content">
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">cascade.sql</span></div>
+            <pre><code>department_id <span class="kw">INTEGER</span>
+    <span class="kw">REFERENCES</span> departments(id)
+    <span class="kw">ON DELETE CASCADE</span>
+    <span class="kw">ON UPDATE CASCADE</span></code></pre>
+          </div>
+          <p><strong><code>ON DELETE CASCADE</code></strong> — if a department is deleted, all related employee rows are also deleted.</p>
+          <div class="diagram">Department 1 → IT
+
+Employees:
+Shivam → department 1
+Rahul  → department 1
+
+If department 1 is deleted →
+both employee rows are automatically deleted too</div>
+          <p><strong><code>ON UPDATE CASCADE</code></strong> — if the referenced department ID changes, PostgreSQL updates the employee foreign-key values automatically.</p>
+          <p>Other common options:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">other-options.sql</span></div>
+            <pre><code><span class="kw">ON DELETE SET NULL</span>
+<span class="cmt">-- department_id → NULL (column must allow NULL)</span>
+
+<span class="kw">ON DELETE RESTRICT</span>
+<span class="cmt">-- prevents deleting the department while employees reference it</span></code></pre>
+          </div>
+          <div class="diagram">CASCADE   → related rows are automatically affected
+SET NULL  → foreign key becomes NULL
+RESTRICT  → parent row cannot be deleted</div>
+          <div class="info-box box-warning">⚠️ Use <code>CASCADE</code> carefully because it can delete related rows automatically.</div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>5. DATE DEFAULT CURRENT_DATE</h4></div>
+        <div class="card-sub-content">
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">joining-date.sql</span></div>
+            <pre><code>joining_date <span class="kw">DATE DEFAULT CURRENT_DATE</span></code></pre>
+          </div>
+          <ul>
+            <li><code>DATE</code> stores only date.</li>
+            <li>No time is stored.</li>
+            <li>If you don't provide a value, PostgreSQL uses today's date.</li>
+          </ul>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">insert.sql</span></div>
+            <pre><code><span class="kw">INSERT INTO</span> employees (name, email, age, salary)
+<span class="kw">VALUES</span> (<span class="str">'Shivam'</span>, <span class="str">'shivam@test.com'</span>, <span class="num">25</span>, <span class="num">50000</span>);</code></pre>
+          </div>
+          <div class="info-box box-note">💡 PostgreSQL automatically fills <code>joining_date = current date</code>.</div>
+          <p>If the date must always exist:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">not-null-date.sql</span></div>
+            <pre><code>joining_date <span class="kw">DATE NOT NULL DEFAULT CURRENT_DATE</span></code></pre>
+          </div>
+          <div class="diagram">CURRENT_DATE      → date only
+CURRENT_TIMESTAMP → date + time</div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>Quick Revision</h4></div>
+        <div class="card-sub-content">
+          <table>
+            <tr><th>Term</th><th>Meaning</th></tr>
+            <tr><td><code>CHECK</code></td><td>Validate a value using a condition</td></tr>
+            <tr><td><code>NUMERIC(10,2)</code></td><td>10 total digits, 2 decimal digits</td></tr>
+            <tr><td><code>REFERENCES</code></td><td>Creates a foreign key</td></tr>
+            <tr><td><code>REFERENCE</code></td><td>❌ Incorrect keyword</td></tr>
+            <tr><td><code>ON DELETE CASCADE</code></td><td>Delete related child rows automatically</td></tr>
+            <tr><td><code>ON DELETE SET NULL</code></td><td>Child foreign key becomes NULL</td></tr>
+            <tr><td><code>ON DELETE RESTRICT</code></td><td>Block parent deletion</td></tr>
+            <tr><td><code>CURRENT_DATE</code></td><td>Current date only</td></tr>
+            <tr><td><code>CURRENT_TIMESTAMP</code></td><td>Current date + time</td></tr>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== PART 3: PROJECTS ==================== -->
+    <div class="section-divider" id="part3"><span>Part 3 — projects Table</span></div>
+
+    <div class="categories-wrap">
+
+      <div class="card-sub requirements-section">
+        <div class="card-sub-title"><h4>Requirements</h4></div>
+        <div class="card-sub-content">
+          <table>
+            <tr><th>Column</th><th>Data Type</th><th>Requirements</th></tr>
+            <tr><td><code>id</code></td><td><code>INTEGER</code></td><td>Auto-generated using <code>IDENTITY</code>; primary key</td></tr>
+            <tr><td><code>name</code></td><td><code>VARCHAR(100)</code></td><td><code>NOT NULL</code></td></tr>
+            <tr><td><code>project_code</code></td><td><code>VARCHAR(20)</code></td><td><code>NOT NULL</code>, <code>UNIQUE</code></td></tr>
+            <tr><td><code>department_id</code></td><td><code>INTEGER</code></td><td><code>NOT NULL</code>; references <code>departments(id)</code>; <code>ON DELETE CASCADE</code>, <code>ON UPDATE CASCADE</code></td></tr>
+            <tr><td><code>budget</code></td><td><code>NUMERIC(12,2)</code></td><td><code>NOT NULL</code>; must be greater than 0</td></tr>
+            <tr><td><code>status</code></td><td><code>VARCHAR(20)</code></td><td><code>NOT NULL</code>; default <code>'planned'</code>; only <code>'planned'</code>, <code>'active'</code>, <code>'completed'</code></td></tr>
+            <tr><td><code>start_date</code></td><td><code>DATE</code></td><td><code>NOT NULL</code></td></tr>
+            <tr><td><code>end_date</code></td><td><code>DATE</code></td><td>Optional; when provided, must be on or after <code>start_date</code></td></tr>
+            <tr><td><code>created_at</code></td><td><code>TIMESTAMPTZ</code></td><td>Default <code>CURRENT_TIMESTAMP</code></td></tr>
+          </table>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">projects.sql</span></div>
+            <pre><code><span class="kw">CREATE TABLE IF NOT EXISTS</span> projects (
+    id <span class="kw">INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY</span>,
+
+    name <span class="kw">VARCHAR</span>(<span class="num">100</span>) <span class="kw">NOT NULL</span>,
+
+    project_code <span class="kw">VARCHAR</span>(<span class="num">20</span>) <span class="kw">NOT NULL UNIQUE</span>,
+
+    department_id <span class="kw">INTEGER NOT NULL</span>
+        <span class="kw">REFERENCES</span> departments(id)
+        <span class="kw">ON DELETE CASCADE</span>
+        <span class="kw">ON UPDATE CASCADE</span>,
+
+    budget <span class="kw">NUMERIC</span>(<span class="num">12</span>,<span class="num">2</span>) <span class="kw">NOT NULL</span>
+        <span class="kw">CHECK</span> (budget > <span class="num">0</span>),
+
+    status <span class="kw">VARCHAR</span>(<span class="num">20</span>) <span class="kw">NOT NULL DEFAULT</span> <span class="str">'planned'</span>
+        <span class="kw">CHECK</span> (status <span class="kw">IN</span> (<span class="str">'planned'</span>, <span class="str">'active'</span>, <span class="str">'completed'</span>)),
+
+    start_date <span class="kw">DATE NOT NULL</span>,
+
+    end_date <span class="kw">DATE</span>
+        <span class="kw">CHECK</span> (end_date >= start_date),
+
+    created_at <span class="kw">TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP</span>
+);</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>1. Foreign Key + Cascading</h4></div>
+        <div class="card-sub-content">
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">fk-cascade.sql</span></div>
+            <pre><code>department_id <span class="kw">INTEGER NOT NULL</span>
+    <span class="kw">REFERENCES</span> departments(id)
+    <span class="kw">ON DELETE CASCADE</span>
+    <span class="kw">ON UPDATE CASCADE</span></code></pre>
+          </div>
+          <table>
+            <tr><th>Part</th><th>Meaning</th></tr>
+            <tr><td><code>department_id INTEGER</code></td><td>Stores department ID</td></tr>
+            <tr><td><code>NOT NULL</code></td><td>Department is mandatory</td></tr>
+            <tr><td><code>REFERENCES departments(id)</code></td><td>Creates foreign key to <code>departments.id</code></td></tr>
+            <tr><td><code>ON DELETE CASCADE</code></td><td>If parent department is deleted, related projects are also deleted</td></tr>
+            <tr><td><code>ON UPDATE CASCADE</code></td><td>If parent department ID changes, project <code>department_id</code> is updated automatically</td></tr>
+          </table>
+          <div class="diagram">departments
+id | name
+1  | IT
+
+projects
+id | name      | department_id
+1  | Project A | 1
+2  | Project B | 1
+
+DELETE FROM departments WHERE id = 1;
+→ ON DELETE CASCADE → both related projects are automatically deleted</div>
+          <table>
+            <tr><th>Option</th><th>Meaning</th></tr>
+            <tr><td><code>ON DELETE CASCADE</code></td><td>Delete child rows automatically</td></tr>
+            <tr><td><code>ON DELETE SET NULL</code></td><td>Set foreign key to NULL</td></tr>
+            <tr><td><code>ON DELETE RESTRICT</code></td><td>Prevent parent deletion if child rows exist</td></tr>
+            <tr><td><code>ON UPDATE CASCADE</code></td><td>Update child foreign key automatically</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>2. CHECK ... IN (...)</h4></div>
+        <div class="card-sub-content">
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">check-in.sql</span></div>
+            <pre><code>status <span class="kw">VARCHAR</span>(<span class="num">20</span>) <span class="kw">NOT NULL DEFAULT</span> <span class="str">'planned'</span>
+    <span class="kw">CHECK</span> (status <span class="kw">IN</span> (<span class="str">'planned'</span>, <span class="str">'active'</span>, <span class="str">'completed'</span>))</code></pre>
+          </div>
+          <ul>
+            <li><code>NOT NULL</code> → status is mandatory.</li>
+            <li><code>DEFAULT 'planned'</code> → if status is not provided, PostgreSQL uses <code>planned</code>.</li>
+            <li><code>CHECK</code> → validates the inserted/updated value.</li>
+            <li><code>IN (...)</code> → only listed values are allowed.</li>
+          </ul>
+          <div class="diagram">Allowed:     planned ✅   active ✅   completed ✅
+Not allowed: pending ❌   cancelled ❌</div>
+          <p><strong>Correct syntax:</strong></p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">correct.sql</span></div>
+            <pre><code><span class="kw">CHECK</span> (status <span class="kw">IN</span> (<span class="str">'planned'</span>, <span class="str">'active'</span>, <span class="str">'completed'</span>))</code></pre>
+          </div>
+          <div class="info-box box-warning">⚠️ Do <strong>not</strong> use <code>CHECK (status IN ['planned', 'active', 'completed'])</code> — <code>[]</code> is incorrect here. Use <code>IN (value1, value2, value3)</code> with parentheses.</div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>3. Optional Columns</h4></div>
+        <div class="card-sub-content">
+          <p>PostgreSQL does <strong>not</strong> have an <code>OPTIONAL</code> keyword.</p>
+          <div class="info-box box-warning">⚠️ Wrong: <code>end_date DATE OPTIONAL</code></div>
+          <div class="info-box box-benefit">✅ Correct: <code>end_date DATE</code></div>
+          <p>A column is optional automatically when you do not add <code>NOT NULL</code>.</p>
+          <div class="diagram">end_date DATE
+→ DATE value ✅
+→ NULL       ✅
+
+end_date DATE NOT NULL
+→ DATE value ✅
+→ NULL       ❌</div>
+          <p>The example from the table:</p>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">end-date.sql</span></div>
+            <pre><code>end_date <span class="kw">DATE</span>
+    <span class="kw">CHECK</span> (end_date >= start_date)</code></pre>
+          </div>
+          <p>is valid — if <code>end_date</code> is <code>NULL</code>, PostgreSQL allows it.</p>
+          <div class="diagram">No NOT NULL  → optional
+NOT NULL     → mandatory</div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>4. TIMESTAMP vs TIMESTAMPTZ</h4></div>
+        <div class="card-sub-content">
+          <h3>TIMESTAMP</h3>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">timestamp.sql</span></div>
+            <pre><code>created_at <span class="kw">TIMESTAMP DEFAULT CURRENT_TIMESTAMP</span></code></pre>
+          </div>
+          <p>Stores date + time. Example:</p>
+          <div class="diagram">2026-09-27 22:30:00</div>
+          <p>It does not represent timezone-aware time.</p>
+
+          <h3>TIMESTAMPTZ</h3>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">timestamptz.sql</span></div>
+            <pre><code>created_at <span class="kw">TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP</span></code></pre>
+          </div>
+          <p>Stores an exact moment in time and displays it according to the PostgreSQL session timezone. Example:</p>
+          <div class="diagram">2026-09-27 22:30:00+05:30</div>
+          <p>If the session timezone changes, the same instant may display differently.</p>
+
+          <table>
+            <tr><th>Type</th><th>Stores</th><th>Common Use</th></tr>
+            <tr><td><code>DATE</code></td><td>Date only</td><td>birthday, joining date</td></tr>
+            <tr><td><code>TIMESTAMP</code></td><td>Date + time</td><td>timezone-independent local time</td></tr>
+            <tr><td><code>TIMESTAMPTZ</code></td><td>Exact date/time instant</td><td>created time, updated time, login time</td></tr>
+          </table>
+
+          <div class="info-box box-benefit">✅ For most backend audit fields, prefer <code>created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP</code>.</div>
+          <div class="code-block">
+            <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">common-audit-fields.sql</span></div>
+            <pre><code>created_at <span class="kw">TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP</span>
+updated_at <span class="kw">TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP</span>
+deleted_at <span class="kw">TIMESTAMPTZ</span>
+last_login_at <span class="kw">TIMESTAMPTZ</span></code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-sub explanation-section">
+        <div class="card-sub-title"><h4>Quick Revision</h4></div>
+        <div class="card-sub-content">
+          <table>
+            <tr><th>Topic</th><th>Syntax</th><th>Meaning</th></tr>
+            <tr><td>Foreign key</td><td><code>REFERENCES departments(id)</code></td><td>Links child table to parent</td></tr>
+            <tr><td>Delete cascade</td><td><code>ON DELETE CASCADE</code></td><td>Delete related child rows</td></tr>
+            <tr><td>Update cascade</td><td><code>ON UPDATE CASCADE</code></td><td>Update related foreign-key values</td></tr>
+            <tr><td>Allowed values</td><td><code>CHECK (status IN (...))</code></td><td>Restrict values to a list</td></tr>
+            <tr><td><code>IN</code> syntax</td><td><code>IN ('a','b')</code></td><td>Use <code>()</code> not <code>[]</code></td></tr>
+            <tr><td>Optional column</td><td><code>end_date DATE</code></td><td><code>NULL</code> is allowed</td></tr>
+            <tr><td>Mandatory column</td><td><code>end_date DATE NOT NULL</code></td><td><code>NULL</code> not allowed</td></tr>
+            <tr><td><code>TIMESTAMP</code></td><td>Date + time</td><td>No timezone-aware instant</td></tr>
+            <tr><td><code>TIMESTAMPTZ</code></td><td>Date + time + timezone handling</td><td>Preferred for backend timestamps</td></tr>
+            <tr><td>Current date/time</td><td><code>CURRENT_TIMESTAMP</code></td><td>Automatically uses current timestamp</td></tr>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</body>
+</html>

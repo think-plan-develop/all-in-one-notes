@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>05. PostgreSQL Specific Data Types</title>
+</head>
+<style>
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
+
+  /* ═══════════════════ HEADER ═══════════════════ */
+  .header {
+    background: linear-gradient(120deg, var(--accent-dark), var(--accent-light));
+    border-radius: 20px;
+    padding: 46px 40px;
+    margin-bottom: 44px;
+    box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 220px; height: 220px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:14px; position:relative; }
+  .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 700px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a {
+    text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700;
+    transition: all 0.2s ease; cursor: pointer;
+    background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28);
+  }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* ═══════════════════ KEY TERMS SUMMARY ═══════════════════ */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; color: #1a1a1a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-2px); }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; }
+  .summary-blue   .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; }
+  .summary-pink   .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; }
+  .summary-amber  .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; }
+  .summary-green  .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; }
+  .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; }
+  .summary-teal   .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* ═══════════════════ SECTION DIVIDER ═══════════════════ */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; color: #1a1a1a; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* ═══════════════════ CARDS ═══════════════════ */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-title .qnum { background: rgba(255,255,255,0.18); border-radius: 8px; padding: 3px 11px; font-size: 12.5px; font-weight: 700; white-space: nowrap; margin-left: auto; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h3 { font-size: 18.5px; margin: 22px 0 10px; font-weight: 800; color: var(--heading); padding-left: 12px; border-left: 4px solid var(--accent); }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+
+  .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .badge { display: inline-block; padding: 4px 13px; border-radius: 20px; font-size: 12px; font-weight: 800; }
+  .badge-crit   { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+  .badge-high   { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+  .badge-info   { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+  .badge-star   { background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; }
+
+  /* ── short-answer ── */
+  .short-answer {
+    position: relative;
+    background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%);
+    border: 1px solid rgba(var(--shadow-rgb), 0.16);
+    border-left: 4px solid var(--accent);
+    border-radius: 14px;
+    padding: 20px 24px 22px;
+    margin-bottom: 24px;
+    font-size: 17px;
+    line-height: 1.75;
+    font-weight: 500;
+    color: #293244;
+    box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1);
+  }
+  .short-answer::before {
+    content: "WHAT IT TESTS";
+    display: block; width: fit-content;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff;
+    background: linear-gradient(120deg, var(--accent), var(--accent-light));
+    padding: 5px 13px; border-radius: 20px; margin-bottom: 13px;
+    box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35);
+  }
+  .short-answer strong { color: var(--heading); }
+  .short-answer code {
+    background: rgba(var(--shadow-rgb), 0.1); color: var(--heading);
+    padding: 2px 7px; border-radius: 5px; font-size: 14.5px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+  }
+
+  /* ── analogy ── */
+  .analogy { background: linear-gradient(135deg,#fef3c7,#fde68a); color: #78350f; border-left: 4px solid #f59e0b; border-radius: 0 12px 12px 0; padding: 14px 20px; margin: 14px 0; font-size: 15.5px; line-height: 1.75; font-weight: 600; }
+
+  /* ── code block ── */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .code-bar .dot-red { background: #ff5f57; }
+  .code-bar .dot-grey { background: #febc2e; }
+  .code-bar .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code', 'Consolas', monospace; line-height: 1.65; white-space: pre; tab-size: 2; }
+  .kw  { color: #c792ea; font-weight: 600; }
+  .str { color: #c3e88d; }
+  .fn  { color: #82aaff; }
+  .type { color: #f07178; }
+  .cmt { color: #7a7a7a; font-style: italic; }
+  .num { color: #f78c6c; }
+  .op  { color: #f472b6; }
+
+  /* ── callout boxes ── */
+  .tip, .note, .warning, .remember {
+    border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+  }
+  .tip      { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note     { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning  { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; }
+  table tr:nth-child(even) { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+  td code { font-family: 'Fira Code', 'Consolas', monospace; font-size: 12.5px; background: rgba(0,0,0,0.06); padding: 1px 6px; border-radius: 4px; }
+
+  @media (max-width: 768px) {
+    .header h1 { font-size: 26px; }
+    .toc a { padding: 6px 12px; font-size: 12px; }
+    .card-content { padding: 20px; }
+  }
+</style>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header">
+      <span class="tag">POSTGRESQL · TYPE DEEP DIVE</span>
+      <h1>🐘 05. PostgreSQL-Specific Data Types</h1>
+      <p>UUID · ENUM · ARRAY · JSON · JSONB · Generated Columns — what each one is, why interviewers care, working SQL, and the gotchas people miss.</p>
+      <div class="toc">
+        <a onclick="document.getElementById('uuid').scrollIntoView({behavior:'smooth'});return false;">UUID</a>
+        <a onclick="document.getElementById('enum').scrollIntoView({behavior:'smooth'});return false;">ENUM</a>
+        <a onclick="document.getElementById('array').scrollIntoView({behavior:'smooth'});return false;">ARRAY</a>
+        <a onclick="document.getElementById('json').scrollIntoView({behavior:'smooth'});return false;">JSON</a>
+        <a onclick="document.getElementById('jsonb').scrollIntoView({behavior:'smooth'});return false;">JSONB</a>
+        <a onclick="document.getElementById('gencol').scrollIntoView({behavior:'smooth'});return false;">Generated Columns</a>
+      </div>
+    </div>
+
+    <!-- ==================== KEY TERMS SUMMARY ==================== -->
+    <div class="intro-summary">
+      <div class="intro-summary-title">🧩 At a Glance — What Each Type Is For</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-blue" onclick="document.getElementById('uuid').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🆔</div>
+          <div class="summary-text"><strong>UUID:</strong> globally unique 128-bit ID — no central counter, works across distributed systems.</div>
+        </div>
+        <div class="summary-item summary-amber" onclick="document.getElementById('enum').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🏷️</div>
+          <div class="summary-text"><strong>ENUM:</strong> a fixed, named set of allowed string labels — the database rejects anything else.</div>
+        </div>
+        <div class="summary-item summary-purple" onclick="document.getElementById('array').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">📚</div>
+          <div class="summary-text"><strong>ARRAY:</strong> an ordered list of one type inside a single column, indexed from 1.</div>
+        </div>
+        <div class="summary-item summary-green" onclick="document.getElementById('json').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">📄</div>
+          <div class="summary-text"><strong>JSON:</strong> validated JSON stored as text — preserves formatting, re-parsed on every read.</div>
+        </div>
+        <div class="summary-item summary-pink" onclick="document.getElementById('jsonb').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">⚡</div>
+          <div class="summary-text"><strong>JSONB:</strong> parsed binary JSON — fast to query, indexable, the default choice.</div>
+        </div>
+        <div class="summary-item summary-teal" onclick="document.getElementById('gencol').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🧮</div>
+          <div class="summary-text"><strong>Generated columns:</strong> values auto-computed from other columns in the same row.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 1. UUID ==================== -->
+    <div class="section-divider" id="uuid"><span>🆔 1. UUID — Universally Unique Identifier</span></div>
+
+    <div class="card">
+      <div class="card-title">UUID vs SERIAL / INTEGER<span class="qnum">TYPE 1</span></div>
+      <div class="card-content">
+        <div class="badge-row">
+          <span class="badge badge-crit">🔴 Critical</span>
+          <span class="badge badge-info">Identity</span>
+          <span class="badge badge-info">Distributed Systems</span>
+        </div>
+
+        <div class="short-answer">
+          <strong>UUID</strong> is a 128-bit value guaranteed to be unique across all machines and all time — no central counter needed. Use it when you have multiple databases, microservices, or need to generate IDs on the client before inserting into the database. <strong>SERIAL</strong> is fine for single-database apps but breaks down in distributed setups.
+        </div>
+
+        <div class="analogy">🧠 <strong>Analogy:</strong> SERIAL is like numbering tickets at one counter (1, 2, 3…). UUID is like giving everyone a passport — globally unique, no counter needed.</div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">uuid.sql</span>
+          </div>
+          <pre><code><span class="cmt">-- Enable UUID extension (PostgreSQL 13+ has gen_random_uuid() built-in)</span>
+<span class="kw">CREATE EXTENSION IF NOT EXISTS</span> <span class="str">"pgcrypto"</span>;  <span class="cmt">-- older PG</span>
+
+<span class="cmt">-- Create table using UUID primary key</span>
+<span class="kw">CREATE TABLE</span> <span class="type">users</span> (
+  id         <span class="kw">UUID</span>        <span class="kw">DEFAULT</span> <span class="fn">gen_random_uuid</span>() <span class="kw">PRIMARY KEY</span>,
+  name       <span class="kw">TEXT</span>        <span class="kw">NOT NULL</span>,
+  created_at <span class="kw">TIMESTAMPTZ</span> <span class="kw">DEFAULT NOW</span>()
+);
+
+<span class="cmt">-- Insert — ID auto-generated</span>
+<span class="kw">INSERT INTO</span> users (name) <span class="kw">VALUES</span> (<span class="str">'Alice'</span>);
+
+<span class="cmt">-- Or generate a UUID manually before insert</span>
+<span class="kw">SELECT</span> <span class="fn">gen_random_uuid</span>();
+<span class="cmt">-- → a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11</span>
+
+<span class="cmt">-- Query by UUID</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> users
+<span class="kw">WHERE</span> id = <span class="str">'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'</span>;</code></pre>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th></th><th>UUID</th><th>SERIAL / INTEGER</th></tr>
+            <tr><td>Uniqueness</td><td>✅ Global (all systems)</td><td>⚠️ Local (one DB)</td></tr>
+            <tr><td>ID generation</td><td>Client or DB</td><td>DB only</td></tr>
+            <tr><td>Storage</td><td>16 bytes</td><td>4 bytes</td></tr>
+            <tr><td>Index performance</td><td>🟡 Slightly slower (random)</td><td>✅ Sequential, fast</td></tr>
+            <tr><td>Predictable?</td><td>❌ Not guessable</td><td>⚠️ Sequential = guessable</td></tr>
+          </table>
+        </div>
+
+        <div class="warning">
+          <strong>⚠️ Gotcha:</strong> Random UUIDs cause index fragmentation because inserts aren't sequential. In write-heavy tables, consider time-ordered UUIDs (<code>uuid_generate_v7()</code>) to keep the index efficient.
+        </div>
+        <div class="remember">
+          <strong>✅ Rule:</strong> Use UUID for any system that will ever scale, sync, or run on multiple servers. Use SERIAL only for simple, single-database apps.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 2. ENUM ==================== -->
+    <div class="section-divider" id="enum"><span>🏷️ 2. ENUM — Fixed Set of Allowed Values</span></div>
+
+    <div class="card">
+      <div class="card-title">ENUM — Type-Safe Labels<span class="qnum">TYPE 2</span></div>
+      <div class="card-content">
+        <div class="badge-row">
+          <span class="badge badge-crit">🔴 Critical</span>
+          <span class="badge badge-info">Type Safety</span>
+        </div>
+
+        <div class="short-answer">
+          <strong>ENUM</strong> is a custom data type with a fixed list of allowed string values. PostgreSQL stores it as a tiny integer internally but displays it as the label. Use it for columns like <code>status</code>, <code>role</code>, or <code>priority</code> — where only a known set of values is valid. It's safer than plain TEXT because the database rejects invalid values automatically.
+        </div>
+
+        <div class="analogy">🧠 <strong>Analogy:</strong> ENUM is like a dropdown menu — users can only pick from the defined options, not type anything they want.</div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">enum.sql</span>
+          </div>
+          <pre><code><span class="cmt">-- Step 1: Create the ENUM type</span>
+<span class="kw">CREATE TYPE</span> <span class="type">order_status</span> <span class="kw">AS ENUM</span> (
+  <span class="str">'pending'</span>, <span class="str">'processing'</span>, <span class="str">'shipped'</span>, <span class="str">'delivered'</span>, <span class="str">'cancelled'</span>
+);
+
+<span class="cmt">-- Step 2: Use it as a column type</span>
+<span class="kw">CREATE TABLE</span> <span class="type">orders</span> (
+  id     <span class="kw">UUID</span>         <span class="kw">DEFAULT</span> <span class="fn">gen_random_uuid</span>() <span class="kw">PRIMARY KEY</span>,
+  status <span class="type">order_status</span> <span class="kw">DEFAULT</span> <span class="str">'pending'</span>
+);
+
+<span class="cmt">-- Insert valid value ✅</span>
+<span class="kw">INSERT INTO</span> orders (status) <span class="kw">VALUES</span> (<span class="str">'shipped'</span>);
+
+<span class="cmt">-- Insert invalid value ❌ — DB rejects it</span>
+<span class="kw">INSERT INTO</span> orders (status) <span class="kw">VALUES</span> (<span class="str">'on_the_way'</span>);
+<span class="cmt">-- ERROR: invalid input value for enum order_status: "on_the_way"</span>
+
+<span class="cmt">-- Filter and compare</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">WHERE</span> status = <span class="str">'pending'</span>;
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">WHERE</span> status <span class="kw">IN</span> (<span class="str">'pending'</span>, <span class="str">'processing'</span>);
+
+<span class="cmt">-- Add a new value to an existing ENUM (PostgreSQL 9.1+)</span>
+<span class="kw">ALTER TYPE</span> order_status <span class="kw">ADD VALUE</span> <span class="str">'refunded'</span> <span class="kw">AFTER</span> <span class="str">'cancelled'</span>;
+
+<span class="cmt">-- List all enum values</span>
+<span class="kw">SELECT</span> <span class="fn">unnest</span>(<span class="fn">enum_range</span>(<span class="kw">NULL</span>::order_status));</code></pre>
+        </div>
+
+        <div class="warning"><strong>⚠️ Gotcha 1:</strong> You cannot remove or rename ENUM values easily — it requires creating a new type and migrating the column. Plan your values carefully upfront.</div>
+        <div class="warning"><strong>⚠️ Gotcha 2:</strong> Adding a new value with <code>ADD VALUE</code> cannot be done inside a transaction block in older PostgreSQL versions.</div>
+        <div class="tip"><strong>💡 Alternative:</strong> Some teams prefer a CHECK constraint on TEXT (<code>CHECK (status IN ('a','b','c'))</code>) because it's easier to modify. ENUM wins on storage and type safety; CHECK wins on flexibility.</div>
+      </div>
+    </div>
+
+    <!-- ==================== 3. ARRAY ==================== -->
+    <div class="section-divider" id="array"><span>📚 3. ARRAY — Ordered List Inside One Column</span></div>
+
+    <div class="card">
+      <div class="card-title">ARRAY — Lists Without a Join Table<span class="qnum">TYPE 3</span></div>
+      <div class="card-content">
+        <div class="badge-row">
+          <span class="badge badge-high">🟡 High Impact</span>
+          <span class="badge badge-info">Collections</span>
+        </div>
+
+        <div class="short-answer">
+          <strong>ARRAY</strong> lets you store a list of values of the same type inside a single column — like tags on a blog post or phone numbers for a contact. Any base type can be arrayed: <code>TEXT[]</code>, <code>INT[]</code>, <code>UUID[]</code>, etc. Use it when you want to avoid a separate join table for simple one-to-many data.
+        </div>
+
+        <div class="analogy">🧠 <strong>Analogy:</strong> Instead of a separate "tags" table with a join, you can store <code>['sql','postgres','database']</code> right inside the post row.</div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">array.sql</span>
+          </div>
+          <pre><code><span class="cmt">-- Create table with ARRAY column</span>
+<span class="kw">CREATE TABLE</span> <span class="type">posts</span> (
+  id    <span class="kw">SERIAL PRIMARY KEY</span>,
+  title <span class="kw">TEXT</span>,
+  tags  <span class="kw">TEXT</span>[]     <span class="cmt">-- array of text values</span>
+);
+
+<span class="cmt">-- Insert using ARRAY literal</span>
+<span class="kw">INSERT INTO</span> posts (title, tags)
+<span class="kw">VALUES</span> (<span class="str">'Learn SQL'</span>, <span class="str">'{sql, postgres, database}'</span>);
+
+<span class="cmt">-- Or using ARRAY constructor</span>
+<span class="kw">INSERT INTO</span> posts (title, tags)
+<span class="kw">VALUES</span> (<span class="str">'Web Dev'</span>, <span class="kw">ARRAY</span>[<span class="str">'html'</span>, <span class="str">'css'</span>, <span class="str">'js'</span>]);
+
+<span class="cmt">-- Access element by index (1-based, NOT 0!)</span>
+<span class="kw">SELECT</span> tags[<span class="num">1</span>] <span class="kw">FROM</span> posts;  <span class="cmt">-- 'sql' (first element)</span>
+<span class="kw">SELECT</span> tags[<span class="num">2</span>] <span class="kw">FROM</span> posts;  <span class="cmt">-- 'postgres'</span>
+
+<span class="cmt">-- Find posts that contain a specific tag</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> posts <span class="kw">WHERE</span> <span class="str">'sql'</span> = <span class="kw">ANY</span>(tags);
+
+<span class="cmt">-- Find posts that have ALL of these tags</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> posts <span class="kw">WHERE</span> tags <span class="op">@&gt;</span> <span class="kw">ARRAY</span>[<span class="str">'sql'</span>, <span class="str">'postgres'</span>];
+
+<span class="cmt">-- Append an element to array</span>
+<span class="kw">UPDATE</span> posts
+<span class="kw">SET</span> tags = <span class="fn">array_append</span>(tags, <span class="str">'beginner'</span>)
+<span class="kw">WHERE</span> id = <span class="num">1</span>;
+
+<span class="cmt">-- Remove an element from array</span>
+<span class="kw">UPDATE</span> posts
+<span class="kw">SET</span> tags = <span class="fn">array_remove</span>(tags, <span class="str">'beginner'</span>)
+<span class="kw">WHERE</span> id = <span class="num">1</span>;
+
+<span class="cmt">-- Get array length</span>
+<span class="kw">SELECT</span> <span class="fn">array_length</span>(tags, <span class="num">1</span>) <span class="kw">FROM</span> posts;
+
+<span class="cmt">-- Expand array into individual rows</span>
+<span class="kw">SELECT</span> id, <span class="fn">unnest</span>(tags) <span class="kw">AS</span> tag <span class="kw">FROM</span> posts;</code></pre>
+        </div>
+
+        <div class="warning"><strong>⚠️ Gotcha:</strong> PostgreSQL arrays are 1-indexed (start at 1), not 0-indexed like most languages. <code>tags[1]</code> is the first element.</div>
+        <div class="tip"><strong>💡 Index it:</strong> add a GIN index for fast <code>@&gt;</code> and <code>ANY()</code> searches on large tables: <code>CREATE INDEX ON posts USING GIN (tags);</code></div>
+        <div class="remember"><strong>✅ When to use:</strong> simple lists where you won't query individual elements heavily. If you need to JOIN, filter, or aggregate elements often, use a proper join table instead.</div>
+      </div>
+    </div>
+
+    <!-- ==================== 4. JSON ==================== -->
+    <div class="section-divider" id="json"><span>📄 4. JSON — Text-Stored JSON (Validated)</span></div>
+
+    <div class="card">
+      <div class="card-title">JSON — Preserves the Original Text<span class="qnum">TYPE 4</span></div>
+      <div class="card-content">
+        <div class="badge-row">
+          <span class="badge badge-high">🟡 Know the Difference</span>
+          <span class="badge badge-info">Semi-Structured</span>
+        </div>
+
+        <div class="short-answer">
+          <strong>JSON</strong> stores your data as plain text but validates that it's valid JSON on insert. It preserves the original format — key order, whitespace, and even duplicate keys. Every time you read a JSON value, PostgreSQL re-parses the text from scratch, which makes reads slower.
+        </div>
+
+        <div class="analogy">🧠 <strong>Analogy:</strong> JSON is like storing a letter in an envelope. The post office checks it's a real letter before accepting it, but every time someone reads it, they have to open and read it fresh.</div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">json_type.sql</span>
+          </div>
+          <pre><code><span class="cmt">-- JSON preserves everything as-is</span>
+<span class="kw">SELECT</span> <span class="str">'{ "b": 2,   "a": 1, "a": 99 }'</span>::<span class="kw">json</span>;
+<span class="cmt">-- → { "b": 2,   "a": 1, "a": 99 }   (whitespace kept, both "a" kept)</span>
+
+<span class="cmt">-- vs JSONB — parses and cleans it up</span>
+<span class="kw">SELECT</span> <span class="str">'{ "b": 2,   "a": 1, "a": 99 }'</span>::<span class="kw">jsonb</span>;
+<span class="cmt">-- → {"a": 99, "b": 2}   (whitespace gone, keys sorted, last "a" wins)</span>
+
+<span class="cmt">-- Basic extraction from JSON (same operators as JSONB)</span>
+<span class="kw">SELECT</span> <span class="str">'{"name":"Alice","age":30}'</span>::<span class="kw">json</span><span class="op">-&gt;&gt;</span><span class="str">'name'</span>;
+<span class="cmt">-- → Alice</span></code></pre>
+        </div>
+
+        <div class="note"><strong>📌 When to use JSON (not JSONB):</strong> when you receive an API response and need to store and return the exact original payload byte-for-byte — e.g. an audit log of raw webhook events.</div>
+        <div class="remember"><strong>✅ In almost every other case, use JSONB.</strong> It's faster to query, supports GIN indexes, and is what PostgreSQL recommends.</div>
+      </div>
+    </div>
+
+    <!-- ==================== 5. JSONB ==================== -->
+    <div class="section-divider" id="jsonb"><span>⚡ 5. JSONB — Binary JSON (Fast &amp; Indexable)</span></div>
+
+    <div class="card">
+      <div class="card-title">JSONB — Parsed Once, Fast to Query<span class="qnum">TYPE 5</span></div>
+      <div class="card-content">
+        <div class="badge-row">
+          <span class="badge badge-high">🟡 High Impact</span>
+          <span class="badge badge-info">Semi-Structured</span>
+        </div>
+
+        <div class="short-answer">
+          <strong>JSONB</strong> stores data in a decomposed binary format — parsed once on write, fast to read. It does not preserve key order or duplicate keys. It supports GIN indexes and the powerful <code>@&gt;</code> and <code>?</code> operators. It's the right choice for querying, filtering, and indexing flexible data.
+        </div>
+
+        <div class="analogy">🧠 <strong>Analogy:</strong> JSONB is like a pre-sorted filing cabinet. It takes a moment to file things in order, but finding anything later is very fast.</div>
+
+        <div class="remember">📌 <strong>Simple rule:</strong> always use JSONB unless you specifically need to preserve original JSON formatting.</div>
+      </div>
+    </div>
+
+    <!-- ==================== 6. Generated Columns ==================== -->
+    <div class="section-divider" id="gencol"><span>🧮 6. Generated Columns — Always-Computed Values</span></div>
+
+    <div class="card">
+      <div class="card-title">Generated Columns — Formulas, Not Fields<span class="qnum">TYPE 6</span></div>
+      <div class="card-content">
+        <div class="badge-row">
+          <span class="badge badge-high">🟡 High Impact</span>
+          <span class="badge badge-info">Computed</span>
+        </div>
+
+        <div class="short-answer">
+          A <strong>generated column</strong> is a column whose value is automatically computed from other columns. You define the formula once; PostgreSQL calculates and stores it on every <code>INSERT</code> or <code>UPDATE</code>. You never need to manually keep it in sync. PostgreSQL supports <code>STORED</code> generated columns (value saved to disk).
+        </div>
+
+        <div class="analogy">🧠 <strong>Analogy:</strong> like a spreadsheet formula cell — you type values in columns A and B, and column C automatically shows A + B. You never edit C directly.</div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">generated_columns.sql</span>
+          </div>
+          <pre><code><span class="cmt">-- Example 1: Full name from first + last</span>
+<span class="kw">CREATE TABLE</span> <span class="type">employees</span> (
+  id         <span class="kw">SERIAL PRIMARY KEY</span>,
+  first_name <span class="kw">TEXT</span>,
+  last_name  <span class="kw">TEXT</span>,
+  full_name  <span class="kw">TEXT</span> <span class="kw">GENERATED ALWAYS AS</span>
+               (first_name <span class="op">||</span> <span class="str">' '</span> <span class="op">||</span> last_name) <span class="kw">STORED</span>
+);
+
+<span class="kw">INSERT INTO</span> employees (first_name, last_name) <span class="kw">VALUES</span> (<span class="str">'Alice'</span>, <span class="str">'Smith'</span>);
+<span class="kw">SELECT</span> full_name <span class="kw">FROM</span> employees;  <span class="cmt">-- → Alice Smith (auto-generated)</span>
+
+<span class="cmt">-- Example 2: Price with tax</span>
+<span class="kw">CREATE TABLE</span> <span class="type">products</span> (
+  id          <span class="kw">SERIAL PRIMARY KEY</span>,
+  price       <span class="kw">NUMERIC</span>,
+  price_w_tax <span class="kw">NUMERIC</span> <span class="kw">GENERATED ALWAYS AS</span>
+                (price * <span class="num">1.18</span>) <span class="kw">STORED</span>
+);
+
+<span class="cmt">-- Example 3: Extract a JSONB key (use with index for fast queries)</span>
+<span class="kw">CREATE TABLE</span> <span class="type">orders</span> (
+  id       <span class="kw">SERIAL PRIMARY KEY</span>,
+  metadata <span class="kw">JSONB</span>,
+  status   <span class="kw">TEXT</span> <span class="kw">GENERATED ALWAYS AS</span>
+             (metadata<span class="op">-&gt;&gt;</span><span class="str">'status'</span>) <span class="kw">STORED</span>
+);
+
+<span class="cmt">-- Index the generated column — now a fast B-tree on a JSONB field!</span>
+<span class="kw">CREATE INDEX</span> idx_orders_status <span class="kw">ON</span> orders (status);
+
+<span class="cmt">-- Fast query — uses the B-tree index</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">WHERE</span> status = <span class="str">'pending'</span>;
+
+<span class="cmt">-- You CANNOT insert/update a generated column manually</span>
+<span class="kw">UPDATE</span> orders <span class="kw">SET</span> status = <span class="str">'done'</span> <span class="kw">WHERE</span> id = <span class="num">1</span>;
+<span class="cmt">-- ERROR: column "status" can only be updated to DEFAULT</span></code></pre>
+        </div>
+
+        <div class="warning"><strong>⚠️ Gotcha:</strong> you cannot insert into or update a generated column — PostgreSQL manages it. Trying to do so raises an error.</div>
+        <div class="warning"><strong>⚠️ Gotcha 2:</strong> generated columns can only reference columns in the same row — no subqueries, no other tables, no functions with side effects.</div>
+        <div class="remember"><strong>✅ Best use case:</strong> extracting a frequently-filtered JSONB key into a generated column + B-tree index. Much lighter than a full GIN index when you only query one key.</div>
+      </div>
+    </div>
+
+    <!-- ==================== Full Setup Example ==================== -->
+    <div class="section-divider"><span>🛠 Full Setup — All Six Types Together</span></div>
+
+    <div class="card">
+      <div class="card-title">A Realistic Table Using All Six PostgreSQL-Specific Types</div>
+      <div class="card-content">
+        <div class="badge-row">
+          <span class="badge badge-star">⭐ Reference</span>
+          <span class="badge badge-info">All Types Together</span>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar">
+            <span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span>
+            <span class="filename">full_setup.sql</span>
+          </div>
+          <pre><code><span class="cmt">-- 1. Create ENUM types first</span>
+<span class="kw">CREATE TYPE</span> <span class="type">user_role</span>   <span class="kw">AS ENUM</span> (<span class="str">'admin'</span>, <span class="str">'editor'</span>, <span class="str">'viewer'</span>);
+<span class="kw">CREATE TYPE</span> <span class="type">acct_status</span> <span class="kw">AS ENUM</span> (<span class="str">'active'</span>, <span class="str">'suspended'</span>, <span class="str">'closed'</span>);
+
+<span class="cmt">-- 2. Create the table using all six types</span>
+<span class="kw">CREATE TABLE</span> <span class="type">users</span> (
+  <span class="cmt">-- UUID primary key</span>
+  id           <span class="kw">UUID</span>        <span class="kw">DEFAULT</span> <span class="fn">gen_random_uuid</span>() <span class="kw">PRIMARY KEY</span>,
+
+  <span class="cmt">-- Regular columns</span>
+  email        <span class="kw">TEXT</span>        <span class="kw">UNIQUE NOT NULL</span>,
+  first_name   <span class="kw">TEXT</span>        <span class="kw">NOT NULL</span>,
+  last_name    <span class="kw">TEXT</span>        <span class="kw">NOT NULL</span>,
+
+  <span class="cmt">-- ENUM columns</span>
+  role         <span class="type">user_role</span>   <span class="kw">DEFAULT</span> <span class="str">'viewer'</span>,
+  status       <span class="type">acct_status</span> <span class="kw">DEFAULT</span> <span class="str">'active'</span>,
+
+  <span class="cmt">-- ARRAY column</span>
+  permissions  <span class="kw">TEXT</span>[]      <span class="kw">DEFAULT</span> <span class="str">'{}'</span>,
+
+  <span class="cmt">-- JSONB column</span>
+  preferences  <span class="kw">JSONB</span>       <span class="kw">DEFAULT</span> <span class="str">'{}'</span>,
+
+  <span class="cmt">-- Generated column (from first + last name)</span>
+  full_name    <span class="kw">TEXT</span>        <span class="kw">GENERATED ALWAYS AS</span>
+                 (first_name <span class="op">||</span> <span class="str">' '</span> <span class="op">||</span> last_name) <span class="kw">STORED</span>,
+
+  created_at   <span class="kw">TIMESTAMPTZ</span> <span class="kw">DEFAULT NOW</span>()
+);
+
+<span class="cmt">-- 3. Indexes</span>
+<span class="kw">CREATE INDEX</span> idx_users_prefs   <span class="kw">ON</span> users <span class="kw">USING GIN</span> (preferences);
+<span class="kw">CREATE INDEX</span> idx_users_perms   <span class="kw">ON</span> users <span class="kw">USING GIN</span> (permissions);
+<span class="kw">CREATE INDEX</span> idx_users_role    <span class="kw">ON</span> users (role);
+
+<span class="cmt">-- 4. Insert a row</span>
+<span class="kw">INSERT INTO</span> users (email, first_name, last_name, role, permissions, preferences)
+<span class="kw">VALUES</span> (
+  <span class="str">'alice@example.com'</span>,
+  <span class="str">'Alice'</span>, <span class="str">'Smith'</span>,
+  <span class="str">'admin'</span>,
+  <span class="kw">ARRAY</span>[<span class="str">'read'</span>, <span class="str">'write'</span>, <span class="str">'delete'</span>],
+  <span class="str">'{"theme":"dark","lang":"en","notifications":true}'</span>
+);
+
+<span class="cmt">-- 5. Query examples</span>
+<span class="kw">SELECT</span> full_name, role, preferences<span class="op">-&gt;&gt;</span><span class="str">'theme'</span> <span class="kw">AS</span> theme
+<span class="kw">FROM</span>   users
+<span class="kw">WHERE</span>  status = <span class="str">'active'</span>
+  <span class="kw">AND</span>  preferences <span class="op">@&gt;</span> <span class="str">'{"theme":"dark"}'</span>
+  <span class="kw">AND</span>  <span class="str">'write'</span> = <span class="kw">ANY</span>(permissions);</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== Quick Reference ==================== -->
+    <div class="section-divider"><span>📊 Quick Reference</span></div>
+
+    <div class="card">
+      <div class="card-title">Which Type, When</div>
+      <div class="card-content">
+        <table>
+          <tr><th>Type</th><th>Use It For</th><th>Watch Out For</th></tr>
+          <tr><td>UUID</td><td>Distributed/multi-service IDs</td><td>Random inserts fragment indexes</td></tr>
+          <tr><td>ENUM</td><td>A fixed, known set of labels</td><td>Removing a value needs a migration</td></tr>
+          <tr><td>ARRAY</td><td>Simple lists, e.g. tags</td><td>1-indexed, not 0-indexed</td></tr>
+          <tr><td>JSON</td><td>Preserving an exact raw payload</td><td>Re-parsed on every read</td></tr>
+          <tr><td>JSONB</td><td>Querying/filtering flexible data</td><td>Drops formatting &amp; duplicate keys</td></tr>
+          <tr><td>Generated column</td><td>A value always derived from the row</td><td>Same-row only, no manual writes</td></tr>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

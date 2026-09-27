@@ -1,10 +1,10 @@
 window.notePageData = {
-  "title": "SQL Functions — Window, Conversion, Conditional & COALESCE",
+  "title": "08. SQL Functions — Window, Conversion, Conditional & COALESCE",
   "navLabel": "SQL Functions sections",
   "hero": {
     "type": "introduction",
     "label": "Introduction",
-    "heading": "SQL Functions — Window, Conversion, Conditional & COALESCE",
+    "heading": "08. SQL Functions — Window, Conversion, Conditional & COALESCE",
     "text": "A complete reference for four essential SQL function categories — Window Functions for ranked and running calculations across rows, Conversion Functions for casting between data types, Conditional Functions for branching logic inside queries, and COALESCE for handling NULL values cleanly."
   },
   "nav": [

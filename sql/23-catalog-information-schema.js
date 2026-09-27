@@ -1,11 +1,11 @@
 window.notePageData = 
 {
-  "title": "System Catalog (Data Dictionary)",
+  "title": "23. System Catalog (Data Dictionary)",
   "navLabel": "Topic sections",
   "hero": {
     "type": "introduction",
     "label": "Introduction",
-    "heading": "System Catalog (Data Dictionary)",
+    "heading": "23. System Catalog (Data Dictionary)",
     "text": "PostgreSQL's internal metadata store — a set of tables in pg_catalog that describe every database object: tables, columns, indexes, constraints, schemas, users, and functions."
   },
   "nav": [
