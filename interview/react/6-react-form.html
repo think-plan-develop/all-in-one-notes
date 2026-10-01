@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>React Forms — Radios, Checkboxes, Select &amp; Fieldsets</title>
+</head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; font-size: 15px; }
+  .container { width: 92%; max-width: 1180px; margin: 28px auto; }
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
+
+  /* HEADER */
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 14px; padding: 22px 26px; margin-bottom: 20px; box-shadow: 0 8px 18px rgba(var(--shadow-rgb), 0.25); position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -50px; right: -50px; width: 160px; height: 160px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:10.5px; font-weight:800; letter-spacing:0.5px; padding:3px 11px; border-radius:16px; margin-bottom:8px; position:relative; }
+  .header h1 { color: #fff; font-size: 22px; margin-bottom: 5px; font-weight: 800; letter-spacing: -0.4px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 13.5px; margin-bottom: 14px; max-width: 700px; line-height: 1.5; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 6px; position: relative; }
+  .toc a { text-decoration: none; padding: 5px 13px; border-radius: 16px; font-size: 12px; font-weight: 700; transition: all 0.15s ease; cursor: pointer; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+  .toc a:hover { background: #fff; color: var(--accent); }
+
+  /* topic dropdown */
+  .topic-dropdown { position: relative; margin-bottom: 10px; display: inline-block; }
+  .topic-dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.16); color: #fff; font-size: 12px; font-weight: 800; padding: 5px 13px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.32); transition: background 0.2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display: none; }
+  .topic-dropdown summary:hover { background: rgba(255,255,255,0.26); }
+  .topic-dropdown[open] summary::after { transform: rotate(180deg); }
+  .topic-dropdown summary::after { content: '▾'; margin-left: 2px; transition: transform 0.2s ease; font-size: 10px; }
+  .topic-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; background: #fff; border-radius: 10px; padding: 6px; min-width: 220px; box-shadow: 0 10px 22px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 2px; }
+  .topic-menu a { text-decoration: none; color: #1a1a1a; font-size: 13px; font-weight: 700; padding: 6px 11px; border-radius: 7px; display: flex; align-items: center; gap: 7px; transition: background 0.15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background: var(--content-bg); color: var(--accent); }
+  .topic-menu .group-label { font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px; color: #94a3b8; padding: 6px 11px 1px; text-transform: uppercase; }
+
+  /* SUMMARY GRID */
+  .intro-summary { margin: 0 0 20px; }
+  .intro-summary-title { font-size: 16px; font-weight: 800; margin-bottom: 9px; display: flex; align-items: center; gap: 6px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .summary-item { display: flex; align-items: center; gap: 10px; border-radius: 10px; padding: 10px 13px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-1px); }
+  .summary-icon { flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 12.5px; line-height: 1.5; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; } .summary-blue .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; } .summary-pink .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; } .summary-amber .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; } .summary-green .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; } .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; } .summary-teal .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin: 24px 0 12px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 14px 0 0; position: relative; font-size: 16.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; }
+
+  /* CARDS */
+  .card { border-radius: 12px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 6px 16px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 14.5px; font-weight: 700; padding: 10px 18px; display: flex; align-items: center; gap: 8px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.1px; }
+  .card-content { padding: 16px 18px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 13.5px; line-height: 1.6; margin-bottom: 9px; font-weight: 500; }
+  .card-content h4 { font-size: 13.5px; margin-bottom: 5px; margin-top: 12px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 5px; }
+  .card-content p code, .card-content li code, td code, .short-answer code, .tip code, .note code, .warning code, .remember code { font-family: 'Fira Code','Consolas',monospace; font-size: 0.86em; background: rgba(var(--shadow-rgb),0.1); color: var(--heading); padding: 1px 6px; border-radius: 4px; }
+  .card-content ul { margin: 4px 0 9px 18px; }
+  .card-content li { font-size: 12.5px; line-height: 1.6; color: #334155; font-weight: 500; }
+
+  .short-answer { position: relative; background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%); border: 1px solid rgba(var(--shadow-rgb), 0.16); border-left: 4px solid var(--accent); border-radius: 10px; padding: 12px 16px 13px; margin-bottom: 12px; font-size: 13.5px; line-height: 1.55; font-weight: 500; color: #293244; box-shadow: 0 4px 12px rgba(var(--shadow-rgb), 0.08); }
+  .short-answer::before { content: "QUICK TAKE"; display: block; width: fit-content; font-size: 9.5px; font-weight: 800; letter-spacing: 0.7px; color: #fff; background: linear-gradient(120deg, var(--accent), var(--accent-light)); padding: 3px 10px; border-radius: 16px; margin-bottom: 8px; box-shadow: 0 2px 6px rgba(var(--shadow-rgb), 0.3); }
+  .short-answer strong { color: var(--heading); }
+
+  /* CODE */
+  .code-block { background: #1a1a1a; border-radius: 10px; overflow: hidden; margin: 10px 0; box-shadow: 0 5px 14px rgba(0,0,0,0.18); }
+  .code-bar { background: #111; padding: 6px 13px; display: flex; align-items: center; gap: 5px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; } .dot-grey { background: #febc2e; } .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 10.5px; margin-left: 6px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 13px 16px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 12.5px; font-family: 'Fira Code','Consolas',monospace; line-height: 1.55; white-space: pre; }
+  .kw { color: #c792ea; font-weight: 600; } .str { color: #c3e88d; } .fn { color: #82aaff; } .type { color: #f07178; } .cmt { color: #7a7a7a; font-style: italic; } .num { color: #f78c6c; }
+
+  /* CALLOUTS */
+  .tip, .note, .warning, .remember { border-radius: 10px; padding: 10px 15px; margin: 10px 0; font-size: 12.5px; line-height: 1.55; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+  .tip { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 14px rgba(0,0,0,0.07); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 12.5px; padding: 9px 14px; text-align: left; }
+  table td { padding: 8px 14px; font-size: 12px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; background: #fff; }
+  table tr:nth-child(even) td { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+
+  @media (max-width: 768px) { .header h1 { font-size: 19px; } .toc a { padding: 4px 10px; font-size: 11px; } .card-content { padding: 14px; } }
+
+  /* ═══════════ COLORFUL TABLES (shared, compact) ═══════════ */
+  table { border-collapse: separate !important; border-spacing: 0 5px !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
+  table th { background: linear-gradient(120deg,#2563eb,#7c3aed,#ec4899) !important; color: #fff !important; font-size: 10.5px !important; font-weight: 800 !important; letter-spacing: .5px; text-transform: uppercase; padding: 9px 14px !important; border: none !important; }
+  table th:first-child { border-radius: 9px 0 0 9px; }
+  table th:last-child { border-radius: 0 9px 9px 0; }
+  table td { border: none !important; padding: 9px 14px !important; font-weight: 600 !important; color: #334155 !important; vertical-align: middle !important; font-size: 12.5px !important; }
+  table td:first-child { border-radius: 9px 0 0 9px; border-left: 5px solid var(--rc) !important; font-weight: 800 !important; color: var(--rd) !important; }
+  table td:last-child { border-radius: 0 9px 9px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background: var(--rb) !important; box-shadow: 0 2px 6px rgba(0,0,0,.05); transition: transform .15s ease; }
+  table tr:not(:first-child):hover td { filter: brightness(.97); }
+  table td code { background: #fff !important; color: var(--rd) !important; border: 1px solid var(--rc); padding: 1px 7px !important; border-radius: 5px !important; font-weight: 700; }
+</style><body>
+  <div class="container">
+
+    <div class="header">
+      <span class="tag">REACT · FORMS DEEP DIVE</span>
+      <h1>📝 React Forms — Radios, Checkboxes, Select &amp; Fieldsets</h1>
+      <p>A controlled multi-field form (text, radio, checkbox group, select) with the seven rules interviewers check for, and why each one matters.</p>
+
+      <details class="topic-dropdown">
+        <summary>📁 MERN / JS Topics</summary>
+        <div class="topic-menu">
+          <span class="group-label">React / JavaScript</span>
+          <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+          <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+          <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+          <a class="current" href="interview-forms.html">📝 React Forms Deep Dive</a>
+          <span class="group-label">MongoDB</span>
+          <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+          <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+          <span class="group-label">PostgreSQL</span>
+          <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+          <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+        </div>
+      </details>
+
+      <div class="toc">
+        <a onclick="document.getElementById('full-example').scrollIntoView({behavior:'smooth'});return false;">Full Example</a>
+        <a onclick="document.getElementById('rules').scrollIntoView({behavior:'smooth'});return false;">7 Rules</a>
+      </div>
+    </div>
+
+    <div class="intro-summary">
+      <div class="intro-summary-title">🧩 At a Glance — What This Form Tests</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-blue" onclick="document.getElementById('rule-1').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🏷️</div>
+          <div class="summary-text"><strong>fieldset / legend / label:</strong> grouping and naming inputs correctly, not just visually.</div>
+        </div>
+        <div class="summary-item summary-amber" onclick="document.getElementById('rule-3').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🔘</div>
+          <div class="summary-text"><strong>Controlled radio/checkbox:</strong> <code>checked</code> drives selection, <code>value</code> just identifies the option.</div>
+        </div>
+        <div class="summary-item summary-green" onclick="document.getElementById('rule-7').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">📚</div>
+          <div class="summary-text"><strong>Array state for checkboxes:</strong> spread to add, <code>filter()</code> to remove.</div>
+        </div>
+        <div class="summary-item summary-purple" onclick="document.getElementById('rule-6').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🔽</div>
+          <div class="summary-text"><strong>Select dropdown:</strong> <code>onChange</code> goes on <code>&lt;select&gt;</code>, never on individual <code>&lt;option&gt;</code>.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="full-example"><span>💻 Full Working Example</span></div>
+    <div class="card">
+      <div class="card-title">One Handler for Text, Radio, Checkbox &amp; Select</div>
+      <div class="card-content">
+        <div class="short-answer">
+          A single <strong>dynamic <code>handleChange</code></strong> updates every field type by reading <code>e.target.name</code> and <code>e.target.type</code> — no separate handler per field. Options for gender, city and language are each driven by a small array and rendered with <code>.map()</code>, so adding a new option never touches the JSX.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">App.jsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">const</span> <span class="type">genderOptions</span> = [
+  { label: <span class="str">"Male"</span>, value: <span class="str">"male"</span> },
+  { label: <span class="str">"Female"</span>, value: <span class="str">"female"</span> },
+  { label: <span class="str">"Other"</span>, value: <span class="str">"other"</span> },
+];
+
+<span class="kw">const</span> <span class="type">cityOptions</span> = [
+  { label: <span class="str">"Delhi"</span>, value: <span class="str">"delhi"</span> },
+  { label: <span class="str">"Mumbai"</span>, value: <span class="str">"mumbai"</span> },
+  { label: <span class="str">"Hyderabad"</span>, value: <span class="str">"hyderabad"</span> },
+];
+
+<span class="kw">const</span> <span class="type">languageOptions</span> = [
+  { label: <span class="str">"English"</span>, value: <span class="str">"english"</span> },
+  { label: <span class="str">"Hindi"</span>, value: <span class="str">"hindi"</span> },
+  { label: <span class="str">"Telugu"</span>, value: <span class="str">"telugu"</span> },
+];
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">const</span> [<span class="type">form</span>, <span class="fn">setForm</span>] = <span class="fn">useState</span>({
+    name: <span class="str">""</span>,
+    email: <span class="str">""</span>,
+    gender: <span class="str">""</span>,
+    city: <span class="str">"mumbai"</span>,
+    language: [],
+  });
+
+  <span class="kw">const</span> <span class="fn">handleChange</span> = (<span class="type">e</span>) =&gt; {
+    <span class="kw">const</span> { name, value, type, checked } = <span class="type">e</span>.target;
+
+    <span class="fn">setForm</span>((<span class="type">prev</span>) =&gt; ({
+      ...<span class="type">prev</span>,
+      [name]:
+        type === <span class="str">"checkbox"</span>
+          ? checked
+            ? [...<span class="type">prev</span>[name], value]
+            : <span class="type">prev</span>[name].<span class="fn">filter</span>((<span class="type">item</span>) =&gt; <span class="type">item</span> !== value)
+          : value,
+    }));
+  };
+
+  <span class="kw">const</span> <span class="fn">handleSubmit</span> = (<span class="type">e</span>) =&gt; {
+    <span class="type">e</span>.<span class="fn">preventDefault</span>();
+    console.<span class="fn">log</span>(<span class="str">"form"</span>, <span class="type">form</span>);
+  };
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">form</span> <span class="type">onSubmit</span>={<span class="type">handleSubmit</span>}&gt;
+      &lt;<span class="type">div</span>&gt;
+        &lt;<span class="type">label</span> <span class="type">htmlFor</span>=<span class="str">"name"</span>&gt;Name&lt;/<span class="type">label</span>&gt;
+        &lt;<span class="type">input</span>
+          <span class="type">id</span>=<span class="str">"name"</span>
+          <span class="type">type</span>=<span class="str">"text"</span>
+          <span class="type">name</span>=<span class="str">"name"</span>
+          <span class="type">value</span>={<span class="type">form</span>.name}
+          <span class="fn">onChange</span>={<span class="type">handleChange</span>}
+          <span class="type">required</span>
+        /&gt;
+      &lt;/<span class="type">div</span>&gt;
+
+      &lt;<span class="type">div</span>&gt;
+        &lt;<span class="type">label</span> <span class="type">htmlFor</span>=<span class="str">"email"</span>&gt;Email&lt;/<span class="type">label</span>&gt;
+        &lt;<span class="type">input</span>
+          <span class="type">id</span>=<span class="str">"email"</span>
+          <span class="type">type</span>=<span class="str">"email"</span>
+          <span class="type">name</span>=<span class="str">"email"</span>
+          <span class="type">value</span>={<span class="type">form</span>.email}
+          <span class="fn">onChange</span>={<span class="type">handleChange</span>}
+          <span class="type">required</span>
+        /&gt;
+      &lt;/<span class="type">div</span>&gt;
+
+      &lt;<span class="type">fieldset</span>&gt;
+        &lt;<span class="type">legend</span>&gt;Gender&lt;/<span class="type">legend</span>&gt;
+
+        {<span class="type">genderOptions</span>.<span class="fn">map</span>(({ label, value }) =&gt; (
+          &lt;<span class="type">label</span> <span class="type">key</span>={value}&gt;
+            &lt;<span class="type">input</span>
+              <span class="type">type</span>=<span class="str">"radio"</span>
+              <span class="type">name</span>=<span class="str">"gender"</span>
+              <span class="type">value</span>={value}
+              <span class="type">checked</span>={<span class="type">form</span>.gender === value}
+              <span class="fn">onChange</span>={<span class="type">handleChange</span>}
+            /&gt;
+            {label}
+          &lt;/<span class="type">label</span>&gt;
+        ))}
+      &lt;/<span class="type">fieldset</span>&gt;
+
+      &lt;<span class="type">fieldset</span>&gt;
+        &lt;<span class="type">legend</span>&gt;Language&lt;/<span class="type">legend</span>&gt;
+
+        {<span class="type">languageOptions</span>.<span class="fn">map</span>(({ label, value }) =&gt; (
+          &lt;<span class="type">label</span> <span class="type">key</span>={value}&gt;
+            &lt;<span class="type">input</span>
+              <span class="type">type</span>=<span class="str">"checkbox"</span>
+              <span class="type">name</span>=<span class="str">"language"</span>
+              <span class="type">value</span>={value}
+              <span class="type">checked</span>={<span class="type">form</span>.language.<span class="fn">includes</span>(value)}
+              <span class="fn">onChange</span>={<span class="type">handleChange</span>}
+            /&gt;
+            {label}
+          &lt;/<span class="type">label</span>&gt;
+        ))}
+      &lt;/<span class="type">fieldset</span>&gt;
+
+      &lt;<span class="type">div</span>&gt;
+        &lt;<span class="type">label</span> <span class="type">htmlFor</span>=<span class="str">"city"</span>&gt;Select city&lt;/<span class="type">label</span>&gt;
+        &lt;<span class="type">select</span>
+          <span class="type">id</span>=<span class="str">"city"</span>
+          <span class="type">name</span>=<span class="str">"city"</span>
+          <span class="type">value</span>={<span class="type">form</span>.city}
+          <span class="fn">onChange</span>={<span class="type">handleChange</span>}
+        &gt;
+          {<span class="type">cityOptions</span>.<span class="fn">map</span>(({ label, value }) =&gt; (
+            &lt;<span class="type">option</span> <span class="type">key</span>={value} <span class="type">value</span>={value}&gt;
+              {label}
+            &lt;/<span class="type">option</span>&gt;
+          ))}
+        &lt;/<span class="type">select</span>&gt;
+      &lt;/<span class="type">div</span>&gt;
+
+      &lt;<span class="type">button</span> <span class="type">type</span>=<span class="str">"submit"</span>&gt;Submit&lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">form</span>&gt;
+  );
+}
+
+<span class="kw">export default</span> <span class="type">App</span>;</code></pre>
+        </div>
+
+        <div class="remember"><strong>💡 Interview answer:</strong> one object in state (<code>form</code>) holds every field. The change handler branches only on <code>type === "checkbox"</code> because that's the one input type where a field can hold multiple values at once; everything else — text, email, radio, select — just overwrites <code>form[name]</code> with the new value.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="rules"><span>📋 The 7 Rules</span></div>
+
+    <div class="card" id="rule-1">
+      <div class="card-title">Rule 1 — Use fieldset, legend &amp; label Correctly</div>
+      <div class="card-content">
+        <div class="short-answer">
+          <strong>fieldset</strong> groups related inputs (all gender radios together); <strong>legend</strong> names the whole group ("Gender"); <strong>label</strong> names one individual input ("Male", "Female").
+        </div>
+        <div class="table-scroll">
+          <table>
+            <tr><th>Element</th><th>Purpose</th></tr>
+            <tr><td><code>&lt;fieldset&gt;</code></td><td>Groups related inputs, such as all gender radio buttons.</td></tr>
+            <tr><td><code>&lt;legend&gt;</code></td><td>Names the entire group, such as "Gender."</td></tr>
+            <tr><td><code>&lt;label&gt;</code></td><td>Names an individual input, such as "Male" or "Female."</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="rule-2">
+      <div class="card-title">Rule 2 — Match label's htmlFor with the Input's id</div>
+      <div class="card-content">
+        <div class="short-answer">
+          This is what lets a screen reader announce the label when the input receives focus, and lets clicking the label text focus the input.
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">label-id-match.jsx</span></div>
+          <pre><code>&lt;<span class="type">label</span> <span class="type">htmlFor</span>=<span class="str">"name"</span>&gt;Name&lt;/<span class="type">label</span>&gt;
+&lt;<span class="type">input</span>
+  <span class="type">id</span>=<span class="str">"name"</span>
+  <span class="type">type</span>=<span class="str">"text"</span>
+  <span class="type">name</span>=<span class="str">"name"</span>
+  <span class="type">value</span>={<span class="type">form</span>.name}
+  <span class="fn">onChange</span>={<span class="type">handleChange</span>}
+  <span class="type">required</span>
+/&gt;</code></pre>
+        </div>
+        <div class="note"><strong>📝 Note:</strong> <code>htmlFor</code> is JSX's name for the HTML <code>for</code> attribute, since <code>for</code> is a reserved word in JavaScript.</div>
+      </div>
+    </div>
+
+    <div class="card" id="rule-3">
+      <div class="card-title">Rule 3 — checked Controls Selection, value Identifies the Option</div>
+      <div class="card-content">
+        <div class="short-answer">
+          For <strong>radio</strong> and <strong>checkbox</strong> inputs, React reads <code>checked</code> to decide what's selected on screen. <code>value</code> never changes the visual state by itself — it only tells the handler which option this input represents.
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">checked-vs-value.jsx</span></div>
+          <pre><code><span class="cmt">// Radio</span>
+<span class="type">value</span>={value}
+<span class="type">checked</span>={<span class="type">form</span>.gender === value}
+
+<span class="cmt">// Checkbox</span>
+<span class="type">value</span>={value}
+<span class="type">checked</span>={<span class="type">form</span>.language.<span class="fn">includes</span>(value)}</code></pre>
+        </div>
+        <div class="warning"><strong>⚠️ Gotcha:</strong> an input with <code>checked</code> but no <code>onChange</code> becomes read-only and React logs a warning — always pair <code>checked</code> with a handler that updates the backing state.</div>
+      </div>
+    </div>
+
+    <div class="card" id="rule-4">
+      <div class="card-title">Rule 4 — Render One Input per Option with .map()</div>
+      <div class="card-content">
+        <div class="short-answer">
+          Driving radios/checkboxes from an options array — rather than hand-writing each <code>&lt;input&gt;</code> — means three options automatically produce three inputs, and adding a fourth option needs no JSX changes.
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="rule-5">
+      <div class="card-title">Rule 5 — Input Inside Its Own Label Can Skip htmlFor/id</div>
+      <div class="card-content">
+        <div class="short-answer">
+          When the <code>&lt;input&gt;</code> is nested directly inside its <code>&lt;label&gt;</code> (as in the gender and language fieldsets above), the association is implicit — <code>htmlFor</code> and <code>id</code> become optional, though still valid to add. Related controls can be grouped together inside one <code>&lt;fieldset&gt;</code>.
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="rule-6">
+      <div class="card-title">Rule 6 — onChange Goes on select, Never on option</div>
+      <div class="card-content">
+        <div class="short-answer">
+          A dropdown is <strong>one</strong> controlled input — the <code>&lt;select&gt;</code> element itself. Its value comes from <code>form.city</code>, and the individual <code>&lt;option&gt;</code> elements never carry their own change handler.
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">select-onchange.jsx</span></div>
+          <pre><code>&lt;<span class="type">select</span> <span class="type">name</span>=<span class="str">"city"</span> <span class="type">value</span>={<span class="type">form</span>.city} <span class="fn">onChange</span>={<span class="type">handleChange</span>}&gt;
+  &lt;<span class="type">option</span> <span class="type">value</span>=<span class="str">"mumbai"</span>&gt;Mumbai&lt;/<span class="type">option</span>&gt;
+&lt;/<span class="type">select</span>&gt;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="rule-7">
+      <div class="card-title">Rule 7 — Array State for Checkboxes: Spread to Add, filter() to Remove</div>
+      <div class="card-content">
+        <div class="short-answer">
+          Because a checkbox group can have <strong>multiple</strong> selected values at once, its state is an array. Checking a box spreads the new value in; unchecking filters that value out — both return a brand-new array, keeping the update immutable.
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">checkbox-array.jsx</span></div>
+          <pre><code>checked
+  ? [...<span class="type">prev</span>[name], value]
+  : <span class="type">prev</span>[name].<span class="fn">filter</span>((<span class="type">item</span>) =&gt; <span class="type">item</span> !== value)</code></pre>
+        </div>
+        <div class="remember"><strong>✅ Why it matters:</strong> mutating the array in place (e.g. <code>prev[name].push(value)</code>) keeps the same array reference, so React won't detect the state actually changed.</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
