@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Next.js Advanced Routing — App Router, Layouts &amp; Route Groups</title>
+</head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
+
+  /* HEADER */
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 20px; padding: 46px 40px; margin-bottom: 44px; box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3); position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:14px; position:relative; }
+  .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 700px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a { text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700; transition: all 0.2s ease; cursor: pointer; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* topic dropdown */
+  .topic-dropdown { position: relative; margin-bottom: 18px; display: inline-block; }
+  .topic-dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.16); color: #fff; font-size: 13.5px; font-weight: 800; padding: 9px 18px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.32); transition: background 0.2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display: none; }
+  .topic-dropdown summary:hover { background: rgba(255,255,255,0.26); }
+  .topic-dropdown[open] summary::after { transform: rotate(180deg); }
+  .topic-dropdown summary::after { content: '▾'; margin-left: 2px; transition: transform 0.2s ease; font-size: 11px; }
+  .topic-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; background: #fff; border-radius: 12px; padding: 8px; min-width: 240px; box-shadow: 0 14px 30px rgba(0,0,0,0.22); display: flex; flex-direction: column; gap: 3px; }
+  .topic-menu a { text-decoration: none; color: #1a1a1a; font-size: 14px; font-weight: 700; padding: 9px 14px; border-radius: 8px; display: flex; align-items: center; gap: 9px; transition: background 0.15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background: var(--content-bg); color: var(--accent); }
+  .topic-menu .group-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.6px; color: #94a3b8; padding: 8px 14px 2px; text-transform: uppercase; }
+
+  /* SUMMARY GRID */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-2px); }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; } .summary-blue .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; } .summary-pink .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; } .summary-amber .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; } .summary-green .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; } .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; } .summary-teal .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* CARDS */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+  .card-content p code, .card-content li code, td code, .short-answer code, .tip code, .note code, .warning code, .remember code { font-family: 'Fira Code','Consolas',monospace; font-size: 0.88em; background: rgba(var(--shadow-rgb),0.1); color: var(--heading); padding: 2px 7px; border-radius: 5px; }
+  .card-content ul { margin: 6px 0 14px 22px; }
+  .card-content li { font-size: 15.5px; line-height: 1.85; color: #334155; font-weight: 500; }
+
+  .short-answer { position: relative; background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%); border: 1px solid rgba(var(--shadow-rgb), 0.16); border-left: 4px solid var(--accent); border-radius: 14px; padding: 20px 24px 22px; margin-bottom: 24px; font-size: 17px; line-height: 1.75; font-weight: 500; color: #293244; box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1); }
+  .short-answer::before { content: "QUICK TAKE"; display: block; width: fit-content; font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff; background: linear-gradient(120deg, var(--accent), var(--accent-light)); padding: 5px 13px; border-radius: 20px; margin-bottom: 13px; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35); }
+  .short-answer strong { color: var(--heading); }
+
+  /* CODE */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; } .dot-grey { background: #febc2e; } .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code','Consolas',monospace; line-height: 1.65; white-space: pre; }
+  .kw { color: #c792ea; font-weight: 600; } .str { color: #c3e88d; } .fn { color: #82aaff; } .type { color: #f07178; } .cmt { color: #7a7a7a; font-style: italic; } .num { color: #f78c6c; }
+
+  /* CALLOUTS */
+  .tip, .note, .warning, .remember { border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+  .tip { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; background: #fff; }
+  table tr:nth-child(even) td { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+
+  @media (max-width: 768px) { .header h1 { font-size: 26px; } .toc a { padding: 6px 12px; font-size: 12px; } .card-content { padding: 20px; } }
+
+  /* ═══════════ COLORFUL TABLES (shared) ═══════════ */
+  table { border-collapse: separate !important; border-spacing: 0 8px !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
+  table th { background: linear-gradient(120deg,#2563eb,#7c3aed,#ec4899) !important; color: #fff !important; font-size: 13px !important; font-weight: 800 !important; letter-spacing: .7px; text-transform: uppercase; padding: 13px 18px !important; border: none !important; }
+  table th:first-child { border-radius: 12px 0 0 12px; }
+  table th:last-child { border-radius: 0 12px 12px 0; }
+  table td { border: none !important; padding: 13px 18px !important; font-weight: 600 !important; color: #334155 !important; vertical-align: middle !important; }
+  table td:first-child { border-radius: 12px 0 0 12px; border-left: 6px solid var(--rc) !important; font-weight: 800 !important; color: var(--rd) !important; }
+  table td:last-child { border-radius: 0 12px 12px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background: var(--rb) !important; box-shadow: 0 3px 8px rgba(0,0,0,.05); transition: transform .15s ease; }
+  table tr:not(:first-child):hover td { filter: brightness(.97); }
+  table td code { background: #fff !important; color: var(--rd) !important; border: 1px solid var(--rc); padding: 2px 8px !important; border-radius: 6px !important; font-weight: 700; }
+</style><body>
+  <div class="container">
+
+    <div class="header">
+      <span class="tag">NEXT.JS · ADVANCED ROUTING</span>
+      <h1>🧱 Advanced Routing — App Router, Layouts &amp; Route Groups</h1>
+      <p>Pages Router vs App Router, the root layout, nested layouts, mixed shared/private UI, route groups, and which files in <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px">app/</code> actually become routes.</p>
+
+      <details class="topic-dropdown">
+        <summary>📁 MERN / JS Topics</summary>
+        <div class="topic-menu">
+          <span class="group-label">Next.js</span>
+          <a class="current" href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+          <span class="group-label">React / JavaScript</span>
+          <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+          <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+          <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+          <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+          <a href="interview-routing.html">🧭 React Router Interview</a>
+          <span class="group-label">MongoDB</span>
+          <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+          <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+          <span class="group-label">PostgreSQL</span>
+          <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+          <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+        </div>
+      </details>
+
+      <div class="toc">
+        <a onclick="document.getElementById('pages-vs-app').scrollIntoView({behavior:'smooth'});return false;">Pages vs App</a>
+        <a onclick="document.getElementById('root-layout').scrollIntoView({behavior:'smooth'});return false;">Root Layout</a>
+        <a onclick="document.getElementById('nested-layouts').scrollIntoView({behavior:'smooth'});return false;">Nested Layouts</a>
+        <a onclick="document.getElementById('mixed-layouts').scrollIntoView({behavior:'smooth'});return false;">Mixed Layouts</a>
+        <a onclick="document.getElementById('route-groups').scrollIntoView({behavior:'smooth'});return false;">Route Groups</a>
+        <a onclick="document.getElementById('non-routes').scrollIntoView({behavior:'smooth'});return false;">Non-Route Files</a>
+      </div>
+    </div>
+
+    <div class="intro-summary">
+      <div class="intro-summary-title">🧩 At a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-blue" onclick="document.getElementById('pages-vs-app').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🔀</div>
+          <div class="summary-text"><strong>Pages vs App Router:</strong> <code>pages/</code> &amp; data-fetch functions vs <code>app/</code> &amp; Server Components.</div>
+        </div>
+        <div class="summary-item summary-amber" onclick="document.getElementById('root-layout').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🏠</div>
+          <div class="summary-text"><strong>Root layout:</strong> the one place that must render <code>&lt;html&gt;</code> and <code>&lt;body&gt;</code>.</div>
+        </div>
+        <div class="summary-item summary-green" onclick="document.getElementById('nested-layouts').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🪆</div>
+          <div class="summary-text"><strong>Nested layouts:</strong> add to a parent layout — they never replace it.</div>
+        </div>
+        <div class="summary-item summary-purple" onclick="document.getElementById('mixed-layouts').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🎭</div>
+          <div class="summary-text"><strong>Mixed layouts:</strong> give the dashboard a header/footer while login/signup stay bare.</div>
+        </div>
+        <div class="summary-item summary-pink" onclick="document.getElementById('route-groups').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🗂️</div>
+          <div class="summary-text"><strong>Route groups:</strong> <code>(main)</code> shares a layout across many routes without touching the URL.</div>
+        </div>
+        <div class="summary-item summary-teal" onclick="document.getElementById('non-routes').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">📁</div>
+          <div class="summary-text"><strong>Non-route files:</strong> only <code>page.tsx</code> and <code>route.ts</code> become URLs.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1 -->
+    <div class="section-divider" id="pages-vs-app"><span>🔀 1. App Router vs Pages Router</span></div>
+    <div class="card">
+      <div class="card-title">Two Routing Systems</div>
+      <div class="card-content">
+        <div class="short-answer">
+          Next.js ships two routing systems. <strong>Pages Router</strong> is still supported, but for a refresher or a new project, focus on the <strong>App Router</strong> — the older data-fetching functions (<code>getServerSideProps</code>, <code>getStaticProps</code>, <code>getStaticPaths</code>) aren't used inside <code>app/</code>.
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th>Feature</th><th>Pages Router</th><th>App Router</th></tr>
+            <tr><td>Main folder</td><td><code>pages/</code></td><td><code>app/</code></td></tr>
+            <tr><td>Page example</td><td><code>pages/about.tsx</code></td><td><code>app/about/page.tsx</code></td></tr>
+            <tr><td>Shared layouts</td><td>Usually <code>_app.tsx</code> or custom patterns</td><td>Built-in <code>layout.tsx</code></td></tr>
+            <tr><td>Server data fetching</td><td><code>getServerSideProps</code>, <code>getStaticProps</code></td><td>Async Server Components</td></tr>
+            <tr><td>Generate static dynamic paths</td><td><code>getStaticPaths</code></td><td><code>generateStaticParams</code></td></tr>
+            <tr><td>Backend endpoints</td><td><code>pages/api/</code></td><td><code>route.ts</code></td></tr>
+            <tr><td>Router hook import</td><td><code>next/router</code></td><td><code>next/navigation</code></td></tr>
+          </table>
+        </div>
+
+        <div class="note"><strong>📝 Source:</strong> <a href="https://nextjs.org/docs/app/guides/migrating/app-router-migration" target="_blank" rel="noopener">nextjs.org — App Router migration guide</a>.</div>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="section-divider" id="root-layout"><span>🏠 2. Root Layout — app/layout.tsx</span></div>
+    <div class="card">
+      <div class="card-title">The Outermost Wrapper for Every Page</div>
+      <div class="card-content">
+        <div class="short-answer">
+          The root layout must provide <code>&lt;html&gt;</code> and <code>&lt;body&gt;</code>. Next.js supplies <code>children</code> automatically — it's the page or nested layout slotted into this wrapper.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/layout.tsx</span></div>
+          <pre><code><span class="cmt">// app/layout.tsx</span>
+<span class="kw">import</span> <span class="str">"./globals.css"</span>;
+
+<span class="kw">export default function</span> <span class="fn">RootLayout</span>({
+  children,
+}: {
+  children: <span class="type">React.ReactNode</span>;
+}) {
+  <span class="kw">return</span> (
+    &lt;<span class="type">html</span> <span class="type">lang</span>=<span class="str">"en"</span>&gt;
+      &lt;<span class="type">body</span>&gt;{children}&lt;/<span class="type">body</span>&gt;
+    &lt;/<span class="type">html</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th>Part</th><th>Meaning</th></tr>
+            <tr><td><code>&lt;html&gt;</code></td><td>Root HTML element</td></tr>
+            <tr><td><code>&lt;body&gt;</code></td><td>Contains the visible application</td></tr>
+            <tr><td><code>children</code></td><td>The page or nested layout Next.js inserts here</td></tr>
+            <tr><td><code>React.ReactNode</code></td><td>TypeScript type for content React can render</td></tr>
+            <tr><td><code>import "./globals.css"</code></td><td>Loads global styles</td></tr>
+          </table>
+        </div>
+
+        <div class="remember"><strong>✅ If you leave the generated layout unchanged:</strong> your pages still work, using its existing fonts, styles, and default metadata.</div>
+
+        <div class="warning">
+          <strong>⚠️ If you add a header here:</strong> every page beneath this root layout — including login and signup — receives it. A page cannot cancel a parent layout.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">header-in-root.tsx</span></div>
+          <pre><code>&lt;<span class="type">body</span>&gt;
+  &lt;<span class="type">header</span>&gt;Header for all pages&lt;/<span class="type">header</span>&gt;
+  {children}
+&lt;/<span class="type">body</span>&gt;</code></pre>
+        </div>
+
+        <div class="tip"><strong>💡 Rule of thumb:</strong> place shared UI <em>lower</em> in the folder structure when only selected pages need it.</div>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="section-divider" id="nested-layouts"><span>🪆 3. Nested Layouts</span></div>
+    <div class="card">
+      <div class="card-title">A Layout That Wraps Only What's Below It</div>
+      <div class="card-content">
+        <div class="short-answer">
+          A nested layout wraps only the pages underneath its own folder. <strong>Nested layouts add to parent layouts — they never replace them.</strong>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th>File</th><th>Responsibility</th></tr>
+            <tr><td><code>app/layout.tsx</code></td><td>Root HTML structure</td></tr>
+            <tr><td><code>app/dashboard/layout.tsx</code></td><td>Shared dashboard structure</td></tr>
+            <tr><td><code>app/dashboard/page.tsx</code></td><td>Dashboard content</td></tr>
+            <tr><td><code>app/dashboard/settings/page.tsx</code></td><td>Settings content</td></tr>
+          </table>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/dashboard/layout.tsx</span></div>
+          <pre><code><span class="cmt">// app/dashboard/layout.tsx</span>
+<span class="kw">export default function</span> <span class="fn">DashboardLayout</span>({
+  children,
+}: {
+  children: <span class="type">React.ReactNode</span>;
+}) {
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">aside</span>&gt;Dashboard Sidebar&lt;/<span class="type">aside</span>&gt;
+      &lt;<span class="type">section</span>&gt;{children}&lt;/<span class="type">section</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="note">
+          <strong>📝 Opening <code>/dashboard/settings</code> applies:</strong> <code>Root layout → Dashboard layout → Settings page</code>. The dashboard layout sits inside the root layout's <code>children</code>; the settings page sits inside the dashboard layout's <code>children</code>.
+        </div>
+
+        <div class="warning"><strong>⚠️ Don't:</strong> repeat <code>&lt;html&gt;</code> and <code>&lt;body&gt;</code> in a nested layout, or manually import it into each page — Next.js wires it up automatically from the folder structure.</div>
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="section-divider" id="mixed-layouts"><span>🎭 4. Dashboard with Header/Footer — Login &amp; Signup Without</span></div>
+    <div class="card">
+      <div class="card-title">Keeping the Root Layout Minimal</div>
+      <div class="card-content">
+        <div class="short-answer">
+          Keep the root layout minimal (just <code>&lt;html&gt;</code>, <code>&lt;body&gt;</code>, <code>children</code>) and move the header/footer into the dashboard's own nested layout. Login and signup, sitting outside the <code>dashboard/</code> folder, never see it.
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th>File</th><th>What It Contains</th></tr>
+            <tr><td><code>app/layout.tsx</code></td><td><code>&lt;html&gt;</code>, <code>&lt;body&gt;</code>, and <code>children</code></td></tr>
+            <tr><td><code>app/dashboard/layout.tsx</code></td><td>Dashboard header and footer</td></tr>
+            <tr><td><code>app/dashboard/page.tsx</code></td><td>Dashboard page</td></tr>
+            <tr><td><code>app/login/page.tsx</code></td><td>Login page</td></tr>
+            <tr><td><code>app/signup/page.tsx</code></td><td>Signup page</td></tr>
+          </table>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/dashboard/layout.tsx</span></div>
+          <pre><code><span class="cmt">// app/dashboard/layout.tsx</span>
+<span class="kw">export default function</span> <span class="fn">DashboardLayout</span>({
+  children,
+}: {
+  children: <span class="type">React.ReactNode</span>;
+}) {
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">header</span>&gt;Dashboard Header&lt;/<span class="type">header</span>&gt;
+      &lt;<span class="type">main</span>&gt;{children}&lt;/<span class="type">main</span>&gt;
+      &lt;<span class="type">footer</span>&gt;Dashboard Footer&lt;/<span class="type">footer</span>&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">pages.tsx</span></div>
+          <pre><code><span class="cmt">// app/dashboard/page.tsx</span>
+<span class="kw">export default function</span> <span class="fn">DashboardPage</span>() {
+  <span class="kw">return</span> &lt;<span class="type">h1</span>&gt;Dashboard&lt;/<span class="type">h1</span>&gt;;
+}
+
+<span class="cmt">// app/login/page.tsx</span>
+<span class="kw">export default function</span> <span class="fn">LoginPage</span>() {
+  <span class="kw">return</span> &lt;<span class="type">h1</span>&gt;Login&lt;/<span class="type">h1</span>&gt;;
+}
+
+<span class="cmt">// app/signup/page.tsx</span>
+<span class="kw">export default function</span> <span class="fn">SignupPage</span>() {
+  <span class="kw">return</span> &lt;<span class="type">h1</span>&gt;Signup&lt;/<span class="type">h1</span>&gt;;
+}</code></pre>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th>URL</th><th>Visible Content</th></tr>
+            <tr><td><code>/dashboard</code></td><td>Dashboard Header + Dashboard + Dashboard Footer</td></tr>
+            <tr><td><code>/login</code></td><td>Login only</td></tr>
+            <tr><td><code>/signup</code></td><td>Signup only</td></tr>
+          </table>
+        </div>
+
+        <div class="remember"><strong>✅ Why this works:</strong> login and signup still use the root layout — they simply avoid the dashboard layout because they live outside its folder.</div>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="section-divider" id="route-groups"><span>🗂️ 5. Route Groups — Share a Layout Across Many Routes</span></div>
+    <div class="card">
+      <div class="card-title">(main) — A Folder Name That Doesn't Touch the URL</div>
+      <div class="card-content">
+        <div class="short-answer">
+          When dashboard, products, orders, profile and many other routes need the <strong>same</strong> header/footer, place them inside <code>(main)</code>. The parentheses mark a <strong>route group</strong> — its name never becomes part of the URL.
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th>File</th><th>URL</th></tr>
+            <tr><td><code>app/(main)/page.tsx</code></td><td><code>/</code></td></tr>
+            <tr><td><code>app/(main)/dashboard/page.tsx</code></td><td><code>/dashboard</code></td></tr>
+            <tr><td><code>app/(main)/products/page.tsx</code></td><td><code>/products</code></td></tr>
+            <tr><td><code>app/(main)/orders/page.tsx</code></td><td><code>/orders</code></td></tr>
+            <tr><td><code>app/(main)/profile/page.tsx</code></td><td><code>/profile</code></td></tr>
+            <tr><td><code>app/login/page.tsx</code></td><td><code>/login</code></td></tr>
+            <tr><td><code>app/signup/page.tsx</code></td><td><code>/signup</code></td></tr>
+          </table>
+        </div>
+
+        <h4>➕ One shared layout for all of them</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/(main)/layout.tsx</span></div>
+          <pre><code><span class="cmt">// app/(main)/layout.tsx</span>
+<span class="kw">export default function</span> <span class="fn">MainLayout</span>({
+  children,
+}: {
+  children: <span class="type">React.ReactNode</span>;
+}) {
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">header</span>&gt;Website Header&lt;/<span class="type">header</span>&gt;
+      &lt;<span class="type">main</span>&gt;{children}&lt;/<span class="type">main</span>&gt;
+      &lt;<span class="type">footer</span>&gt;Website Footer&lt;/<span class="type">footer</span>&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="note"><strong>📝 Result:</strong> all pages inside <code>(main)</code> receive this header and footer. Login and signup remain outside and are unaffected. Use this instead of repeating the same header/footer markup in every route's own layout.</div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th>Folder Pattern</th><th>Example URL</th></tr>
+            <tr><td><code>app/main/products/page.tsx</code></td><td><code>/main/products</code></td></tr>
+            <tr><td><code>app/(main)/products/page.tsx</code></td><td><code>/products</code></td></tr>
+          </table>
+        </div>
+
+        <h4>📋 Things to remember</h4>
+        <ul>
+          <li>The group name can be <code>(main)</code>, <code>(website)</code>, or another meaningful name.</li>
+          <li>Keep the root layout minimal if login/signup should have no shared header.</li>
+          <li>After moving dashboard into <code>(main)</code>, remove duplicated header/footer markup from its own layout.</li>
+          <li>Two groups cannot define the same URL — e.g. <code>(main)/about/page.tsx</code> and <code>(other)/about/page.tsx</code> conflict.</li>
+        </ul>
+
+        <div class="note"><strong>📝 Source:</strong> <a href="https://nextjs.org/docs/app/api-reference/file-conventions/route-groups" target="_blank" rel="noopener">nextjs.org — Route Groups</a>.</div>
+      </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="section-divider" id="non-routes"><span>📁 6. Folders &amp; Files That Aren't Routes</span></div>
+    <div class="card">
+      <div class="card-title">page.tsx and route.ts Are the Only Trigger Files</div>
+      <div class="card-content">
+        <div class="short-answer">
+          You can keep components and utilities inside <code>app/</code>. Ordinary files do not automatically become browser-accessible pages — only <strong><code>page.tsx</code></strong> exposes page UI and <strong><code>route.ts</code></strong> exposes a request handler.
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th>File</th><th>Result</th></tr>
+            <tr><td><code>app/components/Header.tsx</code></td><td>Reusable component; no route</td></tr>
+            <tr><td><code>app/utils/formatPrice.ts</code></td><td>Utility function; no route</td></tr>
+            <tr><td><code>app/products/ProductCard.tsx</code></td><td>Product component; no route</td></tr>
+            <tr><td><code>app/products/page.tsx</code></td><td>Page at <code>/products</code></td></tr>
+            <tr><td><code>app/api/products/route.ts</code></td><td>Request endpoint at <code>/api/products</code></td></tr>
+          </table>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/components/Header.tsx</span></div>
+          <pre><code><span class="cmt">// app/components/Header.tsx</span>
+<span class="kw">export default function</span> <span class="fn">Header</span>() {
+  <span class="kw">return</span> &lt;<span class="type">header</span>&gt;My Website&lt;/<span class="type">header</span>&gt;;
+}</code></pre>
+        </div>
+
+        <h4>📥 Import it into a shared layout</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/(main)/layout.tsx</span></div>
+          <pre><code><span class="kw">import</span> <span class="type">Header</span> <span class="kw">from</span> <span class="str">"../components/Header"</span>;
+
+<span class="kw">export default function</span> <span class="fn">MainLayout</span>({
+  children,
+}: {
+  children: <span class="type">React.ReactNode</span>;
+}) {
+  <span class="kw">return</span> (
+    &lt;&gt;
+      &lt;<span class="type">Header</span> /&gt;
+      &lt;<span class="type">main</span>&gt;{children}&lt;/<span class="type">main</span>&gt;
+      &lt;<span class="type">footer</span>&gt;My Footer&lt;/<span class="type">footer</span>&gt;
+    &lt;/&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="tip"><strong>💡 Two valid layouts for shared files:</strong></div>
+        <div class="table-scroll">
+          <table>
+            <tr><th>Location</th><th>Use</th></tr>
+            <tr><td><code>components/Header.tsx</code></td><td>Shared UI components (outside <code>app/</code>)</td></tr>
+            <tr><td><code>utils/formatPrice.ts</code></td><td>Reusable helper functions (outside <code>app/</code>)</td></tr>
+            <tr><td><code>app/</code></td><td>Pages, layouts, and route-specific files</td></tr>
+          </table>
+        </div>
+
+        <div class="remember"><strong>✅ Both arrangements are valid.</strong> Choose one consistent structure so components and utilities stay easy to find. Next.js also has special metadata conventions such as <code>favicon.ico</code>.</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

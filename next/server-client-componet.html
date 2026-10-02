@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Next.js Server vs Client Components</title>
+</head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
+
+  /* HEADER */
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 20px; padding: 46px 40px; margin-bottom: 44px; box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3); position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:14px; position:relative; }
+  .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 700px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a { text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700; transition: all 0.2s ease; cursor: pointer; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* topic dropdown */
+  .topic-dropdown { position: relative; margin-bottom: 18px; display: inline-block; }
+  .topic-dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.16); color: #fff; font-size: 13.5px; font-weight: 800; padding: 9px 18px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.32); transition: background 0.2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display: none; }
+  .topic-dropdown summary:hover { background: rgba(255,255,255,0.26); }
+  .topic-dropdown[open] summary::after { transform: rotate(180deg); }
+  .topic-dropdown summary::after { content: '▾'; margin-left: 2px; transition: transform 0.2s ease; font-size: 11px; }
+  .topic-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; background: #fff; border-radius: 12px; padding: 8px; min-width: 240px; box-shadow: 0 14px 30px rgba(0,0,0,0.22); display: flex; flex-direction: column; gap: 3px; }
+  .topic-menu a { text-decoration: none; color: #1a1a1a; font-size: 14px; font-weight: 700; padding: 9px 14px; border-radius: 8px; display: flex; align-items: center; gap: 9px; transition: background 0.15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background: var(--content-bg); color: var(--accent); }
+  .topic-menu .group-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.6px; color: #94a3b8; padding: 8px 14px 2px; text-transform: uppercase; }
+
+  /* SUMMARY GRID */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-2px); }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; } .summary-blue .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; } .summary-pink .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; } .summary-amber .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; } .summary-green .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; } .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; } .summary-teal .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* CARDS */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+  .card-content p code, .card-content li code, td code, .short-answer code, .tip code, .note code, .warning code, .remember code { font-family: 'Fira Code','Consolas',monospace; font-size: 0.88em; background: rgba(var(--shadow-rgb),0.1); color: var(--heading); padding: 2px 7px; border-radius: 5px; }
+  .card-content ul { margin: 6px 0 14px 22px; }
+  .card-content li { font-size: 15.5px; line-height: 1.85; color: #334155; font-weight: 500; }
+
+  .short-answer { position: relative; background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%); border: 1px solid rgba(var(--shadow-rgb), 0.16); border-left: 4px solid var(--accent); border-radius: 14px; padding: 20px 24px 22px; margin-bottom: 24px; font-size: 17px; line-height: 1.75; font-weight: 500; color: #293244; box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1); }
+  .short-answer::before { content: "QUICK TAKE"; display: block; width: fit-content; font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff; background: linear-gradient(120deg, var(--accent), var(--accent-light)); padding: 5px 13px; border-radius: 20px; margin-bottom: 13px; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35); }
+  .short-answer strong { color: var(--heading); }
+
+  /* CODE */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; } .dot-grey { background: #febc2e; } .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code','Consolas',monospace; line-height: 1.65; white-space: pre; }
+  .kw { color: #c792ea; font-weight: 600; } .str { color: #c3e88d; } .fn { color: #82aaff; } .type { color: #f07178; } .cmt { color: #7a7a7a; font-style: italic; } .num { color: #f78c6c; }
+
+  /* CALLOUTS */
+  .tip, .note, .warning, .remember { border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+  .tip { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; background: #fff; }
+  table tr:nth-child(even) td { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+
+  @media (max-width: 768px) { .header h1 { font-size: 26px; } .toc a { padding: 6px 12px; font-size: 12px; } .card-content { padding: 20px; } }
+
+  /* ═══════════ COLORFUL TABLES (shared) ═══════════ */
+  table { border-collapse: separate !important; border-spacing: 0 8px !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
+  table th { background: linear-gradient(120deg,#2563eb,#7c3aed,#ec4899) !important; color: #fff !important; font-size: 13px !important; font-weight: 800 !important; letter-spacing: .7px; text-transform: uppercase; padding: 13px 18px !important; border: none !important; }
+  table th:first-child { border-radius: 12px 0 0 12px; }
+  table th:last-child { border-radius: 0 12px 12px 0; }
+  table td { border: none !important; padding: 13px 18px !important; font-weight: 600 !important; color: #334155 !important; vertical-align: middle !important; }
+  table td:first-child { border-radius: 12px 0 0 12px; border-left: 6px solid var(--rc) !important; font-weight: 800 !important; color: var(--rd) !important; }
+  table td:last-child { border-radius: 0 12px 12px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background: var(--rb) !important; box-shadow: 0 3px 8px rgba(0,0,0,.05); transition: transform .15s ease; }
+  table tr:not(:first-child):hover td { filter: brightness(.97); }
+  table td code { background: #fff !important; color: var(--rd) !important; border: 1px solid var(--rc); padding: 2px 8px !important; border-radius: 6px !important; font-weight: 700; }
+</style><body>
+  <div class="container">
+
+    <div class="header">
+      <span class="tag">NEXT.JS · SERVER &amp; CLIENT COMPONENTS</span>
+      <h1>🧩 Server vs Client Components</h1>
+      <p>In the App Router, components are <strong>Server Components by default</strong>. When to reach for <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px">"use client"</code>, and what each type can and can't do.</p>
+
+      <details class="topic-dropdown">
+        <summary>📁 MERN / JS Topics</summary>
+        <div class="topic-menu">
+          <span class="group-label">Next.js</span>
+          <a class="current" href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+          <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+          <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+          <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+          <span class="group-label">React / JavaScript</span>
+          <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+          <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+          <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+          <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+          <a href="interview-routing.html">🧭 React Router Interview</a>
+          <span class="group-label">MongoDB</span>
+          <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+          <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+          <span class="group-label">PostgreSQL</span>
+          <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+          <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+        </div>
+      </details>
+
+      <div class="toc">
+        <a onclick="document.getElementById('comparison').scrollIntoView({behavior:'smooth'});return false;">Comparison</a>
+        <a onclick="document.getElementById('server-basic').scrollIntoView({behavior:'smooth'});return false;">Server Example</a>
+        <a onclick="document.getElementById('client-basic').scrollIntoView({behavior:'smooth'});return false;">Client Example</a>
+        <a onclick="document.getElementById('task1').scrollIntoView({behavior:'smooth'});return false;">Task 1 — Fetch Products</a>
+        <a onclick="document.getElementById('task2').scrollIntoView({behavior:'smooth'});return false;">Task 2 — Password Toggle</a>
+      </div>
+    </div>
+
+    <div class="intro-summary">
+      <div class="intro-summary-title">🧩 At a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-blue" onclick="document.getElementById('server-basic').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🖥️</div>
+          <div class="summary-text"><strong>Server Component (default):</strong> fetch data and render on the server, access secrets safely.</div>
+        </div>
+        <div class="summary-item summary-amber" onclick="document.getElementById('client-basic').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🖱️</div>
+          <div class="summary-text"><strong>Client Component:</strong> add <code>"use client"</code> for state, effects, and event handlers.</div>
+        </div>
+        <div class="summary-item summary-green" onclick="document.getElementById('task1').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">📦</div>
+          <div class="summary-text"><strong>Task 1:</strong> fetch and display products — no <code>useEffect</code> needed on the server.</div>
+        </div>
+        <div class="summary-item summary-purple" onclick="document.getElementById('task2').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🔒</div>
+          <div class="summary-text"><strong>Task 2:</strong> toggle password visibility — needs state and a click handler.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="comparison"><span>⚖️ Server Component vs Client Component</span></div>
+    <div class="card">
+      <div class="card-title">What Each One Can and Can't Do</div>
+      <div class="card-content">
+        <div class="short-answer">
+          Every component is a <strong>Server Component by default</strong> in the App Router. You opt a component into the client by adding the <code>"use client"</code> directive at the very top of the file.
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th></th><th>Server Component</th><th>Client Component</th></tr>
+            <tr><td>Main purpose</td><td>Fetch data and render content on the server</td><td>Handle user interaction</td></tr>
+            <tr><td><code>useState</code>, <code>useEffect</code></td><td>❌ Cannot use</td><td>✅ Can use</td></tr>
+            <tr><td><code>onClick</code>, <code>onChange</code></td><td>❌ Cannot handle directly</td><td>✅ Can handle</td></tr>
+            <tr><td>Database and secrets</td><td>✅ Can access on the server</td><td>❌ Keep these out of client code</td></tr>
+            <tr><td>Directive</td><td>None needed</td><td>Add <code>"use client"</code> at the top</td></tr>
+          </table>
+        </div>
+
+        <div class="remember"><strong>✅ Remember:</strong> use Server Components for server work; use Client Components when you need state, effects, or events.</div>
+
+        <div class="note">
+          <strong>📝 Important nuance:</strong> a Client Component can still have its initial HTML rendered on the server. <code>"use client"</code> enables browser interactivity — it does <strong>not</strong> mean "render only in the browser." <a href="https://nextjs.org/docs/app/getting-started/server-and-client-components" target="_blank" rel="noopener">Source: nextjs.org</a>.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="server-basic"><span>🖥️ Server Component — No Directive Needed</span></div>
+    <div class="card">
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/page.tsx</span></div>
+          <pre><code><span class="cmt">// app/page.tsx</span>
+<span class="kw">export default function</span> <span class="fn">Home</span>() {
+  <span class="kw">return</span> &lt;<span class="type">h1</span>&gt;Welcome&lt;/<span class="type">h1</span>&gt;;
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="client-basic"><span>🖱️ Client Component — "use client" at the Top</span></div>
+    <div class="card">
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/components/Counter.tsx</span></div>
+          <pre><code><span class="str">"use client"</span>;
+
+<span class="kw">import</span> { <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">export default function</span> <span class="fn">Counter</span>() {
+  <span class="kw">const</span> [<span class="type">count</span>, <span class="fn">setCount</span>] = <span class="fn">useState</span>(<span class="num">0</span>);
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">button</span> <span class="type">onClick</span>={() =&gt; <span class="fn">setCount</span>(<span class="type">count</span> + <span class="num">1</span>)}&gt;
+      Count: {<span class="type">count</span>}
+    &lt;/<span class="type">button</span>&gt;
+  );
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="task1"><span>📦 1. Server Component — Display Products from an API</span></div>
+    <div class="card">
+      <div class="card-title">Fetch on the Server, No useEffect Needed</div>
+      <div class="card-content">
+        <div class="short-answer">
+          This fetches data <strong>on the server</strong>. No state or click handlers are needed — the page simply renders once the data has arrived.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/products/page.tsx</span></div>
+          <pre><code><span class="cmt">// app/products/page.tsx</span>
+<span class="kw">export default async function</span> <span class="fn">ProductsPage</span>() {
+  <span class="kw">const</span> <span class="type">response</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"https://dummyjson.com/products"</span>);
+
+  <span class="kw">if</span> (!<span class="type">response</span>.ok) {
+    <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"Failed to load products"</span>);
+  }
+
+  <span class="kw">const</span> <span class="type">data</span> = <span class="kw">await</span> <span class="type">response</span>.<span class="fn">json</span>();
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">ul</span>&gt;
+      {<span class="type">data</span>.products.<span class="fn">map</span>((<span class="type">product</span>: { id: <span class="type">number</span>; title: <span class="type">string</span> }) =&gt; (
+        &lt;<span class="type">li</span> <span class="type">key</span>={<span class="type">product</span>.id}&gt;{<span class="type">product</span>.title}&lt;/<span class="type">li</span>&gt;
+      ))}
+    &lt;/<span class="type">ul</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="remember"><strong>✅ Why Server Component?</strong> it fetches and displays data without browser interaction. You don't need <code>useEffect</code> for this server fetch — the <code>async</code> function body does it directly.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="task2"><span>🔒 2. Client Component — Show/Hide a Password</span></div>
+    <div class="card">
+      <div class="card-title">Needs State and a Button Click → "use client"</div>
+      <div class="card-content">
+        <div class="short-answer">
+          This needs <strong>state</strong> and a <strong>button click</strong>, so it must be a Client Component.
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/components/PasswordInput.tsx</span></div>
+          <pre><code><span class="cmt">// app/components/PasswordInput.tsx</span>
+<span class="str">"use client"</span>;
+
+<span class="kw">import</span> { <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">export default function</span> <span class="fn">PasswordInput</span>() {
+  <span class="kw">const</span> [<span class="type">showPassword</span>, <span class="fn">setShowPassword</span>] = <span class="fn">useState</span>(<span class="kw">false</span>);
+
+  <span class="kw">return</span> (
+    &lt;<span class="type">div</span>&gt;
+      &lt;<span class="type">input</span>
+        <span class="type">type</span>={<span class="type">showPassword</span> ? <span class="str">"text"</span> : <span class="str">"password"</span>}
+        <span class="type">placeholder</span>=<span class="str">"Enter password"</span>
+      /&gt;
+
+      &lt;<span class="type">button</span>
+        <span class="type">type</span>=<span class="str">"button"</span>
+        <span class="type">onClick</span>={() =&gt; <span class="fn">setShowPassword</span>((<span class="type">prev</span>) =&gt; !<span class="type">prev</span>)}
+      &gt;
+        {<span class="type">showPassword</span> ? <span class="str">"Hide"</span> : <span class="str">"Show"</span>}
+      &lt;/<span class="type">button</span>&gt;
+    &lt;/<span class="type">div</span>&gt;
+  );
+}</code></pre>
+        </div>
+
+        <div class="remember"><strong>✅ Why Client Component?</strong> clicking the button updates state and changes the input type.</div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th>Real Requirement</th><th>Suitable Component</th></tr>
+            <tr><td>Fetch and display a product list</td><td>Server Component</td></tr>
+            <tr><td>Toggle password visibility</td><td>Client Component</td></tr>
+          </table>
+        </div>
+
+        <div class="tip"><strong>💡 Both can work together:</strong> a Server Component page can render a Client Component such as <code>&lt;PasswordInput /&gt;</code> — composition isn't all-or-nothing.</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

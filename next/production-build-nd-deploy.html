@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Next.js — Production Build and Deployment Notes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 94%; max-width: 1120px; margin: 32px auto; --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+  /* HEADER */
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 16px; padding: 26px 30px; margin-bottom: 22px; box-shadow: 0 12px 28px rgba(var(--shadow-rgb),.28); position: relative; overflow: hidden; }
+  .header::after { content:''; position:absolute; top:-60px; right:-60px; width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,.16); color:#fff; font-size:11px; font-weight:800; letter-spacing:.6px; padding:4px 12px; border-radius:20px; margin-bottom:10px; position:relative; }
+  .header h1 { color:#fff; font-size:28px; margin-bottom:6px; font-weight:800; letter-spacing:-.5px; position:relative; }
+  .header p { color:#dbe6ff; font-size:15px; margin-bottom:16px; max-width:760px; line-height:1.55; position:relative; }
+  .header p code { background:rgba(255,255,255,.15); padding:1px 6px; border-radius:4px; font-family:'Fira Code',Consolas,monospace; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px; position:relative; }
+  .toc a { text-decoration:none; padding:6px 15px; border-radius:20px; font-size:13px; font-weight:700; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.28); }
+  .toc a:hover { background:#fff; color:var(--accent); transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,.15); }
+
+  .topic-dropdown { position:relative; margin-bottom:12px; display:inline-block; z-index:5; }
+  .topic-dropdown summary { list-style:none; cursor:pointer; display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.16); color:#fff; font-size:13px; font-weight:800; padding:7px 16px; border-radius:22px; border:1px solid rgba(255,255,255,.32); transition:background .2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display:none; }
+  .topic-dropdown summary:hover { background:rgba(255,255,255,.26); }
+  .topic-dropdown summary::after { content:'▾'; margin-left:2px; transition:transform .2s ease; font-size:11px; }
+  .topic-dropdown[open] summary::after { transform:rotate(180deg); }
+  .topic-menu { position:absolute; top:calc(100% + 8px); left:0; z-index:20; background:#fff; border-radius:12px; padding:8px; min-width:260px; box-shadow:0 14px 30px rgba(0,0,0,.22); display:flex; flex-direction:column; gap:2px; }
+  .topic-menu a { text-decoration:none; color:#1a1a1a; font-size:14px; font-weight:700; padding:8px 14px; border-radius:8px; display:flex; align-items:center; gap:9px; transition:background .15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background:var(--content-bg); color:var(--accent); }
+  .topic-menu .group-label { font-size:10.5px; font-weight:800; letter-spacing:.6px; color:#94a3b8; padding:6px 14px 2px; text-transform:uppercase; }
+
+  /* KEY TERMS AT A GLANCE */
+  .intro-summary { margin:0 0 10px; }
+  .intro-summary-title { font-size:19px; font-weight:800; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .summary-item { display:flex; align-items:center; gap:12px; border-radius:12px; padding:10px 14px; cursor:pointer; transition:transform .15s ease; }
+  .summary-item:hover { transform:translateY(-2px); }
+  .summary-icon { flex-shrink:0; width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:17px; background:rgba(255,255,255,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.6); }
+  .summary-text { font-size:14px; line-height:1.5; font-weight:500; }
+  .summary-text strong { font-weight:800; margin-right:3px; }
+  .summary-text code { font-family:'Fira Code',Consolas,monospace; font-size:.88em; background:rgba(255,255,255,.6); padding:1px 6px; border-radius:5px; }
+  .summary-blue   { background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#1e3a8a; } .summary-blue strong { color:#2563eb; }
+  .summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink strong { color:#db2777; }
+  .summary-amber  { background:linear-gradient(135deg,#fffbeb,#fef3c7); color:#92400e; } .summary-amber strong { color:#d97706; }
+  .summary-green  { background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; } .summary-green strong { color:#059669; }
+  .summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple strong { color:#7c3aed; }
+  .summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal strong { color:#0d9488; }
+  @media (max-width:640px) { .summary-grid { grid-template-columns:1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin:26px 0 12px; position:relative; }
+  .section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity:.22; }
+  .section-divider span { background:#f4f5fa; padding:0 16px 0 0; position:relative; font-size:20px; font-weight:800; display:inline-flex; align-items:center; gap:8px; }
+
+  /* CARDS */
+  .card { border-radius:14px; margin-bottom:14px; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.07); border:1px solid rgba(0,0,0,.04); background:#fff; }
+  .card-title { color:#fff; font-size:17px; font-weight:700; padding:12px 22px; background:linear-gradient(120deg,var(--accent),var(--accent-light)); letter-spacing:-.2px; }
+  .card-content { padding:18px 22px 16px; background:var(--content-bg); }
+  .card-content > * + * { margin-top:12px; }
+  .card-content p { color:#333; font-size:15px; line-height:1.7; font-weight:500; }
+  .card-content h4 { font-size:15px; font-weight:800; color:var(--heading); }
+  .card-content ul { margin-left:20px; }
+  .card-content li { font-size:14.5px; line-height:1.65; color:#334155; font-weight:500; }
+  .card-content a { color:var(--accent); font-weight:700; text-decoration:none; border-bottom:1px dashed rgba(var(--shadow-rgb),.5); }
+  code.i, .card-content p code, .card-content li code, td code, .short-answer code, .note code, .warning code, .remember code, th code { font-family:'Fira Code',Consolas,monospace; font-size:.88em; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:2px 6px; border-radius:5px; }
+  .src { font-size:12px !important; font-weight:700 !important; }
+
+  .short-answer { background:linear-gradient(160deg,#fff 0%,var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),.16); border-left:4px solid var(--accent); border-radius:12px; padding:12px 18px 14px; font-size:15.5px; line-height:1.65; font-weight:500; color:#293244; box-shadow:0 6px 16px rgba(var(--shadow-rgb),.09); }
+  .short-answer::before { content:"QUICK TAKE"; display:block; width:fit-content; font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#fff; background:linear-gradient(120deg,var(--accent),var(--accent-light)); padding:3px 11px; border-radius:20px; margin-bottom:8px; }
+  .short-answer strong { color:var(--heading); }
+
+  /* ═══ CODE WINDOW ═══ */
+  .code-block { --cb-bg:#1a2332; --cb-bar:#111a27; --cb-line:#2a374b; background:var(--cb-bg); border-radius:12px; overflow:hidden; box-shadow:0 10px 24px rgba(15,23,42,.28); border:1px solid #2a374b; }
+  .code-bar { background:var(--cb-bar); padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--cb-line); }
+  .code-bar .dot { width:10px; height:10px; border-radius:50%; }
+  .dot-red { background:#ff5f57; } .dot-yellow { background:#febc2e; } .dot-green { background:#28c840; }
+  .code-bar .filename { color:#9fb0c8; font-size:12px; margin-left:8px; font-family:'Fira Code',Consolas,monospace; }
+  .code-bar .lang { margin-left:auto; font-size:10.5px; font-weight:800; letter-spacing:.5px; color:#93c5fd; background:rgba(59,130,246,.16); padding:2px 9px; border-radius:10px; font-family:-apple-system,'Segoe UI',sans-serif; }
+  .code-bar .copy { font-size:11px; font-weight:700; color:#cbd5e1; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:8px; padding:3px 10px; cursor:pointer; margin-left:8px; font-family:-apple-system,'Segoe UI',sans-serif; transition:background .15s ease; }
+  .code-bar .copy:hover { background:rgba(255,255,255,.18); }
+  .code-bar .copy.done { color:#86efac; border-color:#86efac; }
+  .code-block pre { padding:12px 0; overflow-x:auto; counter-reset:ln; }
+  .code-block code { color:#d4d4d4; font-size:13px; font-family:'Fira Code',Consolas,monospace; line-height:1.6; white-space:pre; display:block; width:max-content; min-width:100%; background:none; padding:0; font-weight:400; }
+  .code-block .l { display:block; padding:0 18px 0 0; border-left:3px solid transparent; }
+  .code-block .l::before { counter-increment:ln; content:counter(ln); display:inline-block; width:38px; margin-right:14px; text-align:right; color:#4b5b73; user-select:none; }
+  .code-block .l.hl { background:rgba(59,130,246,.18); border-left-color:#60a5fa; }
+  .code-block .l.hl::before { color:#93c5fd; }
+  .kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .type { color:#f07178; } .attr { color:#ffcb6b; } .cmt { color:#7a8aa3; font-style:italic; } .num { color:#f78c6c; }
+
+  /* FLOW DIAGRAM — dark panel, light step boxes */
+  .flow { background:#1a2332; border-radius:12px; padding:16px 18px; border:1px solid #2a374b; box-shadow:0 10px 24px rgba(15,23,42,.22); display:flex; flex-direction:column; gap:12px; }
+  .flow-row { display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; }
+  .flow-label { width:100%; font-size:11px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:#7dd3fc; }
+  .step { flex:1 1 140px; border-radius:10px; padding:10px 12px; font-size:13px; font-weight:700; line-height:1.45; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; background:#dbeafe; color:#1e3a8a; }
+  .step .n { font-size:10.5px; font-weight:800; letter-spacing:.6px; color:#2563eb; }
+  .step code { font-family:'Fira Code',Consolas,monospace; font-size:.9em; background:rgba(255,255,255,.7); padding:1px 6px; border-radius:5px; }
+  .step.final { background:#d1fae5; color:#065f46; } .step.final .n { color:#059669; }
+  .arrow { color:#7dd3fc; font-size:20px; font-weight:800; align-self:center; }
+  .flow-note { color:#9fb0c8; font-size:12px; font-weight:600; }
+
+  /* CALLOUTS */
+  .note, .warning, .remember { border-radius:11px; padding:10px 16px; font-size:14.5px; line-height:1.65; font-weight:600; box-shadow:inset 0 0 0 1px rgba(255,255,255,.5); }
+  .note { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+  .warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+  .remember { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+  .note a, .warning a, .remember a { color:inherit; }
+
+  /* TABLES */
+  .table-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:separate; border-spacing:0 5px; }
+  table th { background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899); color:#fff; font-size:12px; font-weight:800; letter-spacing:.7px; text-transform:uppercase; padding:9px 14px; text-align:left; }
+  table th:first-child { border-radius:10px 0 0 10px; } table th:last-child { border-radius:0 10px 10px 0; }
+  table td { padding:8px 14px; font-size:14px; font-weight:600; color:#334155; vertical-align:middle; }
+  table td:first-child { border-radius:10px 0 0 10px; border-left:6px solid var(--rc); font-weight:800; color:var(--rd); }
+  table td:last-child { border-radius:0 10px 10px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background:var(--rb); box-shadow:0 2px 6px rgba(0,0,0,.05); }
+  table td code { background:#fff; color:var(--rd); border:1px solid var(--rc); padding:1px 7px; border-radius:6px; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <span class="tag">NEXT.JS · INTERVIEW NOTES</span>
+    <h1>🚀 Next.js Production Build and Deployment — Notes</h1>
+    <p>Dev vs production, <code>next build</code> and <code>next start</code>, environment variables, the deployment flow, and the problems people hit after going live.</p>
+
+    <details class="topic-dropdown">
+      <summary>📁 MERN / JS Topics</summary>
+      <div class="topic-menu">
+        <span class="group-label">React / JavaScript</span>
+        <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+        <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+        <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+        <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+        <a href="interview-routing.html">🧭 React Router Interview</a>
+        <span class="group-label">Next.js</span>
+        <a href="interview-nextjs-seo-images.html">🔍 SEO, Image &amp; Font Optimization</a>
+        <a class="current" href="interview-nextjs-build-deploy.html">🚀 Production Build &amp; Deployment</a>
+        <span class="group-label">MongoDB</span>
+        <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+        <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+        <span class="group-label">PostgreSQL</span>
+        <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+        <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+      </div>
+    </details>
+
+    <div class="toc">
+      <a onclick="go('dev-prod')">1 · Dev vs Production</a>
+      <a onclick="go('build')">2 · Production Build</a>
+      <a onclick="go('local')">3 · Test Locally</a>
+      <a onclick="go('env')">4 · Env Variables</a>
+      <a onclick="go('deploy')">5 · Deployment Flow</a>
+      <a onclick="go('problems')">6 · Common Problems</a>
+    </div>
+  </div>
+
+  <div class="intro-summary">
+    <div class="intro-summary-title">🧩 Key Terms at a Glance</div>
+    <div class="summary-grid">
+      <div class="summary-item summary-blue" onclick="go('dev-prod')"><div class="summary-icon">⚙️</div><div class="summary-text"><strong>dev / build / start:</strong> <code>next dev</code> while coding; <code>build</code> then <code>start</code> for production.</div></div>
+      <div class="summary-item summary-pink" onclick="go('build')"><div class="summary-icon">📦</div><div class="summary-text"><strong>.next/:</strong> default build output folder, created by <code>npm run build</code>.</div></div>
+      <div class="summary-item summary-amber" onclick="go('local')"><div class="summary-icon">🧪</div><div class="summary-text"><strong>No rebuild on start:</strong> <code>npm start</code> serves the existing build only.</div></div>
+      <div class="summary-item summary-green" onclick="go('env')"><div class="summary-icon">🔐</div><div class="summary-text"><strong>NEXT_PUBLIC_:</strong> visible to the browser and fixed at build time.</div></div>
+      <div class="summary-item summary-purple" onclick="go('deploy')"><div class="summary-icon">🚢</div><div class="summary-text"><strong>npm ci:</strong> clean, lockfile-based install used in deployment.</div></div>
+      <div class="summary-item summary-teal" onclick="go('problems')"><div class="summary-icon">🛠️</div><div class="summary-text"><strong>Process manager:</strong> hosting platform or PM2 keeps the server running.</div></div>
+    </div>
+  </div>
+
+  <!-- 1 DEV VS PROD -->
+  <div class="section-divider" id="dev-prod"><span>⚙️ 1. Development vs Production</span></div>
+  <div class="card">
+    <div class="card-title">Three Commands, Three Purposes</div>
+    <div class="card-content">
+      <div class="table-scroll">
+        <table>
+          <tr><th>Command</th><th>Purpose</th></tr>
+          <tr><td><code>npm run dev</code></td><td>Runs the development server with automatic updates while coding</td></tr>
+          <tr><td><code>npm run build</code></td><td>Creates an optimized production build</td></tr>
+          <tr><td><code>npm start</code></td><td>Runs the production server using the existing build</td></tr>
+        </table>
+      </div>
+
+      <p>The usual scripts in <code>package.json</code> are:</p>
+
+      <div class="code-block" data-file="package.json" data-lang="JSON" data-hl="3,4,5">
+<pre><code>{
+  <span class="attr">"scripts"</span>: {
+    <span class="attr">"dev"</span>: <span class="str">"next dev"</span>,
+    <span class="attr">"build"</span>: <span class="str">"next build"</span>,
+    <span class="attr">"start"</span>: <span class="str">"next start"</span>
+  }
+}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 BUILD -->
+  <div class="section-divider" id="build"><span>📦 2. Create a Production Build</span></div>
+  <div class="card">
+    <div class="card-title">Compile, Optimize, Prerender</div>
+    <div class="card-content">
+      <div class="code-block" data-file="terminal" data-lang="BASH" data-hl="1">
+<pre><code><span class="fn">npm</span> run build</code></pre>
+      </div>
+
+      <p>Next.js prepares your application for production, including compiling code, optimizing bundles, and prerendering eligible pages.</p>
+      <p>The default build output goes into <strong><code>.next/</code></strong>.</p>
+      <div class="warning">⚠️ If the build fails, fix the reported errors before deploying—for example, TypeScript errors, missing imports, or failed API requests during prerendering.</div>
+    </div>
+  </div>
+
+  <!-- 3 LOCAL -->
+  <div class="section-divider" id="local"><span>🧪 3. Test Production Locally</span></div>
+  <div class="card">
+    <div class="card-title">Build First, Then Start</div>
+    <div class="card-content">
+      <div class="code-block" data-file="terminal" data-lang="BASH" data-hl="1,2">
+<pre><code><span class="fn">npm</span> run build
+<span class="fn">npm</span> start</code></pre>
+      </div>
+
+      <p>Open <a href="http://localhost:3000" target="_blank" rel="noopener">http://localhost:3000</a>.</p>
+      <div class="remember"><strong><code>npm start</code> does not rebuild your code.</strong> After changing code, build again to test the updated production version.</div>
+    </div>
+  </div>
+
+  <!-- 4 ENV -->
+  <div class="section-divider" id="env"><span>🔐 4. Environment Variables</span></div>
+  <div class="card">
+    <div class="card-title">Where Values Belong</div>
+    <div class="card-content">
+      <div class="table-scroll">
+        <table>
+          <tr><th>Environment</th><th>Where values belong</th></tr>
+          <tr><td>Local development</td><td><code>.env.local</code></td></tr>
+          <tr><td>Production</td><td>Hosting platform’s environment settings or secret manager</td></tr>
+        </table>
+      </div>
+
+      <p>Example variables:</p>
+
+      <div class="code-block" data-file=".env.local" data-lang="ENV" data-hl="3">
+<pre><code><span class="attr">API_BASE_URL</span>=<span class="str">https://api.example.com</span>
+<span class="attr">API_SECRET_KEY</span>=<span class="str">your-secret</span>
+<span class="attr">NEXT_PUBLIC_APP_NAME</span>=<span class="str">My Store</span></code></pre>
+      </div>
+
+      <ul>
+        <li>Keep secrets server-side.</li>
+        <li><code>NEXT_PUBLIC_</code> values are visible to the browser and fixed during the build.</li>
+        <li>Variables used during prerendering must be available when building.</li>
+        <li>Server features may also need environment variables when the app runs. <a class="src" href="https://nextjs.org/docs/app/guides/environment-variables" target="_blank" rel="noopener">nextjs.org ↗</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 5 DEPLOY -->
+  <div class="section-divider" id="deploy"><span>🚢 5. Deployment Flow</span></div>
+  <div class="card">
+    <div class="card-title">For a Typical Node.js Deployment</div>
+    <div class="card-content">
+      <div class="flow">
+        <div class="flow-row">
+          <span class="flow-label">Typical Node.js deployment</span>
+          <div class="step"><span class="n">STEP 1</span>Upload or clone your project</div><span class="arrow">→</span>
+          <div class="step"><span class="n">STEP 2</span>Install dependencies using <code>npm ci</code></div><span class="arrow">→</span>
+          <div class="step"><span class="n">STEP 3</span>Configure environment variables</div><span class="arrow">→</span>
+          <div class="step"><span class="n">STEP 4</span>Run <code>npm run build</code></div><span class="arrow">→</span>
+          <div class="step final"><span class="n">STEP 5</span>Run <code>npm start</code> using the host’s process management</div>
+        </div>
+      </div>
+
+      <p>On managed hosting, these steps are usually configured through the platform.</p>
+      <div class="note"><strong>A normal Next.js application may need a running server</strong> for request-time rendering, Route Handlers, and other server features. Deploying only static files is a separate setup with limitations.</div>
+    </div>
+  </div>
+
+  <!-- 6 PROBLEMS -->
+  <div class="section-divider" id="problems"><span>🛠️ 6. Common Problems</span></div>
+  <div class="card">
+    <div class="card-title">What to Check When Something Breaks</div>
+    <div class="card-content">
+      <div class="table-scroll">
+        <table>
+          <tr><th>Problem</th><th>What to check</th></tr>
+          <tr><td>Production build not found</td><td>Run <code>npm run build</code> before <code>npm start</code></td></tr>
+          <tr><td>Build fails but development works</td><td>Read the build error; check types, imports, and prerendered data fetching</td></tr>
+          <tr><td>API works locally but fails after deployment</td><td>Production API URL, environment variables, and network access</td></tr>
+          <tr><td>Public environment variable still has the old value</td><td>Rebuild and redeploy</td></tr>
+          <tr><td>Images fail to load</td><td>Image URL and <code>images.remotePatterns</code></td></tr>
+          <tr><td>Server stops after closing the terminal</td><td>Use the hosting platform’s process manager or a tool such as PM2</td></tr>
+        </table>
+      </div>
+
+      <div class="remember"><strong>For your practice:</strong> first run <code>npm run build</code> and <code>npm start</code> locally, then check your pages, navigation, images, and API calls.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function go(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth' }); }
+
+  // Code windows: title bar, line numbers, highlighted lines, copy button
+  document.querySelectorAll('.code-block').forEach(function (block) {
+    var code = block.querySelector('code');
+    var raw = code.textContent;
+    var hl = (block.dataset.hl || '').split(',').map(Number);
+    code.innerHTML = code.innerHTML.split('\n').map(function (line, i) {
+      return '<span class="l' + (hl.indexOf(i + 1) > -1 ? ' hl' : '') + '">' + (line || ' ') + '</span>';
+    }).join('');
+
+    var bar = document.createElement('div');
+    bar.className = 'code-bar';
+    bar.innerHTML = '<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>' +
+      '<span class="filename">' + block.dataset.file + '</span><span class="lang">' + (block.dataset.lang || 'TSX') + '</span>' +
+      '<button class="copy" type="button">Copy</button>';
+    block.insertBefore(bar, block.firstChild);
+
+    var btn = bar.querySelector('.copy');
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(raw).then(function () {
+        btn.textContent = 'Copied ✓'; btn.classList.add('done');
+        setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1500);
+      });
+    });
+  });
+</script>
+</body>
+</html>
