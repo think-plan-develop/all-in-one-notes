@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Next.js Interview — 20 Questions (App Router)</title>
+</head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
+
+  /* HEADER */
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 20px; padding: 46px 40px; margin-bottom: 44px; box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3); position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:14px; position:relative; }
+  .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 700px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a { text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700; transition: all 0.2s ease; cursor: pointer; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* topic dropdown */
+  .topic-dropdown { position: relative; margin-bottom: 18px; display: inline-block; }
+  .topic-dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.16); color: #fff; font-size: 13.5px; font-weight: 800; padding: 9px 18px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.32); transition: background 0.2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display: none; }
+  .topic-dropdown summary:hover { background: rgba(255,255,255,0.26); }
+  .topic-dropdown[open] summary::after { transform: rotate(180deg); }
+  .topic-dropdown summary::after { content: '▾'; margin-left: 2px; transition: transform 0.2s ease; font-size: 11px; }
+  .topic-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; background: #fff; border-radius: 12px; padding: 8px; min-width: 240px; box-shadow: 0 14px 30px rgba(0,0,0,0.22); display: flex; flex-direction: column; gap: 3px; }
+  .topic-menu a { text-decoration: none; color: #1a1a1a; font-size: 14px; font-weight: 700; padding: 9px 14px; border-radius: 8px; display: flex; align-items: center; gap: 9px; transition: background 0.15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background: var(--content-bg); color: var(--accent); }
+  .topic-menu .group-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.6px; color: #94a3b8; padding: 8px 14px 2px; text-transform: uppercase; }
+
+  /* SUMMARY GRID */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-2px); }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; } .summary-blue .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; } .summary-pink .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; } .summary-amber .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; } .summary-green .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; } .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; } .summary-teal .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* CARDS */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+  .card-content p code, .card-content li code, td code, .short-answer code, .tip code, .note code, .warning code, .remember code { font-family: 'Fira Code','Consolas',monospace; font-size: 0.88em; background: rgba(var(--shadow-rgb),0.1); color: var(--heading); padding: 2px 7px; border-radius: 5px; }
+  .card-content ul { margin: 6px 0 14px 22px; }
+  .card-content li { font-size: 15.5px; line-height: 1.85; color: #334155; font-weight: 500; }
+
+  .short-answer { position: relative; background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%); border: 1px solid rgba(var(--shadow-rgb), 0.16); border-left: 4px solid var(--accent); border-radius: 14px; padding: 20px 24px 22px; margin-bottom: 24px; font-size: 17px; line-height: 1.75; font-weight: 500; color: #293244; box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1); }
+  .short-answer::before { content: "QUICK TAKE"; display: block; width: fit-content; font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff; background: linear-gradient(120deg, var(--accent), var(--accent-light)); padding: 5px 13px; border-radius: 20px; margin-bottom: 13px; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35); }
+  .short-answer strong { color: var(--heading); }
+
+  /* CODE */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; } .dot-grey { background: #febc2e; } .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code','Consolas',monospace; line-height: 1.65; white-space: pre; }
+  .kw { color: #c792ea; font-weight: 600; } .str { color: #c3e88d; } .fn { color: #82aaff; } .type { color: #f07178; } .cmt { color: #7a7a7a; font-style: italic; } .num { color: #f78c6c; }
+
+  /* CALLOUTS */
+  .tip, .note, .warning, .remember { border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+  .tip { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; background: #fff; }
+  table tr:nth-child(even) td { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+
+  @media (max-width: 768px) { .header h1 { font-size: 26px; } .toc a { padding: 6px 12px; font-size: 12px; } .card-content { padding: 20px; } }
+
+  /* ═══════════ COLORFUL TABLES (shared) ═══════════ */
+  table { border-collapse: separate !important; border-spacing: 0 8px !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
+  table th { background: linear-gradient(120deg,#2563eb,#7c3aed,#ec4899) !important; color: #fff !important; font-size: 13px !important; font-weight: 800 !important; letter-spacing: .7px; text-transform: uppercase; padding: 13px 18px !important; border: none !important; }
+  table th:first-child { border-radius: 12px 0 0 12px; }
+  table th:last-child { border-radius: 0 12px 12px 0; }
+  table td { border: none !important; padding: 13px 18px !important; font-weight: 600 !important; color: #334155 !important; vertical-align: middle !important; }
+  table td:first-child { border-radius: 12px 0 0 12px; border-left: 6px solid var(--rc) !important; font-weight: 800 !important; color: var(--rd) !important; }
+  table td:last-child { border-radius: 0 12px 12px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background: var(--rb) !important; box-shadow: 0 3px 8px rgba(0,0,0,.05); transition: transform .15s ease; }
+  table tr:not(:first-child):hover td { filter: brightness(.97); }
+  table td code { background: #fff !important; color: var(--rd) !important; border: 1px solid var(--rc); padding: 2px 8px !important; border-radius: 6px !important; font-weight: 700; }
+
+  .card-title .qnum { background: rgba(255,255,255,0.18); border-radius: 8px; padding: 3px 11px; font-size: 12.5px; font-weight: 700; white-space: nowrap; margin-left: auto; }
+  .priority-badge { display:inline-block; font-size:11px; font-weight:800; letter-spacing:0.4px; color:#92400e; background:#fef3c7; border:1px solid #fde68a; padding:3px 11px; border-radius:20px; margin-bottom:14px; }
+
+  /* compact card-content — minimum space variant */
+  .card { margin-bottom: 14px; }
+  .card-title { padding: 12px 18px; font-size: 15.5px; }
+  .card-title .qnum { padding: 2px 9px; font-size: 11px; }
+  .card-content.compact { padding: 14px 18px; background: #fff; }
+  .card-content.compact p { margin-bottom: 7px; font-size: 13.5px; line-height: 1.55; }
+  .card-content.compact ul, .card-content.compact ol { margin: 2px 0 8px 18px; }
+  .card-content.compact li { font-size: 13px; line-height: 1.5; }
+  .card-content.compact h4 { font-size: 14px; margin: 10px 0 5px; }
+  .card-content.compact .short-answer { padding: 10px 14px 11px; margin-bottom: 10px; font-size: 13.5px; line-height: 1.5; border-radius: 10px; }
+  .card-content.compact .short-answer::before { font-size: 9.5px; padding: 3px 10px; margin-bottom: 7px; }
+  .card-content.compact .code-block { margin: 8px 0; border-radius: 9px; }
+  .card-content.compact .code-bar { padding: 6px 12px; }
+  .card-content.compact .code-block pre { padding: 11px 13px; }
+  .card-content.compact .code-block code { font-size: 12.5px; line-height: 1.5; }
+  .card-content.compact table { margin: 8px 0; }
+  .card-content.compact table th, .card-content.compact table td { padding: 7px 11px; font-size: 12.5px; }
+  .card-content.compact .warning, .card-content.compact .note, .card-content.compact .tip, .card-content.compact .remember { padding: 9px 13px; margin: 8px 0; font-size: 13px; line-height: 1.55; border-radius: 9px; }
+</style><body>
+  <div class="container">
+
+    <div class="header">
+      <span class="tag">NEXT.JS · 20-QUESTION INTERVIEW · APP ROUTER</span>
+      <h1>📘 Next.js Interview — 20 Questions &amp; Answers</h1>
+      <p>Focused on the App Router. <span style="background:rgba(255,255,255,.18);padding:1px 7px;border-radius:8px;font-weight:800">⭐</span> marks priority questions.</p>
+
+      <details class="topic-dropdown">
+        <summary>📁 MERN / JS Topics</summary>
+        <div class="topic-menu">
+          <span class="group-label">Next.js</span>
+          <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+          <a href="interview-nextjs-data.html">📡 Data, Caching &amp; UI States</a>
+          <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+          <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+          <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+          <a class="current" href="interview-nextjs-qa.html">Next.js Interview Q&amp;A</a>
+          <span class="group-label">React / JavaScript</span>
+          <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+          <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+          <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+          <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+          <a href="interview-routing.html">🧭 React Router Interview</a>
+          <span class="group-label">MongoDB</span>
+          <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+          <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+          <span class="group-label">PostgreSQL</span>
+          <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+          <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+        </div>
+      </details>
+
+      <div class="toc">
+          <a onclick="document.getElementById('q1').scrollIntoView({behavior:'smooth'});return false;">1–5</a>
+          <a onclick="document.getElementById('q6').scrollIntoView({behavior:'smooth'});return false;">6–10</a>
+          <a onclick="document.getElementById('q11').scrollIntoView({behavior:'smooth'});return false;">11–15</a>
+          <a onclick="document.getElementById('q16').scrollIntoView({behavior:'smooth'});return false;">16–20</a>
+      </div>
+    </div>
+
+    <!-- Q1 -->
+    <div class="section-divider" id="q1"><span>🎯 Questions 1–5</span></div>
+    <div class="card">
+      <div class="card-title">Q1 — What Is Next.js, and Why Use It Over Client-Side React?<span class="qnum">⭐</span></div>
+      <div class="card-content compact">
+        <p>Next.js is a <strong>React framework</strong> that provides routing, server rendering, static generation, server-side functionality, and built-in optimizations.</p>
+        <p>A client-side React application normally relies on browser JavaScript to render its content. Next.js can generate content on the server, which can improve initial loading and make content available to search engines earlier.</p>
+        <div class="tip"><strong>💡 Example:</strong> an eCommerce application can use prerendered product pages with interactive Client Components for the cart.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q2 — How Does the App Router Define Routes?</div>
+      <div class="card-content compact">
+        <div class="short-answer">The App Router uses <strong>folders</strong> inside <code>app</code> to represent URL segments.</div>
+        <div class="table-scroll">
+          <table>
+            <tr><th>File</th><th>Purpose</th></tr>
+            <tr><td><code>page.tsx</code></td><td>Defines the UI for a publicly accessible page</td></tr>
+            <tr><td><code>layout.tsx</code></td><td>Shares UI across pages and preserves state during navigation within that layout</td></tr>
+            <tr><td><code>template.tsx</code></td><td>Shares UI but remounts when its route segment changes, resetting local state and rerunning effects</td></tr>
+          </table>
+        </div>
+        <p>For example, <code>app/products/page.tsx</code> creates the <code>/products</code> page.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q3 — Server Components vs Client Components<span class="qnum">⭐</span></div>
+      <div class="card-content compact">
+        <div class="table-scroll">
+          <table>
+            <tr><th>Server Components</th><th>Client Components</th></tr>
+            <tr><td>Default for pages and layouts</td><td>Declared through a <code>"use client"</code> boundary</td></tr>
+            <tr><td>Can access databases and server-side secrets</td><td>Can use state, effects, and event handlers</td></tr>
+            <tr><td>Component code stays out of the browser bundle</td><td>Component code is included in the browser bundle</td></tr>
+            <tr><td>Suitable for fetching and displaying data</td><td>Suitable for interactive UI</td></tr>
+          </table>
+        </div>
+        <div class="tip"><strong>💡 Example:</strong> fetch product details in a Server Component and render an interactive "Add to cart" button as a Client Component.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q4 — What Does "use client" Do?<span class="qnum">⭐</span></div>
+      <div class="card-content compact">
+        <div class="short-answer"><code>"use client"</code> defines a <strong>client entry point</strong>. Its imported component tree becomes part of the client bundle.</div>
+        <p>It allows features such as:</p>
+        <ul>
+          <li><code>useState</code> and <code>useEffect</code>.</li>
+          <li>Event handlers such as <code>onClick</code>.</li>
+          <li>Browser APIs, used in appropriate places such as effects.</li>
+        </ul>
+        <div class="warning"><strong>⚠️ It does not mean browser-only rendering.</strong> On the initial load, Next.js can prerender Client Components on the server and then hydrate them in the browser. Reading <code>window</code> or <code>localStorage</code> directly during rendering can still cause problems.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q5 — How Do Server and Client Components Work Together?</div>
+      <div class="card-content compact">
+        <p>A Server Component can render a Client Component and pass data to it.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/products/[id]/page.tsx</span></div>
+          <pre><code><span class="cmt">// Server Component</span>
+<span class="kw">export default async function</span> <span class="fn">Page</span>() {
+  <span class="kw">const</span> <span class="type">product</span> = <span class="kw">await</span> <span class="fn">getProduct</span>();
+
+  <span class="kw">return</span> &lt;<span class="type">AddToCart</span> <span class="type">productId</span>={<span class="type">product</span>.id} /&gt;;
+}</code></pre>
+        </div>
+        <p>Props crossing the boundary must be <strong>serializable by React</strong>. Strings, numbers, arrays, and plain objects containing supported values are common examples.</p>
+        <div class="note"><strong>📝 Note:</strong> you cannot pass an ordinary server-side callback as an event handler. Server Functions are a supported exception. You can also pass server-rendered UI into a Client Component through <code>children</code>.</div>
+      </div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="section-divider" id="q6"><span>🎯 Questions 6–10</span></div>
+    <div class="card">
+      <div class="card-title">Q6 — Explain CSR, SSR, SSG, and ISR<span class="qnum">⭐</span></div>
+      <div class="card-content compact">
+        <div class="table-scroll">
+          <table>
+            <tr><th>Approach</th><th>How It Works</th><th>Example Use Case</th></tr>
+            <tr><td><strong>CSR</strong></td><td>Browser JavaScript renders or updates content, often after fetching data</td><td>Interactive dashboard</td></tr>
+            <tr><td><strong>SSR</strong></td><td>Server renders content for each request</td><td>Personalized account page</td></tr>
+            <tr><td><strong>SSG</strong></td><td>Content is generated ahead of requests, commonly at build time</td><td>Documentation or marketing page</td></tr>
+            <tr><td><strong>ISR</strong></td><td>Cached static content is regenerated after deployment</td><td>Product catalog or blog</td></tr>
+          </table>
+        </div>
+        <p>A single application can combine these approaches.</p>
+        <div class="remember"><strong>✅ Interview point:</strong> Server Components and SSR are different concepts. A Server Component can participate in static or request-time rendering.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q7 — How Would You Fetch Fresh Data on Every Request?</div>
+      <div class="card-content compact">
+        <div class="short-answer">Use <code>cache: "no-store"</code> for a server-side fetch.</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/products/page.tsx</span></div>
+          <pre><code><span class="kw">export default async function</span> <span class="fn">Page</span>() {
+  <span class="kw">const</span> <span class="type">response</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"https://api.example.com/products"</span>, {
+    cache: <span class="str">"no-store"</span>,
+  });
+
+  <span class="kw">if</span> (!<span class="type">response</span>.ok) {
+    <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">"Failed to fetch products"</span>);
+  }
+
+  <span class="kw">const</span> <span class="type">products</span> = <span class="kw">await</span> <span class="type">response</span>.<span class="fn">json</span>();
+
+  <span class="kw">return</span> &lt;<span class="type">pre</span>&gt;{JSON.<span class="fn">stringify</span>(<span class="type">products</span>, <span class="kw">null</span>, <span class="num">2</span>)}&lt;/<span class="type">pre</span>&gt;;
+}</code></pre>
+        </div>
+        <p>In the caching model <strong>without Cache Components</strong>, you can force the entire route to render dynamically:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">force-dynamic.ts</span></div>
+          <pre><code><span class="kw">export const</span> <span class="type">dynamic</span> = <span class="str">"force-dynamic"</span>;</code></pre>
+        </div>
+        <ul>
+          <li><strong><code>no-store</code>:</strong> skips persistent caching for that fetch.</li>
+          <li><strong><code>force-dynamic</code>:</strong> applies request-time rendering at route level.</li>
+        </ul>
+        <div class="warning"><strong>⚠️ Version note:</strong> the route-level <code>dynamic</code> and <code>revalidate</code> settings belong to the previous caching model — don't apply them unchanged when Cache Components is enabled.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q8 — What Is ISR, and How Does Revalidation Work?<span class="qnum">⭐</span></div>
+      <div class="card-content compact">
+        <div class="short-answer"><strong>Incremental Static Regeneration</strong> updates cached static pages after deployment without rebuilding the entire application.</div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">route-level.ts</span></div>
+          <pre><code><span class="cmt">// in the model without Cache Components</span>
+<span class="kw">export const</span> <span class="type">revalidate</span> = <span class="num">60</span>;</code></pre>
+        </div>
+        <p>Or configure an individual fetch:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">fetch-revalidate.ts</span></div>
+          <pre><code><span class="kw">const</span> <span class="type">response</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">"https://api.example.com/products"</span>, {
+  next: { revalidate: <span class="num">60</span> },
+});</code></pre>
+        </div>
+        <p>Typical time-based behavior:</p>
+        <ol style="margin:6px 0 14px 22px; color:#334155; font-size:15.5px; line-height:1.85;">
+          <li>Requests receive cached content.</li>
+          <li>After 60 seconds, the next request can receive stale content while regeneration happens.</li>
+          <li>Following successful regeneration, later requests receive updated content.</li>
+        </ol>
+        <div class="warning"><strong>⚠️ It is not a timer</strong> that rebuilds the page every 60 seconds.</div>
+        <div class="note"><strong>📝 Event-driven updates:</strong> for updates triggered by events, such as editing a product, use on-demand revalidation APIs such as <code>revalidatePath</code>.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q9 — Fetching Data: Server Components vs Client Components<span class="qnum">⭐</span></div>
+      <div class="card-content compact">
+        <p><strong>Server Component:</strong> use <code>async/await</code> directly in the component. You can call an API or query a database.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">server-fetch.tsx</span></div>
+          <pre><code><span class="kw">export default async function</span> <span class="fn">Page</span>() {
+  <span class="kw">const</span> <span class="type">products</span> = <span class="kw">await</span> <span class="fn">getProducts</span>();
+
+  <span class="kw">return</span> &lt;<span class="type">ProductList</span> <span class="type">products</span>={<span class="type">products</span>} /&gt;;
+}</code></pre>
+        </div>
+        <p><strong>Client Component:</strong> use a client data library such as SWR/TanStack Query, or fetch inside an effect with loading, error, and cleanup handling.</p>
+        <div class="remember"><strong>✅ Rule of thumb:</strong> use server fetching for initial page content and private server access. Use client fetching for browser-driven updates, polling, and interactive filters. Server fetching also avoids exposing database credentials in the browser bundle.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q10 — loading.tsx, Suspense &amp; Streaming</div>
+      <div class="card-content compact">
+        <ul>
+          <li><strong><code>loading.tsx</code>:</strong> defines a route segment's loading fallback.</li>
+          <li><strong>Suspense:</strong> lets you show a fallback around a specific part of the UI while it suspends.</li>
+          <li><strong>Streaming:</strong> sends ready parts of the page before slower parts finish.</li>
+        </ul>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">suspense-example.tsx</span></div>
+          <pre><code>&lt;<span class="type">Suspense</span> <span class="type">fallback</span>={&lt;<span class="type">p</span>&gt;Loading reviews...&lt;/<span class="type">p</span>&gt;}&gt;
+  &lt;<span class="type">Reviews</span> /&gt;
+&lt;/<span class="type">Suspense</span>&gt;</code></pre>
+        </div>
+        <div class="tip"><strong>💡 Example:</strong> show product information immediately while reviews load separately.</div>
+        <div class="warning"><strong>⚠️ Gotcha:</strong> an ordinary fetch started in <code>useEffect</code> does not automatically activate Suspense.</div>
+      </div>
+    </div>
+
+    <!-- Q11 -->
+    <div class="section-divider" id="q11"><span>🎯 Questions 11–15</span></div>
+    <div class="card">
+      <div class="card-title">Q11 — error.tsx vs global-error.tsx vs not-found.tsx</div>
+      <div class="card-content compact">
+        <div class="table-scroll">
+          <table>
+            <tr><th>File</th><th>Purpose</th></tr>
+            <tr><td><code>error.tsx</code></td><td>Displays fallback UI for uncaught rendering errors in the segment's child tree</td></tr>
+            <tr><td><code>global-error.tsx</code></td><td>Handles errors including those in the root layout; must provide its own <code>&lt;html&gt;</code> and <code>&lt;body&gt;</code></td></tr>
+            <tr><td><code>not-found.tsx</code></td><td>Displays missing-resource UI when <code>notFound()</code> is triggered</td></tr>
+          </table>
+        </div>
+        <div class="note"><strong>📝 Both <code>error.tsx</code> and <code>global-error.tsx</code> must be Client Components.</strong></div>
+        <div class="warning"><strong>⚠️ Scope gotcha:</strong> an <code>error.tsx</code> boundary does <strong>not</strong> catch errors in the layout of the same segment — those reach a parent boundary. Handle event-handler errors separately with <code>try...catch</code>.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q12 — Dynamic, Catch-All &amp; Optional Catch-All Routes<span class="qnum">⭐</span></div>
+      <div class="card-content compact">
+        <div class="table-scroll">
+          <table>
+            <tr><th>Route</th><th>Matches</th><th>Parameter</th></tr>
+            <tr><td><code>app/products/[id]/page.tsx</code></td><td><code>/products/10</code></td><td><code>id: "10"</code></td></tr>
+            <tr><td><code>app/docs/[...slug]/page.tsx</code></td><td><code>/docs/react/hooks</code></td><td><code>slug: ["react", "hooks"]</code></td></tr>
+            <tr><td><code>app/docs/[[...slug]]/page.tsx</code></td><td><code>/docs</code> and <code>/docs/react/hooks</code></td><td><code>undefined</code> or an array</td></tr>
+          </table>
+        </div>
+        <ul>
+          <li><strong>Dynamic:</strong> one changing segment, such as a product ID.</li>
+          <li><strong>Catch-all:</strong> one or more segments, such as nested documentation.</li>
+          <li><strong>Optional catch-all:</strong> also accepts the base route with no additional segment.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q13 — Route Parameters vs Query Parameters</div>
+      <div class="card-content compact">
+        <p>For this URL: <code>/products/10?sort=price</code></p>
+        <ul>
+          <li><strong>Route parameter:</strong> <code>10</code> identifies the product.</li>
+          <li><strong>Query parameter:</strong> <code>sort=price</code> supplies an option.</li>
+        </ul>
+        <p>In current App Router Server Component pages, await the props:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/products/[id]/page.tsx</span></div>
+          <pre><code><span class="kw">export default async function</span> <span class="fn">Page</span>({ params, searchParams }) {
+  <span class="kw">const</span> { id } = <span class="kw">await</span> params;
+  <span class="kw">const</span> { sort } = <span class="kw">await</span> searchParams;
+
+  <span class="kw">return</span> &lt;<span class="type">p</span>&gt;{id} — {sort}&lt;/<span class="type">p</span>&gt;;
+}</code></pre>
+        </div>
+        <p>In Client Components:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">client-params.tsx</span></div>
+          <pre><code><span class="kw">const</span> { id } = <span class="fn">useParams</span>();
+<span class="kw">const</span> <span class="type">searchParams</span> = <span class="fn">useSearchParams</span>();
+<span class="kw">const</span> <span class="type">sort</span> = <span class="type">searchParams</span>.<span class="fn">get</span>(<span class="str">"sort"</span>);</code></pre>
+        </div>
+        <div class="note"><strong>📝 Import both hooks from <code>next/navigation</code>.</strong></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q14 — When to Use Link, useRouter &amp; redirect<span class="qnum">⭐</span></div>
+      <div class="card-content compact">
+        <div class="table-scroll">
+          <table>
+            <tr><th>API</th><th>When to Use</th></tr>
+            <tr><td><code>Link</code></td><td>Normal navigation links; supports client navigation and prefetching</td></tr>
+            <tr><td><code>useRouter()</code></td><td>Programmatic navigation from a Client Component</td></tr>
+            <tr><td><code>redirect()</code></td><td>Redirect during server rendering or server-side operations</td></tr>
+          </table>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">link-and-router.tsx</span></div>
+          <pre><code>&lt;<span class="type">Link</span> <span class="type">href</span>=<span class="str">"/products"</span>&gt;Products&lt;/<span class="type">Link</span>&gt;
+
+<span class="kw">const</span> <span class="type">router</span> = <span class="fn">useRouter</span>();
+
+&lt;<span class="type">button</span> <span class="type">onClick</span>={() =&gt; <span class="type">router</span>.<span class="fn">push</span>(<span class="str">"/dashboard"</span>)}&gt;
+  Dashboard
+&lt;/<span class="type">button</span>&gt;</code></pre>
+        </div>
+        <div class="tip"><strong>💡 Active link:</strong> compare its URL with <code>usePathname()</code> to highlight the active link.</div>
+        <div class="note"><strong>📝 Import navigation hooks from <code>next/navigation</code>.</strong></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q15 — Nested Layouts &amp; Route Groups</div>
+      <div class="card-content compact">
+        <p><strong>Nested layouts</strong> add shared UI to a section of the application. For example, <code>app/dashboard/layout.tsx</code> can provide a sidebar for all dashboard pages.</p>
+        <p><strong>Route groups</strong> use parentheses to organize routes without adding a URL segment.</p>
+        <div class="table-scroll">
+          <table>
+            <tr><th>File</th><th>URL</th></tr>
+            <tr><td><code>app/(auth)/login/page.tsx</code></td><td><code>/login</code></td></tr>
+            <tr><td><code>app/(auth)/register/page.tsx</code></td><td><code>/register</code></td></tr>
+            <tr><td><code>app/(main)/dashboard/page.tsx</code></td><td><code>/dashboard</code></td></tr>
+          </table>
+        </div>
+        <div class="remember"><strong>✅ Pattern:</strong> add a layout inside <code>(auth)</code> for authentication pages and another inside <code>(main)</code> for the main application.</div>
+      </div>
+    </div>
+
+    <!-- Q16 -->
+    <div class="section-divider" id="q16"><span>🎯 Questions 16–20</span></div>
+    <div class="card">
+      <div class="card-title">Q16 — How next/image Optimizes Images vs &lt;img&gt;<span class="qnum">⭐</span></div>
+      <div class="card-content compact">
+        <p><code>next/image</code> adds an image optimization pipeline and useful defaults:</p>
+        <ul>
+          <li>Generates appropriately sized image variants.</li>
+          <li>Supports efficient formats such as WebP.</li>
+          <li>Lazy-loads images by default.</li>
+          <li>Uses dimensions to reserve space and reduce layout shifts.</li>
+          <li>Generates responsive image candidates for the browser.</li>
+        </ul>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">next-image.tsx</span></div>
+          <pre><code><span class="kw">import</span> <span class="type">Image</span> <span class="kw">from</span> <span class="str">"next/image"</span>;
+
+&lt;<span class="type">Image</span>
+  <span class="type">src</span>=<span class="str">"/product.jpg"</span>
+  <span class="type">alt</span>=<span class="str">"Blue running shoes"</span>
+  <span class="type">width</span>={<span class="num">600</span>}
+  <span class="type">height</span>={<span class="num">400</span>}
+  <span class="type">sizes</span>=<span class="str">"(max-width: 768px) 100vw, 600px"</span>
+  <span class="type">style</span>={{ width: <span class="str">"100%"</span>, height: <span class="str">"auto"</span> }}
+/&gt;</code></pre>
+        </div>
+        <p>For external URLs, configure allowed sources using <code>images.remotePatterns</code>.</p>
+        <div class="tip"><strong>💡 Why can it be faster?</strong> a mobile browser can download a smaller optimized image instead of the full original. A normal <code>&lt;img&gt;</code> can also be optimized, but you must arrange resizing, formats, and responsive sources yourself.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q17 — How Do You Implement SEO in Next.js?</div>
+      <div class="card-content compact">
+        <p>Use <strong>static metadata</strong> for fixed page information:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">static-metadata.tsx</span></div>
+          <pre><code><span class="kw">export const</span> <span class="type">metadata</span> = {
+  title: <span class="str">"Products | My Store"</span>,
+  description: <span class="str">"Explore our latest products."</span>,
+};</code></pre>
+        </div>
+        <p>Use <strong><code>generateMetadata</code></strong> when metadata depends on route data, such as a product's name and description.</p>
+        <p>Also configure:</p>
+        <ul>
+          <li>Canonical URLs.</li>
+          <li>Open Graph and Twitter metadata for sharing.</li>
+          <li><code>sitemap.xml</code> and <code>robots.txt</code>.</li>
+          <li>Semantic headings and useful page content.</li>
+        </ul>
+        <div class="note"><strong>📝 Metadata exports are supported in Server Components.</strong></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q18 — How next/font Improves Font Loading &amp; Layout Stability</div>
+      <div class="card-content compact">
+        <div class="short-answer"><code>next/font</code> manages font loading and supports self-hosted Google and local fonts.</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">next-font.tsx</span></div>
+          <pre><code><span class="kw">import</span> { <span class="type">Inter</span> } <span class="kw">from</span> <span class="str">"next/font/google"</span>;
+
+<span class="kw">const</span> <span class="type">inter</span> = <span class="fn">Inter</span>({
+  subsets: [<span class="str">"latin"</span>],
+  display: <span class="str">"swap"</span>,
+});
+
+<span class="kw">export default function</span> <span class="fn">Layout</span>({ children }) {
+  <span class="kw">return</span> &lt;<span class="type">div</span> <span class="type">className</span>={<span class="type">inter</span>.className}&gt;{children}&lt;/<span class="type">div</span>&gt;;
+}</code></pre>
+        </div>
+        <p>For Google fonts, the browser fetches the font from <strong>your application</strong> rather than contacting Google.</p>
+        <div class="remember"><strong>✅ Benefit:</strong> font preloading and adjusted fallback metrics help improve loading and reduce layout shifts when the final font appears.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q19 — What Causes Hydration Mismatches, and How Do You Fix Them?<span class="qnum">⭐</span></div>
+      <div class="card-content compact">
+        <div class="short-answer">A hydration mismatch happens when the <strong>server-generated HTML differs from the browser's first render</strong>.</div>
+        <p>Common causes include:</p>
+        <ul>
+          <li>Rendering <code>Math.random()</code> or changing timestamps.</li>
+          <li>Reading browser-only values during rendering.</li>
+          <li>Different server and browser locale formatting.</li>
+          <li>Invalid HTML nesting.</li>
+        </ul>
+        <p>For browser-specific data, read it <strong>after</strong> hydration:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">app/components/Theme.tsx</span></div>
+          <pre><code><span class="str">"use client"</span>;
+
+<span class="kw">import</span> { <span class="fn">useEffect</span>, <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">export default function</span> <span class="fn">Theme</span>() {
+  <span class="kw">const</span> [<span class="type">theme</span>, <span class="fn">setTheme</span>] = <span class="fn">useState</span>(<span class="str">"light"</span>);
+
+  <span class="fn">useEffect</span>(() =&gt; {
+    <span class="fn">setTheme</span>(localStorage.<span class="fn">getItem</span>(<span class="str">"theme"</span>) ?? <span class="str">"light"</span>);
+  }, []);
+
+  <span class="kw">return</span> &lt;<span class="type">p</span>&gt;{<span class="type">theme</span>}&lt;/<span class="type">p</span>&gt;;
+}</code></pre>
+        </div>
+        <p>Both initial renders use <code>"light"</code>; the effect updates it afterward.</p>
+        <div class="warning"><strong>⚠️ Fix the underlying mismatch</strong> rather than routinely hiding it with <code>suppressHydrationWarning</code>.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Q20 — How Would You Build and Deploy a Next.js Application?</div>
+      <div class="card-content compact">
+        <p>With the usual package scripts:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span></div>
+          <pre><code>npm run build
+npm run start</code></pre>
+        </div>
+        <ul>
+          <li><strong>Build:</strong> creates the production build.</li>
+          <li><strong>Start:</strong> runs the production Next.js server.</li>
+        </ul>
+        <div class="table-scroll">
+          <table>
+            <tr><th>Deployment</th><th>Capabilities</th></tr>
+            <tr><td>Node.js server or compatible platform</td><td>Supports request-time server features, including SSR</td></tr>
+            <tr><td>Static export using <code>output: "export"</code></td><td>Produces static files; does not support features requiring a Next.js server, such as request-time SSR or ISR</td></tr>
+          </table>
+        </div>
+        <p>You can also deploy a Node.js application using Docker.</p>
+        <p>For environment variables:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">.env</span></div>
+          <pre><code><span class="type">DATABASE_URL</span>=<span class="str">private-server-value</span>
+<span class="type">NEXT_PUBLIC_API_URL</span>=<span class="str">https://api.example.com</span></code></pre>
+        </div>
+        <div class="warning"><strong>⚠️ Remember:</strong> ordinary variables remain server-side by default. Variables prefixed with <strong><code>NEXT_PUBLIC_</code></strong> are exposed to browser code and typically embedded at build time, so they must never contain secrets.</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
