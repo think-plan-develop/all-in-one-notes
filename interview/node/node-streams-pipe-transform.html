@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Node.js Interview — Streams, pipe() &amp; Transform</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 94%; max-width: 1120px; margin: 32px auto; --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 16px; padding: 26px 30px; margin-bottom: 22px; box-shadow: 0 12px 28px rgba(var(--shadow-rgb),.28); position: relative; overflow: hidden; }
+  .header::after { content:''; position:absolute; top:-60px; right:-60px; width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,.16); color:#fff; font-size:11px; font-weight:800; letter-spacing:.6px; padding:4px 12px; border-radius:20px; margin-bottom:10px; position:relative; }
+  .header h1 { color:#fff; font-size:28px; margin-bottom:6px; font-weight:800; letter-spacing:-.5px; position:relative; }
+  .header p { color:#dbe6ff; font-size:15px; margin-bottom:16px; max-width:780px; line-height:1.6; position:relative; }
+  .header p code { background:rgba(255,255,255,.15); padding:1px 6px; border-radius:4px; font-family:'Fira Code',Consolas,monospace; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px; position:relative; }
+  .toc a { text-decoration:none; padding:6px 15px; border-radius:20px; font-size:13px; font-weight:700; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.28); }
+  .toc a:hover { background:#fff; color:var(--accent); transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,.15); }
+
+  .topic-dropdown { position:relative; margin-bottom:12px; display:inline-block; z-index:5; }
+  .topic-dropdown summary { list-style:none; cursor:pointer; display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.16); color:#fff; font-size:13px; font-weight:800; padding:7px 16px; border-radius:22px; border:1px solid rgba(255,255,255,.32); transition:background .2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display:none; }
+  .topic-dropdown summary:hover { background:rgba(255,255,255,.26); }
+  .topic-dropdown summary::after { content:'▾'; margin-left:2px; transition:transform .2s ease; font-size:11px; }
+  .topic-dropdown[open] summary::after { transform:rotate(180deg); }
+  .topic-menu { position:absolute; top:calc(100% + 8px); left:0; z-index:20; background:#fff; border-radius:12px; padding:8px; min-width:300px; box-shadow:0 14px 30px rgba(0,0,0,.22); display:flex; flex-direction:column; gap:2px; }
+  .topic-menu a { text-decoration:none; color:#1a1a1a; font-size:14px; font-weight:700; padding:8px 14px; border-radius:8px; display:flex; align-items:center; gap:9px; transition:background .15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background:var(--content-bg); color:var(--accent); }
+  .topic-menu .group-label { font-size:10.5px; font-weight:800; letter-spacing:.6px; color:#94a3b8; padding:6px 14px 2px; text-transform:uppercase; }
+
+  .intro-summary { margin:0 0 10px; }
+  .intro-summary-title { font-size:19px; font-weight:800; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .summary-item { display:flex; align-items:center; gap:12px; border-radius:12px; padding:10px 14px; cursor:pointer; transition:transform .15s ease; }
+  .summary-item:hover { transform:translateY(-2px); }
+  .summary-icon { flex-shrink:0; width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:17px; background:rgba(255,255,255,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.6); }
+  .summary-text { font-size:14px; line-height:1.5; font-weight:500; }
+  .summary-text strong { font-weight:800; margin-right:3px; }
+  .summary-text code { font-family:'Fira Code',Consolas,monospace; font-size:.88em; background:rgba(255,255,255,.6); padding:1px 6px; border-radius:5px; }
+  .summary-blue   { background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#1e3a8a; } .summary-blue strong { color:#2563eb; }
+  .summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink strong { color:#db2777; }
+  .summary-amber  { background:linear-gradient(135deg,#fffbeb,#fef3c7); color:#92400e; } .summary-amber strong { color:#d97706; }
+  .summary-green  { background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; } .summary-green strong { color:#059669; }
+  .summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple strong { color:#7c3aed; }
+  .summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal strong { color:#0d9488; }
+  @media (max-width:640px) { .summary-grid { grid-template-columns:1fr; } }
+
+  .section-divider { margin:26px 0 12px; position:relative; }
+  .section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity:.22; }
+  .section-divider span { background:#f4f5fa; padding:0 16px 0 0; position:relative; font-size:20px; font-weight:800; display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  code.ti { font-family:'Fira Code',Consolas,monospace; font-size:.82em; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:1px 8px; border-radius:6px; }
+
+  .card { border-radius:14px; margin-bottom:14px; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.07); border:1px solid rgba(0,0,0,.04); background:#fff; }
+  .card-title { color:#fff; font-size:17px; font-weight:700; padding:12px 22px; background:linear-gradient(120deg,var(--accent),var(--accent-light)); letter-spacing:-.2px; }
+  .card-content { padding:18px 22px 16px; background:var(--content-bg); }
+  .card-content > * + * { margin-top:12px; }
+  .card-content p { color:#333; font-size:15px; line-height:1.7; font-weight:500; }
+  .card-content h4 { font-size:15px; font-weight:800; color:var(--heading); margin-top:18px; }
+  .card-content ul { margin-left:22px; }
+  .card-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; }
+  .card-content p code, .card-content li code, .card-content h4 code, td code, .short-answer code, .note code, .warning code, .remember code, th code, .interview code { font-family:'Fira Code',Consolas,monospace; font-size:.88em; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:2px 6px; border-radius:5px; }
+
+  .short-answer { background:linear-gradient(160deg,#fff 0%,var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),.16); border-left:4px solid var(--accent); border-radius:12px; padding:12px 18px 14px; font-size:15.5px; line-height:1.65; font-weight:500; color:#293244; box-shadow:0 6px 16px rgba(var(--shadow-rgb),.09); }
+  .short-answer::before { content:"QUICK TAKE"; display:block; width:fit-content; font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#fff; background:linear-gradient(120deg,var(--accent),var(--accent-light)); padding:3px 11px; border-radius:20px; margin-bottom:8px; }
+  .short-answer strong { color:var(--heading); }
+
+  .uses { display:flex; flex-wrap:wrap; gap:8px; }
+  .uses span { background:#fff; border:1px solid rgba(var(--shadow-rgb),.2); border-radius:20px; padding:6px 14px; font-size:14px; font-weight:700; color:var(--heading); box-shadow:0 3px 8px rgba(var(--shadow-rgb),.08); }
+
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:640px) { .duo { grid-template-columns:1fr; } }
+  .duo-card { border-radius:12px; padding:12px 16px; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+  .duo-card p { font-size:14px !important; font-weight:700 !important; margin:0; }
+  .duo-card.d1 { background:linear-gradient(135deg,#eff6ff,#dbeafe); border-left:5px solid #2563eb; }
+  .duo-card.d2 { background:linear-gradient(135deg,#f5f3ff,#ede9fe); border-left:5px solid #7c3aed; }
+  .duo-tag { font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#fff; padding:3px 10px; border-radius:12px; }
+  .d1 .duo-tag { background:#2563eb; } .d2 .duo-tag { background:#7c3aed; }
+
+  /* CODE WINDOW */
+  .code-block { --cb-bg:#1a2332; --cb-bar:#111a27; --cb-line:#2a374b; background:var(--cb-bg); border-radius:12px; overflow:hidden; box-shadow:0 10px 24px rgba(15,23,42,.28); border:1px solid #2a374b; }
+  .code-bar { background:var(--cb-bar); padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--cb-line); }
+  .code-bar .dot { width:10px; height:10px; border-radius:50%; }
+  .dot-red { background:#ff5f57; } .dot-yellow { background:#febc2e; } .dot-green { background:#28c840; }
+  .code-bar .filename { color:#9fb0c8; font-size:12px; margin-left:8px; font-family:'Fira Code',Consolas,monospace; }
+  .code-bar .lang { margin-left:auto; font-size:10.5px; font-weight:800; letter-spacing:.5px; color:#93c5fd; background:rgba(59,130,246,.16); padding:2px 9px; border-radius:10px; font-family:-apple-system,'Segoe UI',sans-serif; }
+  .code-bar .copy { font-size:11px; font-weight:700; color:#cbd5e1; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:8px; padding:3px 10px; cursor:pointer; margin-left:8px; font-family:-apple-system,'Segoe UI',sans-serif; transition:background .15s ease; }
+  .code-bar .copy:hover { background:rgba(255,255,255,.18); }
+  .code-bar .copy.done { color:#86efac; border-color:#86efac; }
+  .code-block pre { padding:12px 0; overflow-x:auto; counter-reset:ln; }
+  .code-block code { color:#d4d4d4; font-size:13px; font-family:'Fira Code',Consolas,monospace; line-height:1.6; white-space:pre; display:block; width:max-content; min-width:100%; background:none; padding:0; font-weight:400; }
+  .code-block .l { display:block; padding:0 18px 0 0; border-left:3px solid transparent; }
+  .code-block .l::before { counter-increment:ln; content:counter(ln); display:inline-block; width:38px; margin-right:14px; text-align:right; color:#4b5b73; user-select:none; }
+  .code-block .l.hl { background:rgba(59,130,246,.18); border-left-color:#60a5fa; }
+  .code-block .l.hl::before { color:#93c5fd; }
+  .kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .type { color:#f07178; } .attr { color:#ffcb6b; } .cmt { color:#7a8aa3; font-style:italic; } .num { color:#f78c6c; }
+
+  /* SHORT SNIPPETS (1-3 lines): inline chips */
+  .ic1 { display:inline-block; background:#1a2332; color:#d4d4d4; font-family:'Fira Code',Consolas,monospace; font-size:13px; font-weight:400; line-height:1.5; padding:3px 11px; border-radius:7px; border:1px solid #2a374b; white-space:pre; max-width:100%; overflow-x:auto; vertical-align:middle; }
+  .mini { display:flex; flex-direction:column; align-items:flex-start; gap:5px; }
+
+  /* FLOW DIAGRAMS */
+  .flow { background:#1a2332; border-radius:12px; padding:14px 18px; border:1px solid #2a374b; box-shadow:0 10px 24px rgba(15,23,42,.22); display:flex; flex-direction:column; gap:12px; }
+  .flow-row { display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; }
+  .flow-label { width:100%; font-size:11px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:#7dd3fc; }
+  .step { flex:1 1 110px; border-radius:10px; padding:9px 12px; font-size:13px; font-weight:700; line-height:1.4; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+  .step .n { font-size:10px; font-weight:800; letter-spacing:.7px; opacity:.75; }
+  .step code { font-family:'Fira Code',Consolas,monospace; font-size:.92em; background:rgba(255,255,255,.7); padding:1px 6px; border-radius:5px; }
+  .arrow { color:#7dd3fc; font-size:20px; font-weight:800; align-self:center; }
+  .c-src  { background:#dbeafe; color:#1e3a8a; }
+  .c-proc { background:#ede9fe; color:#5b21b6; }
+  .c-dst  { background:#d1fae5; color:#065f46; }
+  .c-warn { background:#fef3c7; color:#92400e; }
+  .c-bad  { background:#ffe4e6; color:#9f1239; }
+
+  /* CALLOUTS */
+  .note, .warning, .remember { border-radius:11px; padding:10px 16px; font-size:14.5px; line-height:1.65; font-weight:600; box-shadow:inset 0 0 0 1px rgba(255,255,255,.5); }
+  .note { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+  .warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+  .remember { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+  .interview { background:linear-gradient(135deg,#fffbeb,#fde68a); color:#78350f; border-radius:11px; padding:12px 18px; font-size:14.5px; line-height:1.7; font-weight:600; border-left:5px solid #f59e0b; }
+  .interview::before { content:"🎤 INTERVIEW ANSWER"; display:block; font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#b45309; margin-bottom:5px; }
+  .interview code { background:rgba(255,255,255,.7) !important; color:#78350f !important; }
+
+  /* TABLES */
+  .table-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:separate; border-spacing:0 5px; }
+  table th { background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899); color:#fff; font-size:12px; font-weight:800; letter-spacing:.7px; text-transform:uppercase; padding:9px 14px; text-align:left; }
+  table th:first-child { border-radius:10px 0 0 10px; } table th:last-child { border-radius:0 10px 10px 0; }
+  table th code { background:rgba(255,255,255,.2) !important; color:#fff !important; text-transform:none; }
+  table td { padding:8px 14px; font-size:14px; font-weight:600; color:#334155; vertical-align:middle; }
+  table td:first-child { border-radius:10px 0 0 10px; border-left:6px solid var(--rc); font-weight:800; color:var(--rd); }
+  table td:last-child { border-radius:0 10px 10px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background:var(--rb); box-shadow:0 2px 6px rgba(0,0,0,.05); }
+  table td code { background:#fff; color:var(--rd); border:1px solid var(--rc); padding:1px 7px; border-radius:6px; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <span class="tag">NODE.JS · STREAMS</span>
+    <h1>🌊 Node.js Streams</h1>
+    <p>What a stream is, <code>readFile()</code> vs <code>createReadStream()</code>, readable and writable events, <code>highWaterMark</code>, <code>pipe()</code> and Transform streams — with the interview answer and a final memory tree.</p>
+
+    <details class="topic-dropdown">
+      <summary>📁 MERN / JS Topics</summary>
+      <div class="topic-menu">
+        <span class="group-label">Node.js</span>
+        <a href="interview-node-event-loop.html">🔄 Event Loop, libuv &amp; Concurrency</a>
+        <a href="interview-node-execution-order.html">⏱️ Execution Order: nextTick &amp; Microtasks</a>
+        <a href="interview-node-fs-esm.html">📂 ES Modules &amp; File Handling</a>
+        <a class="current" href="interview-node-streams.html">🌊 Streams, pipe() &amp; Transform</a>
+        <span class="group-label">Next.js</span>
+        <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+        <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+        <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+        <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+        <a href="interview-nextjs-seo-images.html">🔍 SEO, Image &amp; Font Optimization</a>
+        <a href="interview-nextjs-build-deploy.html">🚀 Production Build &amp; Deployment</a>
+        <span class="group-label">React / JavaScript</span>
+        <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+        <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+        <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+        <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+        <a href="interview-routing.html">🧭 React Router Interview</a>
+        <span class="group-label">MongoDB</span>
+        <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+        <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+        <span class="group-label">PostgreSQL</span>
+        <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+        <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+      </div>
+    </details>
+
+    <div class="toc">
+      <a onclick="go('what')">What Is a Stream</a>
+      <a onclick="go('vs')">readFile vs Stream</a>
+      <a onclick="go('read2')">createReadStream</a>
+      <a onclick="go('hwm')">highWaterMark</a>
+      <a onclick="go('write')">createWriteStream</a>
+      <a onclick="go('pipe')">pipe()</a>
+      <a onclick="go('concepts')">Concepts</a>
+      <a onclick="go('final')">Final Comparison</a>
+      <a onclick="go('memory')">Memory Tree</a>
+    </div>
+  </div>
+
+  <div class="intro-summary">
+    <div class="intro-summary-title">🧩 Key Terms at a Glance</div>
+    <div class="summary-grid">
+      <div class="summary-item summary-blue" onclick="go('what')"><div class="summary-icon">🌊</div><div class="summary-text"><strong>Stream:</strong> processes data in chunks instead of loading it all into memory.</div></div>
+      <div class="summary-item summary-pink" onclick="go('read2')"><div class="summary-icon">📖</div><div class="summary-text"><strong>createReadStream():</strong> a readable source; <code>data</code> fires many times.</div></div>
+      <div class="summary-item summary-amber" onclick="go('write')"><div class="summary-icon">✍️</div><div class="summary-text"><strong>createWriteStream():</strong> a writable destination; <code>end()</code> then <code>finish</code>.</div></div>
+      <div class="summary-item summary-green" onclick="go('pipe')"><div class="summary-icon">🔌</div><div class="summary-text"><strong>pipe():</strong> connects Readable → (Transform) → Writable.</div></div>
+      <div class="summary-item summary-purple" onclick="go('pipe')"><div class="summary-icon">🧪</div><div class="summary-text"><strong>Transform:</strong> receives, modifies and produces data — e.g. gzip.</div></div>
+      <div class="summary-item summary-teal" onclick="go('wevents')"><div class="summary-icon">🚰</div><div class="summary-text"><strong>drain:</strong> the writable buffer is available again (backpressure).</div></div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="what"><span>🌊 What Is a Stream?</span></div>
+  <div class="card">
+    <div class="card-title">Data Piece by Piece, Not All at Once</div>
+    <div class="card-content">
+      <div class="short-answer">A <strong>stream</strong> processes data <strong>piece by piece (in chunks)</strong> instead of loading the entire data into memory at once.</div>
+      <p>Streams are useful for:</p>
+      <div class="uses"><span>📁 Large files</span><span>🎬 Video/audio</span><span>⬆️⬇️ File uploads/downloads</span><span>🌐 Network data</span><span>📜 Large logs</span></div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="vs"><span>⚖️ <code class="ti">readFile()</code> vs <code class="ti">createReadStream()</code></span></div>
+  <div class="card">
+    <div class="card-title">Whole File vs Chunks</div>
+    <div class="card-content">
+      <div class="table-scroll"><table><tr><th>Feature</th><th><code>readFile()</code></th><th><code>createReadStream()</code></th></tr><tr><td>Reading style</td><td>Reads complete file</td><td>Reads file in chunks</td></tr><tr><td>Memory usage</td><td>Higher</td><td>Lower</td></tr><tr><td>Callback/event</td><td>Callback runs once</td><td><code>data</code> event runs multiple times</td></tr><tr><td>Best for</td><td>Small/medium files</td><td>Large files</td></tr><tr><td>Data availability</td><td>Complete file after reading</td><td>Data arrives gradually</td></tr></table></div>
+      <h4>Easy memory</h4>
+      <div class="flow">
+        <div class="flow-row"><span class="flow-label">readFile()</span><div class="step c-src"><code>readFile()</code></div><span class="arrow">→</span><div class="step c-warn">Entire file</div><span class="arrow">→</span><div class="step c-bad">Memory</div></div>
+        <div class="flow-row"><span class="flow-label">createReadStream()</span><div class="step c-src"><code>createReadStream()</code></div><span class="arrow">→</span><div class="step c-dst">Chunk 1</div><span class="arrow">→</span><div class="step c-dst">Chunk 2</div><span class="arrow">→</span><div class="step c-dst">Chunk 3</div><span class="arrow">→</span><div class="step c-dst">...</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="read1"><span>1️⃣ <code class="ti">readFile()</code></span></div>
+  <div class="card">
+    <div class="card-title">Waits for the Complete File</div>
+    <div class="card-content">
+      <div class="code-block" data-file="read-file.js" data-lang="JS" data-hl="5,11">
+<pre><code>import fs from &quot;fs&quot;;
+
+const pathName = new URL(&quot;./large-file.txt&quot;, import.meta.url);
+
+fs.readFile(pathName, &quot;utf8&quot;, (err, data) =&gt; {
+  if (err) {
+    console.log(err);
+    return;
+  }
+
+  console.log(&quot;Complete data length:&quot;, data.length);
+});</code></pre>
+      </div>
+      <p><code>readFile()</code> waits until the complete file has been read and then executes the callback.</p>
+      <div class="flow">
+        <div class="flow-row"><span class="flow-label">Flow</span><div class="step c-src">File</div><span class="arrow">→</span><div class="step c-warn">Complete file loaded</div><span class="arrow">→</span><div class="step c-dst">Callback runs once</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="read2"><span>2️⃣ <code class="ti">createReadStream()</code></span></div>
+  <div class="card">
+    <div class="card-title">Creates a Readable Stream</div>
+    <div class="card-content">
+      <p><code>createReadStream()</code> creates a <strong>Readable Stream</strong>.</p>
+      <p>It reads the file gradually in chunks.</p>
+      <div class="code-block" data-file="read-stream.js" data-lang="JS" data-hl="5,9,20,24">
+<pre><code>import fs from &quot;fs&quot;;
+
+const pathName = new URL(&quot;./large-file.txt&quot;, import.meta.url);
+
+const stream = fs.createReadStream(pathName, &quot;utf8&quot;);
+
+let chunkCount = 0;
+
+stream.on(&quot;data&quot;, (chunk) =&gt; {
+  chunkCount++;
+
+  console.log(
+    &quot;Chunk:&quot;,
+    chunkCount,
+    &quot;Size:&quot;,
+    chunk.length
+  );
+});
+
+stream.on(&quot;end&quot;, () =&gt; {
+  console.log(&quot;Total chunks:&quot;, chunkCount);
+});
+
+stream.on(&quot;error&quot;, (err) =&gt; {
+  console.log(&quot;Error:&quot;, err);
+});</code></pre>
+      </div>
+      <h4>Flow</h4>
+      <div class="flow">
+        <div class="flow-row"><div class="step c-src">File</div><span class="arrow">→</span><div class="step c-dst">Chunk 1</div><span class="arrow">→</span><div class="step c-dst">Chunk 2</div><span class="arrow">→</span><div class="step c-dst">Chunk 3</div><span class="arrow">→</span><div class="step c-dst">...</div><span class="arrow">→</span><div class="step c-warn">end</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="events"><span>📡 Readable Stream Events</span></div>
+  <div class="card">
+    <div class="card-title">data, end, error, close</div>
+    <div class="card-content">
+      <div class="table-scroll"><table><tr><th>Event</th><th>Purpose</th></tr><tr><td><code>data</code></td><td>Runs whenever a chunk is available</td></tr><tr><td><code>end</code></td><td>Runs when all data has been read</td></tr><tr><td><code>error</code></td><td>Runs if reading fails</td></tr><tr><td><code>close</code></td><td>Runs when the resource is closed</td></tr></table></div>
+      <h4><code>data</code></h4>
+      <div class="mini"><code class="ic1" data-js>stream.on(&quot;data&quot;, (chunk) =&gt; {</code><code class="ic1" data-js>  console.log(chunk);</code><code class="ic1" data-js>});</code></div>
+      <p>The <code>data</code> event may run many times.</p>
+      <h4><code>end</code></h4>
+      <div class="mini"><code class="ic1" data-js>stream.on(&quot;end&quot;, () =&gt; {</code><code class="ic1" data-js>  console.log(&quot;Reading completed&quot;);</code><code class="ic1" data-js>});</code></div>
+      <p>Runs after the entire stream has been consumed.</p>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="chunk"><span>🔢 <code class="ti">chunkCount</code></span></div>
+  <div class="card">
+    <div class="card-title">Counting data Events, Not Lines</div>
+    <div class="card-content">
+      <div class="code-block" data-file="chunk-count.js" data-lang="JS" data-hl="4">
+<pre><code>let chunkCount = 0;
+
+stream.on(&quot;data&quot;, (chunk) =&gt; {
+  chunkCount++;
+});</code></pre>
+      </div>
+      <p><code>chunkCount</code> tells you:</p>
+      <div class="short-answer">how many times the <strong><code>data</code> event fired</strong>.</div>
+      <div class="warning"><strong>It does not mean:</strong><ul style="margin:6px 0 0 22px"><li>number of lines</li><li>number of words</li><li>number of characters</li></ul></div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="hwm"><span>🪣 <code class="ti">highWaterMark</code></span></div>
+  <div class="card">
+    <div class="card-title">Approximate Chunk Size</div>
+    <div class="card-content">
+      <p><code>highWaterMark</code> controls the approximate amount of data buffered/read per chunk.</p>
+      <div class="code-block" data-file="high-water-mark.js" data-lang="JS" data-hl="3">
+<pre><code>const stream = fs.createReadStream(pathName, {
+  encoding: &quot;utf8&quot;,
+  highWaterMark: 100
+});</code></pre>
+      </div>
+      <p>Here Node tries to process roughly:</p>
+      <div class="mini"><code class="ic1">100 bytes per chunk</code></div>
+      <p>Example:</p>
+      <div class="mini"><code class="ic1" data-js>stream.on(&quot;data&quot;, (chunk) =&gt; {</code><code class="ic1" data-js>  console.log(chunk.length);</code><code class="ic1" data-js>});</code></div>
+      <p>You may see:</p>
+      <div class="flow">
+        <div class="flow-row"><div class="step c-dst">100</div><span class="arrow">→</span><div class="step c-dst">100</div><span class="arrow">→</span><div class="step c-dst">100</div><span class="arrow">→</span><div class="step c-dst">100</div><span class="arrow">→</span><div class="step c-dst">...</div></div>
+      </div>
+      <div class="note">📝 Normally, you can let Node use its default value.</div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="why"><span>🏋️ Why Streams Are Better for Large Files</span></div>
+  <div class="card">
+    <div class="card-title">Memory Stays Small</div>
+    <div class="card-content">
+      <p>Suppose the file is:</p>
+      <div class="mini"><code class="ic1">2 GB</code></div>
+      <div class="flow">
+        <div class="flow-row"><span class="flow-label">With readFile()</span><div class="step c-src">2 GB File</div><span class="arrow">→</span><div class="step c-warn">Load complete file</div><span class="arrow">→</span><div class="step c-bad">Memory</div></div>
+        <div class="flow-row"><span class="flow-label">With a stream</span><div class="step c-src">2 GB File</div><span class="arrow">→</span><div class="step c-dst">Chunk</div><span class="arrow">→</span><div class="step c-proc">Process</div><span class="arrow">→</span><div class="step c-dst">Next Chunk</div><span class="arrow">→</span><div class="step c-proc">Process</div></div>
+      </div>
+      <div class="remember">So the <strong>complete file does not need to stay in memory at once</strong>.</div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="write"><span>3️⃣ <code class="ti">createWriteStream()</code></span></div>
+  <div class="card">
+    <div class="card-title">Creates a Writable Stream</div>
+    <div class="card-content">
+      <p><code>createWriteStream()</code> creates a <strong>Writable Stream</strong>.</p>
+      <p>It allows data to be written gradually in chunks.</p>
+      <div class="code-block" data-file="write-stream.js" data-lang="JS" data-hl="5,6,7,9">
+<pre><code>import { createWriteStream } from &quot;fs&quot;;
+
+const writeStream = createWriteStream(&quot;./output.txt&quot;);
+
+writeStream.write(&quot;Hello\n&quot;);
+writeStream.write(&quot;Node.js\n&quot;);
+writeStream.write(&quot;Streams\n&quot;);
+
+writeStream.end();</code></pre>
+      </div>
+      <p>The file becomes:</p>
+      <div class="mini"><code class="ic1">Hello</code><code class="ic1">Node.js</code><code class="ic1">Streams</code></div>
+      <h4>Flow</h4>
+      <div class="flow">
+        <div class="flow-row"><div class="step c-src">Application</div><span class="arrow">→</span><div class="step c-proc"><code>write()</code></div><span class="arrow">→</span><div class="step c-dst">Writable Stream</div><span class="arrow">→</span><div class="step c-dst">output.txt</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="wevents"><span>✍️ Writable Stream Methods and Events</span></div>
+  <div class="card">
+    <div class="card-title">write(), end(), finish, error, close, drain</div>
+    <div class="card-content">
+      <div class="table-scroll"><table><tr><th>Method/Event</th><th>Purpose</th></tr><tr><td><code>write()</code></td><td>Write a chunk</td></tr><tr><td><code>end()</code></td><td>Signal that no more data will be written</td></tr><tr><td><code>finish</code></td><td>All data has been written</td></tr><tr><td><code>error</code></td><td>Writing failed</td></tr><tr><td><code>close</code></td><td>Resource closed</td></tr><tr><td><code>drain</code></td><td>Internal buffer is available again</td></tr></table></div>
+      <h4><code>write()</code></h4>
+      <div class="mini"><code class="ic1" data-js>writeStream.write(&quot;Hello\n&quot;);</code></div>
+      <p>Writes one chunk.</p>
+      <h4><code>end()</code></h4>
+      <div class="mini"><code class="ic1" data-js>writeStream.end();</code></div>
+      <p>Means:</p>
+      <div class="short-answer">No more data will be written.</div>
+      <p>You can also write the final chunk:</p>
+      <div class="mini"><code class="ic1" data-js>writeStream.end(&quot;Last line\n&quot;);</code></div>
+      <h4><code>finish</code></h4>
+      <div class="mini"><code class="ic1" data-js>writeStream.on(&quot;finish&quot;, () =&gt; {</code><code class="ic1" data-js>  console.log(&quot;Writing completed&quot;);</code><code class="ic1" data-js>});</code></div>
+      <p>Important difference:</p>
+      <div class="duo"><div class="duo-card d1"><span class="duo-tag">METHOD YOU CALL</span><code class="ic1" data-js>end()</code><p>→ method you call</p></div><div class="duo-card d2"><span class="duo-tag">EVENT NODE EMITS</span><code class="ic1" data-js>finish</code><p>→ event Node emits</p></div></div>
+      <h4><code>error</code></h4>
+      <div class="mini"><code class="ic1" data-js>writeStream.on(&quot;error&quot;, (err) =&gt; {</code><code class="ic1" data-js>  console.log(&quot;Write failed:&quot;, err);</code><code class="ic1" data-js>});</code></div>
+      <h4><code>drain</code></h4>
+      <p>If data is written faster than the destination can handle, the internal buffer can become full.</p>
+      <div class="mini"><code class="ic1" data-js>const canContinue = writeStream.write(data);</code></div>
+      <p>If it returns:</p>
+      <div class="mini"><code class="ic1">false</code></div>
+      <p>wait for:</p>
+      <div class="mini"><code class="ic1" data-js>writeStream.once(&quot;drain&quot;, () =&gt; {</code><code class="ic1" data-js>  console.log(&quot;Buffer available again&quot;);</code><code class="ic1" data-js>});</code></div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="pipe"><span>4️⃣ <code class="ti">pipe()</code></span></div>
+  <div class="card">
+    <div class="card-title">Connect Readable to Writable</div>
+    <div class="card-content">
+      <p><code>pipe()</code> connects a <strong>Readable Stream</strong> to a <strong>Writable Stream</strong>.</p>
+      <p>The normal direction is:</p>
+      <div class="flow">
+        <div class="flow-row"><span class="flow-label">✅ Normal direction</span><div class="step c-src">Readable</div><span class="arrow">→</span><div class="step c-dst">Writable</div></div>
+        <div class="flow-row"><span class="flow-label">❌ Not this</span><div class="step c-bad">Writable</div><span class="arrow">→</span><div class="step c-bad">Readable</div></div>
+      </div>
+      <p>because the source of <code>pipe()</code> must be able to produce readable data.</p>
+      <h4>Example 1 — Readable → Writable</h4>
+      <div class="code-block" data-file="copy-file.js" data-lang="JS" data-hl="12">
+<pre><code>import fs from &quot;fs&quot;;
+
+const pathName = new URL(&quot;./large-file.txt&quot;, import.meta.url);
+const pathWrite = new URL(&quot;./write-test-file.txt&quot;, import.meta.url);
+
+const readStream = fs.createReadStream(pathName, {
+  encoding: &quot;utf8&quot;
+});
+
+const writeStream = fs.createWriteStream(pathWrite);
+
+readStream.pipe(writeStream);
+
+writeStream.on(&quot;finish&quot;, () =&gt; {
+  console.log(&quot;File copied successfully&quot;);
+});
+
+readStream.on(&quot;error&quot;, (err) =&gt; {
+  console.log(&quot;Read error:&quot;, err);
+});
+
+writeStream.on(&quot;error&quot;, (err) =&gt; {
+  console.log(&quot;Write error:&quot;, err);
+});</code></pre>
+      </div>
+      <h4>Flow</h4>
+      <div class="flow">
+        <div class="flow-row"><div class="step c-src">large-file.txt</div><span class="arrow">→</span><div class="step c-src">Readable Stream</div><span class="arrow">→</span><div class="step c-proc"><code>pipe()</code></div><span class="arrow">→</span><div class="step c-dst">Writable Stream</div><span class="arrow">→</span><div class="step c-dst">write-test-file.txt</div></div>
+      </div>
+      <p>Here:</p>
+      <div class="mini"><code class="ic1" data-js>readStream.pipe(writeStream);</code></div>
+      <p>means:</p>
+      <div class="short-answer">Take every chunk produced by <code>readStream</code> and send it to <code>writeStream</code>.</div>
+      <h4>Example 2 — Readable → Transform → Writable</h4>
+      <p>A Transform stream can receive chunks, modify them, and pass the transformed chunks forward.</p>
+      <div class="code-block" data-file="gzip-pipeline.js" data-lang="JS" data-hl="5,9,10">
+<pre><code>const fs = require(&quot;fs&quot;);
+const zlib = require(&quot;zlib&quot;);
+
+const readStream = fs.createReadStream(&quot;input.txt&quot;);
+const gzip = zlib.createGzip(); // Transform stream
+const writeStream = fs.createWriteStream(&quot;input.txt.gz&quot;);
+
+readStream
+  .pipe(gzip)
+  .pipe(writeStream);</code></pre>
+      </div>
+      <h4>Flow</h4>
+      <div class="flow">
+        <div class="flow-row"><div class="step c-src">input.txt</div><span class="arrow">→</span><div class="step c-src">Readable Stream</div><span class="arrow">→</span><div class="step c-proc"><code>pipe()</code></div><span class="arrow">→</span><div class="step c-warn">gzip Transform Stream</div><span class="arrow">→</span><div class="step c-proc"><code>pipe()</code></div><span class="arrow">→</span><div class="step c-dst">Writable Stream</div><span class="arrow">→</span><div class="step c-dst">input.txt.gz</div></div>
+      </div>
+      <p>Here:</p>
+      <div class="mini"><code class="ic1" data-js>readStream.pipe(gzip)</code></div>
+      <p>sends file chunks to the gzip transform stream.</p>
+      <p>Then:</p>
+      <div class="mini"><code class="ic1" data-js>gzip.pipe(writeStream)</code></div>
+      <p>sends the compressed output to the writable stream.</p>
+      <p>So:</p>
+      <div class="flow">
+        <div class="flow-row"><div class="step c-src">Readable</div><span class="arrow">→</span><div class="step c-warn">Transform</div><span class="arrow">→</span><div class="step c-dst">Writable</div></div>
+      </div>
+      <p>is a very common stream pipeline.</p>
+      <p>A Transform stream is special because it can both:</p>
+      <div class="flow">
+        <div class="flow-row"><div class="step c-src">receive data</div><span class="arrow">→</span><div class="step c-warn">+ modify data</div><span class="arrow">→</span><div class="step c-dst">+ produce output</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="manual"><span>🔧 Manual Read + Write vs <code class="ti">pipe()</code></span></div>
+  <div class="card">
+    <div class="card-title">Why pipe() Is Better</div>
+    <div class="card-content">
+      <p>Without <code>pipe()</code>:</p>
+      <div class="code-block" data-file="manual.js" data-lang="JS" data-hl="2,6">
+<pre><code>readStream.on(&quot;data&quot;, (chunk) =&gt; {
+  writeStream.write(chunk);
+});
+
+readStream.on(&quot;end&quot;, () =&gt; {
+  writeStream.end();
+});</code></pre>
+      </div>
+      <p>With <code>pipe()</code>:</p>
+      <div class="mini"><code class="ic1" data-js>readStream.pipe(writeStream);</code></div>
+      <p><code>pipe()</code> automatically:</p>
+      <ul><li>receives chunks from the readable stream</li><li>writes them to the next stream</li><li>ends the destination when the source finishes</li><li>helps manage backpressure</li></ul>
+      <div class="remember">So <code>pipe()</code> is generally better than manually calling <code>write()</code> for every chunk.</div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="concepts"><span>🧩 <code class="ti">createReadStream()</code> vs <code class="ti">createWriteStream()</code> vs <code class="ti">pipe()</code></span></div>
+  <div class="card">
+    <div class="card-title">Source, Process, Destination, Connection</div>
+    <div class="card-content">
+      <div class="table-scroll"><table><tr><th>Concept</th><th>Meaning</th></tr><tr><td><code>createReadStream()</code></td><td>Creates a source that produces data</td></tr><tr><td><code>createWriteStream()</code></td><td>Creates a destination that receives data</td></tr><tr><td><code>pipe()</code></td><td>Connects one stream to the next</td></tr><tr><td>Transform stream</td><td>Receives, modifies, and produces data</td></tr></table></div>
+      <h4>Easy memory</h4>
+      <div class="flow">
+        <div class="flow-row"><div class="step c-src"><span class="n">SOURCE</span><code>createReadStream()</code></div><span class="arrow">→</span><div class="step c-warn"><span class="n">PROCESS / MODIFY</span>Transform</div><span class="arrow">→</span><div class="step c-dst"><span class="n">DESTINATION</span><code>createWriteStream()</code></div><span class="arrow">→</span><div class="step c-proc"><span class="n">CONNECTION</span><code>pipe()</code></div></div>
+      </div>
+      <p>Example:</p>
+      <div class="flow">
+        <div class="flow-row"><div class="step c-src">SOURCE</div><span class="arrow">→</span><div class="step c-proc">PIPE</div><span class="arrow">→</span><div class="step c-warn">TRANSFORM</div><span class="arrow">→</span><div class="step c-proc">PIPE</div><span class="arrow">→</span><div class="step c-dst">DESTINATION</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="reverse"><span>🚫 Can We Pipe Writable → Readable?</span></div>
+  <div class="card">
+    <div class="card-title">Wait for finish, Then Create a New Readable</div>
+    <div class="card-content">
+      <div class="short-answer"><strong>Normally, no.</strong></div>
+      <p>This is invalid conceptually:</p>
+      <div class="flow">
+        <div class="flow-row"><span class="flow-label">❌ Invalid</span><div class="step c-bad">Writable Stream</div><span class="arrow">→</span><div class="step c-bad"><code>pipe()</code></div><span class="arrow">→</span><div class="step c-bad">Readable Stream</div></div>
+      </div>
+      <p>because a normal Writable stream does not produce readable output.</p>
+      <p>If you want to:</p>
+      <div class="flow">
+        <div class="flow-row"><div class="step c-dst">Write file</div><span class="arrow">→</span><div class="step c-warn">finish</div><span class="arrow">→</span><div class="step c-src">Read same file</div></div>
+      </div>
+      <p>wait for <code>finish</code> and create a new readable stream.</p>
+      <div class="code-block" data-file="write-then-read.js" data-lang="JS" data-hl="6">
+<pre><code>const writeStream = fs.createWriteStream(&quot;./test.txt&quot;);
+
+writeStream.write(&quot;Hello Node.js&quot;);
+writeStream.end();
+
+writeStream.on(&quot;finish&quot;, () =&gt; {
+  const readStream = fs.createReadStream(&quot;./test.txt&quot;, {
+    encoding: &quot;utf8&quot;
+  });
+
+  readStream.on(&quot;data&quot;, (chunk) =&gt; {
+    console.log(chunk);
+  });
+});</code></pre>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="final"><span>📋 Final Comparison</span></div>
+  <div class="card">
+    <div class="card-title">All Stream Concepts in One Table</div>
+    <div class="card-content">
+      <div class="table-scroll"><table><tr><th>Concept</th><th>Purpose</th></tr><tr><td><code>readFile()</code></td><td>Read complete file at once</td></tr><tr><td><code>createReadStream()</code></td><td>Read data in chunks</td></tr><tr><td><code>createWriteStream()</code></td><td>Write data in chunks</td></tr><tr><td><code>pipe()</code></td><td>Connect streams</td></tr><tr><td>Transform</td><td>Modify chunks while streaming</td></tr><tr><td><code>highWaterMark</code></td><td>Control stream buffer/chunk size</td></tr><tr><td><code>data</code></td><td>New chunk available</td></tr><tr><td><code>end</code></td><td>Reading completed</td></tr><tr><td><code>write()</code></td><td>Write a chunk</td></tr><tr><td><code>end()</code></td><td>Stop writing</td></tr><tr><td><code>finish</code></td><td>All writing completed</td></tr><tr><td><code>error</code></td><td>Operation failed</td></tr><tr><td><code>drain</code></td><td>Writable buffer is available again</td></tr></table></div>
+      <div class="interview"><code>readFile()</code> loads the complete file before returning the data, while <code>createReadStream()</code> reads it incrementally in chunks. <code>createWriteStream()</code> writes data incrementally. <code>pipe()</code> connects streams so chunks can flow from a readable source to a writable destination, optionally passing through Transform streams such as gzip.</div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="memory"><span>🌳 Final Memory Tree</span></div>
+  <div class="card">
+    <div class="card-title">Five Flows to Remember</div>
+    <div class="card-content">
+      <div class="flow">
+        <div class="flow-row"><span class="flow-label">Small file</span><div class="step c-warn"><code>readFile()</code></div><span class="arrow">→</span><div class="step c-dst">Complete Data</div></div>
+        <div class="flow-row"><span class="flow-label">Large file</span><div class="step c-src"><code>createReadStream()</code></div><span class="arrow">→</span><div class="step c-dst">Chunks</div></div>
+        <div class="flow-row"><span class="flow-label">Write</span><div class="step c-src">Application</div><span class="arrow">→</span><div class="step c-proc"><code>createWriteStream()</code></div><span class="arrow">→</span><div class="step c-dst">File</div></div>
+        <div class="flow-row"><span class="flow-label">Copy</span><div class="step c-src">Readable</div><span class="arrow">→</span><div class="step c-proc"><code>pipe()</code></div><span class="arrow">→</span><div class="step c-dst">Writable</div></div>
+        <div class="flow-row"><span class="flow-label">Transform pipeline</span><div class="step c-src">Readable</div><span class="arrow">→</span><div class="step c-proc"><code>pipe()</code></div><span class="arrow">→</span><div class="step c-warn">Transform</div><span class="arrow">→</span><div class="step c-proc"><code>pipe()</code></div><span class="arrow">→</span><div class="step c-dst">Writable</div></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function go(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth' }); }
+
+  // Lightweight JS syntax highlighter (input: raw text, output: escaped HTML with colour spans)
+  function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  var TOK = /(\/\/[^\n]*)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)|\b(import|from|const|let|new|if|return|await|async|true|false|null|function)\b|\b(\d+)\b|\b(console|fs|zlib|process|JSON|Promise)\b|\b([A-Za-z_]\w*)(?=\s*:)|\b([A-Za-z_]\w*)(?=\()/g;
+  function hlJS(text) {
+    var out = '', last = 0, m;
+    TOK.lastIndex = 0;
+    while ((m = TOK.exec(text))) {
+      out += esc(text.slice(last, m.index));
+      var cls = m[1] ? 'cmt' : m[2] ? 'str' : m[3] ? 'kw' : m[4] ? 'num' : m[5] ? 'type' : m[6] ? 'attr' : 'fn';
+      out += '<span class="' + cls + '">' + esc(m[0]) + '</span>';
+      last = m.index + m[0].length;
+    }
+    return out + esc(text.slice(last));
+  }
+
+  // Inline chips (1-3 line snippets)
+  document.querySelectorAll('code.ic1[data-js]').forEach(function (el) { el.innerHTML = hlJS(el.textContent); });
+
+  // Code windows: highlight, title bar, line numbers, highlighted lines, copy button
+  document.querySelectorAll('.code-block').forEach(function (block) {
+    var code = block.querySelector('code');
+    var raw = code.textContent;
+    var lang = block.dataset.lang || 'JS';
+    var hl = (block.dataset.hl || '').split(',').map(Number);
+    var html = lang === 'TEXT' ? esc(raw) : hlJS(raw);
+    code.innerHTML = html.split('\n').map(function (line, i) {
+      return '<span class="l' + (hl.indexOf(i + 1) > -1 ? ' hl' : '') + '">' + (line || ' ') + '</span>';
+    }).join('');
+
+    var bar = document.createElement('div');
+    bar.className = 'code-bar';
+    bar.innerHTML = '<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>' +
+      '<span class="filename">' + block.dataset.file + '</span><span class="lang">' + lang + '</span>' +
+      '<button class="copy" type="button">Copy</button>';
+    block.insertBefore(bar, block.firstChild);
+
+    var btn = bar.querySelector('.copy');
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(raw).then(function () {
+        btn.textContent = 'Copied ✓'; btn.classList.add('done');
+        setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1500);
+      });
+    });
+  });
+</script>
+</body>
+</html>

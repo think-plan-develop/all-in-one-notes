@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Node.js Interview — Event Loop, libuv &amp; Concurrency</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 94%; max-width: 1120px; margin: 32px auto; --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+  /* HEADER */
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 16px; padding: 26px 30px; margin-bottom: 22px; box-shadow: 0 12px 28px rgba(var(--shadow-rgb),.28); position: relative; overflow: hidden; }
+  .header::after { content:''; position:absolute; top:-60px; right:-60px; width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,.16); color:#fff; font-size:11px; font-weight:800; letter-spacing:.6px; padding:4px 12px; border-radius:20px; margin-bottom:10px; position:relative; }
+  .header h1 { color:#fff; font-size:28px; margin-bottom:6px; font-weight:800; letter-spacing:-.5px; position:relative; }
+  .header p { color:#dbe6ff; font-size:15px; margin-bottom:16px; max-width:780px; line-height:1.6; position:relative; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px; position:relative; }
+  .toc a { text-decoration:none; padding:6px 15px; border-radius:20px; font-size:13px; font-weight:700; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.28); }
+  .toc a:hover { background:#fff; color:var(--accent); transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,.15); }
+
+  .topic-dropdown { position:relative; margin-bottom:12px; display:inline-block; z-index:5; }
+  .topic-dropdown summary { list-style:none; cursor:pointer; display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.16); color:#fff; font-size:13px; font-weight:800; padding:7px 16px; border-radius:22px; border:1px solid rgba(255,255,255,.32); transition:background .2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display:none; }
+  .topic-dropdown summary:hover { background:rgba(255,255,255,.26); }
+  .topic-dropdown summary::after { content:'▾'; margin-left:2px; transition:transform .2s ease; font-size:11px; }
+  .topic-dropdown[open] summary::after { transform:rotate(180deg); }
+  .topic-menu { position:absolute; top:calc(100% + 8px); left:0; z-index:20; background:#fff; border-radius:12px; padding:8px; min-width:270px; box-shadow:0 14px 30px rgba(0,0,0,.22); display:flex; flex-direction:column; gap:2px; }
+  .topic-menu a { text-decoration:none; color:#1a1a1a; font-size:14px; font-weight:700; padding:8px 14px; border-radius:8px; display:flex; align-items:center; gap:9px; transition:background .15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background:var(--content-bg); color:var(--accent); }
+  .topic-menu .group-label { font-size:10.5px; font-weight:800; letter-spacing:.6px; color:#94a3b8; padding:6px 14px 2px; text-transform:uppercase; }
+
+  /* KEY TERMS AT A GLANCE */
+  .intro-summary { margin:0 0 10px; }
+  .intro-summary-title { font-size:19px; font-weight:800; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .summary-item { display:flex; align-items:center; gap:12px; border-radius:12px; padding:10px 14px; cursor:pointer; transition:transform .15s ease; }
+  .summary-item:hover { transform:translateY(-2px); }
+  .summary-icon { flex-shrink:0; width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:17px; background:rgba(255,255,255,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.6); }
+  .summary-text { font-size:14px; line-height:1.5; font-weight:500; }
+  .summary-text strong { font-weight:800; margin-right:3px; }
+  .summary-text code { font-family:'Fira Code',Consolas,monospace; font-size:.88em; background:rgba(255,255,255,.6); padding:1px 6px; border-radius:5px; }
+  .summary-blue   { background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#1e3a8a; } .summary-blue strong { color:#2563eb; }
+  .summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink strong { color:#db2777; }
+  .summary-amber  { background:linear-gradient(135deg,#fffbeb,#fef3c7); color:#92400e; } .summary-amber strong { color:#d97706; }
+  .summary-green  { background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; } .summary-green strong { color:#059669; }
+  .summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple strong { color:#7c3aed; }
+  .summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal strong { color:#0d9488; }
+  @media (max-width:640px) { .summary-grid { grid-template-columns:1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin:26px 0 12px; position:relative; }
+  .section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity:.22; }
+  .section-divider span { background:#f4f5fa; padding:0 16px 0 0; position:relative; font-size:20px; font-weight:800; display:inline-flex; align-items:center; gap:8px; }
+
+  /* CARDS */
+  .card { border-radius:14px; margin-bottom:14px; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.07); border:1px solid rgba(0,0,0,.04); background:#fff; }
+  .card-title { color:#fff; font-size:17px; font-weight:700; padding:12px 22px; background:linear-gradient(120deg,var(--accent),var(--accent-light)); letter-spacing:-.2px; }
+  .card-content { padding:18px 22px 16px; background:var(--content-bg); }
+  .card-content > * + * { margin-top:12px; }
+  .card-content p { color:#333; font-size:15px; line-height:1.7; font-weight:500; }
+  .card-content h4 { font-size:15px; font-weight:800; color:var(--heading); margin-top:18px; }
+  .card-content ul, .card-content ol { margin-left:22px; }
+  .card-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; }
+  .card-content p code, .card-content li code, .card-content h4 code, td code, .short-answer code, .note code, .warning code, .remember code, th code { font-family:'Fira Code',Consolas,monospace; font-size:.88em; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:2px 6px; border-radius:5px; }
+  code.i { font-family:'Fira Code',Consolas,monospace; font-size:.88em; padding:2px 6px; border-radius:5px; }
+
+  .short-answer { background:linear-gradient(160deg,#fff 0%,var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),.16); border-left:4px solid var(--accent); border-radius:12px; padding:12px 18px 14px; font-size:15.5px; line-height:1.65; font-weight:500; color:#293244; box-shadow:0 6px 16px rgba(var(--shadow-rgb),.09); }
+  .short-answer::before { content:"QUICK TAKE"; display:block; width:fit-content; font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#fff; background:linear-gradient(120deg,var(--accent),var(--accent-light)); padding:3px 11px; border-radius:20px; margin-bottom:8px; }
+  .short-answer strong { color:var(--heading); }
+
+  .sub-label { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:800; color:#fff; width:fit-content; padding:5px 14px; border-radius:20px; }
+  .sub-bad  { background:linear-gradient(120deg,#e11d48,#f43f5e); }
+  .sub-good { background:linear-gradient(120deg,#059669,#10b981); }
+  .sub-ex   { background:linear-gradient(120deg,#7c3aed,#a78bfa); }
+
+  /* ═══ CODE WINDOW ═══ */
+  .code-block { --cb-bg:#1a2332; --cb-bar:#111a27; --cb-line:#2a374b; background:var(--cb-bg); border-radius:12px; overflow:hidden; box-shadow:0 10px 24px rgba(15,23,42,.28); border:1px solid #2a374b; }
+  .code-bar { background:var(--cb-bar); padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--cb-line); }
+  .code-bar .dot { width:10px; height:10px; border-radius:50%; }
+  .dot-red { background:#ff5f57; } .dot-yellow { background:#febc2e; } .dot-green { background:#28c840; }
+  .code-bar .filename { color:#9fb0c8; font-size:12px; margin-left:8px; font-family:'Fira Code',Consolas,monospace; }
+  .code-bar .lang { margin-left:auto; font-size:10.5px; font-weight:800; letter-spacing:.5px; color:#93c5fd; background:rgba(59,130,246,.16); padding:2px 9px; border-radius:10px; font-family:-apple-system,'Segoe UI',sans-serif; }
+  .code-bar .copy { font-size:11px; font-weight:700; color:#cbd5e1; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:8px; padding:3px 10px; cursor:pointer; margin-left:8px; font-family:-apple-system,'Segoe UI',sans-serif; transition:background .15s ease; }
+  .code-bar .copy:hover { background:rgba(255,255,255,.18); }
+  .code-bar .copy.done { color:#86efac; border-color:#86efac; }
+  .code-block pre { padding:12px 0; overflow-x:auto; counter-reset:ln; }
+  .code-block code { color:#d4d4d4; font-size:13px; font-family:'Fira Code',Consolas,monospace; line-height:1.6; white-space:pre; display:block; width:max-content; min-width:100%; background:none; padding:0; font-weight:400; }
+  .code-block .l { display:block; padding:0 18px 0 0; border-left:3px solid transparent; }
+  .code-block .l::before { counter-increment:ln; content:counter(ln); display:inline-block; width:38px; margin-right:14px; text-align:right; color:#4b5b73; user-select:none; }
+  .code-block .l.hl { background:rgba(59,130,246,.18); border-left-color:#60a5fa; }
+  .code-block .l.hl::before { color:#93c5fd; }
+  .kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .type { color:#f07178; } .attr { color:#ffcb6b; } .cmt { color:#7a8aa3; font-style:italic; } .num { color:#f78c6c; }
+
+  /* FLOW DIAGRAM — dark panel, light step boxes */
+  .flow { background:#1a2332; border-radius:12px; padding:16px 18px; border:1px solid #2a374b; box-shadow:0 10px 24px rgba(15,23,42,.22); display:flex; flex-direction:column; gap:12px; }
+  .flow-row { display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; }
+  .flow-label { width:100%; font-size:11px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:#7dd3fc; }
+  .step { flex:1 1 130px; border-radius:10px; padding:10px 12px; font-size:13px; font-weight:700; line-height:1.45; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; background:#dbeafe; color:#1e3a8a; }
+  .step .n { font-size:10.5px; font-weight:800; letter-spacing:.6px; color:#2563eb; }
+  .step code { font-family:'Fira Code',Consolas,monospace; font-size:.9em; background:rgba(255,255,255,.7); padding:1px 6px; border-radius:5px; }
+  .step.warm { background:#fef3c7; color:#92400e; } .step.warm .n { color:#d97706; }
+  .step.final { background:#d1fae5; color:#065f46; } .step.final .n { color:#059669; }
+  .arrow { color:#7dd3fc; font-size:20px; font-weight:800; align-self:center; }
+  .flow-note { color:#9fb0c8; font-size:12px; font-weight:600; }
+
+  /* CALLOUTS */
+  .note, .warning, .remember { border-radius:11px; padding:10px 16px; font-size:14.5px; line-height:1.65; font-weight:600; box-shadow:inset 0 0 0 1px rgba(255,255,255,.5); }
+  .note { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+  .warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+  .remember { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+  .interview { background:linear-gradient(135deg,#fffbeb,#fde68a); color:#78350f; border-radius:11px; padding:12px 18px; font-size:14.5px; line-height:1.7; font-weight:600; border-left:5px solid #f59e0b; }
+  .interview::before { content:"🎤 INTERVIEW ANSWER"; display:block; font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#b45309; margin-bottom:5px; }
+
+  /* TABLES */
+  .table-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:separate; border-spacing:0 5px; }
+  table th { background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899); color:#fff; font-size:12px; font-weight:800; letter-spacing:.7px; text-transform:uppercase; padding:9px 14px; text-align:left; }
+  table th:first-child { border-radius:10px 0 0 10px; } table th:last-child { border-radius:0 10px 10px 0; }
+  table td { padding:8px 14px; font-size:14px; font-weight:600; color:#334155; vertical-align:middle; }
+  table td:first-child { border-radius:10px 0 0 10px; border-left:6px solid var(--rc); font-weight:800; color:var(--rd); }
+  table td:last-child { border-radius:0 10px 10px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background:var(--rb); box-shadow:0 2px 6px rgba(0,0,0,.05); }
+  table td code { background:#fff; color:var(--rd); border:1px solid var(--rc); padding:1px 7px; border-radius:6px; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <span class="tag">NODE.JS · INTERVIEW NOTES</span>
+    <h1>🔄 Node.js — Event Loop, libuv &amp; Concurrency</h1>
+    <p>What is the event loop? · How does Node.js manage concurrency if it is single-threaded? · What is libuv? · What is the role of V8? · Blocking vs non-blocking · Why is Node.js fast?</p>
+
+    <details class="topic-dropdown">
+      <summary>📁 MERN / JS Topics</summary>
+      <div class="topic-menu">
+        <span class="group-label">Node.js</span>
+        <a class="current" href="interview-node-event-loop.html">🔄 Event Loop, libuv &amp; Concurrency</a>
+        <span class="group-label">Next.js</span>
+        <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+        <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+        <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+        <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+        <a href="interview-nextjs-seo-images.html">🔍 SEO, Image &amp; Font Optimization</a>
+        <a href="interview-nextjs-build-deploy.html">🚀 Production Build &amp; Deployment</a>
+        <span class="group-label">React / JavaScript</span>
+        <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+        <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+        <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+        <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+        <a href="interview-routing.html">🧭 React Router Interview</a>
+        <span class="group-label">MongoDB</span>
+        <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+        <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+        <span class="group-label">PostgreSQL</span>
+        <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+        <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+      </div>
+    </details>
+
+    <div class="toc">
+      <a onclick="go('event-loop')">1 · Event Loop</a>
+      <a onclick="go('concurrency')">2 · Concurrency</a>
+      <a onclick="go('libuv')">3 · libuv</a>
+      <a onclick="go('v8')">4 · V8</a>
+      <a onclick="go('blocking')">5 · Blocking vs Non-blocking</a>
+      <a onclick="go('fast')">6 · Why Node.js is Fast</a>
+    </div>
+  </div>
+
+  <div class="intro-summary">
+    <div class="intro-summary-title">🧩 Key Terms at a Glance</div>
+    <div class="summary-grid">
+      <div class="summary-item summary-blue" onclick="go('event-loop')"><div class="summary-icon">🔄</div><div class="summary-text"><strong>Event loop:</strong> lets Node keep working while async operations are pending, then runs their callbacks.</div></div>
+      <div class="summary-item summary-pink" onclick="go('concurrency')"><div class="summary-icon">🧵</div><div class="summary-text"><strong>Concurrency ≠ parallelism:</strong> overlapping progress on one thread vs executing at the same instant.</div></div>
+      <div class="summary-item summary-amber" onclick="go('libuv')"><div class="summary-icon">⚙️</div><div class="summary-text"><strong>libuv:</strong> C library giving Node its event loop, async I/O and a worker thread pool.</div></div>
+      <div class="summary-item summary-green" onclick="go('libuv')"><div class="summary-icon">🏊</div><div class="summary-text"><strong>Thread pool:</strong> 4 threads by default; change with <code>UV_THREADPOOL_SIZE</code>.</div></div>
+      <div class="summary-item summary-purple" onclick="go('v8')"><div class="summary-icon">🚀</div><div class="summary-text"><strong>V8:</strong> Google's engine that executes JavaScript, JITs it and manages memory.</div></div>
+      <div class="summary-item summary-teal" onclick="go('blocking')"><div class="summary-icon">⛔</div><div class="summary-text"><strong>Blocking:</strong> <code>readFileSync()</code> and heavy loops hold the main thread.</div></div>
+    </div>
+  </div>
+
+  <!-- 1 EVENT LOOP -->
+  <div class="section-divider" id="event-loop"><span>🔄 1. What Is the Event Loop?</span></div>
+  <div class="card">
+    <div class="card-title">Keep Working While I/O Is Pending</div>
+    <div class="card-content">
+      <div class="short-answer">The <strong>event loop is the mechanism that lets Node.js continue doing other work while asynchronous operations are pending, and run their callbacks when they are ready and the main thread is available.</strong></div>
+
+      <p>First, understand two things:</p>
+      <ul>
+        <li><strong>Executing JavaScript:</strong> running your functions, conditions, loops, etc.</li>
+        <li><strong>Waiting for I/O:</strong> waiting for a database response, file read, or network response.</li>
+      </ul>
+      <p>While an asynchronous I/O operation is pending, the main thread can execute other JavaScript.</p>
+      <p>For example:</p>
+
+      <div class="code-block" data-file="read-file.js" data-lang="JS" data-hl="3,5,14">
+<pre><code><span class="kw">import</span> <span class="type">fs</span> <span class="kw">from</span> <span class="str">"node:fs"</span>;
+
+<span class="type">console</span>.<span class="fn">log</span>(<span class="str">"1. Start"</span>);
+
+<span class="type">fs</span>.<span class="fn">readFile</span>(<span class="str">"notes.txt"</span>, <span class="str">"utf8"</span>, (error, data) =&gt; {
+  <span class="kw">if</span> (error) {
+    <span class="type">console</span>.<span class="fn">error</span>(error);
+    <span class="kw">return</span>;
+  }
+
+  <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"3. File content:"</span>, data);
+});
+
+<span class="type">console</span>.<span class="fn">log</span>(<span class="str">"2. Continue other work"</span>);</code></pre>
+      </div>
+
+      <h4>What happens</h4>
+      <div class="flow">
+        <div class="flow-row">
+          <span class="flow-label">Order of execution</span>
+          <div class="step"><span class="n">STEP 1</span>Node executes the first <code>console.log()</code></div><span class="arrow">→</span>
+          <div class="step"><span class="n">STEP 2</span><code>fs.readFile()</code> starts an async file operation</div><span class="arrow">→</span>
+          <div class="step"><span class="n">STEP 3</span>Node continues and prints <code>"2. Continue other work"</code></div><span class="arrow">→</span>
+          <div class="step warm"><span class="n">STEP 4</span>When the read completes, its callback becomes ready</div><span class="arrow">→</span>
+          <div class="step final"><span class="n">STEP 5</span>The event loop processes the completion; the callback executes on the main thread</div>
+        </div>
+      </div>
+
+      <p>The event loop processes different categories of callbacks in phases. Some main phases are:</p>
+      <div class="table-scroll">
+        <table>
+          <tr><th>Phase</th><th>Handles</th></tr>
+          <tr><td>Timers</td><td>Eligible <code>setTimeout()</code> and <code>setInterval()</code> callbacks</td></tr>
+          <tr><td>Poll</td><td>I/O events and their callbacks</td></tr>
+          <tr><td>Check</td><td><code>setImmediate()</code> callbacks</td></tr>
+          <tr><td>Close callbacks</td><td>Events such as a socket closing</td></tr>
+        </table>
+      </div>
+
+      <div class="warning"><strong>⚠️ A ready callback must wait if the main thread is busy executing synchronous JavaScript. The event loop cannot interrupt a running loop or function.</strong></div>
+    </div>
+  </div>
+
+  <!-- 2 CONCURRENCY -->
+  <div class="section-divider" id="concurrency"><span>🧵 2. How Does Node.js Handle Concurrent Requests if Single-Threaded?</span></div>
+  <div class="card">
+    <div class="card-title">One Main Thread, Many Requests in Progress</div>
+    <div class="card-content">
+      <p>Node.js executes your JavaScript on <strong>one main thread by default</strong>, but a request does not need to occupy that thread for its entire lifetime.</p>
+      <p>A request usually involves two kinds of work:</p>
+
+      <div class="table-scroll">
+        <table>
+          <tr><th>Work</th><th>Example</th><th>Main thread’s involvement</th></tr>
+          <tr><td>Executing JavaScript</td><td>Validating input, calculating totals, processing results</td><td>Executes the code</td></tr>
+          <tr><td>Waiting for asynchronous I/O</td><td>Waiting for a database query, API response, or file read</td><td>Can execute other JavaScript while waiting</td></tr>
+        </table>
+      </div>
+
+      <p>When a request starts an asynchronous I/O operation, Node.js uses operating-system facilities or, for certain operations, libuv’s thread pool to handle the underlying work.</p>
+      <p><strong>The main thread does not remain blocked waiting for the result.</strong> It can start or continue other requests. Once the result is available, the associated callback or code after <code>await</code> runs when the main thread is available.</p>
+
+      <div class="short-answer">Therefore, <strong>multiple requests can be in progress together, even though their JavaScript runs one piece at a time on the main thread.</strong> This is called <strong>concurrency</strong>.</div>
+
+      <div class="table-scroll">
+        <table>
+          <tr><th>Concurrency</th><th>Parallelism</th></tr>
+          <tr><td>Multiple tasks are in progress during overlapping periods</td><td>Multiple tasks execute at exactly the same time</td></tr>
+          <tr><td>Can happen on one thread by switching between available work</td><td>Requires multiple execution resources, such as CPU cores</td></tr>
+        </table>
+      </div>
+
+      <div class="note"><strong>📝 “Single-threaded” does not mean Node.js completes one entire request before accepting the next.</strong></div>
+
+      <span class="sub-label sub-ex">Example 1: Two users request database information</span>
+      <p>Assume:</p>
+      <ul>
+        <li>User A’s database query takes <strong>2 seconds</strong>.</li>
+        <li>User B’s database query takes <strong>1 second</strong>.</li>
+      </ul>
+      <p>The following is an illustrative sequence:</p>
+      <div class="table-scroll">
+        <table>
+          <tr><th>Time</th><th>What happens</th></tr>
+          <tr><td>0 seconds</td><td>Node handles request A and sends its database query</td></tr>
+          <tr><td>0.1 seconds</td><td>While A is waiting, Node handles request B and sends its query</td></tr>
+          <tr><td>Around 1.1 seconds</td><td>B’s result arrives; Node processes it and responds to B</td></tr>
+          <tr><td>Around 2 seconds</td><td>A’s result arrives; Node processes it and responds to A</td></tr>
+        </table>
+      </div>
+      <p><strong>B does not have to wait for A’s query to finish.</strong> Their waiting periods overlap.</p>
+      <p>The database processes the queries; Node.js handles sending them and processing the responses.</p>
+
+      <span class="sub-label sub-ex">Example 2: An Express route using await</span>
+      <div class="code-block" data-file="routes/users.js" data-lang="JS" data-hl="5">
+<pre><code><span class="type">app</span>.<span class="fn">get</span>(<span class="str">"/users/:id"</span>, <span class="kw">async</span> (req, res, next) =&gt; {
+  <span class="kw">try</span> {
+    <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"Request started:"</span>, req.params.id);
+
+    <span class="kw">const</span> user = <span class="kw">await</span> <span class="type">User</span>.<span class="fn">findById</span>(req.params.id);
+
+    <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"Data received:"</span>, req.params.id);
+
+    res.<span class="fn">json</span>(user);
+  } <span class="kw">catch</span> (error) {
+    <span class="fn">next</span>(error);
+  }
+});</code></pre>
+      </div>
+      <p>If users A and B call this route, the output could be:</p>
+      <div class="code-block" data-file="console output" data-lang="TEXT" data-hl="">
+<pre><code><span class="str">Request started: A</span>
+<span class="str">Request started: B</span>
+<span class="str">Data received: B</span>
+<span class="str">Data received: A</span></code></pre>
+      </div>
+      <p>At this line:</p>
+      <div class="code-block" data-file="routes/users.js" data-lang="JS" data-hl="1">
+<pre><code><span class="kw">const</span> user = <span class="kw">await</span> <span class="type">User</span>.<span class="fn">findById</span>(req.params.id);</code></pre>
+      </div>
+      <p><strong>Only that particular handler pauses while its query is pending.</strong> The entire server does not pause.</p>
+      <p>When the query completes, the handler can resume and send its response.</p>
+
+      <span class="sub-label sub-bad">Example 3: When the main thread cannot handle other requests</span>
+      <p>A heavy synchronous loop keeps the main thread busy:</p>
+      <div class="code-block" data-file="routes/heavy.js" data-lang="JS" data-hl="4,5,6">
+<pre><code><span class="type">app</span>.<span class="fn">get</span>(<span class="str">"/heavy"</span>, (req, res) =&gt; {
+  <span class="kw">let</span> total = <span class="num">0</span>;
+
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; <span class="num">1_000_000_000</span>; i++) {
+    total += i;
+  }
+
+  res.<span class="fn">json</span>({ total });
+});</code></pre>
+      </div>
+      <p>While this loop executes, <strong>other request handlers on the same main thread cannot run</strong>, because the thread is actively calculating rather than waiting for asynchronous I/O.</p>
+      <div class="warning">Adding <code>async</code> to this function does not solve that problem. CPU-heavy JavaScript can be moved to <strong>Worker Threads</strong> or separate processes.</div>
+    </div>
+  </div>
+
+  <!-- 3 LIBUV -->
+  <div class="section-divider" id="libuv"><span>⚙️ 3. What Is libuv?</span></div>
+  <div class="card">
+    <div class="card-title">Event Loop, Async I/O and a Worker Thread Pool</div>
+    <div class="card-content">
+      <div class="short-answer"><strong>libuv is a cross-platform library written in C that Node.js uses to provide its event loop, asynchronous I/O support, and a worker thread pool.</strong></div>
+
+      <p>Here:</p>
+      <ul>
+        <li><strong>Cross-platform</strong> means it works across operating systems such as Windows, Linux, and macOS.</li>
+        <li><strong>I/O (input/output)</strong> means operations such as reading files and communicating over a network.</li>
+        <li><strong>Asynchronous</strong> means the application can continue doing other work while an operation is pending.</li>
+      </ul>
+      <p>libuv helps Node.js handle these operations without blocking the main JavaScript thread while waiting.</p>
+
+      <h4>Why does Node.js need libuv?</h4>
+      <p>The JavaScript language itself does not provide operating-system features such as reading files or opening network connections. These capabilities come from the runtime.</p>
+      <p>Node.js provides APIs such as <code>fs.readFile()</code> and uses libuv underneath to arrange supported operations and process their completion.</p>
+      <p>This allows the main thread to handle other available work instead of waiting for every file read or network response.</p>
+
+      <h4>What does libuv do?</h4>
+      <div class="table-scroll">
+        <table>
+          <tr><th>Responsibility</th><th>Purpose</th></tr>
+          <tr><td>Event loop</td><td>Processes events and completion notifications so associated callbacks can run</td></tr>
+          <tr><td>File operations</td><td>Supports asynchronous file reading, writing, and other filesystem operations</td></tr>
+          <tr><td>Networking</td><td>Supports non-blocking TCP/UDP communication using operating-system facilities</td></tr>
+          <tr><td>Worker thread pool</td><td>Executes certain native operations outside the main JavaScript thread</td></tr>
+          <tr><td>Timers</td><td>Provides timer support used by Node.js APIs such as <code>setTimeout()</code></td></tr>
+          <tr><td>DNS support</td><td>Provides facilities such as the lookup work used by <code>dns.lookup()</code></td></tr>
+          <tr><td>Cross-platform support</td><td>Handles differences between operating systems through a common interface</td></tr>
+        </table>
+      </div>
+
+      <h4>How does libuv work?</h4>
+      <p>There are two important mechanisms:</p>
+      <div class="table-scroll">
+        <table>
+          <tr><th>Mechanism</th><th>How it works</th><th>Examples</th></tr>
+          <tr><td>Operating-system I/O facilities</td><td>Node manages network activity without dedicating a worker thread to each connection</td><td>HTTP requests and database connections</td></tr>
+          <tr><td>Worker thread pool</td><td>A worker performs an operation, then reports its completion to the event loop</td><td>Asynchronous file operations, <code>dns.lookup()</code>, certain crypto and compression operations</td></tr>
+        </table>
+      </div>
+      <div class="warning"><strong>Not every asynchronous operation uses the thread pool.</strong></div>
+      <p>For example, MongoDB executes your database query. Node.js and libuv help manage the network communication used to send that query and receive its result.</p>
+
+      <span class="sub-label sub-ex">Example: reading a file</span>
+      <div class="code-block" data-file="read-file.js" data-lang="JS" data-hl="3,5,14">
+<pre><code><span class="kw">import</span> <span class="type">fs</span> <span class="kw">from</span> <span class="str">"node:fs"</span>;
+
+<span class="type">console</span>.<span class="fn">log</span>(<span class="str">"1. Start"</span>);
+
+<span class="type">fs</span>.<span class="fn">readFile</span>(<span class="str">"notes.txt"</span>, <span class="str">"utf8"</span>, (error, data) =&gt; {
+  <span class="kw">if</span> (error) {
+    <span class="type">console</span>.<span class="fn">error</span>(error);
+    <span class="kw">return</span>;
+  }
+
+  <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"3. File content:"</span>, data);
+});
+
+<span class="type">console</span>.<span class="fn">log</span>(<span class="str">"2. Continue other work"</span>);</code></pre>
+      </div>
+
+      <p>What happens:</p>
+      <div class="flow">
+        <div class="flow-row">
+          <span class="flow-label">Reading a file through libuv</span>
+          <div class="step"><span class="n">1</span>Your JavaScript calls <code>fs.readFile()</code></div><span class="arrow">→</span>
+          <div class="step"><span class="n">2</span>Node.js delegates the underlying file work through libuv</div><span class="arrow">→</span>
+          <div class="step"><span class="n">3</span>A libuv worker performs the file operation</div>
+        </div>
+        <div class="flow-row">
+          <div class="step warm"><span class="n">4</span>Meanwhile, the main thread prints <code>"2. Continue other work"</code></div><span class="arrow">→</span>
+          <div class="step warm"><span class="n">5</span>When the operation completes, libuv reports completion through the event loop</div><span class="arrow">→</span>
+          <div class="step final"><span class="n">6</span>Your JavaScript callback runs when the main thread is available</div>
+        </div>
+      </div>
+      <div class="remember"><strong>The worker performs the file operation; your JavaScript callback runs on the main thread.</strong></div>
+
+      <h4>Does libuv handle CPU-heavy JavaScript?</h4>
+      <p><strong>No—libuv does not automatically move ordinary JavaScript calculations to its worker pool.</strong></p>
+      <div class="code-block" data-file="cpu-heavy.js" data-lang="JS" data-hl="3,4,5">
+<pre><code><span class="kw">let</span> sum = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; <span class="num">1_000_000_000</span>; i++) {
+  sum += i;
+}</code></pre>
+      </div>
+      <p>This loop executes on the main JavaScript thread and blocks other JavaScript callbacks until it finishes.</p>
+      <p>Adding <code>async</code> to the surrounding function does not change that. To execute CPU-heavy JavaScript outside the main thread, use <strong>Worker Threads</strong> or a separate process.</p>
+      <p>However, libuv’s pool can handle <strong>native CPU work</strong> submitted by supported APIs, such as certain asynchronous crypto and compression operations. Therefore, saying “libuv only handles I/O” is too restrictive.</p>
+
+      <h4>What is the libuv thread-pool size?</h4>
+      <p>The default pool size is <strong>4 threads</strong>. It can be configured using the <code>UV_THREADPOOL_SIZE</code> environment variable before starting Node.js.</p>
+      <p>When all workers are busy, additional pool tasks wait for an available worker.</p>
+      <div class="note"><strong>📝 This does not mean Node.js can handle only four concurrent requests.</strong> Ordinary network connections do not each require a worker-pool thread.</div>
+
+      <h4>Do we manage libuv ourselves?</h4>
+      <p>Usually, <strong>no</strong>. Node.js uses libuv internally when you call the relevant APIs. You do not need to install it separately or manually assign file operations to workers.</p>
+      <p>You still need to choose appropriate APIs:</p>
+      <ul>
+        <li><code>fs.readFile()</code> allows other JavaScript to run while the read is pending.</li>
+        <li><code>fs.readFileSync()</code> blocks the calling thread until the read finishes.</li>
+        <li>For large files, use streams to avoid buffering the entire file in memory.</li>
+      </ul>
+
+      <h4>Is libuv part of V8?</h4>
+      <p>No. They are separate components used by Node.js.</p>
+      <div class="table-scroll">
+        <table>
+          <tr><th>Component</th><th>Main responsibility</th></tr>
+          <tr><td>V8</td><td>Executes JavaScript, optimizes it, and manages JavaScript memory</td></tr>
+          <tr><td>libuv</td><td>Provides the event loop, asynchronous I/O facilities, and worker thread pool</td></tr>
+        </table>
+      </div>
+
+      <div class="interview">“libuv is a cross-platform C library that provides Node.js with its event loop, asynchronous I/O support, and a worker thread pool. It uses operating-system facilities for network I/O and worker threads for certain operations such as asynchronous file access. This allows the main JavaScript thread to continue handling other work while those operations are pending. It does not automatically offload CPU-heavy JavaScript.”</div>
+    </div>
+  </div>
+
+  <!-- 4 V8 -->
+  <div class="section-divider" id="v8"><span>🚀 4. What Is the Role of V8 in Node.js?</span></div>
+  <div class="card">
+    <div class="card-title">The Engine That Executes Your JavaScript</div>
+    <div class="card-content">
+      <div class="short-answer"><strong>V8 is Google’s open-source JavaScript engine that Node.js uses to execute JavaScript outside the browser.</strong> When you run <code>node app.js</code>, Node.js uses V8 to execute the JavaScript in your application.</div>
+
+      <p>Its main responsibilities are:</p>
+      <ol>
+        <li><strong>Execute JavaScript:</strong> runs your functions, conditions, loops, request-handler logic, and callbacks.</li>
+        <li><strong>Optimize performance:</strong> uses just-in-time (<strong>JIT</strong>) compilation to generate machine code and optimize frequently executed code.</li>
+        <li><strong>Manage memory:</strong> allocates memory for JavaScript objects and uses <strong>garbage collection</strong> to reclaim memory from objects that are no longer reachable.</li>
+      </ol>
+
+      <div class="warning"><strong>V8 does not provide Node.js APIs such as <code>fs</code> or <code>http</code>.</strong> Node.js supplies those APIs and uses components such as libuv for underlying I/O support.</div>
+      <div class="remember">For example, with <code>fs.readFile()</code>, <strong>Node.js and libuv handle the file operation, while V8 executes the JavaScript callback that processes the result.</strong></div>
+    </div>
+  </div>
+
+  <!-- 5 BLOCKING -->
+  <div class="section-divider" id="blocking"><span>⛔ 5. Blocking vs Non-blocking Operations</span></div>
+  <div class="card">
+    <div class="card-title">Does the Main Thread Keep Moving?</div>
+    <div class="card-content">
+      <span class="sub-label sub-bad">❌ Blocking</span>
+      <p><strong>Blocking operations</strong> stop the main thread from executing other JavaScript until the operation finishes.</p>
+      <div class="code-block" data-file="blocking.js" data-lang="JS" data-hl="3">
+<pre><code><span class="kw">import</span> <span class="type">fs</span> <span class="kw">from</span> <span class="str">"node:fs"</span>;
+
+<span class="kw">const</span> data = <span class="type">fs</span>.<span class="fn">readFileSync</span>(<span class="str">"notes.txt"</span>, <span class="str">"utf8"</span>);
+<span class="type">console</span>.<span class="fn">log</span>(data);
+<span class="type">console</span>.<span class="fn">log</span>(<span class="str">"Next task"</span>);</code></pre>
+      </div>
+      <p>Here, <code>"Next task"</code> prints <strong>after the file is read and its content is logged</strong>.</p>
+
+      <span class="sub-label sub-good">✅ Non-blocking</span>
+      <p><strong>Non-blocking operations</strong> let the main thread continue executing other JavaScript while the operation is in progress.</p>
+      <div class="code-block" data-file="non-blocking.js" data-lang="JS" data-hl="3,12">
+<pre><code><span class="kw">import</span> <span class="type">fs</span> <span class="kw">from</span> <span class="str">"node:fs"</span>;
+
+<span class="type">fs</span>.<span class="fn">readFile</span>(<span class="str">"notes.txt"</span>, <span class="str">"utf8"</span>, (error, data) =&gt; {
+  <span class="kw">if</span> (error) {
+    <span class="type">console</span>.<span class="fn">error</span>(error);
+    <span class="kw">return</span>;
+  }
+
+  <span class="type">console</span>.<span class="fn">log</span>(data);
+});
+
+<span class="type">console</span>.<span class="fn">log</span>(<span class="str">"Next task"</span>);</code></pre>
+      </div>
+      <p>Here, <code>"Next task"</code> prints <strong>before the file-reading callback runs</strong>.</p>
+
+      <div class="table-scroll">
+        <table>
+          <tr><th>Blocking</th><th>Non-blocking</th></tr>
+          <tr><td>Holds up the main thread</td><td>Allows the main thread to continue</td></tr>
+          <tr><td>Delays handling other requests</td><td>Allows other requests to progress while waiting</td></tr>
+          <tr><td>Examples: <code>readFileSync()</code>, heavy synchronous loops</td><td>Examples: <code>readFile()</code>, asynchronous network requests</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6 FAST -->
+  <div class="section-divider" id="fast"><span>⚡ 6. Why Is Node.js Fast?</span></div>
+  <div class="card">
+    <div class="card-title">Efficient JavaScript + Non-blocking I/O</div>
+    <div class="card-content">
+      <div class="short-answer"><strong>Node.js is fast mainly because it combines efficient JavaScript execution with non-blocking I/O.</strong> It is particularly effective for applications handling many database calls, API requests, and network connections.</div>
+
+      <h4>1. V8 executes JavaScript efficiently</h4>
+      <p>Node.js uses the <strong>V8 engine</strong>, which uses JIT compilation and optimizes frequently executed code to improve performance.</p>
+
+      <h4>2. Non-blocking I/O allows other work to continue</h4>
+      <p>While an asynchronous database query, file read, or API request is pending, the main thread can handle other requests.</p>
+      <p>For example, if request A waits <strong>2 seconds</strong> for a database response, Node.js can handle request B during that time.</p>
+      <div class="remember"><strong>The database query does not become faster—the server can do more work while waiting.</strong></div>
+
+      <h4>3. The event loop efficiently handles concurrent requests</h4>
+      <p>The event loop processes ready callbacks, allowing many requests to remain in progress without requiring a separate JavaScript thread for every request. This reduces thread-management overhead.</p>
+
+      <h4>4. libuv and the operating system support asynchronous work</h4>
+      <p>Network I/O uses operating-system facilities, while certain operations—such as asynchronous file access—use libuv’s worker pool. This keeps the main JavaScript thread available for other work.</p>
+
+      <div class="warning"><strong>Node.js is not automatically fast for CPU-heavy tasks.</strong> Large synchronous loops or expensive calculations can block the main thread and delay other requests.</div>
+
+      <div class="interview">“Node.js performs well because V8 executes JavaScript efficiently, while non-blocking I/O and the event loop allow it to handle many concurrent requests without waiting for each I/O operation to finish. This makes it especially suitable for I/O-heavy applications.”</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function go(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth' }); }
+
+  // Code windows: title bar, line numbers, highlighted lines, copy button
+  document.querySelectorAll('.code-block').forEach(function (block) {
+    var code = block.querySelector('code');
+    var raw = code.textContent;
+    var hl = (block.dataset.hl || '').split(',').map(Number);
+    code.innerHTML = code.innerHTML.split('\n').map(function (line, i) {
+      return '<span class="l' + (hl.indexOf(i + 1) > -1 ? ' hl' : '') + '">' + (line || ' ') + '</span>';
+    }).join('');
+
+    var bar = document.createElement('div');
+    bar.className = 'code-bar';
+    bar.innerHTML = '<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>' +
+      '<span class="filename">' + block.dataset.file + '</span><span class="lang">' + (block.dataset.lang || 'JS') + '</span>' +
+      '<button class="copy" type="button">Copy</button>';
+    block.insertBefore(bar, block.firstChild);
+
+    var btn = bar.querySelector('.copy');
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(raw).then(function () {
+        btn.textContent = 'Copied ✓'; btn.classList.add('done');
+        setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1500);
+      });
+    });
+  });
+</script>
+</body>
+</html>

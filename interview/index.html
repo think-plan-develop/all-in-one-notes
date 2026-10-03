@@ -9,165 +9,183 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
-    body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; font-family: "Segoe UI", system-ui, sans-serif; color: #1e293b; background: #eef1f8; }
-    .bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(circle at 8% 8%, #bfdbfe 0, transparent 30%), radial-gradient(circle at 90% 15%, #ddd6fe 0, transparent 28%), linear-gradient(135deg, #eef1f8, #e0f2fe); }
-    .topbar { height: 58px; flex-shrink: 0; position: relative; z-index: 2; display: flex; align-items: center; gap: 12px; padding: 0 18px; color: #fff; background: linear-gradient(120deg, #1e3a8a, #2563eb 55%, #0e7490); box-shadow: 0 4px 24px rgba(30, 41, 59, .22); }
+        body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; font-family: "Segoe UI", system-ui, sans-serif; color: #1e293b; background: #f1f5f9; }
     button, input { font: inherit; }
+
+    /* ── Top bar: bottom strip follows the active technology colour ── */
+    .topbar { height: 58px; flex-shrink: 0; position: relative; z-index: 2; display: flex; align-items: center; gap: 12px; padding: 0 18px; color: #fff; background: linear-gradient(120deg, #1e3a8a, #2563eb 55%, #0e7490); box-shadow: 0 4px 24px rgba(30, 41, 59, .22); }
     .toggle, .back { border: 1px solid rgba(255,255,255,.24); border-radius: 8px; color: #fff; background: rgba(255,255,255,.14); cursor: pointer; }
+    .toggle:hover, .back:hover { background: rgba(255,255,255,.24); }
     .toggle { width: 36px; height: 36px; font-size: 18px; }
-    .back { padding: 7px 14px; margin-left: 6px; }
+    .back { padding: 7px 14px; }
     .title { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 700; }
     .title i { font-size: 22px; }
-    .search { width: min(360px, 34vw); margin: 0 auto; padding: 8px 14px; border: 0; border-radius: 20px; outline: 0; }
+    .search { width: min(360px, 34vw); margin: 0 auto; padding: 8px 14px; border: 0; border-radius: 20px; outline: 0; background: #fff; color: #1e293b; }
     .author { margin-left: auto; font-size: 13px; font-weight: 700; white-space: nowrap; }
-    .main { display: flex; flex: 1; min-height: 0; position: relative; z-index: 1; }
+    .main { display: flex; flex: 1; min-height: 0; }
 
     /* ══════════ SIDEBAR ══════════ */
-    .sidebar {
-      width: 350px; min-width: 350px; padding: 18px 14px 24px; overflow-y: auto;
-      background: #ffffff; border-right: 1px solid rgba(15,23,42,.08);
-      box-shadow: 2px 0 18px rgba(30,41,59,.05);
-    }
+    .sidebar { width: 340px; min-width: 340px; padding: 16px 12px 24px; overflow-y: auto; background: #fff; border-right: 1px solid #e2e8f0; }
     .sidebar::-webkit-scrollbar { width: 6px; }
     .sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .sidebar h2 { margin: 2px 8px 14px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
 
-    .sidebar h2 {
-      display: flex; align-items: center; gap: 8px;
-      margin: 4px 6px 16px; font-size: 12px; font-weight: 900; letter-spacing: .1em;
-      text-transform: uppercase; color: #2563eb;
-    }
-    .sidebar h2::before {
-      content: ''; width: 4px; height: 16px; border-radius: 3px;
-      background: linear-gradient(180deg,#2563eb,#7c3aed); display:inline-block;
-    }
+    /* Each technology = one coloured group. Colours come from --c (main), --c2 (dark), --t (tint), --b (border) */
+    .grp { margin: 0 0 8px; border: 1px solid transparent; border-radius: 14px; transition: background .2s, border-color .2s; }
+    .grp:hover { background: var(--t); }
+    .grp[open] { background: var(--t); border-color: var(--b); }
+    .grp > summary { display: flex; align-items: center; gap: 12px; padding: 10px 12px; list-style: none; cursor: pointer; font-size: 15px; font-weight: 800; color: var(--c2); border-radius: 14px; }
+    .grp > summary::-webkit-details-marker { display: none; }
+    .grp > summary:focus-visible, .sidebar a:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
 
-    .sidebar a, .sidebar summary {
-      display: flex; gap: 12px; align-items: center; position: relative;
-      margin: 6px 0; padding: 12px 12px 12px 14px; border-radius: 12px;
-      color: #334155; text-decoration: none; font-size: 14.5px; font-weight: 700;
-      line-height: 1.35; cursor: pointer; transition: background .15s ease, color .15s ease, transform .1s ease;
-      border: 1px solid transparent;
-    }
-    .sidebar a::before {
-      content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px; border-radius:3px;
-      background:transparent; transition: background .15s ease;
-    }
-    .sidebar summary { list-style: none; font-weight: 800; }
-    .sidebar summary::-webkit-details-marker { display: none; }
+    .icon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; color: #fff; font-size: 19px; background: linear-gradient(135deg, var(--c), var(--c2)); box-shadow: 0 3px 8px var(--b); }
+    .nav-badge { margin-left: auto; min-width: 24px; text-align: center; font-size: 11px; font-weight: 800; color: var(--c2); background: var(--t); border: 1px solid var(--b); padding: 2px 8px; border-radius: 10px; }
+    .grp[open] .nav-badge { background: #fff; }
+    .nav-chevron { font-size: 15px; color: var(--c); transition: transform .2s ease; }
+    .grp[open] .nav-chevron { transform: rotate(180deg); }
 
-    .sidebar a:hover, .sidebar summary:hover {
-      color: #1d4ed8; background: #eff6ff; transform: translateX(2px);
-    }
-    .sidebar a.active {
-      color: #1d4ed8; background: linear-gradient(90deg,#dbeafe,#eff6ff);
-      border-color: #bfdbfe; box-shadow: 0 4px 14px rgba(37,99,235,.12);
-    }
-    .sidebar a.active::before { background: linear-gradient(180deg,#2563eb,#1d4ed8); }
+    .nav-children { margin: 0 10px 12px 10px; padding: 2px 0 0; display: grid; gap: 6px; }
+    .nav-children a { position: relative; display: flex; align-items: center; gap: 11px; padding: 8px 10px 8px 8px; border-radius: 11px; background: #fff; border: 1px solid var(--b); color: #334155; text-decoration: none; font-size: 13.5px; font-weight: 650; line-height: 1.35; box-shadow: 0 1px 2px rgba(15,23,42,.05); transition: transform .15s, box-shadow .15s, background .15s, color .15s; }
+    .nav-children a:hover { transform: translateX(3px); color: var(--c2); box-shadow: 0 4px 12px var(--b); }
+    .nav-children a .ci { display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; font-size: 16px; color: var(--c2); background: var(--t); border: 1px solid var(--b); }
+    .nav-children a .txt { flex: 1; min-width: 0; }
+    .nav-children a .go { font-size: 14px; color: var(--c); opacity: 0; transform: translateX(-4px); transition: opacity .15s, transform .15s; }
+    .nav-children a:hover .go { opacity: 1; transform: none; }
+    .nav-children a.active { color: #fff; border-color: transparent; background: linear-gradient(120deg, var(--c2), var(--c)); box-shadow: 0 6px 16px var(--b); font-weight: 800; }
+    .nav-children a.active .ci { color: #fff; background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.3); }
+    .nav-children a.active .go { color: #fff; opacity: 1; transform: none; }
+    .nav-children a.active .nav-imp { background: rgba(255,255,255,.95); }
 
-    .sidebar details { margin: 6px 0; }
-    .sidebar .nav-chevron { margin-left: auto; font-size: 15px; color: #94a3b8; transition: transform .2s ease; }
-    .sidebar details[open] .nav-chevron { transform: rotate(180deg); color: #2563eb; }
-    .sidebar details[open] > summary { color: #1d4ed8; background: #eff6ff; }
-    .sidebar .nav-children {
-      margin: 4px 0 4px 16px; padding-left: 14px;
-      border-left: 2px dashed #bfdbfe;
-    }
-    .sidebar .nav-children a { font-size: 13.5px; font-weight: 650; padding: 10px 10px 10px 14px; }
-
-    .icon {
-      display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0;
-      border-radius: 9px; color: #fff; font-size: 15px;
-      background: linear-gradient(135deg,#2563eb,#3b82f6);
-      box-shadow: 0 3px 8px rgba(37,99,235,.35);
-    }
-    .icon.mern    { background: linear-gradient(135deg,#059669,#10b981); box-shadow:0 3px 8px rgba(5,150,105,.35); }
-    .icon.react   { background: linear-gradient(135deg,#0891b2,#06b6d4); box-shadow:0 3px 8px rgba(8,145,178,.35); }
-    .icon.js      { background: linear-gradient(135deg,#d97706,#f59e0b); box-shadow:0 3px 8px rgba(217,119,6,.35); }
-    .icon.sql     { background: linear-gradient(135deg,#7c3aed,#a855f7); box-shadow:0 3px 8px rgba(124,58,237,.35); }
-    .icon.mongodb { background: linear-gradient(135deg,#047857,#10b981); box-shadow:0 3px 8px rgba(4,120,87,.35); }
-    .nav-children .icon { width: 26px; height: 26px; font-size: 13px; border-radius: 7px; }
-
-    /* count badge on a parent group */
-    .nav-badge {
-      margin-left: auto; font-size: 10.5px; font-weight: 800; color: #2563eb;
-      background: #dbeafe; padding: 2px 8px; border-radius: 10px; flex-shrink: 0;
-    }
-
-    /* ══════════ "IMPORTANT" badge — replaces the old "* " prefix ══════════ */
-    .nav-imp {
-      margin-left: 6px; flex-shrink: 0;
-      display: inline-flex; align-items: center; gap: 3px;
-      font-size: 9.5px; font-weight: 900; letter-spacing: .05em;
-      color: #fff; text-transform: uppercase;
-      background: linear-gradient(120deg, #dc2626, #f97316);
-      padding: 2.5px 7px 2.5px 6px; border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(220,38,38,.4);
-    }
+    /* Important marker */
+    .nav-imp { flex-shrink: 0; display: inline-flex; align-items: center; gap: 3px; font-size: 9.5px; font-weight: 800; color: #b91c1c; background: #fee2e2; padding: 2px 7px 2px 5px; border-radius: 8px; }
     .nav-imp i { font-size: 9px; }
-    .sidebar a:has(.nav-imp) {
-      background: linear-gradient(90deg, #fef2f2 0%, #ffffff 55%);
-      border-color: #fecaca;
-    }
-    .sidebar a:has(.nav-imp):hover { background: #fef2f2; }
-    .sidebar a.active:has(.nav-imp) { background: linear-gradient(90deg,#dbeafe,#eff6ff); border-color: #bfdbfe; }
+
+    .empty { display: none; margin: 16px 8px; font-size: 13px; color: #64748b; }
+
+    /* ── Technology colours ── */
+    .t-mern  { --c:#10b981; --c2:#047857; --t:#ecfdf5; --b:#a7f3d0; }
+    .t-react { --c:#06b6d4; --c2:#0e7490; --t:#ecfeff; --b:#a5f3fc; }
+    .t-next  { --c:#475569; --c2:#0f172a; --t:#f1f5f9; --b:#cbd5e1; }
+    .t-mongo { --c:#13aa52; --c2:#166534; --t:#f0fdf4; --b:#bbf7d0; }
+    .t-node  { --c:#84cc16; --c2:#3f6212; --t:#f7fee7; --b:#d9f99d; }
+    .t-js    { --c:#f59e0b; --c2:#b45309; --t:#fffbeb; --b:#fde68a; }
+    .t-sql   { --c:#4f7cbf; --c2:#1e3a8a; --t:#eff6ff; --b:#bfdbfe; }
+    .t-mern .icon { background: linear-gradient(135deg, #10b981, #06b6d4); }
 
     iframe { flex: 1; min-width: 0; border: 0; background: #fff; }
-    @media (max-width: 768px) { .sidebar { position: absolute; inset: 0 auto 0 -300px; z-index: 3; transition: transform .2s ease; } .sidebar.open { transform: translateX(300px); } .search { width: 34vw; } .author { display: none; } }
+    @media (max-width: 768px) {
+      .sidebar { position: absolute; top: 61px; bottom: 0; left: -340px; z-index: 3; transition: transform .2s ease; box-shadow: 4px 0 24px rgba(15,23,42,.18); }
+      .sidebar.open { transform: translateX(340px); }
+      .search { width: 34vw; } .author { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
   </style>
 </head>
 <body>
-  <div class="bg"></div>
   <header class="topbar">
     <button class="toggle" id="toggle" title="Toggle navigation"><i class="ti ti-menu-2"></i></button>
     <div class="title"><i class="ti ti-presentation"></i><span>Interview Guides</span></div>
     <button class="back" id="back" title="Return to Dev Hub"><i class="ti ti-arrow-left"></i> Back</button>
-   <div class="author">Shivam</div>
+    <input class="search" id="search" type="search" placeholder="Search guides" aria-label="Search guides" />
+    <div class="author">Shivam</div>
   </header>
   <main class="main">
-    <nav class="sidebar" id="sidebar" aria-label="Interview guides"><h2>Interview Preparation</h2><div id="links"></div></nav>
+    <nav class="sidebar" id="sidebar" aria-label="Interview guides">
+      <h2>Interview Preparation</h2>
+      <div id="links"></div>
+      <p class="empty" id="empty">No guides match your search.</p>
+    </nav>
     <iframe name="contentFrame" id="contentFrame" title="Interview guide content" src="mern/1-mern-stack-developer-90-minute.html"></iframe>
   </main>
   <script>
-    const NAV_CONFIG = [{ label: "Interview Preparation", links: [
-      { icon: "ti-stack-2", cls: "mern", text: "MERN Stack", badge: "2", children: [
-        { icon: "ti-stack-2", cls: "mern", text: "1. MERN Stack Developer - 90 Minute", href: "mern/1-mern-stack-developer-90-minute.html" },
-        { icon: "ti-stack-2", cls: "mern", text: "2. MERN Stack Developer - Set 2", href: "mern/2-mern-stack-developer-90-minute-set-2.html" }
+    const NAV = [
+      { key: "mern", icon: "ti-stack-2", text: "MERN Stack", children: [
+        { icon: "ti-stack-2", text: "1. MERN Stack Developer - 90 Minute", href: "mern/1-mern-stack-developer-90-minute.html" },
+        { icon: "ti-stack-2", text: "2. MERN Stack Developer - Set 2", href: "mern/2-mern-stack-developer-90-minute-set-2.html" }
       ] },
-      { icon: "ti-brand-react", cls: "react", text: "React", badge: "7", children: [
-        { icon: "ti-brand-react", cls: "react", text: "1. React Developer - 90 Minute", href: "react/1-react-developer-90-minute.html", isImp: true },
-        { icon: "ti-brand-react", cls: "react", text: "2. React Developer - 60 Minute JavaScript Heavy", href: "react/2-react-developer-60-minute-javascript-heavy.html" },
-        { icon: "ti-brand-react", cls: "react", text: "3. React Developer - 90 Minute Set 2", href: "react/3-react-developer-90-minute-set-2.html" },
-        { icon: "ti-bug", cls: "react", text: "4. React Debugging Interview Questions", href: "react/4-react-debugging.html" },
-        { icon: "ti-brand-react", cls: "react", text: "5. React Developer - Basic–Medium", href: "react/5-basic-medium.html" },
-        { icon: "ti-file-text", cls: "react", text: "6. Form", href: "react/6-react-form.html", isImp: true },
-        { icon: "ti-route", cls: "react", text: "7. Route", href: "react/7-react-route.html", isImp: true }
+      { key: "react", icon: "ti-brand-react", text: "React", children: [
+        { icon: "ti-brand-react", text: "1. React Developer - 90 Minute", href: "react/1-react-developer-90-minute.html", isImp: true },
+        { icon: "ti-brand-react", text: "2. React Developer - 60 Minute JavaScript Heavy", href: "react/2-react-developer-60-minute-javascript-heavy.html" },
+        { icon: "ti-brand-react", text: "3. React Developer - 90 Minute Set 2", href: "react/3-react-developer-90-minute-set-2.html" },
+        { icon: "ti-bug", text: "4. React Debugging Interview Questions", href: "react/4-react-debugging.html" },
+        { icon: "ti-brand-react", text: "5. React Developer - Basic–Medium", href: "react/5-basic-medium.html" },
+        { icon: "ti-file-text", text: "6. Form", href: "react/6-react-form.html", isImp: true },
+        { icon: "ti-route", text: "7. Route", href: "react/7-react-route.html", isImp: true }
       ] },
-      { icon: "ti-brand-nextjs", cls: "react", text: "Next.js", badge: "1", children: [
-        { icon: "ti-brand-nextjs", cls: "react", text: "Next.js Interview — 20 Questions (App Router)", href: "next/next-interview.html" }
+      { key: "next", icon: "ti-brand-nextjs", text: "Next.js", children: [
+        { icon: "ti-brand-nextjs", text: "Next.js Interview — 20 Questions (App Router)", href: "next/next-interview.html" }
       ] },
-      { icon: "ti-database", cls: "mongodb", text: "MongoDB", badge: "2", children: [
-        { icon: "ti-database", cls: "mongodb", text: "1. MongoDB & Mongoose Quick Notes", href: "mongodb/mongodb-quick.html" },
-        { icon: "ti-database", cls: "mongodb", text: "2. MongoDB Query Operators", href: "mongodb/mongodb-query.html" }
+      { key: "mongo", icon: "ti-brand-mongodb", text: "MongoDB", children: [
+        { icon: "ti-notes", text: "1. MongoDB & Mongoose Quick Notes", href: "mongodb/mongodb-quick.html" },
+        { icon: "ti-filter", text: "2. MongoDB Query Operators", href: "mongodb/mongodb-query.html" }
       ] },
-      { icon: "ti-brand-javascript", cls: "js", text: "JavaScript", badge: "1", children: [
-        { icon: "ti-brand-javascript", cls: "js", text: "5. JavaScript Developer - 60 Minute", href: "javascript/5-javascript-60-minute.html" }
+      { key: "node", icon: "ti-brand-nodejs", text: "Node.js", children: [
+        { icon: "ti-settings", text: "1. Node.js Setup", href: "node/node-setup.html" },
+        { icon: "ti-brand-nodejs", text: "2. Node.js Fundamentals", href: "node/node-fundamentals.html" },
+        { icon: "ti-timer", text: "3. Timer Execution Order", href: "node/node-timer-execution-order.html" },
+        { icon: "ti-file-text", text: "4. File Read & Write", href: "node/node-file-read-write.html" },
+        { icon: "ti-arrows-split", text: "5. Streams, Pipe & Transform", href: "node/node-streams-pipe-transform.html" },
+        { icon: "ti-bolt", text: "6. EventEmitter, Buffer & util.inspect", href: "node/node-event-emitter-buffer-util-inspect.html" }
       ] },
-      { icon: "ti-database", cls: "sql", text: "SQL Interview Prep", badge: "2", children: [
-        { icon: "ti-table", cls: "sql", text: "1. PSQL Table Creation Practice", href: "sql/1-table-creation.html" },
-        { icon: "ti-table", cls: "sql", text: "2. PSQL Table Insertion Practice", href: "sql/2-table-insertion.html" }
+      { key: "js", icon: "ti-brand-javascript", text: "JavaScript", children: [
+        { icon: "ti-brand-javascript", text: "1. JavaScript Developer - 60 Minute", href: "javascript/5-javascript-60-minute.html" }
+      ] },
+      { key: "sql", icon: "ti-database", text: "SQL Interview Prep", children: [
+        { icon: "ti-table", text: "1. PSQL Table Creation Practice", href: "sql/1-table-creation.html" },
+        { icon: "ti-table-plus", text: "2. PSQL Table Insertion Practice", href: "sql/2-table-insertion.html" }
       ] }
-    ] }];
+    ];
+
     const links = document.getElementById("links");
-    const renderLink = link => link.children
-      ? `<details><summary><span class="icon ${link.cls||''}"><i class="ti ${link.icon}"></i></span>${link.text}${link.badge ? `<span class="nav-badge">${link.badge}</span>` : ''}<i class="ti ti-chevron-down nav-chevron"></i></summary><div class="nav-children">${link.children.map(renderLink).join("")}</div></details>`
-      : `<a href="${link.href}" target="contentFrame"><span class="icon ${link.cls||''}"><i class="ti ${link.icon}"></i></span>${link.text}${link.isImp ? `<span class="nav-imp"><i class="ti ti-star-filled"></i>Imp</span>` : ''}</a>`;
-    links.innerHTML = NAV_CONFIG[0].links.map(renderLink).join("");
+    links.innerHTML = NAV.map(g => `
+      <details class="grp t-${g.key}">
+        <summary>
+          <span class="icon"><i class="ti ${g.icon}"></i></span>${g.text}
+          <span class="nav-badge">${g.children.length}</span>
+          <i class="ti ti-chevron-down nav-chevron"></i>
+        </summary>
+        <div class="nav-children">
+          ${g.children.map(l => `
+            <a href="${l.href}" target="contentFrame">
+              <i class="ti ${l.icon} ci"></i><span class="txt">${l.text}</span>
+              ${l.isImp ? `<span class="nav-imp"><i class="ti ti-star-filled"></i>Imp</span>` : ""}
+              <i class="ti ti-chevron-right go"></i>
+            </a>`).join("")}
+        </div>
+      </details>`).join("");
+
+    const groups = [...links.querySelectorAll(".grp")];
     const allLinks = [...links.querySelectorAll("a")];
-    allLinks[0].classList.add("active");
-    allLinks.forEach(link => link.addEventListener("click", () => { allLinks.forEach(item => item.classList.remove("active")); link.classList.add("active"); document.getElementById("sidebar").classList.remove("open"); }));
-    document.getElementById("toggle").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("open"));
+    const sidebar = document.getElementById("sidebar");
+
+    function activate(link) {
+      allLinks.forEach(a => a.classList.remove("active"));
+      link.classList.add("active");
+      const grp = link.closest(".grp");
+      grp.open = true;
+      sidebar.classList.remove("open");
+    }
+    allLinks.forEach(l => l.addEventListener("click", () => activate(l)));
+    activate(allLinks[0]);
+
+    document.getElementById("toggle").addEventListener("click", () => sidebar.classList.toggle("open"));
     document.getElementById("back").addEventListener("click", () => { window.location.href = "../index.html"; });
-    document.getElementById("search").addEventListener("input", event => { const query = event.target.value.toLowerCase(); allLinks.forEach(link => { link.hidden = !link.textContent.toLowerCase().includes(query); }); });
+
+    // Search: filters guides, hides empty groups, opens groups that still have matches
+    document.getElementById("search").addEventListener("input", e => {
+      const q = e.target.value.trim().toLowerCase();
+      let any = false;
+      groups.forEach(g => {
+        const gl = [...g.querySelectorAll("a")];
+        const groupHit = g.querySelector("summary").textContent.toLowerCase().includes(q);
+        let hits = 0;
+        gl.forEach(a => { const show = !q || groupHit || a.textContent.toLowerCase().includes(q); a.hidden = !show; if (show) hits++; });
+        g.hidden = hits === 0;
+        if (q && hits) g.open = true;
+        if (hits) any = true;
+      });
+      document.getElementById("empty").style.display = any ? "none" : "block";
+    });
   </script>
 </body>
 </html>

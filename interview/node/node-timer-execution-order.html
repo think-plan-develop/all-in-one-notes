@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Node.js Interview — Execution Order: nextTick, Microtasks &amp; Timers</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 94%; max-width: 1120px; margin: 32px auto; --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+  /* HEADER */
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 16px; padding: 26px 30px; margin-bottom: 22px; box-shadow: 0 12px 28px rgba(var(--shadow-rgb),.28); position: relative; overflow: hidden; }
+  .header::after { content:''; position:absolute; top:-60px; right:-60px; width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,.16); color:#fff; font-size:11px; font-weight:800; letter-spacing:.6px; padding:4px 12px; border-radius:20px; margin-bottom:10px; position:relative; }
+  .header h1 { color:#fff; font-size:28px; margin-bottom:6px; font-weight:800; letter-spacing:-.5px; position:relative; }
+  .header p { color:#dbe6ff; font-size:15px; margin-bottom:16px; max-width:780px; line-height:1.6; position:relative; }
+  .header p code { background:rgba(255,255,255,.15); padding:1px 6px; border-radius:4px; font-family:'Fira Code',Consolas,monospace; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px; position:relative; }
+  .toc a { text-decoration:none; padding:6px 15px; border-radius:20px; font-size:13px; font-weight:700; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.28); }
+  .toc a:hover { background:#fff; color:var(--accent); transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,.15); }
+
+  .topic-dropdown { position:relative; margin-bottom:12px; display:inline-block; z-index:5; }
+  .topic-dropdown summary { list-style:none; cursor:pointer; display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.16); color:#fff; font-size:13px; font-weight:800; padding:7px 16px; border-radius:22px; border:1px solid rgba(255,255,255,.32); transition:background .2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display:none; }
+  .topic-dropdown summary:hover { background:rgba(255,255,255,.26); }
+  .topic-dropdown summary::after { content:'▾'; margin-left:2px; transition:transform .2s ease; font-size:11px; }
+  .topic-dropdown[open] summary::after { transform:rotate(180deg); }
+  .topic-menu { position:absolute; top:calc(100% + 8px); left:0; z-index:20; background:#fff; border-radius:12px; padding:8px; min-width:290px; box-shadow:0 14px 30px rgba(0,0,0,.22); display:flex; flex-direction:column; gap:2px; }
+  .topic-menu a { text-decoration:none; color:#1a1a1a; font-size:14px; font-weight:700; padding:8px 14px; border-radius:8px; display:flex; align-items:center; gap:9px; transition:background .15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background:var(--content-bg); color:var(--accent); }
+  .topic-menu .group-label { font-size:10.5px; font-weight:800; letter-spacing:.6px; color:#94a3b8; padding:6px 14px 2px; text-transform:uppercase; }
+
+  /* KEY TERMS AT A GLANCE */
+  .intro-summary { margin:0 0 10px; }
+  .intro-summary-title { font-size:19px; font-weight:800; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .summary-item { display:flex; align-items:center; gap:12px; border-radius:12px; padding:10px 14px; cursor:pointer; transition:transform .15s ease; }
+  .summary-item:hover { transform:translateY(-2px); }
+  .summary-icon { flex-shrink:0; width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:17px; background:rgba(255,255,255,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.6); }
+  .summary-text { font-size:14px; line-height:1.5; font-weight:500; }
+  .summary-text strong { font-weight:800; margin-right:3px; }
+  .summary-text code { font-family:'Fira Code',Consolas,monospace; font-size:.88em; background:rgba(255,255,255,.6); padding:1px 6px; border-radius:5px; }
+  .summary-blue   { background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#1e3a8a; } .summary-blue strong { color:#2563eb; }
+  .summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink strong { color:#db2777; }
+  .summary-amber  { background:linear-gradient(135deg,#fffbeb,#fef3c7); color:#92400e; } .summary-amber strong { color:#d97706; }
+  .summary-green  { background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; } .summary-green strong { color:#059669; }
+  .summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple strong { color:#7c3aed; }
+  .summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal strong { color:#0d9488; }
+  @media (max-width:640px) { .summary-grid { grid-template-columns:1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin:26px 0 12px; position:relative; }
+  .section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity:.22; }
+  .section-divider span { background:#f4f5fa; padding:0 16px 0 0; position:relative; font-size:20px; font-weight:800; display:inline-flex; align-items:center; gap:8px; }
+
+  /* CARDS */
+  .card { border-radius:14px; margin-bottom:14px; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.07); border:1px solid rgba(0,0,0,.04); background:#fff; }
+  .card-title { color:#fff; font-size:17px; font-weight:700; padding:12px 22px; background:linear-gradient(120deg,var(--accent),var(--accent-light)); letter-spacing:-.2px; }
+  .card-content { padding:18px 22px 16px; background:var(--content-bg); }
+  .card-content > * + * { margin-top:12px; }
+  .card-content p { color:#333; font-size:15px; line-height:1.7; font-weight:500; }
+  .card-content ul { margin-left:22px; }
+  .card-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; }
+  .card-content p code, .card-content li code, td code, .short-answer code, .note code, .warning code, .remember code, th code { font-family:'Fira Code',Consolas,monospace; font-size:.88em; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:2px 6px; border-radius:5px; }
+  code.i { font-family:'Fira Code',Consolas,monospace; font-size:.88em; padding:2px 6px; border-radius:5px; }
+  .star { color:#d97706; }
+
+  .short-answer { background:linear-gradient(160deg,#fff 0%,var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),.16); border-left:4px solid var(--accent); border-radius:12px; padding:12px 18px 14px; font-size:15.5px; line-height:1.65; font-weight:500; color:#293244; box-shadow:0 6px 16px rgba(var(--shadow-rgb),.09); }
+  .short-answer::before { content:"QUICK TAKE"; display:block; width:fit-content; font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#fff; background:linear-gradient(120deg,var(--accent),var(--accent-light)); padding:3px 11px; border-radius:20px; margin-bottom:8px; }
+  .short-answer strong { color:var(--heading); }
+
+  /* ═══ CODE WINDOW ═══ */
+  .code-block { --cb-bg:#1a2332; --cb-bar:#111a27; --cb-line:#2a374b; background:var(--cb-bg); border-radius:12px; overflow:hidden; box-shadow:0 10px 24px rgba(15,23,42,.28); border:1px solid #2a374b; }
+  .code-bar { background:var(--cb-bar); padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--cb-line); }
+  .code-bar .dot { width:10px; height:10px; border-radius:50%; }
+  .dot-red { background:#ff5f57; } .dot-yellow { background:#febc2e; } .dot-green { background:#28c840; }
+  .code-bar .filename { color:#9fb0c8; font-size:12px; margin-left:8px; font-family:'Fira Code',Consolas,monospace; }
+  .code-bar .lang { margin-left:auto; font-size:10.5px; font-weight:800; letter-spacing:.5px; color:#93c5fd; background:rgba(59,130,246,.16); padding:2px 9px; border-radius:10px; font-family:-apple-system,'Segoe UI',sans-serif; }
+  .code-bar .copy { font-size:11px; font-weight:700; color:#cbd5e1; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:8px; padding:3px 10px; cursor:pointer; margin-left:8px; font-family:-apple-system,'Segoe UI',sans-serif; transition:background .15s ease; }
+  .code-bar .copy:hover { background:rgba(255,255,255,.18); }
+  .code-bar .copy.done { color:#86efac; border-color:#86efac; }
+  .code-block pre { padding:12px 0; overflow-x:auto; counter-reset:ln; }
+  .code-block code { color:#d4d4d4; font-size:13px; font-family:'Fira Code',Consolas,monospace; line-height:1.6; white-space:pre; display:block; width:max-content; min-width:100%; background:none; padding:0; font-weight:400; }
+  .code-block .l { display:block; padding:0 18px 0 0; border-left:3px solid transparent; }
+  .code-block .l::before { counter-increment:ln; content:counter(ln); display:inline-block; width:38px; margin-right:14px; text-align:right; color:#4b5b73; user-select:none; }
+  .code-block .l.hl { background:rgba(59,130,246,.18); border-left-color:#60a5fa; }
+  .code-block .l.hl::before { color:#93c5fd; }
+  .kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .type { color:#f07178; } .attr { color:#ffcb6b; } .cmt { color:#7a8aa3; font-style:italic; } .num { color:#f78c6c; }
+
+  /* FLOW / OUTPUT DIAGRAMS — dark panel, light boxes */
+  .flow { background:#1a2332; border-radius:12px; padding:14px 18px; border:1px solid #2a374b; box-shadow:0 10px 24px rgba(15,23,42,.22); display:flex; flex-direction:column; gap:10px; }
+  .flow-row { display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; }
+  .flow-label { width:100%; font-size:11px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:#7dd3fc; }
+  .step { flex:1 1 150px; border-radius:10px; padding:10px 12px; font-size:13px; font-weight:700; line-height:1.4; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+  .step .n { font-size:10.5px; font-weight:800; letter-spacing:.6px; opacity:.8; }
+  .step small { font-size:11.5px; font-weight:600; opacity:.85; }
+  .step code { font-family:'Fira Code',Consolas,monospace; font-size:.9em; background:rgba(255,255,255,.7); padding:1px 6px; border-radius:5px; }
+  .arrow { color:#7dd3fc; font-size:20px; font-weight:800; align-self:center; }
+  .c-sync  { background:#dbeafe; color:#1e3a8a; }
+  .c-tick  { background:#fef3c7; color:#92400e; }
+  .c-micro { background:#d1fae5; color:#065f46; }
+  .c-timer { background:#ede9fe; color:#5b21b6; }
+  .c-io    { background:#fce7f3; color:#9d174d; }
+  .c-imm   { background:#ccfbf1; color:#115e59; }
+  .chips { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .chip { border-radius:9px; padding:6px 12px; min-width:54px; text-align:center; font-family:'Fira Code',Consolas,monospace; font-size:14px; font-weight:800; line-height:1.2; }
+  .chip small { display:block; font-family:-apple-system,'Segoe UI',sans-serif; font-size:9.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; opacity:.8; margin-top:1px; }
+  .chips .arrow { font-size:16px; }
+  .legend { display:flex; flex-wrap:wrap; gap:6px; }
+  .legend span { font-size:11px; font-weight:800; padding:3px 10px; border-radius:12px; }
+
+  /* CALLOUTS */
+  .note, .warning, .remember { border-radius:11px; padding:10px 16px; font-size:14.5px; line-height:1.65; font-weight:600; box-shadow:inset 0 0 0 1px rgba(255,255,255,.5); }
+  .note { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+  .warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+  .remember { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+  .traps { list-style:none; margin:0 !important; display:flex; flex-direction:column; gap:8px; counter-reset:t; }
+  .traps li { counter-increment:t; display:flex; gap:12px; align-items:flex-start; background:linear-gradient(135deg,#fffbeb,#fef3c7); color:#78350f; border-left:5px solid #f59e0b; border-radius:11px; padding:10px 16px; font-size:14.5px; line-height:1.65; font-weight:600; }
+  .traps li::before { content:counter(t); flex-shrink:0; width:24px; height:24px; border-radius:50%; background:#f59e0b; color:#fff; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; margin-top:2px; }
+  .traps li code { background:rgba(255,255,255,.7) !important; color:#78350f !important; }
+
+  /* TABLES */
+  .table-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:separate; border-spacing:0 5px; }
+  table th { background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899); color:#fff; font-size:12px; font-weight:800; letter-spacing:.7px; text-transform:uppercase; padding:9px 14px; text-align:left; }
+  table th:first-child { border-radius:10px 0 0 10px; } table th:last-child { border-radius:0 10px 10px 0; }
+  table td { padding:8px 14px; font-size:14px; font-weight:600; color:#334155; vertical-align:middle; }
+  table td:first-child { border-radius:10px 0 0 10px; border-left:6px solid var(--rc); font-weight:800; color:var(--rd); }
+  table td:last-child { border-radius:0 10px 10px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background:var(--rb); box-shadow:0 2px 6px rgba(0,0,0,.05); }
+  table td code { background:#fff; color:var(--rd); border:1px solid var(--rc); padding:1px 7px; border-radius:6px; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <span class="tag">NODE.JS · EXECUTION ORDER</span>
+    <h1>⏱️ Node.js Execution Order — nextTick, Microtasks &amp; Timers</h1>
+    <p>Interview execution order for <strong>CommonJS top-level code</strong>: synchronous code, <code>process.nextTick()</code>, promise microtasks, and event-loop callbacks — with six worked examples and the traps to remember. ⭐ marks the ones to learn first.</p>
+
+    <details class="topic-dropdown">
+      <summary>📁 MERN / JS Topics</summary>
+      <div class="topic-menu">
+        <span class="group-label">Node.js</span>
+        <a href="interview-node-event-loop.html">🔄 Event Loop, libuv &amp; Concurrency</a>
+        <a class="current" href="interview-node-execution-order.html">⏱️ Execution Order: nextTick &amp; Microtasks</a>
+        <span class="group-label">Next.js</span>
+        <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+        <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+        <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+        <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+        <a href="interview-nextjs-seo-images.html">🔍 SEO, Image &amp; Font Optimization</a>
+        <a href="interview-nextjs-build-deploy.html">🚀 Production Build &amp; Deployment</a>
+        <span class="group-label">React / JavaScript</span>
+        <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+        <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+        <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+        <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+        <a href="interview-routing.html">🧭 React Router Interview</a>
+        <span class="group-label">MongoDB</span>
+        <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+        <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+        <span class="group-label">PostgreSQL</span>
+        <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+        <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+      </div>
+    </details>
+
+    <div class="toc">
+      <a onclick="go('order')">Execution Order</a>
+      <a onclick="go('ex1')">Ex 1 ⭐</a>
+      <a onclick="go('ex2')">Ex 2 ⭐</a>
+      <a onclick="go('ex3')">Ex 3</a>
+      <a onclick="go('ex4')">Ex 4 ⭐</a>
+      <a onclick="go('ex5')">Ex 5</a>
+      <a onclick="go('ex6')">Ex 6</a>
+      <a onclick="go('traps')">Interview Traps</a>
+    </div>
+  </div>
+
+  <div class="intro-summary">
+    <div class="intro-summary-title">🧩 Key Terms at a Glance</div>
+    <div class="summary-grid">
+      <div class="summary-item summary-amber" onclick="go('order')"><div class="summary-icon">⏭️</div><div class="summary-text"><strong>nextTick:</strong> its own queue — runs after sync code, before promise microtasks (CommonJS top level).</div></div>
+      <div class="summary-item summary-green" onclick="go('order')"><div class="summary-icon">🧬</div><div class="summary-text"><strong>Promise handlers:</strong> <code>.then()</code> schedules a microtask; the executor itself is synchronous.</div></div>
+      <div class="summary-item summary-purple" onclick="go('ex1')"><div class="summary-icon">⏲️</div><div class="summary-text"><strong>setTimeout(0):</strong> a timers-phase callback — never runs before sync code or microtasks.</div></div>
+      <div class="summary-item summary-teal" onclick="go('ex2')"><div class="summary-icon">⚡</div><div class="summary-text"><strong>setImmediate:</strong> check phase, after poll — beats <code>setTimeout(0)</code> inside I/O callbacks.</div></div>
+      <div class="summary-item summary-pink" onclick="go('ex4')"><div class="summary-icon">🪆</div><div class="summary-text"><strong>nextTick in a promise:</strong> waits for the current microtask drain to finish.</div></div>
+      <div class="summary-item summary-blue" onclick="go('traps')"><div class="summary-icon">🚧</div><div class="summary-text"><strong>Starvation:</strong> endless nextTicks or microtasks can block I/O and timers.</div></div>
+    </div>
+  </div>
+
+  <!-- ORDER -->
+  <div class="section-divider" id="order"><span>🧭 Interview Execution Order</span></div>
+  <div class="card">
+    <div class="card-title">CommonJS Top-Level Code</div>
+    <div class="card-content">
+      <div class="flow">
+        <div class="flow-row">
+          <span class="flow-label">Execution order</span>
+          <div class="step c-sync"><span class="n">1</span>Synchronous code</div><span class="arrow">→</span>
+          <div class="step c-tick"><span class="n">2</span><code>process.nextTick()</code></div><span class="arrow">→</span>
+          <div class="step c-micro"><span class="n">3</span>Microtasks</div><span class="arrow">→</span>
+          <div class="step c-timer"><span class="n">4</span>Event-loop callbacks</div>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <tr><th>API / concept</th><th>Definition and queue</th><th>Execution / key difference</th></tr>
+          <tr><td>Synchronous code</td><td>Runs immediately on the call stack: ordinary statements, loops, and the <code>new Promise()</code> executor</td><td>Runs first, in code order</td></tr>
+          <tr><td><code>process.nextTick()</code> <span class="star">⭐</span></td><td>Schedules a callback in Node’s separate <strong>next-tick queue</strong></td><td>After current synchronous code; before promise microtasks in CommonJS top-level examples</td></tr>
+          <tr><td>Promise handlers <span class="star">⭐</span></td><td><code>.then()</code>, <code>.catch()</code>, <code>.finally()</code> schedule <strong>microtasks</strong> when their promise settles</td><td>Handlers execute asynchronously; the Promise <strong>executor is synchronous</strong></td></tr>
+          <tr><td><code>queueMicrotask()</code></td><td>Adds a callback to the <strong>microtask queue</strong>, shared with promise handlers</td><td>Microtasks run in enqueue order; newly added ones join the queue</td></tr>
+          <tr><td><code>setTimeout(fn, delay)</code> <span class="star">⭐</span></td><td>Schedules a one-time <strong>macrotask/event-loop callback</strong> in the timers phase</td><td>Runs after the delay threshold when the thread is available; cancel with <code>clearTimeout()</code></td></tr>
+          <tr><td><code>setInterval(fn, delay)</code></td><td>Schedules repeated <strong>macrotask/event-loop callbacks</strong> in the timers phase</td><td>Repeats until <code>clearInterval()</code>; does not await async callbacks</td></tr>
+          <tr><td><code>setImmediate()</code> <span class="star">⭐</span></td><td>Schedules a <strong>macrotask/event-loop callback</strong> in the check phase, after poll</td><td>Cancel with <code>clearImmediate()</code>; no guaranteed order against top-level <code>setTimeout(0)</code></td></tr>
+          <tr><td>I/O callbacks</td><td>Callbacks for file reads and network activity; commonly grouped as <strong>macrotasks</strong></td><td>Run when ready through the relevant event-loop processing</td></tr>
+        </table>
+      </div>
+
+      <div class="short-answer"><strong>Microtasks</strong> are drained at checkpoints before normal event-loop work continues. <strong>Macrotask</strong> is an informal category here—Node has different phase queues, not one shared macrotask queue.</div>
+
+      <div class="note">📝 Run each example separately in a <strong><code>.cjs</code> file</strong> to use CommonJS.</div>
+
+      <div class="legend">
+        <span class="c-sync">sync</span><span class="c-tick">nextTick</span><span class="c-micro">microtask</span><span class="c-timer">timer</span><span class="c-imm">immediate</span><span class="c-io">I/O</span>
+        <span style="color:#64748b;font-weight:600;font-size:12px;align-self:center">← colours used in the output diagrams below</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 1 -->
+  <div class="section-divider" id="ex1"><span>1️⃣ Example 1 — Combined Execution Order <span class="star">⭐</span></span></div>
+  <div class="card">
+    <div class="card-title">Sync → nextTick → Microtasks → Timer</div>
+    <div class="card-content">
+      <div class="code-block" data-file="example1.cjs" data-lang="JS" data-hl="1,10,14">
+<pre><code><span class="type">console</span>.<span class="fn">log</span>(<span class="str">"A"</span>);
+
+<span class="fn">setTimeout</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"B"</span>), <span class="num">0</span>);
+
+<span class="type">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"C"</span>));
+
+<span class="type">process</span>.<span class="fn">nextTick</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"D"</span>));
+
+<span class="kw">new</span> <span class="type">Promise</span>(resolve =&gt; {
+  <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"E"</span>);
+  <span class="fn">resolve</span>();
+}).<span class="fn">then</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"F"</span>));
+
+<span class="type">console</span>.<span class="fn">log</span>(<span class="str">"G"</span>);</code></pre>
+      </div>
+
+      <div class="flow"><div class="flow-row"><span class="flow-label">Output</span><div class="chips">
+        <div class="chip c-sync">A<small>sync</small></div><span class="arrow">→</span>
+        <div class="chip c-sync">E<small>sync</small></div><span class="arrow">→</span>
+        <div class="chip c-sync">G<small>sync</small></div><span class="arrow">→</span>
+        <div class="chip c-tick">D<small>nextTick</small></div><span class="arrow">→</span>
+        <div class="chip c-micro">C<small>microtask</small></div><span class="arrow">→</span>
+        <div class="chip c-micro">F<small>microtask</small></div><span class="arrow">→</span>
+        <div class="chip c-timer">B<small>timer</small></div>
+      </div></div></div>
+
+      <p><strong>Output:</strong> <code>A → E → G → D → C → F → B</code></p>
+      <div class="remember"><strong>Reason:</strong> Synchronous <code>A, E, G</code> → nextTick <code>D</code> → microtasks <code>C, F</code> → timer <code>B</code>.</div>
+    </div>
+  </div>
+
+  <!-- EX 2 -->
+  <div class="section-divider" id="ex2"><span>2️⃣ Example 2 — Inside an I/O Callback <span class="star">⭐</span></span></div>
+  <div class="card">
+    <div class="card-title">setImmediate Beats setTimeout(0) Here</div>
+    <div class="card-content">
+      <div class="code-block" data-file="example2.cjs" data-lang="JS" data-hl="6,7">
+<pre><code><span class="kw">const</span> fs = <span class="fn">require</span>(<span class="str">"node:fs"</span>);
+
+fs.<span class="fn">readFile</span>(__filename, () =&gt; {
+  <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"IO"</span>);
+
+  <span class="fn">setTimeout</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"Timeout"</span>), <span class="num">0</span>);
+  <span class="fn">setImmediate</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"Immediate"</span>));
+  <span class="type">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"Promise"</span>));
+  <span class="type">process</span>.<span class="fn">nextTick</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"NextTick"</span>));
+});</code></pre>
+      </div>
+
+      <div class="flow"><div class="flow-row"><span class="flow-label">Output</span><div class="chips">
+        <div class="chip c-io">IO<small>I/O</small></div><span class="arrow">→</span>
+        <div class="chip c-tick">NextTick<small>nextTick</small></div><span class="arrow">→</span>
+        <div class="chip c-micro">Promise<small>microtask</small></div><span class="arrow">→</span>
+        <div class="chip c-imm">Immediate<small>check phase</small></div><span class="arrow">→</span>
+        <div class="chip c-timer">Timeout<small>timer</small></div>
+      </div></div></div>
+
+      <p><strong>Output:</strong> <code>IO → NextTick → Promise → Immediate → Timeout</code></p>
+      <div class="remember"><strong>Reason:</strong> When scheduled inside this I/O callback, <code>setImmediate()</code> runs before the zero-delay timer.</div>
+    </div>
+  </div>
+
+  <!-- EX 3 -->
+  <div class="section-divider" id="ex3"><span>3️⃣ Example 3 — Microtask Schedules Another Microtask</span></div>
+  <div class="card">
+    <div class="card-title">The Microtask Queue Finishes Before the Timer</div>
+    <div class="card-content">
+      <div class="code-block" data-file="example3.cjs" data-lang="JS" data-hl="4,7">
+<pre><code><span class="type">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() =&gt; {
+  <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"A"</span>);
+
+  <span class="fn">queueMicrotask</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"B"</span>));
+});
+
+<span class="fn">queueMicrotask</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"C"</span>));
+
+<span class="fn">setTimeout</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"D"</span>), <span class="num">0</span>);</code></pre>
+      </div>
+
+      <div class="flow"><div class="flow-row"><span class="flow-label">Output</span><div class="chips">
+        <div class="chip c-micro">A<small>microtask</small></div><span class="arrow">→</span>
+        <div class="chip c-micro">C<small>microtask</small></div><span class="arrow">→</span>
+        <div class="chip c-micro">B<small>microtask</small></div><span class="arrow">→</span>
+        <div class="chip c-timer">D<small>timer</small></div>
+      </div></div></div>
+
+      <p><strong>Output:</strong> <code>A → C → B → D</code></p>
+      <div class="remember"><strong>Reason:</strong> When <code>A</code> schedules <code>B</code>, <code>C</code> is already queued. The microtask queue finishes before the timer runs.</div>
+    </div>
+  </div>
+
+  <!-- EX 4 -->
+  <div class="section-divider" id="ex4"><span>4️⃣ Example 4 — nextTick Inside a Promise <span class="star">⭐</span></span></div>
+  <div class="card">
+    <div class="card-title">nextTick Does Not Interrupt the Current Microtask Drain</div>
+    <div class="card-content">
+      <div class="code-block" data-file="example4.cjs" data-lang="JS" data-hl="4">
+<pre><code><span class="type">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() =&gt; {
+  <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"A"</span>);
+
+  <span class="type">process</span>.<span class="fn">nextTick</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"B"</span>));
+});
+
+<span class="type">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"C"</span>));
+
+<span class="type">console</span>.<span class="fn">log</span>(<span class="str">"D"</span>);</code></pre>
+      </div>
+
+      <div class="flow"><div class="flow-row"><span class="flow-label">Output</span><div class="chips">
+        <div class="chip c-sync">D<small>sync</small></div><span class="arrow">→</span>
+        <div class="chip c-micro">A<small>microtask</small></div><span class="arrow">→</span>
+        <div class="chip c-micro">C<small>microtask</small></div><span class="arrow">→</span>
+        <div class="chip c-tick">B<small>nextTick</small></div>
+      </div></div></div>
+
+      <p><strong>Output:</strong> <code>D → A → C → B</code></p>
+      <div class="remember"><strong>Reason:</strong> <code>D</code> is synchronous. The nextTick scheduled inside <code>A</code> does not interrupt the microtask queue currently being drained, so <code>C</code> runs before <code>B</code>.</div>
+    </div>
+  </div>
+
+  <!-- EX 5 -->
+  <div class="section-divider" id="ex5"><span>5️⃣ Example 5 — Blocking Code Delays a Timer</span></div>
+  <div class="card">
+    <div class="card-title">A 500 ms Loop vs a 100 ms Timer</div>
+    <div class="card-content">
+      <div class="code-block" data-file="example5.cjs" data-lang="JS" data-hl="11,12,13">
+<pre><code><span class="type">console</span>.<span class="fn">log</span>(<span class="str">"Start"</span>);
+
+<span class="fn">setTimeout</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"Timer"</span>), <span class="num">100</span>);
+
+<span class="type">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"Promise"</span>));
+
+<span class="type">process</span>.<span class="fn">nextTick</span>(() =&gt; <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"NextTick"</span>));
+
+<span class="kw">const</span> start = <span class="type">Date</span>.<span class="fn">now</span>();
+
+<span class="kw">while</span> (<span class="type">Date</span>.<span class="fn">now</span>() - start &lt; <span class="num">500</span>) {
+  <span class="cmt">// Blocks the main thread</span>
+}
+
+<span class="type">console</span>.<span class="fn">log</span>(<span class="str">"End"</span>);</code></pre>
+      </div>
+
+      <div class="flow"><div class="flow-row"><span class="flow-label">Output</span><div class="chips">
+        <div class="chip c-sync">Start<small>sync</small></div><span class="arrow">→</span>
+        <div class="chip c-sync">End<small>sync</small></div><span class="arrow">→</span>
+        <div class="chip c-tick">NextTick<small>nextTick</small></div><span class="arrow">→</span>
+        <div class="chip c-micro">Promise<small>microtask</small></div><span class="arrow">→</span>
+        <div class="chip c-timer">Timer<small>timer</small></div>
+      </div></div></div>
+
+      <p><strong>Output:</strong> <code>Start → End → NextTick → Promise → Timer</code></p>
+      <div class="remember"><strong>Reason:</strong> The loop prevents callbacks from running. Even though the timer’s delay has elapsed, synchronous code and the queued nextTick/microtask callbacks run first.</div>
+    </div>
+  </div>
+
+  <!-- EX 6 -->
+  <div class="section-divider" id="ex6"><span>6️⃣ Example 6 — Interval with a Promise Callback</span></div>
+  <div class="card">
+    <div class="card-title">clearInterval Does Not Cancel a Queued Promise Handler</div>
+    <div class="card-content">
+      <div class="code-block" data-file="example6.cjs" data-lang="JS" data-hl="7,8,9,12">
+<pre><code><span class="kw">let</span> count = <span class="num">0</span>;
+
+<span class="kw">const</span> timer = <span class="fn">setInterval</span>(() =&gt; {
+  count++;
+  <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"Tick"</span>, count);
+
+  <span class="type">Promise</span>.<span class="fn">resolve</span>().<span class="fn">then</span>(() =&gt; {
+    <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"Promise"</span>, count);
+  });
+
+  <span class="kw">if</span> (count === <span class="num">2</span>) {
+    <span class="fn">clearInterval</span>(timer);
+    <span class="type">console</span>.<span class="fn">log</span>(<span class="str">"Stopped"</span>);
+  }
+}, <span class="num">100</span>);
+
+<span class="type">console</span>.<span class="fn">log</span>(<span class="str">"Start"</span>);</code></pre>
+      </div>
+
+      <p><strong>Output:</strong></p>
+      <div class="code-block" data-file="console output" data-lang="TEXT" data-hl="">
+<pre><code><span class="str">Start</span>
+<span class="str">Tick 1</span>
+<span class="str">Promise 1</span>
+<span class="str">Tick 2</span>
+<span class="str">Stopped</span>
+<span class="str">Promise 2</span></code></pre>
+      </div>
+
+      <div class="remember"><strong>Reason:</strong> Each interval callback finishes before its promise microtask runs. Clearing the interval stops future ticks, but does not cancel the already queued promise handler.</div>
+    </div>
+  </div>
+
+  <!-- TRAPS -->
+  <div class="section-divider" id="traps"><span>🚧 Interview Traps to Remember</span></div>
+  <div class="card">
+    <div class="card-content">
+      <ul class="traps">
+        <li><span><strong><code>0</code> delay is not immediate:</strong> callbacks cannot interrupt synchronous code.</span></li>
+        <li><span><strong>Promise executors run synchronously; promise handlers run as microtasks.</strong></span></li>
+        <li><span><strong>Top-level <code>setTimeout(0)</code> versus <code>setImmediate()</code> has no guaranteed order.</strong></span></li>
+        <li><span><strong>nextTick is not always first:</strong> one scheduled inside a promise handler waits for the current microtask drain.</span></li>
+        <li><span><strong>Module type matters:</strong> ES-module top-level ordering differs from these CommonJS examples.</span></li>
+        <li><span><strong>Endless nextTicks or microtasks can starve I/O and timers.</strong></span></li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function go(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth' }); }
+
+  // Code windows: title bar, line numbers, highlighted lines, copy button
+  document.querySelectorAll('.code-block').forEach(function (block) {
+    var code = block.querySelector('code');
+    var raw = code.textContent;
+    var hl = (block.dataset.hl || '').split(',').map(Number);
+    code.innerHTML = code.innerHTML.split('\n').map(function (line, i) {
+      return '<span class="l' + (hl.indexOf(i + 1) > -1 ? ' hl' : '') + '">' + (line || ' ') + '</span>';
+    }).join('');
+
+    var bar = document.createElement('div');
+    bar.className = 'code-bar';
+    bar.innerHTML = '<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>' +
+      '<span class="filename">' + block.dataset.file + '</span><span class="lang">' + (block.dataset.lang || 'JS') + '</span>' +
+      '<button class="copy" type="button">Copy</button>';
+    block.insertBefore(bar, block.firstChild);
+
+    var btn = bar.querySelector('.copy');
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(raw).then(function () {
+        btn.textContent = 'Copied ✓'; btn.classList.add('done');
+        setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1500);
+      });
+    });
+  });
+</script>
+</body>
+</html>
