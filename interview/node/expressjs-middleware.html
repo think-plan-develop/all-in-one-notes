@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Express.js Interview — Middleware, Routing &amp; Lifecycle</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 94%; max-width: 1120px; margin: 32px auto; --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 16px; padding: 26px 30px; margin-bottom: 22px; box-shadow: 0 12px 28px rgba(var(--shadow-rgb),.28); position: relative; overflow: hidden; }
+  .header::after { content:''; position:absolute; top:-60px; right:-60px; width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,.16); color:#fff; font-size:11px; font-weight:800; letter-spacing:.6px; padding:4px 12px; border-radius:20px; margin-bottom:10px; position:relative; }
+  .header h1 { color:#fff; font-size:28px; margin-bottom:6px; font-weight:800; letter-spacing:-.5px; position:relative; }
+  .header p { color:#dbe6ff; font-size:15px; margin-bottom:16px; max-width:780px; line-height:1.6; position:relative; }
+  .header p code { background:rgba(255,255,255,.15); padding:1px 6px; border-radius:4px; font-family:'Fira Code',Consolas,monospace; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px; position:relative; }
+  .toc a { text-decoration:none; padding:6px 15px; border-radius:20px; font-size:13px; font-weight:700; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.28); }
+  .toc a:hover { background:#fff; color:var(--accent); transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,.15); }
+
+  .topic-dropdown { position:relative; margin-bottom:12px; display:inline-block; z-index:5; }
+  .topic-dropdown summary { list-style:none; cursor:pointer; display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.16); color:#fff; font-size:13px; font-weight:800; padding:7px 16px; border-radius:22px; border:1px solid rgba(255,255,255,.32); transition:background .2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display:none; }
+  .topic-dropdown summary:hover { background:rgba(255,255,255,.26); }
+  .topic-dropdown summary::after { content:'▾'; margin-left:2px; transition:transform .2s ease; font-size:11px; }
+  .topic-dropdown[open] summary::after { transform:rotate(180deg); }
+  .topic-menu { position:absolute; top:calc(100% + 8px); left:0; z-index:20; background:#fff; border-radius:12px; padding:8px; min-width:300px; box-shadow:0 14px 30px rgba(0,0,0,.22); display:flex; flex-direction:column; gap:2px; }
+  .topic-menu a { text-decoration:none; color:#1a1a1a; font-size:14px; font-weight:700; padding:8px 14px; border-radius:8px; display:flex; align-items:center; gap:9px; transition:background .15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background:var(--content-bg); color:var(--accent); }
+  .topic-menu .group-label { font-size:10.5px; font-weight:800; letter-spacing:.6px; color:#94a3b8; padding:6px 14px 2px; text-transform:uppercase; }
+
+  .intro-summary { margin:0 0 10px; }
+  .intro-summary-title { font-size:19px; font-weight:800; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .summary-item { display:flex; align-items:center; gap:12px; border-radius:12px; padding:10px 14px; cursor:pointer; transition:transform .15s ease; }
+  .summary-item:hover { transform:translateY(-2px); }
+  .summary-icon { flex-shrink:0; width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:17px; background:rgba(255,255,255,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.6); }
+  .summary-text { font-size:14px; line-height:1.5; font-weight:500; }
+  .summary-text strong { font-weight:800; margin-right:3px; }
+  .summary-text code { font-family:'Fira Code',Consolas,monospace; font-size:.88em; background:rgba(255,255,255,.6); padding:1px 6px; border-radius:5px; }
+  .summary-blue   { background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#1e3a8a; } .summary-blue strong { color:#2563eb; }
+  .summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink strong { color:#db2777; }
+  .summary-amber  { background:linear-gradient(135deg,#fffbeb,#fef3c7); color:#92400e; } .summary-amber strong { color:#d97706; }
+  .summary-green  { background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; } .summary-green strong { color:#059669; }
+  .summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple strong { color:#7c3aed; }
+  .summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal strong { color:#0d9488; }
+  @media (max-width:640px) { .summary-grid { grid-template-columns:1fr; } }
+
+  .section-divider { margin:26px 0 12px; position:relative; }
+  .section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity:.22; }
+  .section-divider span { background:#f4f5fa; padding:0 16px 0 0; position:relative; font-size:20px; font-weight:800; display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  code.ti { font-family:'Fira Code',Consolas,monospace; font-size:.82em; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:1px 8px; border-radius:6px; }
+
+  .card { border-radius:14px; margin-bottom:14px; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.07); border:1px solid rgba(0,0,0,.04); background:#fff; }
+  .card-title { color:#fff; font-size:17px; font-weight:700; padding:12px 22px; background:linear-gradient(120deg,var(--accent),var(--accent-light)); letter-spacing:-.2px; }
+  .card-content { padding:18px 22px 16px; background:var(--content-bg); }
+  .card-content > * + * { margin-top:12px; }
+  .card-content p { color:#333; font-size:15px; line-height:1.7; font-weight:500; }
+  .card-content h4 { font-size:15px; font-weight:800; color:var(--heading); margin-top:18px; }
+  .card-content ul { margin-left:22px; }
+  .card-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; }
+  .card-content p code, .card-content li code, .card-content h4 code, td code, .short-answer code, .note code, .warning code, .remember code, th code, .interview code { font-family:'Fira Code',Consolas,monospace; font-size:.88em; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:2px 6px; border-radius:5px; }
+
+  .short-answer { background:linear-gradient(160deg,#fff 0%,var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),.16); border-left:4px solid var(--accent); border-radius:12px; padding:12px 18px 14px; font-size:15.5px; line-height:1.65; font-weight:500; color:#293244; box-shadow:0 6px 16px rgba(var(--shadow-rgb),.09); }
+  .short-answer::before { content:"QUICK TAKE"; display:block; width:fit-content; font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#fff; background:linear-gradient(120deg,var(--accent),var(--accent-light)); padding:3px 11px; border-radius:20px; margin-bottom:8px; }
+  .short-answer strong { color:var(--heading); }
+
+  .uses { display:flex; flex-wrap:wrap; gap:8px; }
+  .uses span { background:#fff; border:1px solid rgba(var(--shadow-rgb),.2); border-radius:20px; padding:6px 14px; font-size:14px; font-weight:700; color:var(--heading); box-shadow:0 3px 8px rgba(var(--shadow-rgb),.08); }
+
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:640px) { .duo { grid-template-columns:1fr; } }
+  .duo-card { border-radius:12px; padding:12px 16px; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+  .duo-card p { font-size:14px !important; font-weight:700 !important; margin:0; }
+  .duo-card.d1 { background:linear-gradient(135deg,#eff6ff,#dbeafe); border-left:5px solid #2563eb; }
+  .duo-card.d2 { background:linear-gradient(135deg,#f5f3ff,#ede9fe); border-left:5px solid #7c3aed; }
+  .duo-tag { font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#fff; padding:3px 10px; border-radius:12px; }
+  .d1 .duo-tag { background:#2563eb; } .d2 .duo-tag { background:#7c3aed; }
+
+  /* CODE WINDOW */
+  .code-block { --cb-bg:#1a2332; --cb-bar:#111a27; --cb-line:#2a374b; background:var(--cb-bg); border-radius:12px; overflow:hidden; box-shadow:0 10px 24px rgba(15,23,42,.28); border:1px solid #2a374b; }
+  .code-bar { background:var(--cb-bar); padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--cb-line); }
+  .code-bar .dot { width:10px; height:10px; border-radius:50%; }
+  .dot-red { background:#ff5f57; } .dot-yellow { background:#febc2e; } .dot-green { background:#28c840; }
+  .code-bar .filename { color:#9fb0c8; font-size:12px; margin-left:8px; font-family:'Fira Code',Consolas,monospace; }
+  .code-bar .lang { margin-left:auto; font-size:10.5px; font-weight:800; letter-spacing:.5px; color:#93c5fd; background:rgba(59,130,246,.16); padding:2px 9px; border-radius:10px; font-family:-apple-system,'Segoe UI',sans-serif; }
+  .code-bar .copy { font-size:11px; font-weight:700; color:#cbd5e1; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:8px; padding:3px 10px; cursor:pointer; margin-left:8px; font-family:-apple-system,'Segoe UI',sans-serif; transition:background .15s ease; }
+  .code-bar .copy:hover { background:rgba(255,255,255,.18); }
+  .code-bar .copy.done { color:#86efac; border-color:#86efac; }
+  .code-block pre { padding:12px 0; overflow-x:auto; counter-reset:ln; }
+  .code-block code { color:#d4d4d4; font-size:13px; font-family:'Fira Code',Consolas,monospace; line-height:1.6; white-space:pre; display:block; width:max-content; min-width:100%; background:none; padding:0; font-weight:400; }
+  .code-block .l { display:block; padding:0 18px 0 0; border-left:3px solid transparent; }
+  .code-block .l::before { counter-increment:ln; content:counter(ln); display:inline-block; width:38px; margin-right:14px; text-align:right; color:#4b5b73; user-select:none; }
+  .code-block .l.hl { background:rgba(59,130,246,.18); border-left-color:#60a5fa; }
+  .code-block .l.hl::before { color:#93c5fd; }
+  .kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .type { color:#f07178; } .attr { color:#ffcb6b; } .cmt { color:#7a8aa3; font-style:italic; } .num { color:#f78c6c; }
+
+  /* SHORT SNIPPETS (1-3 lines): inline chips */
+  .ic1 { display:inline-block; background:#1a2332; color:#d4d4d4; font-family:'Fira Code',Consolas,monospace; font-size:13px; font-weight:400; line-height:1.5; padding:3px 11px; border-radius:7px; border:1px solid #2a374b; white-space:pre; max-width:100%; overflow-x:auto; vertical-align:middle; }
+  .mini { display:flex; flex-direction:column; align-items:flex-start; gap:5px; }
+
+  /* FLOW DIAGRAMS */
+  .flow { background:#1a2332; border-radius:12px; padding:14px 18px; border:1px solid #2a374b; box-shadow:0 10px 24px rgba(15,23,42,.22); display:flex; flex-direction:column; gap:12px; }
+  .flow-row { display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; }
+  .flow-label { width:100%; font-size:11px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:#7dd3fc; }
+  .step { flex:1 1 110px; border-radius:10px; padding:9px 12px; font-size:13px; font-weight:700; line-height:1.4; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+  .step .n { font-size:10px; font-weight:800; letter-spacing:.7px; opacity:.75; }
+  .step code { font-family:'Fira Code',Consolas,monospace; font-size:.92em; background:rgba(255,255,255,.7); padding:1px 6px; border-radius:5px; }
+  .arrow { color:#7dd3fc; font-size:20px; font-weight:800; align-self:center; }
+  .c-src  { background:#dbeafe; color:#1e3a8a; }
+  .c-proc { background:#ede9fe; color:#5b21b6; }
+  .c-dst  { background:#d1fae5; color:#065f46; }
+  .c-warn { background:#fef3c7; color:#92400e; }
+  .c-bad  { background:#ffe4e6; color:#9f1239; }
+
+  /* CALLOUTS */
+  .note, .warning, .remember { border-radius:11px; padding:10px 16px; font-size:14.5px; line-height:1.65; font-weight:600; box-shadow:inset 0 0 0 1px rgba(255,255,255,.5); }
+  .note { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+  .warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+  .remember { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+  .interview { background:linear-gradient(135deg,#fffbeb,#fde68a); color:#78350f; border-radius:11px; padding:12px 18px; font-size:14.5px; line-height:1.7; font-weight:600; border-left:5px solid #f59e0b; }
+  .interview::before { content:"🎤 INTERVIEW ANSWER"; display:block; font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#b45309; margin-bottom:5px; }
+  .interview code { background:rgba(255,255,255,.7) !important; color:#78350f !important; }
+
+  /* TABLES */
+  .table-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:separate; border-spacing:0 5px; }
+  table th { background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899); color:#fff; font-size:12px; font-weight:800; letter-spacing:.7px; text-transform:uppercase; padding:9px 14px; text-align:left; }
+  table th:first-child { border-radius:10px 0 0 10px; } table th:last-child { border-radius:0 10px 10px 0; }
+  table th code { background:rgba(255,255,255,.2) !important; color:#fff !important; text-transform:none; }
+  table td { padding:8px 14px; font-size:14px; font-weight:600; color:#334155; vertical-align:middle; }
+  table td:first-child { border-radius:10px 0 0 10px; border-left:6px solid var(--rc); font-weight:800; color:var(--rd); }
+  table td:last-child { border-radius:0 10px 10px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background:var(--rb); box-shadow:0 2px 6px rgba(0,0,0,.05); }
+  table td code { background:#fff; color:var(--rd); border:1px solid var(--rc); padding:1px 7px; border-radius:6px; font-weight:700; }
+
+  .sub-label { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:800; color:#fff; width:fit-content; padding:5px 14px; border-radius:20px; flex-wrap:wrap; }
+  .sub-bad  { background:linear-gradient(120deg,#e11d48,#f43f5e); }
+  .sub-good { background:linear-gradient(120deg,#059669,#10b981); }
+  .sub-ex   { background:linear-gradient(120deg,#7c3aed,#a78bfa); }
+  /* CONNECTED STEPPER */
+  .stepper { background:#1a2332; border:1px solid #2a374b; border-radius:12px; padding:18px 22px; box-shadow:0 10px 24px rgba(15,23,42,.22); display:flex; flex-direction:column; }
+  .st { display:flex; gap:14px; align-items:stretch; }
+  .st-rail { display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:34px; }
+  .st-n { width:32px; height:32px; border-radius:50%; background:var(--c); color:#fff; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(255,255,255,.08), 0 4px 10px rgba(0,0,0,.35); flex-shrink:0; z-index:1; }
+  .st-line { position:relative; flex:1; width:3px; min-height:16px; margin:2px 0; border-radius:2px; background:linear-gradient(var(--c),var(--c2)); }
+  .st-line::after { content:''; position:absolute; left:50%; bottom:-4px; transform:translateX(-50%); border-left:6px solid transparent; border-right:6px solid transparent; border-top:8px solid var(--c2); }
+  .st-card { align-self:flex-start; min-height:32px; display:inline-flex; align-items:center; flex-wrap:wrap; gap:4px 12px; padding:4px 16px; border-radius:10px; font-size:13.5px; font-weight:700; }
+  .st-sub { font-size:12px; font-weight:600; opacity:.85; }
+  .st-card code { font-family:'Fira Code',Consolas,monospace; font-size:.92em; background:rgba(255,255,255,.7); padding:1px 7px; border-radius:5px; }
+  .st.last .st-n { box-shadow:0 0 0 4px rgba(16,185,129,.25), 0 0 16px rgba(16,185,129,.55); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <span class="tag">EXPRESS.JS · INTERVIEW NOTES</span>
+    <h1>🚂 Express.js — Top Interview Questions</h1>
+    <p>Why Express exists, middleware and <code>next()</code>, error handling, routing with <code>Router</code>, route vs query parameters, the request lifecycle, and a request-timeout example.</p>
+
+    <details class="topic-dropdown">
+      <summary>📁 MERN / JS Topics</summary>
+      <div class="topic-menu">
+        <span class="group-label">Node.js</span>
+        <a href="interview-node-event-loop.html">🔄 Event Loop, libuv &amp; Concurrency</a>
+        <a href="interview-node-execution-order.html">⏱️ Execution Order: nextTick &amp; Microtasks</a>
+        <a href="interview-node-fs-esm.html">📂 ES Modules &amp; File Handling</a>
+        <a href="interview-node-streams.html">🌊 Streams, pipe() &amp; Transform</a>
+        <a href="interview-node-events-buffer-inspect.html">📣 EventEmitter, Buffer &amp; util.inspect()</a>
+        <a href="interview-node-setup.html">🛠️ TypeScript + Express + MongoDB Setup</a>
+        <a class="current" href="interview-express.html">🚂 Express.js Top Interview Questions</a>
+        <span class="group-label">Next.js</span>
+        <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+        <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+        <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+        <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+        <a href="interview-nextjs-seo-images.html">🔍 SEO, Image &amp; Font Optimization</a>
+        <a href="interview-nextjs-build-deploy.html">🚀 Production Build &amp; Deployment</a>
+        <span class="group-label">React / JavaScript</span>
+        <a href="interview-js-async.html">⏳ Callbacks, Promises &amp; async/await</a>
+        <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+        <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+        <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+        <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+        <a href="interview-routing.html">🧭 React Router Interview</a>
+        <span class="group-label">MongoDB</span>
+        <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+        <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+        <span class="group-label">PostgreSQL</span>
+        <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+        <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+      </div>
+    </details>
+
+    <div class="toc">
+      <a onclick="go('q1')">Q1 Why Express</a>
+      <a onclick="go('q2')">Q2 Middleware</a>
+      <a onclick="go('q3')">Q3 Routing &amp; Lifecycle</a>
+      <a onclick="go('q4')">Q4 use vs get</a>
+      <a onclick="go('timeout')">Q5 Request Timeout</a>
+    </div>
+  </div>
+
+  <div class="intro-summary">
+    <div class="intro-summary-title">🧩 Key Terms at a Glance</div>
+    <div class="summary-grid">
+      <div class="summary-item summary-blue" onclick="go('q1')"><div class="summary-icon">🚀</div><div class="summary-text"><strong>Why Express:</strong> routing, middleware, parsing and error handling on top of <code>http</code>.</div></div>
+      <div class="summary-item summary-pink" onclick="go('q2')"><div class="summary-icon">🔗</div><div class="summary-text"><strong>Middleware + next():</strong> runs in registration order; no <code>next()</code> or response = request stops.</div></div>
+      <div class="summary-item summary-amber" onclick="go('q2')"><div class="summary-icon">🚨</div><div class="summary-text"><strong>Error middleware:</strong> four parameters — <code>(err, req, res, next)</code>.</div></div>
+      <div class="summary-item summary-green" onclick="go('q3')"><div class="summary-icon">🧭</div><div class="summary-text"><strong>Router:</strong> <code>express.Router()</code> + <code>app.use("/users", …)</code> for modular routes.</div></div>
+      <div class="summary-item summary-purple" onclick="go('q3')"><div class="summary-icon">🔎</div><div class="summary-text"><strong>params vs query:</strong> <code>req.params</code> identifies; <code>req.query</code> filters.</div></div>
+      <div class="summary-item summary-teal" onclick="go('timeout')"><div class="summary-icon">⏱️</div><div class="summary-text"><strong>Timeout:</strong> <code>AbortController</code> aborts a slow fetch after 3 seconds.</div></div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="intro"><span>🎯 Top 3 Interview Questions</span></div>
+  <div class="card">
+    <div class="card-title">What to Prepare</div>
+    <div class="card-content">
+      <div class="short-answer">Based on the <strong>full Express.js notes</strong>, not just the existing Interview Q&amp;A section, these are the <strong>3 highest-value interview questions</strong> to prepare. They collectively cover why Express exists, middleware/body parsing/error handling, routing/router/params, and the request lifecycle.</div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="q1"><span>1️⃣ Q1 · Why Express.js?</span></div>
+  <div class="card">
+    <div class="card-title">Why do we use Express.js when Node.js already provides the http module?</div>
+    <div class="card-content">
+      <h4>Why do we use Express.js when Node.js already provides the <code>http</code> module?</h4>
+      <p><strong>Answer:</strong></p>
+      <p>Node.js provides the built-in <code>http</code> module, so we can create a server without Express. However, as the application grows, using only the HTTP module requires us to manually handle things like:</p>
+      <div class="uses"><span>Routing</span><span>Request body parsing</span><span>Query parsing</span><span>Error handling</span><span>Authentication and validation flow</span><span>Static files and cookies</span></div>
+      <p>For example, with the HTTP module we may need multiple <code>if/else</code> conditions for routing:</p>
+      <div class="code-block" data-file="http-module.js" data-lang="JS" data-hl="1,3">
+<pre><code>if (req.url === &quot;/users&quot;) {
+  // users
+} else if (req.url === &quot;/products&quot;) {
+  // products
+}</code></pre>
+      </div>
+      <p>Express is a <strong>lightweight web framework built on top of Node.js's HTTP module</strong> that simplifies these tasks.</p>
+      <div class="code-block" data-file="express-routes.js" data-lang="JS" data-hl="1,5">
+<pre><code>app.get(&quot;/users&quot;, (req, res) =&gt; {
+  res.send(&quot;Users&quot;);
+});
+
+app.get(&quot;/products&quot;, (req, res) =&gt; {
+  res.send(&quot;Products&quot;);
+});</code></pre>
+      </div>
+      <p>Express provides features such as:</p>
+      <div class="uses"><span>Routing</span><span>Middleware</span><span>Body Parsing</span><span>Error Handling</span><span>Static File Serving</span><span>Cookie Parsing</span></div>
+      <p>So Express helps us build applications that are <strong>cleaner, modular, scalable, and easier to maintain</strong>.</p>
+      <div class="interview">Express.js is a lightweight framework built on top of Node.js's HTTP module that simplifies server development by providing routing, middleware, request parsing, response utilities, and centralized error handling.</div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="q2"><span>2️⃣ Q2 · Middleware</span></div>
+  <div class="card">
+    <div class="card-title">What is middleware in Express?</div>
+    <div class="card-content">
+      <h4>What is middleware in Express? Explain <code>next()</code>, middleware order, body parsing, and error-handling middleware.</h4>
+      <p><strong>Answer:</strong></p>
+      <p>Middleware is a function that runs during the <strong>request-response lifecycle</strong>, usually before the final route handler.</p>
+      <p>A middleware receives:</p>
+      <div class="mini"><code class="ic1" data-js>(req, res, next)</code></div>
+      <p>Example:</p>
+      <div class="code-block" data-file="logger.js" data-lang="JS" data-hl="4,7">
+<pre><code>const logger = (req, res, next) =&gt; {
+  console.log(req.method, req.url);
+
+  next();
+};
+
+app.use(logger);</code></pre>
+      </div>
+      <p>Middleware can:</p>
+      <div class="uses"><span>Execute common logic</span><span>Modify req or res</span><span>End the request</span><span>Pass control to the next middleware</span></div>
+      <p><code>next()</code> tells Express to continue processing the request.</p>
+      <div class="code-block" data-file="auth.js" data-lang="JS" data-hl="4">
+<pre><code>const auth = (req, res, next) =&gt; {
+  // check authentication
+
+  next();
+};</code></pre>
+      </div>
+      <div class="warning">If neither <code>next()</code> nor a response such as <code>res.send()</code> is called, the request will stop there.</div>
+      <h4>Why middleware order matters</h4>
+      <p>Express processes middleware in registration order.</p>
+      <span class="sub-label sub-good">✅ Correct</span>
+      <div class="code-block" data-file="order.js" data-lang="JS" data-hl="1,3,6">
+<pre><code>app.use(express.json());
+
+app.use(authMiddleware);
+
+app.post(&quot;/users&quot;, (req, res) =&gt; {
+  console.log(req.body);
+});</code></pre>
+      </div>
+      <p>Here:</p>
+      <div class="flow">
+        <div class="flow-row"><div class="step c-src">Request</div><span class="arrow">→</span><div class="step c-proc"><code>express.json()</code></div><span class="arrow">→</span><div class="step c-proc"><code>authMiddleware</code></div><span class="arrow">→</span><div class="step c-dst">Route Handler</div></div>
+      </div>
+      <div class="remember"><code>express.json()</code> must execute before a route that needs <code>req.body</code>.</div>
+      <h4>Error-handling middleware</h4>
+      <p>Express also supports centralized error handling.</p>
+      <div class="duo"><div class="duo-card d1"><span class="duo-tag">NORMAL MIDDLEWARE</span><code class="ic1" data-js>(req, res, next)</code><p>A normal middleware has:</p></div><div class="duo-card d2"><span class="duo-tag">ERROR MIDDLEWARE</span><code class="ic1" data-js>(err, req, res, next)</code><p>An error middleware has <strong>four parameters</strong>:</p></div></div>
+      <p>Example:</p>
+      <div class="code-block" data-file="error-handler.js" data-lang="JS" data-hl="5,9">
+<pre><code>app.get(&quot;/user&quot;, (req, res, next) =&gt; {
+  try {
+    throw new Error(&quot;Something went wrong&quot;);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.use((err, req, res, next) =&gt; {
+  res.status(500).json({
+    message: err.message,
+  });
+});</code></pre>
+      </div>
+      <div class="flow">
+        <div class="flow-row"><div class="step c-bad"><code>throw</code> in route</div><span class="arrow">→</span><div class="step c-warn"><code>next(error)</code></div><span class="arrow">→</span><div class="step c-proc">Error-handling middleware</div><span class="arrow">→</span><div class="step c-dst"><code>res.status(500).json()</code></div></div>
+      </div>
+      <p><code>next(error)</code> forwards the error to the error-handling middleware.</p>
+      <div class="interview">Middleware is a function with access to <code>req</code>, <code>res</code>, and <code>next</code> that executes during the request-response cycle. Express executes middleware in order, so parsing, authentication, and validation middleware must be registered before routes that depend on them.</div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="q3"><span>3️⃣ Q3 · Routing, Router, Params &amp; Lifecycle</span></div>
+  <div class="card">
+    <div class="card-title">Routing, Router, route vs query parameters, and the request lifecycle</div>
+    <div class="card-content">
+      <h4>Explain routing in Express, <code>Router</code>, route parameters vs query parameters, and the complete Express request lifecycle.</h4>
+      <p><strong>Answer:</strong></p>
+      <p>Express routing maps an HTTP method and URL to a handler.</p>
+      <div class="code-block" data-file="routing.js" data-lang="JS" data-hl="1,5">
+<pre><code>app.get(&quot;/users&quot;, (req, res) =&gt; {
+  res.send(&quot;Users&quot;);
+});
+
+app.post(&quot;/users&quot;, (req, res) =&gt; {
+  res.send(&quot;User created&quot;);
+});</code></pre>
+      </div>
+      <p>For larger applications, Express provides <code>express.Router()</code> so related routes can be separated into modules.</p>
+      <div class="code-block" data-file="userRoutes.js" data-lang="JS" data-hl="1,3,7">
+<pre><code>const router = express.Router();
+
+router.get(&quot;/&quot;, (req, res) =&gt; {
+  res.send(&quot;All Users&quot;);
+});
+
+router.get(&quot;/:id&quot;, (req, res) =&gt; {
+  res.send(`User: ${req.params.id}`);
+});
+
+export default router;</code></pre>
+      </div>
+      <p>Then mount it:</p>
+      <div class="mini"><code class="ic1" data-js>app.use(&quot;/users&quot;, userRoutes);</code></div>
+      <p>So:</p>
+      <div class="flow">
+        <div class="flow-row"><div class="step c-src"><code>router.get("/")</code></div><span class="arrow">→</span><div class="step c-dst"><code>GET /users</code></div></div>
+        <div class="flow-row"><div class="step c-src"><code>router.get("/:id")</code></div><span class="arrow">→</span><div class="step c-dst"><code>GET /users/101</code></div></div>
+      </div>
+      <p>This makes the application more <strong>modular, maintainable, and scalable</strong>.</p>
+      <h4>Route parameter vs query parameter</h4>
+      <p>A <strong>route parameter</strong> identifies a specific resource.</p>
+      <div class="mini"><code class="ic1">/users/101</code></div>
+      <div class="mini"><code class="ic1" data-js>app.get(&quot;/users/:id&quot;, (req, res) =&gt; {</code><code class="ic1" data-js>  console.log(req.params.id);</code><code class="ic1" data-js>});</code></div>
+      <p>Access it using:</p>
+      <div class="mini"><code class="ic1" data-js>req.params</code></div>
+      <p>A <strong>query parameter</strong> is generally used for filtering, searching, sorting, or pagination.</p>
+      <div class="mini"><code class="ic1">/users?page=2&amp;limit=10</code></div>
+      <p>Access it using:</p>
+      <div class="mini"><code class="ic1" data-js>req.query.page</code><code class="ic1" data-js>req.query.limit</code></div>
+      <div class="table-scroll"><table><tr><th>Route parameter</th><th>Query parameter</th></tr><tr><td><code>/users/101</code></td><td><code>/users?page=2</code></td></tr><tr><td><code>req.params</code></td><td><code>req.query</code></td></tr><tr><td>Identifies resource</td><td>Filter/search/sort/pagination</td></tr><tr><td>Usually required</td><td>Usually optional</td></tr></table></div>
+      <h4>Complete Express request lifecycle</h4>
+      <p>A typical request flows like this:</p>
+      <div class="stepper">
+        <div class="st" style="--c:#3b82f6;--c2:#3b82f6"><div class="st-rail"><span class="st-n">1</span><span class="st-line"></span></div><div class="st-card c-src"><span>Client</span></div></div>
+        <div class="st" style="--c:#3b82f6;--c2:#8b5cf6"><div class="st-rail"><span class="st-n">2</span><span class="st-line"></span></div><div class="st-card c-src"><span>HTTP Request</span></div></div>
+        <div class="st" style="--c:#8b5cf6;--c2:#8b5cf6"><div class="st-rail"><span class="st-n">3</span><span class="st-line"></span></div><div class="st-card c-proc"><span>Express App</span></div></div>
+        <div class="st" style="--c:#8b5cf6;--c2:#8b5cf6"><div class="st-rail"><span class="st-n">4</span><span class="st-line"></span></div><div class="st-card c-proc"><span>Global Middleware</span><span class="st-sub"><code>express.json()</code>, logger</span></div></div>
+        <div class="st" style="--c:#8b5cf6;--c2:#8b5cf6"><div class="st-rail"><span class="st-n">5</span><span class="st-line"></span></div><div class="st-card c-proc"><span>Route Matching</span><span class="st-sub"><code>app.get()</code>, <code>app.post()</code>, Router</span></div></div>
+        <div class="st" style="--c:#8b5cf6;--c2:#10b981"><div class="st-rail"><span class="st-n">6</span><span class="st-line"></span></div><div class="st-card c-proc"><span>Route Middleware</span><span class="st-sub">auth, validation</span></div></div>
+        <div class="st" style="--c:#10b981;--c2:#10b981"><div class="st-rail"><span class="st-n">7</span><span class="st-line"></span></div><div class="st-card c-dst"><span>Controller / Route Handler</span></div></div>
+        <div class="st" style="--c:#10b981;--c2:#f59e0b"><div class="st-rail"><span class="st-n">8</span><span class="st-line"></span></div><div class="st-card c-dst"><span>Business Logic</span></div></div>
+        <div class="st" style="--c:#f59e0b;--c2:#10b981"><div class="st-rail"><span class="st-n">9</span><span class="st-line"></span></div><div class="st-card c-warn"><span>Database</span></div></div>
+        <div class="st" style="--c:#10b981;--c2:#3b82f6"><div class="st-rail"><span class="st-n">10</span><span class="st-line"></span></div><div class="st-card c-dst"><span>Response</span></div></div>
+        <div class="st last" style="--c:#3b82f6;--c2:#3b82f6"><div class="st-rail"><span class="st-n">11</span></div><div class="st-card c-src"><span>Client</span></div></div>
+      </div>
+      <p>For example:</p>
+      <div class="code-block" data-file="lifecycle.js" data-lang="JS" data-hl="1,2,6,7">
+<pre><code>app.use(express.json());
+app.use(logger);
+
+app.get(
+  &quot;/users/:id&quot;,
+  authMiddleware,
+  getUser
+);</code></pre>
+      </div>
+      <p>The flow would be:</p>
+      <div class="stepper">
+        <div class="st" style="--c:#3b82f6;--c2:#8b5cf6"><div class="st-rail"><span class="st-n">1</span><span class="st-line"></span></div><div class="st-card c-src"><span>Request</span></div></div>
+        <div class="st" style="--c:#8b5cf6;--c2:#8b5cf6"><div class="st-rail"><span class="st-n">2</span><span class="st-line"></span></div><div class="st-card c-proc"><span><code>express.json()</code></span></div></div>
+        <div class="st" style="--c:#8b5cf6;--c2:#8b5cf6"><div class="st-rail"><span class="st-n">3</span><span class="st-line"></span></div><div class="st-card c-proc"><span>logger</span></div></div>
+        <div class="st" style="--c:#8b5cf6;--c2:#8b5cf6"><div class="st-rail"><span class="st-n">4</span><span class="st-line"></span></div><div class="st-card c-proc"><span>Route match</span></div></div>
+        <div class="st" style="--c:#8b5cf6;--c2:#10b981"><div class="st-rail"><span class="st-n">5</span><span class="st-line"></span></div><div class="st-card c-proc"><span><code>authMiddleware</code></span></div></div>
+        <div class="st" style="--c:#10b981;--c2:#f59e0b"><div class="st-rail"><span class="st-n">6</span><span class="st-line"></span></div><div class="st-card c-dst"><span><code>getUser</code> controller</span></div></div>
+        <div class="st" style="--c:#f59e0b;--c2:#10b981"><div class="st-rail"><span class="st-n">7</span><span class="st-line"></span></div><div class="st-card c-warn"><span>Database</span></div></div>
+        <div class="st last" style="--c:#10b981;--c2:#10b981"><div class="st-rail"><span class="st-n">8</span></div><div class="st-card c-dst"><span><code>res.json()</code></span></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="q4"><span>4️⃣ Q4 · app.use() vs app.get() vs router.get()</span></div>
+  <div class="card">
+    <div class="card-title">app.use() vs app.get() vs router.get()</div>
+    <div class="card-content">
+      <h4>What is the difference between <code>app.use()</code>, <code>app.get()</code>, and <code>router.get()</code>?</h4>
+      <span class="sub-label sub-ex"><code style="background:rgba(255,255,255,.2);padding:0 6px;border-radius:4px">app.use()</code> — registers middleware or mounts a router</span>
+      <div class="mini"><code class="ic1" data-js>app.use(express.json());</code><code class="ic1" data-js>app.use(&quot;/users&quot;, userRouter);</code></div>
+      <span class="sub-label sub-good"><code style="background:rgba(255,255,255,.2);padding:0 6px;border-radius:4px">app.get()</code> — handles a GET request directly on the main app</span>
+      <div class="mini"><code class="ic1" data-js>app.get(&quot;/users&quot;, (req, res) =&gt; {</code><code class="ic1" data-js>  res.send(&quot;Users&quot;);</code><code class="ic1" data-js>});</code></div>
+      <span class="sub-label sub-bad"><code style="background:rgba(255,255,255,.2);padding:0 6px;border-radius:4px">router.get()</code> — handles a GET request inside an express.Router()</span>
+      <div class="code-block" data-file="router.js" data-lang="JS" data-hl="3">
+<pre><code>const router = express.Router();
+
+router.get(&quot;/:id&quot;, (req, res) =&gt; {
+  res.send(req.params.id);
+});</code></pre>
+      </div>
+      <p>Mounted as:</p>
+      <div class="mini"><code class="ic1" data-js>app.use(&quot;/users&quot;, router);</code></div>
+      <p>So <code>router.get("/:id")</code> becomes:</p>
+      <div class="mini"><code class="ic1">GET /users/:id</code></div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="timeout"><span>5️⃣ Q5 · Add a Request Timeout</span></div>
+  <div class="card">
+    <div class="card-title">Add a Request Timeout</div>
+    <div class="card-content">
+      <h4>Fetch data from an external API and abort the request if it takes longer than three seconds.</h4>
+      <div class="code-block" data-file="fetch-timeout.js" data-lang="JS" data-hl="2,3,7,12">
+<pre><code>async function fetchWithTimeout(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() =&gt; controller.abort(), 3000);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+    });
+
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function main() {
+  try {
+    const data = await fetchWithTimeout(
+      &quot;https://jsonplaceholder.typicode.com/users&quot;
+    );
+
+    console.log(data);
+  } catch (error) {
+    console.log(&quot;Request failed:&quot;, error.message);
+  }
+}
+
+main();</code></pre>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function go(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth' }); }
+
+  // Lightweight JS syntax highlighter (input: raw text, output: escaped HTML with colour spans)
+  function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  var TOK = /(\/\/[^\n]*)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)|\b(import|from|const|let|new|if|return|await|async|true|false|null|function|export|default|try|catch|throw|finally|else)\b|\b(\d+)\b|\b(console|fs|zlib|process|JSON|Promise|express|AbortController|Error)\b|\b([A-Za-z_]\w*)(?=\s*:)|\b([A-Za-z_]\w*)(?=\()/g;
+  function hlJS(text) {
+    var out = '', last = 0, m;
+    TOK.lastIndex = 0;
+    while ((m = TOK.exec(text))) {
+      out += esc(text.slice(last, m.index));
+      var cls = m[1] ? 'cmt' : m[2] ? 'str' : m[3] ? 'kw' : m[4] ? 'num' : m[5] ? 'type' : m[6] ? 'attr' : 'fn';
+      out += '<span class="' + cls + '">' + esc(m[0]) + '</span>';
+      last = m.index + m[0].length;
+    }
+    return out + esc(text.slice(last));
+  }
+
+  // Inline chips (1-3 line snippets)
+  document.querySelectorAll('code.ic1[data-js]').forEach(function (el) { el.innerHTML = hlJS(el.textContent); });
+
+  // Code windows: highlight, title bar, line numbers, highlighted lines, copy button
+  document.querySelectorAll('.code-block').forEach(function (block) {
+    var code = block.querySelector('code');
+    var raw = code.textContent;
+    var lang = block.dataset.lang || 'JS';
+    var hl = (block.dataset.hl || '').split(',').map(Number);
+    var html = lang === 'TEXT' ? esc(raw) : hlJS(raw);
+    code.innerHTML = html.split('\n').map(function (line, i) {
+      return '<span class="l' + (hl.indexOf(i + 1) > -1 ? ' hl' : '') + '">' + (line || ' ') + '</span>';
+    }).join('');
+
+    var bar = document.createElement('div');
+    bar.className = 'code-bar';
+    bar.innerHTML = '<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>' +
+      '<span class="filename">' + block.dataset.file + '</span><span class="lang">' + lang + '</span>' +
+      '<button class="copy" type="button">Copy</button>';
+    block.insertBefore(bar, block.firstChild);
+
+    var btn = bar.querySelector('.copy');
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(raw).then(function () {
+        btn.textContent = 'Copied ✓'; btn.classList.add('done');
+        setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1500);
+      });
+    });
+  });
+</script>
+</body>
+</html>

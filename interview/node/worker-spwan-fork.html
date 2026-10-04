@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Node.js Interview — Worker Threads, child_process &amp; Cluster</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 94%; max-width: 1120px; margin: 32px auto; --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 16px; padding: 26px 30px; margin-bottom: 22px; box-shadow: 0 12px 28px rgba(var(--shadow-rgb),.28); position: relative; overflow: hidden; }
+  .header::after { content:''; position:absolute; top:-60px; right:-60px; width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,.16); color:#fff; font-size:11px; font-weight:800; letter-spacing:.6px; padding:4px 12px; border-radius:20px; margin-bottom:10px; position:relative; }
+  .header h1 { color:#fff; font-size:28px; margin-bottom:6px; font-weight:800; letter-spacing:-.5px; position:relative; }
+  .header p { color:#dbe6ff; font-size:15px; margin-bottom:16px; max-width:780px; line-height:1.6; position:relative; }
+  .header p code { background:rgba(255,255,255,.15); padding:1px 6px; border-radius:4px; font-family:'Fira Code',Consolas,monospace; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px; position:relative; }
+  .toc a { text-decoration:none; padding:6px 15px; border-radius:20px; font-size:13px; font-weight:700; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.28); }
+  .toc a:hover { background:#fff; color:var(--accent); transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,.15); }
+
+  .topic-dropdown { position:relative; margin-bottom:12px; display:inline-block; z-index:5; }
+  .topic-dropdown summary { list-style:none; cursor:pointer; display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.16); color:#fff; font-size:13px; font-weight:800; padding:7px 16px; border-radius:22px; border:1px solid rgba(255,255,255,.32); transition:background .2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display:none; }
+  .topic-dropdown summary:hover { background:rgba(255,255,255,.26); }
+  .topic-dropdown summary::after { content:'▾'; margin-left:2px; transition:transform .2s ease; font-size:11px; }
+  .topic-dropdown[open] summary::after { transform:rotate(180deg); }
+  .topic-menu { position:absolute; top:calc(100% + 8px); left:0; z-index:20; background:#fff; border-radius:12px; padding:8px; min-width:300px; box-shadow:0 14px 30px rgba(0,0,0,.22); display:flex; flex-direction:column; gap:2px; }
+  .topic-menu a { text-decoration:none; color:#1a1a1a; font-size:14px; font-weight:700; padding:8px 14px; border-radius:8px; display:flex; align-items:center; gap:9px; transition:background .15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background:var(--content-bg); color:var(--accent); }
+  .topic-menu .group-label { font-size:10.5px; font-weight:800; letter-spacing:.6px; color:#94a3b8; padding:6px 14px 2px; text-transform:uppercase; }
+
+  .intro-summary { margin:0 0 10px; }
+  .intro-summary-title { font-size:19px; font-weight:800; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .summary-item { display:flex; align-items:center; gap:12px; border-radius:12px; padding:10px 14px; cursor:pointer; transition:transform .15s ease; }
+  .summary-item:hover { transform:translateY(-2px); }
+  .summary-icon { flex-shrink:0; width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:17px; background:rgba(255,255,255,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.6); }
+  .summary-text { font-size:14px; line-height:1.5; font-weight:500; }
+  .summary-text strong { font-weight:800; margin-right:3px; }
+  .summary-text code { font-family:'Fira Code',Consolas,monospace; font-size:.88em; background:rgba(255,255,255,.6); padding:1px 6px; border-radius:5px; }
+  .summary-blue   { background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#1e3a8a; } .summary-blue strong { color:#2563eb; }
+  .summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink strong { color:#db2777; }
+  .summary-amber  { background:linear-gradient(135deg,#fffbeb,#fef3c7); color:#92400e; } .summary-amber strong { color:#d97706; }
+  .summary-green  { background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; } .summary-green strong { color:#059669; }
+  .summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple strong { color:#7c3aed; }
+  .summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal strong { color:#0d9488; }
+  @media (max-width:640px) { .summary-grid { grid-template-columns:1fr; } }
+
+  .section-divider { margin:26px 0 12px; position:relative; }
+  .section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity:.22; }
+  .section-divider span { background:#f4f5fa; padding:0 16px 0 0; position:relative; font-size:20px; font-weight:800; display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  code.ti { font-family:'Fira Code',Consolas,monospace; font-size:.82em; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:1px 8px; border-radius:6px; }
+
+  .card { border-radius:14px; margin-bottom:14px; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.07); border:1px solid rgba(0,0,0,.04); background:#fff; }
+  .card-title { color:#fff; font-size:17px; font-weight:700; padding:12px 22px; background:linear-gradient(120deg,var(--accent),var(--accent-light)); letter-spacing:-.2px; }
+  .card-content { padding:18px 22px 16px; background:var(--content-bg); }
+  .card-content > * + * { margin-top:12px; }
+  .card-content p { color:#333; font-size:15px; line-height:1.7; font-weight:500; }
+  .card-content h4 { font-size:15px; font-weight:800; color:var(--heading); margin-top:18px; }
+  .card-content ul { margin-left:22px; }
+  .card-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; }
+  .card-content p code, .card-content li code, .card-content h4 code, td code, .short-answer code, .note code, .warning code, .remember code, th code, .interview code { font-family:'Fira Code',Consolas,monospace; font-size:.88em; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:2px 6px; border-radius:5px; }
+
+  .short-answer { background:linear-gradient(160deg,#fff 0%,var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),.16); border-left:4px solid var(--accent); border-radius:12px; padding:12px 18px 14px; font-size:15.5px; line-height:1.65; font-weight:500; color:#293244; box-shadow:0 6px 16px rgba(var(--shadow-rgb),.09); }
+  .short-answer::before { content:"QUICK TAKE"; display:block; width:fit-content; font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#fff; background:linear-gradient(120deg,var(--accent),var(--accent-light)); padding:3px 11px; border-radius:20px; margin-bottom:8px; }
+  .short-answer strong { color:var(--heading); }
+
+  .uses { display:flex; flex-wrap:wrap; gap:8px; }
+  .uses span { background:#fff; border:1px solid rgba(var(--shadow-rgb),.2); border-radius:20px; padding:6px 14px; font-size:14px; font-weight:700; color:var(--heading); box-shadow:0 3px 8px rgba(var(--shadow-rgb),.08); }
+
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:640px) { .duo { grid-template-columns:1fr; } }
+  .duo-card { border-radius:12px; padding:12px 16px; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+  .duo-card p { font-size:14px !important; font-weight:700 !important; margin:0; }
+  .duo-card.d1 { background:linear-gradient(135deg,#eff6ff,#dbeafe); border-left:5px solid #2563eb; }
+  .duo-card.d2 { background:linear-gradient(135deg,#f5f3ff,#ede9fe); border-left:5px solid #7c3aed; }
+  .duo-tag { font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#fff; padding:3px 10px; border-radius:12px; }
+  .d1 .duo-tag { background:#2563eb; } .d2 .duo-tag { background:#7c3aed; }
+
+  /* CODE WINDOW */
+  .code-block { --cb-bg:#1a2332; --cb-bar:#111a27; --cb-line:#2a374b; background:var(--cb-bg); border-radius:12px; overflow:hidden; box-shadow:0 10px 24px rgba(15,23,42,.28); border:1px solid #2a374b; }
+  .code-bar { background:var(--cb-bar); padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--cb-line); }
+  .code-bar .dot { width:10px; height:10px; border-radius:50%; }
+  .dot-red { background:#ff5f57; } .dot-yellow { background:#febc2e; } .dot-green { background:#28c840; }
+  .code-bar .filename { color:#9fb0c8; font-size:12px; margin-left:8px; font-family:'Fira Code',Consolas,monospace; }
+  .code-bar .lang { margin-left:auto; font-size:10.5px; font-weight:800; letter-spacing:.5px; color:#93c5fd; background:rgba(59,130,246,.16); padding:2px 9px; border-radius:10px; font-family:-apple-system,'Segoe UI',sans-serif; }
+  .code-bar .copy { font-size:11px; font-weight:700; color:#cbd5e1; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:8px; padding:3px 10px; cursor:pointer; margin-left:8px; font-family:-apple-system,'Segoe UI',sans-serif; transition:background .15s ease; }
+  .code-bar .copy:hover { background:rgba(255,255,255,.18); }
+  .code-bar .copy.done { color:#86efac; border-color:#86efac; }
+  .code-block pre { padding:12px 0; overflow-x:auto; counter-reset:ln; }
+  .code-block code { color:#d4d4d4; font-size:13px; font-family:'Fira Code',Consolas,monospace; line-height:1.6; white-space:pre; display:block; width:max-content; min-width:100%; background:none; padding:0; font-weight:400; }
+  .code-block .l { display:block; padding:0 18px 0 0; border-left:3px solid transparent; }
+  .code-block .l::before { counter-increment:ln; content:counter(ln); display:inline-block; width:38px; margin-right:14px; text-align:right; color:#4b5b73; user-select:none; }
+  .code-block .l.hl { background:rgba(59,130,246,.18); border-left-color:#60a5fa; }
+  .code-block .l.hl::before { color:#93c5fd; }
+  .kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .type { color:#f07178; } .attr { color:#ffcb6b; } .cmt { color:#7a8aa3; font-style:italic; } .num { color:#f78c6c; }
+
+  /* SHORT SNIPPETS (1-3 lines): inline chips */
+  .ic1 { display:inline-block; background:#1a2332; color:#d4d4d4; font-family:'Fira Code',Consolas,monospace; font-size:13px; font-weight:400; line-height:1.5; padding:3px 11px; border-radius:7px; border:1px solid #2a374b; white-space:pre; max-width:100%; overflow-x:auto; vertical-align:middle; }
+  .mini { display:flex; flex-direction:column; align-items:flex-start; gap:5px; }
+
+  /* FLOW DIAGRAMS */
+  .flow { background:#1a2332; border-radius:12px; padding:14px 18px; border:1px solid #2a374b; box-shadow:0 10px 24px rgba(15,23,42,.22); display:flex; flex-direction:column; gap:12px; }
+  .flow-row { display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; }
+  .flow-label { width:100%; font-size:11px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:#7dd3fc; }
+  .step { flex:1 1 110px; border-radius:10px; padding:9px 12px; font-size:13px; font-weight:700; line-height:1.4; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+  .step .n { font-size:10px; font-weight:800; letter-spacing:.7px; opacity:.75; }
+  .step code { font-family:'Fira Code',Consolas,monospace; font-size:.92em; background:rgba(255,255,255,.7); padding:1px 6px; border-radius:5px; }
+  .arrow { color:#7dd3fc; font-size:20px; font-weight:800; align-self:center; }
+  .c-src  { background:#dbeafe; color:#1e3a8a; }
+  .c-proc { background:#ede9fe; color:#5b21b6; }
+  .c-dst  { background:#d1fae5; color:#065f46; }
+  .c-warn { background:#fef3c7; color:#92400e; }
+  .c-bad  { background:#ffe4e6; color:#9f1239; }
+
+  /* CALLOUTS */
+  .note, .warning, .remember { border-radius:11px; padding:10px 16px; font-size:14.5px; line-height:1.65; font-weight:600; box-shadow:inset 0 0 0 1px rgba(255,255,255,.5); }
+  .note { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+  .warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+  .remember { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+  .interview { background:linear-gradient(135deg,#fffbeb,#fde68a); color:#78350f; border-radius:11px; padding:12px 18px; font-size:14.5px; line-height:1.7; font-weight:600; border-left:5px solid #f59e0b; }
+  .interview::before { content:"🎤 INTERVIEW ANSWER"; display:block; font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#b45309; margin-bottom:5px; }
+  .interview code { background:rgba(255,255,255,.7) !important; color:#78350f !important; }
+
+  /* TABLES */
+  .table-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:separate; border-spacing:0 5px; }
+  table th { background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899); color:#fff; font-size:12px; font-weight:800; letter-spacing:.7px; text-transform:uppercase; padding:9px 14px; text-align:left; }
+  table th:first-child { border-radius:10px 0 0 10px; } table th:last-child { border-radius:0 10px 10px 0; }
+  table th code { background:rgba(255,255,255,.2) !important; color:#fff !important; text-transform:none; }
+  table td { padding:8px 14px; font-size:14px; font-weight:600; color:#334155; vertical-align:middle; }
+  table td:first-child { border-radius:10px 0 0 10px; border-left:6px solid var(--rc); font-weight:800; color:var(--rd); }
+  table td:last-child { border-radius:0 10px 10px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background:var(--rb); box-shadow:0 2px 6px rgba(0,0,0,.05); }
+  table td code { background:#fff; color:var(--rd); border:1px solid var(--rc); padding:1px 7px; border-radius:6px; font-weight:700; }
+
+  .ic1.blk { padding:8px 14px; line-height:1.6; }
+  /* OVERVIEW DIAGRAM */
+  .dgram { background:#1a2332; border:1px solid #2a374b; border-radius:12px; padding:18px; box-shadow:0 10px 24px rgba(15,23,42,.22); display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .dg-top { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .dg { border-radius:10px; padding:8px 14px; font-size:13px; font-weight:700; line-height:1.4; text-align:center; }
+  .dg code { font-family:'Fira Code',Consolas,monospace; font-size:.92em; background:rgba(255,255,255,.7); padding:1px 6px; border-radius:5px; }
+  .dg-ar { color:#7dd3fc; font-size:18px; font-weight:800; line-height:1; }
+  .dg-split { display:grid; grid-template-columns:1fr 2fr; gap:14px; width:100%; align-items:start; }
+  @media (max-width:760px) { .dg-split { grid-template-columns:1fr; } }
+  .dg-region { position:relative; border:1.5px dashed #3d5170; border-radius:12px; padding:26px 14px 14px; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .dg-rt { position:absolute; top:-9px; left:14px; background:#1a2332; padding:0 8px; font-size:10.5px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:#7dd3fc; }
+  .dg-branch { display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; align-items:start; }
+  @media (max-width:560px) { .dg-branch { grid-template-columns:1fr; } }
+  .dg-b { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  /* COMPARISON CARDS */
+  .cmp { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; align-items:start; }
+  @media (max-width:900px) { .cmp { grid-template-columns:1fr; } }
+  .cmp-card { background:#fff; border-radius:12px; padding:0 0 14px; box-shadow:0 4px 12px rgba(0,0,0,.06); border:1px solid rgba(var(--shadow-rgb),.14); overflow:hidden; display:flex; flex-direction:column; gap:10px; }
+  .cmp-card > p, .cmp-card > .exf { margin:0 14px; }
+  .cmp-card p { font-size:14px !important; line-height:1.6 !important; }
+  .cmp-h { color:#fff; font-weight:800; font-size:15px; padding:9px 14px; }
+  .cmp-h code { background:rgba(255,255,255,.22) !important; color:#fff !important; font-family:'Fira Code',Consolas,monospace; padding:1px 7px; border-radius:5px; }
+  .w1 .cmp-h { background:linear-gradient(120deg,#2563eb,#3b82f6); }
+  .w2 .cmp-h { background:linear-gradient(120deg,#d97706,#f59e0b); }
+  .w3 .cmp-h { background:linear-gradient(120deg,#7c3aed,#a78bfa); }
+  .cmp-use { background:rgba(var(--shadow-rgb),.07); border-radius:8px; padding:8px 10px; }
+  .exf { display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
+  .exf .ic1 { max-width:100%; }
+  .exf-name { font-size:11px; font-weight:800; color:#475569; font-family:'Fira Code',Consolas,monospace; background:rgba(var(--shadow-rgb),.1); padding:1px 8px; border-radius:8px; }
+  /* QUOTE */
+  .quote { background:linear-gradient(135deg,#fdf2f8,#fce7f3); border-left:5px solid #ec4899; color:#9d174d; border-radius:11px; padding:12px 18px; font-size:15px; font-weight:700; line-height:1.65; }
+  .quote span { display:block; font-weight:600; font-size:14px; margin-top:2px; }
+  .quote code { background:rgba(255,255,255,.7); padding:1px 6px; border-radius:5px; font-family:'Fira Code',Consolas,monospace; }
+  /* CONNECTED STEPPER */
+  .stepper { background:#1a2332; border:1px solid #2a374b; border-radius:12px; padding:18px 22px; box-shadow:0 10px 24px rgba(15,23,42,.22); display:flex; flex-direction:column; }
+  .st { display:flex; gap:14px; align-items:stretch; }
+  .st-rail { display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:34px; }
+  .st-n { width:32px; height:32px; border-radius:50%; background:var(--c); color:#fff; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px rgba(255,255,255,.08), 0 4px 10px rgba(0,0,0,.35); flex-shrink:0; z-index:1; }
+  .st-line { position:relative; flex:1; width:3px; min-height:16px; margin:2px 0; border-radius:2px; background:linear-gradient(var(--c),var(--c2)); }
+  .st-line::after { content:''; position:absolute; left:50%; bottom:-4px; transform:translateX(-50%); border-left:6px solid transparent; border-right:6px solid transparent; border-top:8px solid var(--c2); }
+  .st-card { align-self:flex-start; min-height:32px; display:inline-flex; align-items:center; flex-wrap:wrap; gap:4px 12px; padding:4px 16px; border-radius:10px; font-size:13.5px; font-weight:700; }
+  .st-sub { font-size:12px; font-weight:600; opacity:.85; }
+  .st-card code { font-family:'Fira Code',Consolas,monospace; font-size:.92em; background:rgba(255,255,255,.7); padding:1px 7px; border-radius:5px; }
+  .st.last .st-n { box-shadow:0 0 0 4px rgba(16,185,129,.25), 0 0 16px rgba(16,185,129,.55); }
+
+/* Refined section palette and balanced, self-contained overview */
+body{background:#f5f7fb;color:#1e293b}
+.header{background:linear-gradient(115deg,#142b50,#234b80);overflow:visible}
+.header::after{display:none}
+.card{box-shadow:0 4px 18px rgba(15,23,42,.055);border:1px solid #e2e8f0}
+.card-content{background:var(--content-bg);padding:22px}
+.card-title{background:var(--accent-dark);padding:14px 22px}
+.section-divider{scroll-margin-top:20px;margin-top:32px}
+.section-divider::before{background:var(--accent);opacity:.18}
+.section-divider span{background:#f5f7fb;color:var(--heading)}
+.overview-visual{background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow-x:auto}
+.overview-visual svg{display:block;width:100%;min-width:700px;height:auto}
+.cmp{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cmp-card,.exf{min-width:0}
+.w3 .cmp-h{background:#047857}
+.w2 .cmp-h{background:#b45309}
+.w1 .cmp-h{background:#1d4ed8}
+.note{background:#eef2ff;border-left:4px solid #6366f1}
+.warning{background:#fff1f2;border-left:4px solid #e11d48}
+.remember{background:#ecfdf5;border-left:4px solid #059669}
+.quote{background:#fffbeb;border-color:#d97706;color:#92400e}
+@media(max-width:900px){.cmp{grid-template-columns:1fr}}
+@media(max-width:640px){.container{width:96%;margin:16px auto}.header{padding:22px 18px}.card-content{padding:14px}.card-title{padding:13px 16px}.flow-row{flex-direction:column}.flow-row .step{flex:auto;width:100%;min-height:48px}.flow-row .arrow{transform:rotate(90deg)}.section-divider span{font-size:18px}}
+@media print{.header,.card,.section-divider{-webkit-print-color-adjust:exact;print-color-adjust:exact}.overview-visual svg{min-width:0}.card{break-inside:avoid}.topic-dropdown,.copy{display:none}}
+#overview,#overview + .card{--accent-dark:#334155;--accent:#475569;--accent-light:#475569;--content-bg:#f8fafc;--heading:#334155;--shadow-rgb:51,65,85;}
+#compare,#compare + .card{--accent-dark:#1e40af;--accent:#2563eb;--accent-light:#2563eb;--content-bg:#f8fbff;--heading:#1e40af;--shadow-rgb:37,99,235;}
+#child,#child + .card{--accent-dark:#9d174d;--accent:#db2777;--accent-light:#db2777;--content-bg:#fff8fb;--heading:#9d174d;--shadow-rgb:219,39,119;}
+#spawn,#spawn + .card{--accent-dark:#92400e;--accent:#d97706;--accent-light:#d97706;--content-bg:#fffdf6;--heading:#92400e;--shadow-rgb:217,119,6;}
+#fork,#fork + .card{--accent-dark:#065f46;--accent:#059669;--accent-light:#059669;--content-bg:#f5fdf9;--heading:#065f46;--shadow-rgb:5,150,105;}
+#cluster,#cluster + .card{--accent-dark:#5b21b6;--accent:#7c3aed;--accent-light:#7c3aed;--content-bg:#faf8ff;--heading:#5b21b6;--shadow-rgb:124,58,237;}
+#bullmq,#bullmq + .card{--accent-dark:#115e59;--accent:#0d9488;--accent-light:#0d9488;--content-bg:#f4fcfb;--heading:#115e59;--shadow-rgb:13,148,136;}
+
+/* Restrained blue headings and neutral reading surfaces */
+.container .section-divider,.container > .card{--accent-dark:#1e40af;--accent:#2563eb;--accent-light:#3b82f6;--content-bg:#fff;--heading:#1e40af;--shadow-rgb:37,99,235}
+.section-divider span{color:#1e40af}
+.card-title{background:#eff6ff;color:#1e40af;border-bottom:1px solid #dbeafe}
+.card-content{background:#fff}
+.card-content p,.card-content li{color:#334155}
+.short-answer{background:#f8fafc;box-shadow:none;border-color:#e2e8f0;border-left-color:#2563eb}
+.short-answer::before{display:none}
+.short-answer strong{color:inherit}
+.uses span{color:#334155;background:#f8fafc;border-color:#e2e8f0;box-shadow:none}
+.quote{background:#f8fafc;color:#334155;border-color:#2563eb;font-weight:500}
+.remember,.warning{background:#eff6ff;color:#334155;border-left:3px solid #2563eb;box-shadow:none}
+.table-scroll{border-radius:10px}
+.bullmq-answers{background:#f8fafc;border:1px solid #e2e8f0;padding:12px 16px;border-radius:10px}
+
+/* Colorful comparison table + code windows */
+.comparison{min-width:900px;table-layout:fixed;border-collapse:separate;border-spacing:0 10px}
+.comparison th{border-radius:0!important;font-size:14px;text-transform:none;letter-spacing:0;padding:14px 16px}
+.comparison th:nth-child(1){background:#1e293b;border-radius:10px 0 0 10px!important}
+.comparison th:nth-child(2){background:#6d28d9}
+.comparison th:nth-child(3){background:#0f172a;border-radius:0 10px 10px 0!important}
+.comparison tbody tr.r1{--rc:#2563eb;--rb:#eff6ff;--rd:#1e40af}
+.comparison tbody tr.r2{--rc:#d97706;--rb:#fffbeb;--rd:#92400e}
+.comparison tbody tr.r3{--rc:#059669;--rb:#ecfdf5;--rd:#065f46}
+table.comparison tbody tr:nth-child(n) td{background:var(--rb)!important;border:0!important;border-top:3px solid var(--rc)!important;border-bottom:3px solid var(--rc)!important;color:#334155!important;font-weight:500;line-height:1.65;padding:16px;vertical-align:top;box-shadow:none!important;border-radius:0!important}
+table.comparison tbody tr:nth-child(n) td:first-child{background:var(--rc)!important;color:#fff!important;font-size:16px;font-weight:800;border-radius:12px 0 0 12px!important}
+table.comparison tbody tr:nth-child(n) td:last-child{border-radius:0 12px 12px 0!important}
+.comparison td strong{color:var(--rd)}
+.comparison td .code-block{margin-bottom:12px;border-color:var(--rc);box-shadow:0 6px 16px rgba(15,23,42,.2)}
+.comparison td .code-block:last-child{margin-bottom:0}
+.comparison td .code-block pre{margin:0;padding:12px 0;white-space:pre;overflow-x:auto}
+.comparison td .code-block code{display:block;width:max-content;min-width:100%;background:none!important;border:0!important;color:#d4d4d4!important;padding:0!important;font-size:12.5px!important;line-height:1.6;font-weight:400}
+</style>
+</head>
+<body><div class="container"><div class="header"><h1>Worker Threads, Child Process &amp; Cluster</h1><div class="toc"><a href="#overview">Overview</a><a href="#compare">Comparison</a><a href="#cluster">Cluster</a><a href="#child">Child Process</a><a href="#spawn">spawn()</a><a href="#fork">fork()</a><a href="#bullmq">BullMQ</a></div></div><div class="section-divider" id="overview"><span>Overview — Where Does the Extra Work Run?</span></div><div class="card"><div class="card-content"><div class="overview-visual"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 740" role="img" aria-labelledby="flow-title"><title id="flow-title">Node.js execution: worker threads inside the same process, child processes in separate processes</title><defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#64748b"/></marker></defs><rect x="355" y="15" width="390" height="52" rx="12" fill="#172554" stroke="#172554" stroke-width="1.5"/><text x="550.0" y="47.0" text-anchor="middle" fill="#ffffff" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">Node.js application process</text><path d="M550 67V91" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/><rect x="355" y="97" width="390" height="52" rx="12" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/><text x="550.0" y="129.0" text-anchor="middle" fill="#1e293b" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">Need additional execution</text><rect x="20" y="215" width="515" height="505" rx="18" fill="#eff6ff" stroke="#bfdbfe"/><rect x="565" y="215" width="515" height="505" rx="18" fill="#f5f3ff" stroke="#ddd6fe"/><path d="M550 149V180H277V234" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/><path d="M550 180H822V234" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/><rect x="70" y="240" width="415" height="60" rx="12" fill="#1d4ed8" stroke="#1d4ed8" stroke-width="1.5"/><text x="277.5" y="276.0" text-anchor="middle" fill="#fff" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">Inside the same process</text><rect x="615" y="240" width="415" height="60" rx="12" fill="#6d28d9" stroke="#6d28d9" stroke-width="1.5"/><text x="822.5" y="276.0" text-anchor="middle" fill="#fff" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">In separate processes</text><path d="M277 300V348" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/><rect x="70" y="355" width="415" height="75" rx="12" fill="#dbeafe" stroke="#93c5fd" stroke-width="1.5"/><text x="277.5" y="386.5" text-anchor="middle" fill="#1e40af" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">worker_threads:</text><text x="277.5" y="410.5" text-anchor="middle" fill="#1e40af" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">additional JS threads</text><path d="M822 300V325" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/><rect x="665" y="332" width="315" height="52" rx="12" fill="#ede9fe" stroke="#c4b5fd" stroke-width="1.5"/><text x="822.5" y="364.0" text-anchor="middle" fill="#5b21b6" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">child_process</text><path d="M822 384V408H702V437" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/><path d="M822 408H942V437" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/><rect x="590" y="444" width="224" height="77" rx="12" fill="#fffbeb" stroke="#fcd34d" stroke-width="1.5"/><text x="702.0" y="476.5" text-anchor="middle" fill="#92400e" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">spawn():</text><text x="702.0" y="500.5" text-anchor="middle" fill="#92400e" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">start an executable</text><rect x="830" y="444" width="224" height="77" rx="12" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/><text x="942.0" y="476.5" text-anchor="middle" fill="#065f46" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">fork(): start another</text><text x="942.0" y="500.5" text-anchor="middle" fill="#065f46" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">Node.js file</text><path d="M942 521V547" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/><rect x="830" y="554" width="224" height="60" rx="12" fill="#ede9fe" stroke="#c4b5fd" stroke-width="1.5"/><text x="942.0" y="578.0" text-anchor="middle" fill="#5b21b6" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">cluster uses fork()</text><text x="942.0" y="602.0" text-anchor="middle" fill="#5b21b6" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">internally</text><path d="M942 614V640" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrowhead)"/><rect x="830" y="647" width="224" height="60" rx="12" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/><text x="942.0" y="671.0" text-anchor="middle" fill="#065f46" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">Multiple server processes</text><text x="942.0" y="695.0" text-anchor="middle" fill="#065f46" font-size="17" font-weight="600" font-family="Segoe UI,Arial,sans-serif">sharing a port</text></svg></div></div></div>
+
+<div class="section-divider" id="compare"><span>Worker Threads vs spawn() vs fork()</span></div><div class="card"><div class="card-content"><div class="table-scroll">
+<table class="comparison">
+  <colgroup><col style="width:13%"><col style="width:30%"><col style="width:57%"></colgroup>
+  <thead><tr><th>Feature</th><th>Definition and when to use</th><th>Smallest program</th></tr></thead>
+  <tbody>
+    <tr class="r1">
+      <td>Worker threads</td>
+      <td>Run JavaScript on another thread within the <strong>same process</strong>. Use for <strong>CPU-heavy JavaScript</strong>, such as calculating sales totals from lakhs of eCommerce orders.</td>
+      <td>
+        <div class="code-block" data-file="main.mjs" data-lang="JS"><pre><code>import { Worker } from "node:worker_threads";
+new Worker(new URL("./worker.mjs", import.meta.url));</code></pre></div>
+        <div class="code-block" data-file="worker.mjs" data-lang="JS"><pre><code>console.log("Running on a worker thread");</code></pre></div>
+      </td>
+    </tr>
+    <tr class="r2">
+      <td>spawn()</td>
+      <td>Start an <strong>external program in a separate process</strong>. Use to run tools such as <strong>FFmpeg for LMS video compression</strong> or Python scripts.</td>
+      <td>
+        <div class="code-block" data-file="main.mjs" data-lang="JS"><pre><code>import { spawn } from "node:child_process";
+spawn("python", ["-c", "print('Hello')"], { stdio: "inherit" });</code></pre></div>
+      </td>
+    </tr>
+    <tr class="r3">
+      <td>fork()</td>
+      <td>Start another <strong>Node.js process</strong>, with built-in messaging support. Use to run a Node.js task separately, such as a <strong>property document processor</strong> outside the API process.</td>
+      <td>
+        <div class="code-block" data-file="main.mjs" data-lang="JS"><pre><code>import { fork } from "node:child_process";
+fork("./child.mjs");</code></pre></div>
+        <div class="code-block" data-file="child.mjs" data-lang="JS"><pre><code>console.log("Running in a child process");</code></pre></div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+
+<div class="section-divider" id="cluster"><span>What Is Cluster?</span></div><div class="card"><div class="card-content"><p>The <strong>Cluster</strong> module allows multiple Node.js processes to run simultaneously and share the same server port, utilizing multiple CPU cores.</p></div></div><div class="section-divider" id="child"><span>What Is a Child Process?</span></div><div class="card"><div class="card-content"><p>A <strong>Child Process</strong> allows a Node.js application to create a new operating system (OS) process to execute another program or command independently of the main Node.js process.</p><p>That program could be:</p><div class="uses"><span>Another Node.js application</span><span>A Python script</span><span>A Java program</span><span>A Shell/Bash script</span><span>A Git command</span><span>FFmpeg</span><span>Docker CLI</span><span>AWS CLI</span></div></div></div><div class="section-divider" id="spawn"><span>spawn()</span></div><div class="card"><div class="card-content"><p>Imagine your Node.js application needs to run Python scripts. Instead of executing these itself, Node.js asks the operating system:</p><div class="quote">“Please start this program in a separate process.” That is exactly what <code>spawn()</code> does.</div><p><strong>sum.py</strong></p><div class="mini"><code class="ic1 blk">for i in range(20):
+    print(i)</code></div><div class="code-block" data-file="server.js" data-lang="JS"><pre><code>import { spawn } from "child_process";
+
+// Start a Python process
+const python = spawn("python", ["sum.py"]);
+
+// Receive output from Python
+python.stdout.on("data", (data) => {
+  console.log(data.toString());
+});</code></pre></div></div></div><div class="section-divider" id="fork"><span>fork()</span></div><div class="card"><div class="card-content"><p><code>fork()</code> is a function in Node.js’s <code>child_process</code> module that runs another JavaScript file in a separate Node.js process.</p><ul><li>It also creates a communication channel so parent and child can exchange messages using <code>.send()</code>.</li></ul><p>Compare <strong><code>process.pid</code></strong>, which is the ID of the running process.</p><div class="code-block" data-file="parent.mjs" data-lang="JS"><pre><code>import { fork } from "node:child_process";
+
+console.log("Parent process:", process.pid);
+
+fork("./child.mjs");</code></pre></div><div class="code-block" data-file="child.mjs" data-lang="JS"><pre><code>console.log("Child process:", process.pid);
+console.log("My parent:", process.ppid);</code></pre></div><p>Run <code>node parent.mjs</code>:</p><div class="mini"><code class="ic1 blk">Parent process: 12000
+Child process: 12001
+My parent: 12000</code></div><div class="remember">The <strong>different process IDs prove they are separate processes</strong>. Actual numbers will vary.</div></div></div><div class="section-divider" id="bullmq"><span>BullMQ Worker vs Worker Thread</span></div><div class="card"><div class="card-content"><div class="warning"><strong>Important:</strong> A BullMQ Worker is not a Node.js worker thread.</div><ul><li><strong>BullMQ Worker:</strong> A job consumer that runs your processing function.</li><li><strong>Worker thread:</strong> A separate thread that executes JavaScript.</li></ul><div class="bullmq-answers"><p><strong>BullMQ answers:</strong> “Which job runs next, and should it retry?”</p><p><strong>Worker threads / spawn() / fork() answer:</strong> “Where and how does the work execute?”</p></div><p>For example, in an LMS video-upload flow:</p><div class="stepper">
+        <div class="st" style="--c:#3b82f6;--c2:#8b5cf6"><div class="st-rail"><span class="st-n">1</span><span class="st-line"></span></div><div class="st-card c-src"><span>The user uploads a video</span></div></div>
+        <div class="st" style="--c:#8b5cf6;--c2:#8b5cf6"><div class="st-rail"><span class="st-n">2</span><span class="st-line"></span></div><div class="st-card c-proc"><span>Your API adds a “compress video” job to BullMQ, stored in Redis</span></div></div>
+        <div class="st" style="--c:#8b5cf6;--c2:#f59e0b"><div class="st-rail"><span class="st-n">3</span><span class="st-line"></span></div><div class="st-card c-proc"><span>A BullMQ Worker picks up the job</span></div></div>
+        <div class="st" style="--c:#f59e0b;--c2:#10b981"><div class="st-rail"><span class="st-n">4</span><span class="st-line"></span></div><div class="st-card c-warn"><span>Inside the job handler, <code>spawn()</code> starts FFmpeg to compress the video</span></div></div>
+        <div class="st last" style="--c:#10b981;--c2:#10b981"><div class="st-rail"><span class="st-n">5</span></div><div class="st-card c-dst"><span>The handler waits for FFmpeg to finish, then completes the job</span><span class="st-sub">If it fails, BullMQ can retry when configured.</span></div></div>
+      </div></div></div></div><script>
+  function go(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth' }); }
+
+  // Lightweight JS syntax highlighter (input: raw text, output: escaped HTML with colour spans)
+  function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  var TOK = /(\/\/[^\n]*)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)|\b(import|from|const|let|new|if|return|await|async|true|false|null|function)\b|\b(\d+)\b|\b(console|fs|zlib|process|JSON|Promise)\b|\b([A-Za-z_]\w*)(?=\s*:)|\b([A-Za-z_]\w*)(?=\()/g;
+  function hlJS(text) {
+    var out = '', last = 0, m;
+    TOK.lastIndex = 0;
+    while ((m = TOK.exec(text))) {
+      out += esc(text.slice(last, m.index));
+      var cls = m[1] ? 'cmt' : m[2] ? 'str' : m[3] ? 'kw' : m[4] ? 'num' : m[5] ? 'type' : m[6] ? 'attr' : 'fn';
+      out += '<span class="' + cls + '">' + esc(m[0]) + '</span>';
+      last = m.index + m[0].length;
+    }
+    return out + esc(text.slice(last));
+  }
+
+  // Inline chips (1-3 line snippets)
+  document.querySelectorAll('code.ic1[data-js]').forEach(function (el) { el.innerHTML = hlJS(el.textContent); });
+
+  // Code windows: highlight, title bar, line numbers, highlighted lines, copy button
+  document.querySelectorAll('.code-block').forEach(function (block) {
+    var code = block.querySelector('code');
+    var raw = code.textContent;
+    var lang = block.dataset.lang || 'JS';
+    var hl = (block.dataset.hl || '').split(',').map(Number);
+    var html = lang === 'TEXT' ? esc(raw) : hlJS(raw);
+    code.innerHTML = html.split('\n').map(function (line, i) {
+      return '<span class="l' + (hl.indexOf(i + 1) > -1 ? ' hl' : '') + '">' + (line || ' ') + '</span>';
+    }).join('');
+
+    var bar = document.createElement('div');
+    bar.className = 'code-bar';
+    bar.innerHTML = '<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>' +
+      '<span class="filename">' + block.dataset.file + '</span><span class="lang">' + lang + '</span>' +
+      '<button class="copy" type="button">Copy</button>';
+    block.insertBefore(bar, block.firstChild);
+
+    var btn = bar.querySelector('.copy');
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(raw).then(function () {
+        btn.textContent = 'Copied ✓'; btn.classList.add('done');
+        setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1500);
+      });
+    });
+  });
+</script>
+</body>
+</html>

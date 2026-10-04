@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JavaScript Interview — Callbacks, Promises &amp; async/await</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 94%; max-width: 1120px; margin: 32px auto; --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 16px; padding: 26px 30px; margin-bottom: 22px; box-shadow: 0 12px 28px rgba(var(--shadow-rgb),.28); position: relative; overflow: hidden; }
+  .header::after { content:''; position:absolute; top:-60px; right:-60px; width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,.16); color:#fff; font-size:11px; font-weight:800; letter-spacing:.6px; padding:4px 12px; border-radius:20px; margin-bottom:10px; position:relative; }
+  .header h1 { color:#fff; font-size:28px; margin-bottom:6px; font-weight:800; letter-spacing:-.5px; position:relative; }
+  .header p { color:#dbe6ff; font-size:15px; margin-bottom:16px; max-width:780px; line-height:1.6; position:relative; }
+  .header p code { background:rgba(255,255,255,.15); padding:1px 6px; border-radius:4px; font-family:'Fira Code',Consolas,monospace; }
+  .toc { display:flex; flex-wrap:wrap; gap:8px; position:relative; }
+  .toc a { text-decoration:none; padding:6px 15px; border-radius:20px; font-size:13px; font-weight:700; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.28); }
+  .toc a:hover { background:#fff; color:var(--accent); transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,.15); }
+
+  .topic-dropdown { position:relative; margin-bottom:12px; display:inline-block; z-index:5; }
+  .topic-dropdown summary { list-style:none; cursor:pointer; display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.16); color:#fff; font-size:13px; font-weight:800; padding:7px 16px; border-radius:22px; border:1px solid rgba(255,255,255,.32); transition:background .2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display:none; }
+  .topic-dropdown summary:hover { background:rgba(255,255,255,.26); }
+  .topic-dropdown summary::after { content:'▾'; margin-left:2px; transition:transform .2s ease; font-size:11px; }
+  .topic-dropdown[open] summary::after { transform:rotate(180deg); }
+  .topic-menu { position:absolute; top:calc(100% + 8px); left:0; z-index:20; background:#fff; border-radius:12px; padding:8px; min-width:300px; box-shadow:0 14px 30px rgba(0,0,0,.22); display:flex; flex-direction:column; gap:2px; }
+  .topic-menu a { text-decoration:none; color:#1a1a1a; font-size:14px; font-weight:700; padding:8px 14px; border-radius:8px; display:flex; align-items:center; gap:9px; transition:background .15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background:var(--content-bg); color:var(--accent); }
+  .topic-menu .group-label { font-size:10.5px; font-weight:800; letter-spacing:.6px; color:#94a3b8; padding:6px 14px 2px; text-transform:uppercase; }
+
+  .intro-summary { margin:0 0 10px; }
+  .intro-summary-title { font-size:19px; font-weight:800; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .summary-item { display:flex; align-items:center; gap:12px; border-radius:12px; padding:10px 14px; cursor:pointer; transition:transform .15s ease; }
+  .summary-item:hover { transform:translateY(-2px); }
+  .summary-icon { flex-shrink:0; width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:17px; background:rgba(255,255,255,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.6); }
+  .summary-text { font-size:14px; line-height:1.5; font-weight:500; }
+  .summary-text strong { font-weight:800; margin-right:3px; }
+  .summary-text code { font-family:'Fira Code',Consolas,monospace; font-size:.88em; background:rgba(255,255,255,.6); padding:1px 6px; border-radius:5px; }
+  .summary-blue   { background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#1e3a8a; } .summary-blue strong { color:#2563eb; }
+  .summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink strong { color:#db2777; }
+  .summary-amber  { background:linear-gradient(135deg,#fffbeb,#fef3c7); color:#92400e; } .summary-amber strong { color:#d97706; }
+  .summary-green  { background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; } .summary-green strong { color:#059669; }
+  .summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple strong { color:#7c3aed; }
+  .summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal strong { color:#0d9488; }
+  @media (max-width:640px) { .summary-grid { grid-template-columns:1fr; } }
+
+  .section-divider { margin:26px 0 12px; position:relative; }
+  .section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity:.22; }
+  .section-divider span { background:#f4f5fa; padding:0 16px 0 0; position:relative; font-size:20px; font-weight:800; display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  code.ti { font-family:'Fira Code',Consolas,monospace; font-size:.82em; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:1px 8px; border-radius:6px; }
+
+  .card { border-radius:14px; margin-bottom:14px; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.07); border:1px solid rgba(0,0,0,.04); background:#fff; }
+  .card-title { color:#fff; font-size:17px; font-weight:700; padding:12px 22px; background:linear-gradient(120deg,var(--accent),var(--accent-light)); letter-spacing:-.2px; }
+  .card-content { padding:18px 22px 16px; background:var(--content-bg); }
+  .card-content > * + * { margin-top:12px; }
+  .card-content p { color:#333; font-size:15px; line-height:1.7; font-weight:500; }
+  .card-content h4 { font-size:15px; font-weight:800; color:var(--heading); margin-top:18px; }
+  .card-content ul { margin-left:22px; }
+  .card-content li { font-size:14.5px; line-height:1.7; color:#334155; font-weight:500; }
+  .card-content p code, .card-content li code, .card-content h4 code, td code, .short-answer code, .note code, .warning code, .remember code, th code, .interview code { font-family:'Fira Code',Consolas,monospace; font-size:.88em; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:2px 6px; border-radius:5px; }
+
+  .short-answer { background:linear-gradient(160deg,#fff 0%,var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),.16); border-left:4px solid var(--accent); border-radius:12px; padding:12px 18px 14px; font-size:15.5px; line-height:1.65; font-weight:500; color:#293244; box-shadow:0 6px 16px rgba(var(--shadow-rgb),.09); }
+  .short-answer::before { content:"QUICK TAKE"; display:block; width:fit-content; font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#fff; background:linear-gradient(120deg,var(--accent),var(--accent-light)); padding:3px 11px; border-radius:20px; margin-bottom:8px; }
+  .short-answer strong { color:var(--heading); }
+
+  .uses { display:flex; flex-wrap:wrap; gap:8px; }
+  .uses span { background:#fff; border:1px solid rgba(var(--shadow-rgb),.2); border-radius:20px; padding:6px 14px; font-size:14px; font-weight:700; color:var(--heading); box-shadow:0 3px 8px rgba(var(--shadow-rgb),.08); }
+
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:640px) { .duo { grid-template-columns:1fr; } }
+  .duo-card { border-radius:12px; padding:12px 16px; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+  .duo-card p { font-size:14px !important; font-weight:700 !important; margin:0; }
+  .duo-card.d1 { background:linear-gradient(135deg,#eff6ff,#dbeafe); border-left:5px solid #2563eb; }
+  .duo-card.d2 { background:linear-gradient(135deg,#f5f3ff,#ede9fe); border-left:5px solid #7c3aed; }
+  .duo-tag { font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#fff; padding:3px 10px; border-radius:12px; }
+  .d1 .duo-tag { background:#2563eb; } .d2 .duo-tag { background:#7c3aed; }
+
+  /* CODE WINDOW */
+  .code-block { --cb-bg:#1a2332; --cb-bar:#111a27; --cb-line:#2a374b; background:var(--cb-bg); border-radius:12px; overflow:hidden; box-shadow:0 10px 24px rgba(15,23,42,.28); border:1px solid #2a374b; }
+  .code-bar { background:var(--cb-bar); padding:8px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--cb-line); }
+  .code-bar .dot { width:10px; height:10px; border-radius:50%; }
+  .dot-red { background:#ff5f57; } .dot-yellow { background:#febc2e; } .dot-green { background:#28c840; }
+  .code-bar .filename { color:#9fb0c8; font-size:12px; margin-left:8px; font-family:'Fira Code',Consolas,monospace; }
+  .code-bar .lang { margin-left:auto; font-size:10.5px; font-weight:800; letter-spacing:.5px; color:#93c5fd; background:rgba(59,130,246,.16); padding:2px 9px; border-radius:10px; font-family:-apple-system,'Segoe UI',sans-serif; }
+  .code-bar .copy { font-size:11px; font-weight:700; color:#cbd5e1; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:8px; padding:3px 10px; cursor:pointer; margin-left:8px; font-family:-apple-system,'Segoe UI',sans-serif; transition:background .15s ease; }
+  .code-bar .copy:hover { background:rgba(255,255,255,.18); }
+  .code-bar .copy.done { color:#86efac; border-color:#86efac; }
+  .code-block pre { padding:12px 0; overflow-x:auto; counter-reset:ln; }
+  .code-block code { color:#d4d4d4; font-size:13px; font-family:'Fira Code',Consolas,monospace; line-height:1.6; white-space:pre; display:block; width:max-content; min-width:100%; background:none; padding:0; font-weight:400; }
+  .code-block .l { display:block; padding:0 18px 0 0; border-left:3px solid transparent; }
+  .code-block .l::before { counter-increment:ln; content:counter(ln); display:inline-block; width:38px; margin-right:14px; text-align:right; color:#4b5b73; user-select:none; }
+  .code-block .l.hl { background:rgba(59,130,246,.18); border-left-color:#60a5fa; }
+  .code-block .l.hl::before { color:#93c5fd; }
+  .kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .type { color:#f07178; } .attr { color:#ffcb6b; } .cmt { color:#7a8aa3; font-style:italic; } .num { color:#f78c6c; }
+
+  /* SHORT SNIPPETS (1-3 lines): inline chips */
+  .ic1 { display:inline-block; background:#1a2332; color:#d4d4d4; font-family:'Fira Code',Consolas,monospace; font-size:13px; font-weight:400; line-height:1.5; padding:3px 11px; border-radius:7px; border:1px solid #2a374b; white-space:pre; max-width:100%; overflow-x:auto; vertical-align:middle; }
+  .mini { display:flex; flex-direction:column; align-items:flex-start; gap:5px; }
+
+  /* FLOW DIAGRAMS */
+  .flow { background:#1a2332; border-radius:12px; padding:14px 18px; border:1px solid #2a374b; box-shadow:0 10px 24px rgba(15,23,42,.22); display:flex; flex-direction:column; gap:12px; }
+  .flow-row { display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; }
+  .flow-label { width:100%; font-size:11px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:#7dd3fc; }
+  .step { flex:1 1 110px; border-radius:10px; padding:9px 12px; font-size:13px; font-weight:700; line-height:1.4; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+  .step .n { font-size:10px; font-weight:800; letter-spacing:.7px; opacity:.75; }
+  .step code { font-family:'Fira Code',Consolas,monospace; font-size:.92em; background:rgba(255,255,255,.7); padding:1px 6px; border-radius:5px; }
+  .arrow { color:#7dd3fc; font-size:20px; font-weight:800; align-self:center; }
+  .c-src  { background:#dbeafe; color:#1e3a8a; }
+  .c-proc { background:#ede9fe; color:#5b21b6; }
+  .c-dst  { background:#d1fae5; color:#065f46; }
+  .c-warn { background:#fef3c7; color:#92400e; }
+  .c-bad  { background:#ffe4e6; color:#9f1239; }
+
+  /* CALLOUTS */
+  .note, .warning, .remember { border-radius:11px; padding:10px 16px; font-size:14.5px; line-height:1.65; font-weight:600; box-shadow:inset 0 0 0 1px rgba(255,255,255,.5); }
+  .note { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+  .warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+  .remember { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+  .interview { background:linear-gradient(135deg,#fffbeb,#fde68a); color:#78350f; border-radius:11px; padding:12px 18px; font-size:14.5px; line-height:1.7; font-weight:600; border-left:5px solid #f59e0b; }
+  .interview::before { content:"🎤 INTERVIEW ANSWER"; display:block; font-size:10.5px; font-weight:800; letter-spacing:.9px; color:#b45309; margin-bottom:5px; }
+  .interview code { background:rgba(255,255,255,.7) !important; color:#78350f !important; }
+
+  /* TABLES */
+  .table-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:separate; border-spacing:0 5px; }
+  table th { background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899); color:#fff; font-size:12px; font-weight:800; letter-spacing:.7px; text-transform:uppercase; padding:9px 14px; text-align:left; }
+  table th:first-child { border-radius:10px 0 0 10px; } table th:last-child { border-radius:0 10px 10px 0; }
+  table th code { background:rgba(255,255,255,.2) !important; color:#fff !important; text-transform:none; }
+  table td { padding:8px 14px; font-size:14px; font-weight:600; color:#334155; vertical-align:middle; }
+  table td:first-child { border-radius:10px 0 0 10px; border-left:6px solid var(--rc); font-weight:800; color:var(--rd); }
+  table td:last-child { border-radius:0 10px 10px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background:var(--rb); box-shadow:0 2px 6px rgba(0,0,0,.05); }
+  table td code { background:#fff; color:var(--rd); border:1px solid var(--rc); padding:1px 7px; border-radius:6px; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <span class="tag">JAVASCRIPT · ASYNCHRONOUS</span>
+    <h1>⏳ Callbacks, Promises &amp; async/await</h1>
+    <p>Callbacks and callback hell, Promise states and chaining, the four Promise combinators, <code>async/await</code>, sequential vs concurrent execution, and the quick interview answers.</p>
+
+    <details class="topic-dropdown">
+      <summary>📁 MERN / JS Topics</summary>
+      <div class="topic-menu">
+        <span class="group-label">Node.js</span>
+        <a href="interview-node-event-loop.html">🔄 Event Loop, libuv &amp; Concurrency</a>
+        <a href="interview-node-execution-order.html">⏱️ Execution Order: nextTick &amp; Microtasks</a>
+        <a href="interview-node-fs-esm.html">📂 ES Modules &amp; File Handling</a>
+        <a href="interview-node-streams.html">🌊 Streams, pipe() &amp; Transform</a>
+        <a href="interview-node-events-buffer-inspect.html">📣 EventEmitter, Buffer &amp; util.inspect()</a>
+        <a href="interview-node-setup.html">🛠️ TypeScript + Express + MongoDB Setup</a>
+        <span class="group-label">Next.js</span>
+        <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+        <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+        <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+        <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+        <a href="interview-nextjs-seo-images.html">🔍 SEO, Image &amp; Font Optimization</a>
+        <a href="interview-nextjs-build-deploy.html">🚀 Production Build &amp; Deployment</a>
+        <span class="group-label">React / JavaScript</span>
+        <a class="current" href="interview-js-async.html">⏳ Callbacks, Promises &amp; async/await</a>
+        <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+        <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+        <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+        <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+        <a href="interview-routing.html">🧭 React Router Interview</a>
+        <span class="group-label">MongoDB</span>
+        <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+        <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+        <span class="group-label">PostgreSQL</span>
+        <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+        <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+      </div>
+    </details>
+
+    <div class="toc">
+      <a onclick="go('callbacks')">Callbacks</a>
+      <a onclick="go('promises')">Promises</a>
+      <a onclick="go('chaining')">Chaining</a>
+      <a onclick="go('types')">Promise Types</a>
+      <a onclick="go('async')">Async / Await</a>
+      <a onclick="go('concurrent')">Sequential vs Concurrent</a>
+      <a onclick="go('points')">Interview Points</a>
+    </div>
+  </div>
+
+  <div class="intro-summary">
+    <div class="intro-summary-title">🧩 Key Terms at a Glance</div>
+    <div class="summary-grid">
+      <div class="summary-item summary-blue" onclick="go('callbacks')"><div class="summary-icon">📞</div><div class="summary-text"><strong>Callback:</strong> a function passed to another function; deep nesting = callback hell.</div></div>
+      <div class="summary-item summary-pink" onclick="go('promises')"><div class="summary-icon">🤝</div><div class="summary-text"><strong>Promise:</strong> pending → fulfilled or rejected, and never changes again.</div></div>
+      <div class="summary-item summary-amber" onclick="go('chaining')"><div class="summary-icon">⛓️</div><div class="summary-text"><strong>Chaining:</strong> flat <code>.then()</code> calls; always return the next Promise.</div></div>
+      <div class="summary-item summary-green" onclick="go('types')"><div class="summary-icon">🧰</div><div class="summary-text"><strong>all / allSettled / race / any:</strong> four ways to combine Promises.</div></div>
+      <div class="summary-item summary-purple" onclick="go('async')"><div class="summary-icon">⏳</div><div class="summary-text"><strong>async/await:</strong> Promise syntax that resumes through the microtask queue.</div></div>
+      <div class="summary-item summary-teal" onclick="go('concurrent')"><div class="summary-icon">⚡</div><div class="summary-text"><strong>Concurrent:</strong> start independent work together with <code>Promise.all()</code>.</div></div>
+    </div>
+  </div>
+
+  <div class="section-divider" id="callbacks"><span>1️⃣ Callback Functions</span></div>
+  <div class="card">
+    <div class="card-title">Functions Passed to Functions</div>
+    <div class="card-content">
+      <div class="short-answer">A <strong>callback</strong> is a function passed as an argument to another function, which invokes it at the right time.</div>
+      <div class="code-block" data-file="callback.js" data-lang="JS" data-hl="3,6">
+<pre><code>function greet(name, callback) {
+  console.log(&quot;Hello&quot;, name);
+  callback();
+}
+
+greet(&quot;Shivam&quot;, () =&gt; console.log(&quot;Callback executed&quot;));</code></pre>
+      </div>
+      <div class="warning"><strong>Callback Hell:</strong> Deeply nested, dependent asynchronous callbacks that make code difficult to read, debug, and maintain. This is commonly called the <strong>“Pyramid of Doom.”</strong></div>
+      <div class="code-block" data-file="callback-hell.js" data-lang="JS" data-hl="2,3,4">
+<pre><code>createOrder(cart, function (orderId) {
+  proceedToPayment(orderId, function (payment) {
+    showOrderSummary(payment, function () {
+      updateWallet();
+    });
+  });
+});</code></pre>
+      </div>
+      <div class="note"><strong>Inversion of Control:</strong> When you pass your callback to an external function, that function decides <strong>when, whether, and how many times</strong> your callback runs.</div>
+      <p><strong>Error-first Callback:</strong> A pattern where the first argument contains the error and the second contains the successful result.</p>
+      <div class="code-block" data-file="error-first.js" data-lang="JS" data-hl="2">
+<pre><code>getUser((err, user) =&gt; {
+  if (err) return console.error(err);
+  console.log(user);
+});</code></pre>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="promises"><span>2️⃣ Promises</span></div>
+  <div class="card">
+    <div class="card-title">Eventual Result of an Async Operation</div>
+    <div class="card-content">
+      <div class="short-answer">A <strong>Promise</strong> is an object representing the eventual result of an asynchronous operation.</div>
+      <div class="table-scroll"><table><tr><th>State</th><th>Meaning</th></tr><tr><td>Pending</td><td>Initial state; operation not finished yet</td></tr><tr><td>Fulfilled</td><td>Operation completed successfully; has a value</td></tr><tr><td>Rejected</td><td>Operation failed; has a reason or error</td></tr></table></div>
+      <div class="flow">
+        <div class="flow-row"><span class="flow-label">Success path</span><div class="step c-warn">Pending</div><span class="arrow">→</span><div class="step c-dst">Fulfilled · value</div><span class="arrow">→</span><div class="step c-src"><code>.then()</code></div></div>
+        <div class="flow-row"><span class="flow-label">Failure path</span><div class="step c-warn">Pending</div><span class="arrow">→</span><div class="step c-bad">Rejected · reason</div><span class="arrow">→</span><div class="step c-proc"><code>.catch()</code></div></div>
+        <div class="flow-row"><span class="flow-label">Either way</span><div class="step c-warn">Settled</div><span class="arrow">→</span><div class="step c-src"><code>.finally()</code></div></div>
+      </div>
+      <div class="note">📝 Once a Promise becomes fulfilled or rejected, its state cannot change again.</div>
+      <div class="code-block" data-file="promise.js" data-lang="JS" data-hl="6,7,8">
+<pre><code>const promise = new Promise((resolve, reject) =&gt; {
+  setTimeout(() =&gt; resolve(&quot;Success&quot;), 1000);
+});
+
+promise
+  .then(value =&gt; console.log(value))
+  .catch(error =&gt; console.error(error))
+  .finally(() =&gt; console.log(&quot;Hide loader&quot;));</code></pre>
+      </div>
+      <ul><li><strong><code>.then()</code></strong> handles success and returns a new Promise.</li><li><strong><code>.catch()</code></strong> handles rejection and can return a fallback value so the chain continues.</li><li><strong><code>.finally()</code></strong> runs after settlement, whether fulfilled or rejected, and is used for cleanup.</li><li>The Promise <strong>executor runs synchronously</strong>; Promise handlers run through the <strong>microtask queue</strong>.</li></ul>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="chaining"><span>3️⃣ Promise Chaining</span></div>
+  <div class="card">
+    <div class="card-title">Flat Chains, One catch()</div>
+    <div class="card-content">
+      <div class="short-answer"><strong>Promise chaining</strong> connects asynchronous steps using successive <code>.then()</code> calls, keeping the code flat and allowing one <code>.catch()</code> to handle errors from the connected steps.</div>
+      <div class="code-block" data-file="chaining.js" data-lang="JS" data-hl="2,3,4">
+<pre><code>getUser(1)
+  .then(user =&gt; getPosts(user.id))
+  .then(posts =&gt; getComments(posts[0].id))
+  .then(comments =&gt; console.log(comments))
+  .catch(error =&gt; console.error(error));</code></pre>
+      </div>
+      <div class="flow">
+        <div class="flow-row"><div class="step c-src"><code>getUser(1)</code></div><span class="arrow">→</span><div class="step c-src"><code>getPosts()</code></div><span class="arrow">→</span><div class="step c-src"><code>getComments()</code></div><span class="arrow">→</span><div class="step c-dst"><code>console.log()</code></div></div>
+        <div class="flow-row"><span class="flow-label">Any error in the chain</span><div class="step c-bad">Any step rejects</div><span class="arrow">→</span><div class="step c-proc">single <code>.catch()</code></div></div>
+      </div>
+      <div class="warning"><strong>Always return the next Promise</strong> to keep the chain connected. Without returning it, the next <code>.then()</code> does not wait for that operation and receives <code>undefined</code> if nothing is returned.</div>
+      <div class="warning"><strong>Promise Hell:</strong> Nesting <code>.then()</code> calls inside each other instead of chaining them, recreating the readability problems of callback hell.</div>
+      <p><strong>Error Recovery:</strong> A <code>.catch()</code> can return a fallback value and allow the following <code>.then()</code> to execute.</p>
+      <div class="mini"><code class="ic1" data-js>fetchData()</code><code class="ic1" data-js>  .catch(() =&gt; [])</code><code class="ic1" data-js>  .then(data =&gt; console.log(data));</code></div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="types"><span>4️⃣ Promise Types</span></div>
+  <div class="card">
+    <div class="card-title">all, allSettled, race, any</div>
+    <div class="card-content">
+      <div class="table-scroll"><table><tr><th>Type</th><th>Definition</th><th>When to use</th></tr><tr><td><code>Promise.all()</code></td><td>Waits for every Promise to fulfill and returns an array of results in input order. Rejects immediately if one rejects.</td><td>When you need all results</td></tr><tr><td><code>Promise.allSettled()</code></td><td>Waits for every Promise to settle and returns status objects: <code>{ status, value }</code> or <code>{ status, reason }</code>.</td><td>When partial failure is acceptable</td></tr><tr><td><code>Promise.race()</code></td><td>Settles as soon as the first Promise settles, whether fulfilled or rejected.</td><td>First outcome or timeout</td></tr><tr><td><code>Promise.any()</code></td><td>Resolves on the first fulfillment; rejects with <code>AggregateError</code> if every Promise rejects.</td><td>When you need one successful result</td></tr></table></div>
+      <h4>Comparison of the Four Combinators</h4>
+      <div class="table-scroll"><table><tr><th>Method</th><th>Settles when</th><th>Rejects when</th></tr><tr><td><code>Promise.all()</code></td><td>All fulfill</td><td>Any one rejects (immediately)</td></tr><tr><td><code>Promise.allSettled()</code></td><td>All settle (any outcome)</td><td>Never rejects</td></tr><tr><td><code>Promise.race()</code></td><td>First one settles</td><td>If the first to settle is a rejection</td></tr><tr><td><code>Promise.any()</code></td><td>First one fulfills</td><td>Only if all reject (AggregateError)</td></tr></table></div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="async"><span>5️⃣ Async / Await</span></div>
+  <div class="card">
+    <div class="card-title">Promises That Read Like Sync Code</div>
+    <div class="card-content">
+      <div class="short-answer"><strong><code>async/await</code></strong> is syntax built on top of Promises that makes asynchronous code look synchronous and easier to read.</div>
+      <p><strong><code>async</code>:</strong> A keyword that makes a function always return a Promise, even when it returns a plain value.</p>
+      <div class="code-block" data-file="async.js" data-lang="JS" data-hl="1">
+<pre><code>async function getValue() {
+  return &quot;Hello&quot;;
+}
+
+getValue().then(console.log); // Hello</code></pre>
+      </div>
+      <p><strong><code>await</code>:</strong> Suspends the async function until the Promise settles. It provides the fulfilled value or throws the rejection reason.</p>
+      <div class="flow">
+        <div class="flow-row"><span class="flow-label">What await does</span><div class="step c-src"><code>await promise</code></div><span class="arrow">→</span><div class="step c-warn">Function suspended · main thread free</div><span class="arrow">→</span><div class="step c-proc">Promise settles</div><span class="arrow">→</span><div class="step c-dst">Resumes via microtask queue</div></div>
+      </div>
+      <ul><li>It <strong>does not block the main thread</strong>.</li><li>Execution after <code>await</code> resumes through the <strong>microtask queue</strong>.</li><li>Even an already fulfilled Promise resumes asynchronously after <code>await</code>.</li><li>It works inside async functions and at the top level of ES modules.</li><li>Use <strong><code>try/catch</code></strong> around awaited operations to handle rejections.</li></ul>
+      <div class="code-block" data-file="checkout.js" data-lang="JS" data-hl="3,4,6">
+<pre><code>async function checkout(cart) {
+  try {
+    const order = await createOrder(cart);
+    const payment = await proceedToPayment(order.id);
+    console.log(payment);
+  } catch (error) {
+    console.error(error);
+  }
+}</code></pre>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="concurrent"><span>6️⃣ Sequential vs Concurrent Execution</span></div>
+  <div class="card">
+    <div class="card-title">Await One by One vs Together</div>
+    <div class="card-content">
+      <div class="code-block" data-file="sequential-vs-concurrent.js" data-lang="JS" data-hl="2,3,6">
+<pre><code>// Sequential: approximately 4 seconds
+const a = await fetchA(); // 2 seconds
+const b = await fetchB(); // 2 seconds
+
+// Concurrent: approximately 2 seconds
+const [a, b] = await Promise.all([fetchA(), fetchB()]);</code></pre>
+      </div>
+      <div class="flow">
+        <div class="flow-row"><span class="flow-label">Sequential · ≈ 4 seconds</span><div class="step c-warn"><code>fetchA()</code> · 2 s</div><span class="arrow">→</span><div class="step c-warn"><code>fetchB()</code> · 2 s</div><span class="arrow">→</span><div class="step c-bad">≈ 4 s total</div></div>
+        <div class="flow-row"><span class="flow-label">Concurrent · ≈ 2 seconds</span><div class="step c-dst"><code>fetchA()</code> + <code>fetchB()</code> together · 2 s</div><span class="arrow">→</span><div class="step c-dst">≈ 2 s total</div></div>
+      </div>
+      <div class="remember">Use sequential execution when operations depend on previous results. Start independent operations together and await them with <code>Promise.all()</code>.</div>
+
+    </div>
+  </div>
+
+  <div class="section-divider" id="points"><span>7️⃣ Important Interview Points</span></div>
+  <div class="card">
+    <div class="card-title">Quick Question → Answer</div>
+    <div class="card-content">
+      <div class="table-scroll"><table><tr><th>Question</th><th>Answer</th></tr><tr><td>Does <code>async</code> always return a Promise?</td><td>Yes</td></tr><tr><td>Does <code>await</code> block JavaScript?</td><td>No; it suspends the surrounding async function</td></tr><tr><td>Which queue handles execution after <code>await</code>?</td><td>Microtask queue</td></tr><tr><td>What happens if an async function throws?</td><td>Its returned Promise rejects</td></tr><tr><td>Can <code>.then()</code> run after <code>.catch()</code>?</td><td>Yes, when the catch handles the error and returns normally</td></tr><tr><td>What does <code>fetch()</code> return?</td><td>A Promise that fulfills with a <code>Response</code> object</td></tr><tr><td>What does <code>response.json()</code> return?</td><td>A Promise containing the parsed JSON result</td></tr><tr><td>Does <code>fetch()</code> reject for HTTP 404 or 500?</td><td>No; check <code>response.ok</code> explicitly</td></tr></table></div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function go(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth' }); }
+
+  // Lightweight JS syntax highlighter (input: raw text, output: escaped HTML with colour spans)
+  function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  var TOK = /(\/\/[^\n]*)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)|\b(import|from|const|let|new|if|return|await|async|true|false|null|function)\b|\b(\d+)\b|\b(console|fs|zlib|process|JSON|Promise)\b|\b([A-Za-z_]\w*)(?=\s*:)|\b([A-Za-z_]\w*)(?=\()/g;
+  function hlJS(text) {
+    var out = '', last = 0, m;
+    TOK.lastIndex = 0;
+    while ((m = TOK.exec(text))) {
+      out += esc(text.slice(last, m.index));
+      var cls = m[1] ? 'cmt' : m[2] ? 'str' : m[3] ? 'kw' : m[4] ? 'num' : m[5] ? 'type' : m[6] ? 'attr' : 'fn';
+      out += '<span class="' + cls + '">' + esc(m[0]) + '</span>';
+      last = m.index + m[0].length;
+    }
+    return out + esc(text.slice(last));
+  }
+
+  // Inline chips (1-3 line snippets)
+  document.querySelectorAll('code.ic1[data-js]').forEach(function (el) { el.innerHTML = hlJS(el.textContent); });
+
+  // Code windows: highlight, title bar, line numbers, highlighted lines, copy button
+  document.querySelectorAll('.code-block').forEach(function (block) {
+    var code = block.querySelector('code');
+    var raw = code.textContent;
+    var lang = block.dataset.lang || 'JS';
+    var hl = (block.dataset.hl || '').split(',').map(Number);
+    var html = lang === 'TEXT' ? esc(raw) : hlJS(raw);
+    code.innerHTML = html.split('\n').map(function (line, i) {
+      return '<span class="l' + (hl.indexOf(i + 1) > -1 ? ' hl' : '') + '">' + (line || ' ') + '</span>';
+    }).join('');
+
+    var bar = document.createElement('div');
+    bar.className = 'code-bar';
+    bar.innerHTML = '<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>' +
+      '<span class="filename">' + block.dataset.file + '</span><span class="lang">' + lang + '</span>' +
+      '<button class="copy" type="button">Copy</button>';
+    block.insertBefore(bar, block.firstChild);
+
+    var btn = bar.querySelector('.copy');
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(raw).then(function () {
+        btn.textContent = 'Copied ✓'; btn.classList.add('done');
+        setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1500);
+      });
+    });
+  });
+</script>
+</body>
+</html>
