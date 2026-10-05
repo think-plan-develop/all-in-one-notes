@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Express + Mongoose CRUD API Notes</title>
+</head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
+
+  /* HEADER */
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 20px; padding: 46px 40px; margin-bottom: 44px; box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3); position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:14px; position:relative; }
+  .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 700px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a { text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700; transition: all 0.2s ease; cursor: pointer; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* topic dropdown */
+  .topic-dropdown { position: relative; margin-bottom: 18px; display: inline-block; }
+  .topic-dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.16); color: #fff; font-size: 13.5px; font-weight: 800; padding: 9px 18px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.32); transition: background 0.2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display: none; }
+  .topic-dropdown summary:hover { background: rgba(255,255,255,0.26); }
+  .topic-dropdown[open] summary::after { transform: rotate(180deg); }
+  .topic-dropdown summary::after { content: '▾'; margin-left: 2px; transition: transform 0.2s ease; font-size: 11px; }
+  .topic-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; background: #fff; border-radius: 12px; padding: 8px; min-width: 240px; box-shadow: 0 14px 30px rgba(0,0,0,0.22); display: flex; flex-direction: column; gap: 3px; }
+  .topic-menu a { text-decoration: none; color: #1a1a1a; font-size: 14px; font-weight: 700; padding: 9px 14px; border-radius: 8px; display: flex; align-items: center; gap: 9px; transition: background 0.15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background: var(--content-bg); color: var(--accent); }
+  .topic-menu .group-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.6px; color: #94a3b8; padding: 8px 14px 2px; text-transform: uppercase; }
+
+  /* SUMMARY GRID */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-2px); }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; } .summary-blue .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; } .summary-pink .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; } .summary-amber .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; } .summary-green .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; } .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; } .summary-teal .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* CARDS */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+  .card-content p code, .card-content li code, td code, .short-answer code, .tip code, .note code, .warning code, .remember code { font-family: 'Fira Code','Consolas',monospace; font-size: 0.88em; background: rgba(var(--shadow-rgb),0.1); color: var(--heading); padding: 2px 7px; border-radius: 5px; }
+  .card-content ul { margin: 6px 0 14px 22px; }
+  .card-content li { font-size: 15.5px; line-height: 1.85; color: #334155; font-weight: 500; }
+
+  .short-answer { position: relative; background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%); border: 1px solid rgba(var(--shadow-rgb), 0.16); border-left: 4px solid var(--accent); border-radius: 14px; padding: 20px 24px 22px; margin-bottom: 24px; font-size: 17px; line-height: 1.75; font-weight: 500; color: #293244; box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1); }
+  .short-answer::before { content: "QUICK TAKE"; display: block; width: fit-content; font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff; background: linear-gradient(120deg, var(--accent), var(--accent-light)); padding: 5px 13px; border-radius: 20px; margin-bottom: 13px; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35); }
+  .short-answer strong { color: var(--heading); }
+
+  /* CODE */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; } .dot-grey { background: #febc2e; } .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code','Consolas',monospace; line-height: 1.65; white-space: pre; }
+  .kw { color: #c792ea; font-weight: 600; } .str { color: #c3e88d; } .fn { color: #82aaff; } .type { color: #f07178; } .cmt { color: #7a7a7a; font-style: italic; } .num { color: #f78c6c; }
+
+  /* CALLOUTS */
+  .tip, .note, .warning, .remember { border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+  .tip { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; background: #fff; }
+  table tr:nth-child(even) td { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+
+  @media (max-width: 768px) { .header h1 { font-size: 26px; } .toc a { padding: 6px 12px; font-size: 12px; } .card-content { padding: 20px; } }
+
+  /* ═══════════ COLORFUL TABLES (shared) ═══════════ */
+  table { border-collapse: separate !important; border-spacing: 0 8px !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
+  table th { background: linear-gradient(120deg,#2563eb,#7c3aed,#ec4899) !important; color: #fff !important; font-size: 13px !important; font-weight: 800 !important; letter-spacing: .7px; text-transform: uppercase; padding: 13px 18px !important; border: none !important; }
+  table th:first-child { border-radius: 12px 0 0 12px; }
+  table th:last-child { border-radius: 0 12px 12px 0; }
+  table td { border: none !important; padding: 13px 18px !important; font-weight: 600 !important; color: #334155 !important; vertical-align: middle !important; }
+  table td:first-child { border-radius: 12px 0 0 12px; border-left: 6px solid var(--rc) !important; font-weight: 800 !important; color: var(--rd) !important; }
+  table td:last-child { border-radius: 0 12px 12px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background: var(--rb) !important; box-shadow: 0 3px 8px rgba(0,0,0,.05); transition: transform .15s ease; }
+  table tr:not(:first-child):hover td { filter: brightness(.97); }
+  table td code { background: #fff !important; color: var(--rd) !important; border: 1px solid var(--rc); padding: 2px 8px !important; border-radius: 6px !important; font-weight: 700; }
+
+  /* compact source-code blocks — less padding, smaller chrome */
+  .code-block { margin: 10px 0; max-width: 720px; }
+  .code-bar { padding: 6px 12px; }
+  .code-block pre { padding: 12px 14px; }
+  .code-block code { font-size: 12.5px; line-height: 1.5; }
+
+  /* ═══════════ NOTES & GOTCHAS — redesigned ═══════════ */
+  .gotcha-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 4px 0 20px; }
+  @media (max-width: 700px) { .gotcha-grid { grid-template-columns: 1fr; } }
+  .gotcha-card { border-radius: 14px; padding: 15px 18px; position: relative; overflow: hidden; border: 1.5px solid var(--gb); box-shadow: 0 6px 16px rgba(0,0,0,.05); }
+  .gotcha-card.dont { --gb: #fca5a5; background: linear-gradient(160deg,#fff1f2,#ffe4e6); }
+  .gotcha-card.do   { --gb: #86efac; background: linear-gradient(160deg,#f0fdf4,#dcfce7); }
+  .gotcha-tag { display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:900; letter-spacing:.6px; text-transform:uppercase; padding:3px 10px; border-radius:20px; margin-bottom:9px; color:#fff; }
+  .gotcha-card.dont .gotcha-tag { background: linear-gradient(120deg,#dc2626,#f43f5e); }
+  .gotcha-card.do   .gotcha-tag { background: linear-gradient(120deg,#059669,#10b981); }
+  .gotcha-head { display:flex; align-items:center; gap:8px; font-weight:800; font-size:14px; margin-bottom:5px; }
+  .gotcha-card.dont .gotcha-head { color:#9f1239; }
+  .gotcha-card.do   .gotcha-head { color:#065f46; }
+  .gotcha-head .emoji { font-size:16px; }
+  .gotcha-card p { font-size: 13px; line-height: 1.55; color: #44403c; margin: 0; }
+  .gotcha-card code { background: rgba(255,255,255,.7); }
+
+  .route-recap { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+  .route-recap li { background:#fff; border-radius:12px; padding:12px 16px; border:1px solid rgba(0,0,0,.05); box-shadow:0 4px 10px rgba(0,0,0,.04); font-size:13.5px; color:#334155; line-height:1.55; }
+  .route-recap code.route-pill { display:inline-block; background:linear-gradient(120deg,#2563eb,#3b82f6); color:#fff; font-weight:700; padding:3px 10px; border-radius:7px; margin-right:8px; font-size:12px; }
+
+  /* slim file-title variant */
+  .card-title.slim { padding: 9px 16px; font-size: 14px; font-weight: 700; background: linear-gradient(120deg, var(--accent), var(--accent-light)); width: fit-content; border-radius: 0 0 10px 0; }
+</style><body>
+  <div class="container">
+
+    <div class="header">
+      <span class="tag">NODE · EXPRESS · MONGOOSE · CRUD API</span>
+      <h1>🔧 Express + Mongoose CRUD API Notes</h1>
+      <p>A working CRUD API — config, model, service, controller, routes — plus how to start it and call every route. Delete is a <strong>soft delete</strong>: it sets <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px">isDeleted</code> to <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px">true</code> rather than removing the document.</p>
+
+      <details class="topic-dropdown">
+        <summary>📁 MERN / JS Topics</summary>
+        <div class="topic-menu">
+          <span class="group-label">Node / Express</span>
+          <a class="current" href="interview-crud-api.html">🔧 Express + Mongoose CRUD API</a>
+          <span class="group-label">CSS</span>
+          <a href="interview-css-positioning.html">📐 Positioning &amp; Responsive Cheat Sheet</a>
+          <span class="group-label">Next.js</span>
+          <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+          <a href="interview-nextjs-data.html">📡 Data, Caching &amp; UI States</a>
+          <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+          <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+          <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+          <a href="interview-nextjs-qa.html">Next.js Interview Q&amp;A</a>
+          <span class="group-label">React / JavaScript</span>
+          <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+          <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+          <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+          <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+          <a href="interview-routing.html">🧭 React Router Interview</a>
+          <span class="group-label">MongoDB</span>
+          <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+          <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+          <span class="group-label">PostgreSQL</span>
+          <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+          <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+        </div>
+      </details>
+
+      <div class="toc">
+        <a onclick="document.getElementById('start').scrollIntoView({behavior:'smooth'});return false;">Start the App</a>
+        <a onclick="document.getElementById('routes-table').scrollIntoView({behavior:'smooth'});return false;">CRUD Routes</a>
+        <a onclick="document.getElementById('source').scrollIntoView({behavior:'smooth'});return false;">Full Source</a>
+        <a onclick="document.getElementById('notes').scrollIntoView({behavior:'smooth'});return false;">Notes &amp; Gotchas</a>
+      </div>
+    </div>
+
+    <div class="intro-summary">
+      <div class="intro-summary-title">🧩 At a Glance</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-blue" onclick="document.getElementById('start').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🚀</div>
+          <div class="summary-text"><strong>Start:</strong> connects to MongoDB <em>before</em> listening — <code>MONGODB_URI</code> and <code>PORT</code> env vars.</div>
+        </div>
+        <div class="summary-item summary-amber" onclick="document.getElementById('routes-table').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🛣️</div>
+          <div class="summary-text"><strong>4 routes:</strong> GET, POST, PATCH, DELETE — each wrapped in a <code>user</code> object in the body.</div>
+        </div>
+        <div class="summary-item summary-green" onclick="document.getElementById('source').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🗂️</div>
+          <div class="summary-text"><strong>Layered structure:</strong> config → model → service → controller → routes.</div>
+        </div>
+        <div class="summary-item summary-purple" onclick="document.getElementById('notes').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🗑️</div>
+          <div class="summary-text"><strong>Soft delete:</strong> flips <code>isDeleted</code> to <code>true</code>; the document is never removed.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- START -->
+    <div class="section-divider" id="start"><span>🚀 Start the App</span></div>
+    <div class="card">
+      <div class="card-content">
+        <div class="short-answer">
+          The app connects to MongoDB <strong>before</strong> listening. In PowerShell, configure the connection and port, then start the server.
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">PowerShell</span></div>
+          <pre><code><span class="type">$env</span>:MONGODB_URI = <span class="str">"mongodb://127.0.0.1:27017/test"</span>
+<span class="type">$env</span>:PORT = <span class="str">"4000"</span>
+npm start</code></pre>
+        </div>
+        <div class="note"><strong>📝 Defaults:</strong> <code>MONGODB_URI</code> defaults to <code>mongodb://127.0.0.1:27017/test</code>; <code>PORT</code> defaults to <code>4000</code>.</div>
+      </div>
+    </div>
+
+    <!-- ROUTES TABLE -->
+    <div class="section-divider" id="routes-table"><span>🛣️ CRUD Routes</span></div>
+    <div class="card">
+      <div class="card-content">
+        <div class="table-scroll">
+          <table>
+            <tr><th>Operation</th><th>Method &amp; URL</th><th>Body</th></tr>
+            <tr><td>Read users</td><td><code>GET /all-user</code></td><td>None</td></tr>
+            <tr><td>Create user</td><td><code>POST /create-user</code></td><td><code>{"user":{"name":"Ada Lovelace","email":"ada@example.com","age":30}}</code></td></tr>
+            <tr><td>Update user</td><td><code>PATCH /update-user/:userId</code></td><td><code>{"user":{"age":31}}</code></td></tr>
+            <tr><td>Delete user</td><td><code>DELETE /delete-user/:userId</code></td><td>None; sets <code>isDeleted: true</code></td></tr>
+          </table>
+        </div>
+        <p>Example update/delete ID: <code>64a1b2c3d4e5f67890123456</code></p>
+      </div>
+    </div>
+
+    <!-- SOURCE -->
+    <div class="section-divider" id="source"><span>🗂️ Complete Source Code</span></div>
+
+    <div class="card">
+      <div class="card-title slim">src/server.js</div>
+      <div class="card-content">
+        <div class="short-answer">Wires up Express, mounts the router, and <strong>awaits the database connection before calling <code>listen()</code></strong>.</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/server.js</span></div>
+          <pre><code><span class="kw">import</span> <span class="type">express</span> <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> <span class="fn">connectDatabase</span> <span class="kw">from</span> <span class="str">"./config/database.js"</span>;
+<span class="kw">import</span> <span class="type">userRouter</span> <span class="kw">from</span> <span class="str">"./routes/users.routes.js"</span>;
+
+<span class="kw">const</span> <span class="type">app</span> = <span class="fn">express</span>();
+<span class="kw">const</span> <span class="type">port</span> = Number(<span class="type">process</span>.env.PORT) || <span class="num">4000</span>;
+
+<span class="type">app</span>.<span class="fn">use</span>(express.<span class="fn">json</span>());
+<span class="type">app</span>.<span class="fn">use</span>(<span class="str">"/"</span>, userRouter);
+
+<span class="kw">await</span> <span class="fn">connectDatabase</span>();
+<span class="type">app</span>.<span class="fn">listen</span>(port, () =&gt; {
+  console.<span class="fn">log</span>(<span class="str">`Server listening on port ${port}`</span>);
+});</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title slim">src/config/database.js</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/config/database.js</span></div>
+          <pre><code><span class="kw">import</span> <span class="type">mongoose</span> <span class="kw">from</span> <span class="str">"mongoose"</span>;
+
+<span class="kw">const</span> <span class="type">databaseUri</span> = <span class="type">process</span>.env.MONGODB_URI || <span class="str">"mongodb://127.0.0.1:27017/test"</span>;
+
+<span class="kw">export default async function</span> <span class="fn">connectDatabase</span>() {
+  <span class="kw">await</span> mongoose.<span class="fn">connect</span>(databaseUri);
+  console.<span class="fn">log</span>(<span class="str">"Connected to MongoDB"</span>);
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title slim">src/models/user.model.js</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/models/user.model.js</span></div>
+          <pre><code><span class="kw">import</span> <span class="type">mongoose</span> <span class="kw">from</span> <span class="str">"mongoose"</span>;
+
+<span class="kw">const</span> <span class="type">userSchema</span> = <span class="kw">new</span> mongoose.<span class="fn">Schema</span>({
+  name: {
+    type: <span class="type">String</span>,
+    required: <span class="kw">true</span>,
+  },
+  email: {
+    type: <span class="type">String</span>,
+    required: <span class="kw">true</span>,
+  },
+  age: {
+    type: <span class="type">Number</span>,
+    min: <span class="num">18</span>,
+    max: <span class="num">59</span>,
+  },
+  isDeleted: {
+    type: <span class="type">Boolean</span>,
+    default: <span class="kw">false</span>,
+  },
+}, { timestamps: <span class="kw">true</span> });
+
+<span class="kw">const</span> <span class="type">User</span> = mongoose.<span class="fn">model</span>(<span class="str">"User"</span>, userSchema);
+
+<span class="kw">export default</span> <span class="type">User</span>;</code></pre>
+        </div>
+        <div class="note"><strong>📝 <code>{ timestamps: true }</code></strong> adds <code>createdAt</code>/<code>updatedAt</code> automatically — no manual timestamp fields needed.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title slim">src/services/users.service.js</div>
+      <div class="card-content">
+        <div class="short-answer">Pure data-access functions — no <code>req</code>/<code>res</code> here. <code>findUsers</code> excludes soft-deleted rows; update and delete both use <code>$set</code>.</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/services/users.service.js</span></div>
+          <pre><code><span class="kw">import</span> <span class="type">User</span> <span class="kw">from</span> <span class="str">"../models/user.model.js"</span>;
+
+<span class="kw">export async function</span> <span class="fn">findUsers</span>() {
+  <span class="kw">return</span> User.<span class="fn">find</span>({ isDeleted: { <span class="type">$ne</span>: <span class="kw">true</span> } }).<span class="fn">lean</span>();
+}
+
+<span class="kw">export async function</span> <span class="fn">createUser</span>(<span class="type">userData</span>) {
+  <span class="kw">return</span> User.<span class="fn">create</span>(<span class="type">userData</span>);
+}
+
+<span class="kw">export async function</span> <span class="fn">updateUserById</span>(<span class="type">userId</span>, <span class="type">userData</span>) {
+  <span class="kw">return</span> User.<span class="fn">findByIdAndUpdate</span>(<span class="type">userId</span>, { <span class="type">$set</span>: <span class="type">userData</span> }, {
+    new: <span class="kw">true</span>,
+  });
+}
+
+<span class="kw">export async function</span> <span class="fn">deleteUserById</span>(<span class="type">userId</span>) {
+  <span class="kw">return</span> User.<span class="fn">findByIdAndUpdate</span>(<span class="type">userId</span>, { <span class="type">$set</span>: { isDeleted: <span class="kw">true</span> } }, {
+    new: <span class="kw">true</span>,
+  });
+}</code></pre>
+        </div>
+        <div class="tip"><strong>💡 <code>{ new: true }</code></strong> makes <code>findByIdAndUpdate</code> return the <em>updated</em> document instead of the one before the change.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title slim">src/controllers/users.controller.js</div>
+      <div class="card-content">
+        <div class="short-answer">Translates HTTP requests into service calls and shapes the JSON response. Each handler is wrapped in <code>try/catch</code>.</div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/controllers/users.controller.js</span></div>
+          <pre><code><span class="kw">import</span> {
+  createUser,
+  deleteUserById,
+  findUsers,
+  updateUserById,
+} <span class="kw">from</span> <span class="str">"../services/users.service.js"</span>;
+
+<span class="kw">export async function</span> <span class="fn">listUsers</span>(<span class="type">req</span>, <span class="type">res</span>) {
+  <span class="kw">try</span> {
+    <span class="kw">const</span> <span class="type">users</span> = <span class="kw">await</span> <span class="fn">findUsers</span>();
+    <span class="type">res</span>.<span class="fn">json</span>({ message: <span class="str">"successfully find all users"</span>, data: <span class="type">users</span> });
+  } <span class="kw">catch</span> (<span class="type">error</span>) {
+    <span class="type">res</span>.<span class="fn">json</span>({ message: <span class="type">error</span>.message || <span class="str">"Unable to fetch user"</span> });
+  }
+}
+
+<span class="kw">export async function</span> <span class="fn">createUserHandler</span>(<span class="type">req</span>, <span class="type">res</span>) {
+  <span class="kw">try</span> {
+    <span class="kw">await</span> <span class="fn">createUser</span>(<span class="type">req</span>.body.user);
+    <span class="type">res</span>.<span class="fn">json</span>({ message: <span class="str">"user added successfully"</span> });
+  } <span class="kw">catch</span> (<span class="type">error</span>) {
+    <span class="type">res</span>.<span class="fn">json</span>({ message: <span class="type">error</span>.message || <span class="str">"Unable to insert user"</span> });
+  }
+}
+
+<span class="kw">export async function</span> <span class="fn">updateUserHandler</span>(<span class="type">req</span>, <span class="type">res</span>) {
+  <span class="kw">try</span> {
+    <span class="kw">await</span> <span class="fn">updateUserById</span>(<span class="type">req</span>.params.userId, <span class="type">req</span>.body.user);
+    <span class="type">res</span>.<span class="fn">json</span>({ message: <span class="str">"user updated successfully"</span> });
+  } <span class="kw">catch</span> (<span class="type">error</span>) {
+    <span class="type">res</span>.status(<span class="num">500</span>).<span class="fn">json</span>({ message: <span class="type">error</span>.message || <span class="str">"Unable to update user"</span> });
+  }
+}
+
+<span class="kw">export async function</span> <span class="fn">deleteUserHandler</span>(<span class="type">req</span>, <span class="type">res</span>) {
+  <span class="kw">try</span> {
+    <span class="kw">await</span> <span class="fn">deleteUserById</span>(<span class="type">req</span>.params.userId);
+    <span class="type">res</span>.<span class="fn">json</span>({ message: <span class="str">"user deleted successfully"</span> });
+  } <span class="kw">catch</span> (<span class="type">error</span>) {
+    <span class="type">res</span>.status(<span class="num">500</span>).<span class="fn">json</span>({ message: <span class="type">error</span>.message || <span class="str">"Unable to delete user"</span> });
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title slim">src/routes/users.routes.js</div>
+      <div class="card-content">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">src/routes/users.routes.js</span></div>
+          <pre><code><span class="kw">import</span> <span class="type">express</span> <span class="kw">from</span> <span class="str">"express"</span>;
+<span class="kw">import</span> {
+  createUserHandler,
+  deleteUserHandler,
+  listUsers,
+  updateUserHandler,
+} <span class="kw">from</span> <span class="str">"../controllers/users.controller.js"</span>;
+
+<span class="kw">const</span> <span class="type">router</span> = express.<span class="fn">Router</span>();
+
+<span class="type">router</span>.<span class="fn">get</span>(<span class="str">"/all-user"</span>, listUsers);
+<span class="type">router</span>.<span class="fn">post</span>(<span class="str">"/create-user"</span>, createUserHandler);
+<span class="type">router</span>.<span class="fn">patch</span>(<span class="str">"/update-user/:userId"</span>, updateUserHandler);
+<span class="type">router</span>.<span class="fn">delete</span>(<span class="str">"/delete-user/:userId"</span>, deleteUserHandler);
+
+<span class="kw">export default</span> <span class="type">router</span>;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="section-divider" id="notes"><span>📝 Notes &amp; Gotchas</span></div>
+    <div class="card">
+      <div class="card-content">
+
+        <div class="gotcha-grid">
+          <div class="gotcha-card dont">
+            <span class="gotcha-tag">✕ Don't</span>
+            <div class="gotcha-head"><span class="emoji">🚫</span>app.use(connection())</div>
+            <p>Treating the DB connection as middleware means the server can start accepting requests before Mongo is even connected.</p>
+          </div>
+          <div class="gotcha-card do">
+            <span class="gotcha-tag">✓ Do</span>
+            <div class="gotcha-head"><span class="emoji">🔌</span>await connectDatabase()</div>
+            <p>Await the connection before calling <code>app.listen()</code>, so the database is guaranteed ready before traffic arrives.</p>
+          </div>
+
+          <div class="gotcha-card dont">
+            <span class="gotcha-tag">✕ Don't</span>
+            <div class="gotcha-head"><span class="emoji">🚫</span>Manual timestamp fields</div>
+            <p>Hand-rolling <code>createdAt</code>/<code>updatedAt</code> on the schema is extra code that Mongoose already gives you for free.</p>
+          </div>
+          <div class="gotcha-card do">
+            <span class="gotcha-tag">✓ Do</span>
+            <div class="gotcha-head"><span class="emoji">⏱️</span>{ timestamps: true }</div>
+            <p>One schema option automatically maintains both fields on every save and update.</p>
+          </div>
+
+          <div class="gotcha-card dont">
+            <span class="gotcha-tag">✕ Don't</span>
+            <div class="gotcha-head"><span class="emoji">🚫</span>User.findByIdAndDelete()</div>
+            <p>A hard delete destroys the document permanently — no audit trail, no way to restore a user.</p>
+          </div>
+          <div class="gotcha-card do">
+            <span class="gotcha-tag">✓ Do</span>
+            <div class="gotcha-head"><span class="emoji">🗑️</span>Soft delete via isDeleted</div>
+            <p><code>DELETE /delete-user/:userId</code> only flips <code>isDeleted</code> to <code>true</code>; <code>findUsers</code> filters those out with <code>{ isDeleted: { $ne: true } }</code>.</p>
+          </div>
+
+          <div class="gotcha-card dont">
+            <span class="gotcha-tag">✕ Don't</span>
+            <div class="gotcha-head"><span class="emoji">🚫</span>Mixed-up folder naming</div>
+            <p>Inconsistent names across <code>config</code>/<code>controllers</code>/<code>models</code> make the codebase harder to navigate as it grows.</p>
+          </div>
+          <div class="gotcha-card do">
+            <span class="gotcha-tag">✓ Do</span>
+            <div class="gotcha-head"><span class="emoji">🗂️</span>Standardized structure</div>
+            <p>Keep consistent folder and file names: <code>config</code>, <code>controllers</code>, <code>models</code>, <code>routes</code>, and <code>services</code>.</p>
+          </div>
+        </div>
+
+        <h4>📋 Existing Routes, Restated</h4>
+        <ul class="route-recap">
+          <li><code class="route-pill">GET</code>/all-user — list active users.</li>
+          <li><code class="route-pill">POST</code>/create-user — create a user. The body must use the existing <code>user</code> wrapper, e.g. <code>{"user":{"name":"Ada Lovelace","email":"ada@example.com","age":30}}</code>.</li>
+          <li><code class="route-pill">PATCH</code>/update-user/:userId — update a user with the same body shape, e.g. <code>{"user":{"age":31}}</code>. Example URL: <code>/update-user/64a1b2c3d4e5f67890123456</code>.</li>
+        </ul>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
