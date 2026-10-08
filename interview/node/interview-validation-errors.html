@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Validation &amp; Error Handling — Zod, Mongoose, AppError</title>
+</head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
+
+  /* HEADER */
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 20px; padding: 46px 40px; margin-bottom: 44px; box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3); position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:14px; position:relative; }
+  .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 700px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a { text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700; transition: all 0.2s ease; cursor: pointer; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* topic dropdown */
+  .topic-dropdown { position: relative; margin-bottom: 18px; display: inline-block; }
+  .topic-dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.16); color: #fff; font-size: 13.5px; font-weight: 800; padding: 9px 18px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.32); transition: background 0.2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display: none; }
+  .topic-dropdown summary:hover { background: rgba(255,255,255,0.26); }
+  .topic-dropdown[open] summary::after { transform: rotate(180deg); }
+  .topic-dropdown summary::after { content: '▾'; margin-left: 2px; transition: transform 0.2s ease; font-size: 11px; }
+  .topic-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; background: #fff; border-radius: 12px; padding: 8px; min-width: 240px; box-shadow: 0 14px 30px rgba(0,0,0,0.22); display: flex; flex-direction: column; gap: 3px; }
+  .topic-menu a { text-decoration: none; color: #1a1a1a; font-size: 14px; font-weight: 700; padding: 9px 14px; border-radius: 8px; display: flex; align-items: center; gap: 9px; transition: background 0.15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background: var(--content-bg); color: var(--accent); }
+  .topic-menu .group-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.6px; color: #94a3b8; padding: 8px 14px 2px; text-transform: uppercase; }
+
+  /* SUMMARY GRID */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-2px); }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; } .summary-blue .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; } .summary-pink .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; } .summary-amber .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; } .summary-green .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; } .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; } .summary-teal .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* CARDS */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+  .card-content p code, .card-content li code, td code, .short-answer code, .tip code, .note code, .warning code, .remember code { font-family: 'Fira Code','Consolas',monospace; font-size: 0.88em; background: rgba(var(--shadow-rgb),0.1); color: var(--heading); padding: 2px 7px; border-radius: 5px; }
+  .card-content ul { margin: 6px 0 14px 22px; }
+  .card-content li { font-size: 15.5px; line-height: 1.85; color: #334155; font-weight: 500; }
+
+  .short-answer { position: relative; background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%); border: 1px solid rgba(var(--shadow-rgb), 0.16); border-left: 4px solid var(--accent); border-radius: 14px; padding: 20px 24px 22px; margin-bottom: 24px; font-size: 17px; line-height: 1.75; font-weight: 500; color: #293244; box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1); }
+  .short-answer::before { content: "QUICK TAKE"; display: block; width: fit-content; font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff; background: linear-gradient(120deg, var(--accent), var(--accent-light)); padding: 5px 13px; border-radius: 20px; margin-bottom: 13px; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35); }
+  .short-answer strong { color: var(--heading); }
+
+  /* CODE */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; } .dot-grey { background: #febc2e; } .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code','Consolas',monospace; line-height: 1.65; white-space: pre; }
+  .kw { color: #c792ea; font-weight: 600; } .str { color: #c3e88d; } .fn { color: #82aaff; } .type { color: #f07178; } .cmt { color: #7a7a7a; font-style: italic; } .num { color: #f78c6c; }
+
+  /* CALLOUTS */
+  .tip, .note, .warning, .remember { border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+  .tip { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; background: #fff; }
+  table tr:nth-child(even) td { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+
+  @media (max-width: 768px) { .header h1 { font-size: 26px; } .toc a { padding: 6px 12px; font-size: 12px; } .card-content { padding: 20px; } }
+
+  /* ═══════════ COLORFUL TABLES (shared) ═══════════ */
+  table { border-collapse: separate !important; border-spacing: 0 8px !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
+  table th { background: linear-gradient(120deg,#2563eb,#7c3aed,#ec4899) !important; color: #fff !important; font-size: 13px !important; font-weight: 800 !important; letter-spacing: .7px; text-transform: uppercase; padding: 13px 18px !important; border: none !important; }
+  table th:first-child { border-radius: 12px 0 0 12px; }
+  table th:last-child { border-radius: 0 12px 12px 0; }
+  table td { border: none !important; padding: 13px 18px !important; font-weight: 600 !important; color: #334155 !important; vertical-align: middle !important; }
+  table td:first-child { border-radius: 12px 0 0 12px; border-left: 6px solid var(--rc) !important; font-weight: 800 !important; color: var(--rd) !important; }
+  table td:last-child { border-radius: 0 12px 12px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background: var(--rb) !important; box-shadow: 0 3px 8px rgba(0,0,0,.05); transition: transform .15s ease; }
+  table tr:not(:first-child):hover td { filter: brightness(.97); }
+  table td code { background: #fff !important; color: var(--rd) !important; border: 1px solid var(--rc); padding: 2px 8px !important; border-radius: 6px !important; font-weight: 700; }
+
+  /* slim titles + compact content (house style) */
+  .card-title.slim { padding: 9px 16px; font-size: 14.5px; font-weight: 700; background: linear-gradient(120deg, var(--accent), var(--accent-light)); width: fit-content; border-radius: 0 0 10px 0; }
+  .card-content.compact { padding: 16px 18px; }
+  .card-content.compact .code-block { margin: 8px 0; }
+  .card-content.compact .code-block pre { padding: 11px 13px; }
+  .card-content.compact .code-block code { font-size: 12.5px; }
+
+  /* flow diagram */
+  .flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+  .flow .step { padding: 6px 12px; border-radius: 8px; background: var(--content-bg); border: 1px solid rgba(var(--shadow-rgb),.18); font-weight: 700; font-size: 12.5px; color: var(--heading); }
+  .flow .arrow { font-weight: 900; color: #94a3b8; font-size: 13px; }
+
+  /* do / dont cards */
+  .gotcha-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+  @media (max-width: 700px) { .gotcha-grid { grid-template-columns: 1fr; } }
+  .gotcha-card { border-radius: 12px; padding: 12px 14px; border: 1.5px solid var(--gb); }
+  .gotcha-card.dont { --gb: #fca5a5; background: linear-gradient(160deg,#fff1f2,#ffe4e6); }
+  .gotcha-card.do   { --gb: #86efac; background: linear-gradient(160deg,#f0fdf4,#dcfce7); }
+  .gotcha-tag { display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:900; letter-spacing:.5px; text-transform:uppercase; padding:2px 9px; border-radius:20px; margin-bottom:6px; color:#fff; }
+  .gotcha-card.dont .gotcha-tag { background: linear-gradient(120deg,#dc2626,#f43f5e); }
+  .gotcha-card.do   .gotcha-tag { background: linear-gradient(120deg,#059669,#10b981); }
+  .gotcha-card p { font-size:12.5px; line-height:1.55; color:#44403c; margin:0; }
+
+  /* Q&A grid */
+  .qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+  @media (max-width: 700px) { .qa-grid { grid-template-columns: 1fr; } }
+  .qa-item { background: #fff; border: 1px solid rgba(0,0,0,.06); border-radius: 10px; padding: 11px 14px; box-shadow: 0 4px 10px rgba(0,0,0,.04); }
+  .qa-item .q { font-weight: 800; font-size: 13px; color: var(--heading); margin-bottom: 3px; }
+  .qa-item .a { font-size: 12.5px; color: #475569; line-height: 1.5; }
+</style><body>
+  <div class="container">
+
+    <div class="header">
+      <span class="tag">NODE · EXPRESS · VALIDATION &amp; ERROR HANDLING</span>
+      <h1>🛡️ Validation &amp; Error Handling — Zod, Mongoose &amp; AppError</h1>
+      <p>Layered validation (Zod at the boundary, Mongoose at the DB, service-layer business rules) plus centralized error handling with <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px">AppError</code>, <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px">asyncHandler</code>, and one global error middleware.</p>
+
+      <details class="topic-dropdown">
+        <summary>📁 MERN / JS Topics</summary>
+        <div class="topic-menu">
+          <span class="group-label">Node / Express</span>
+          <a class="current" href="interview-validation-errors.html">🛡️ Validation &amp; Error Handling</a>
+          <a href="interview-crud-api.html">🔧 Express + Mongoose CRUD API</a>
+          <span class="group-label">Practice Sets</span>
+          <a href="interview-js-dsa-80.html">🧠 80 JS + DSA Coding Questions</a>
+          <a href="interview-mern-practice-70.html">🏋️ 78 MERN Practice Questions</a>
+          <span class="group-label">CSS</span>
+          <a href="interview-css-positioning.html">📐 Positioning &amp; Responsive Cheat Sheet</a>
+          <span class="group-label">Next.js</span>
+          <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+          <a href="interview-nextjs-data.html">📡 Data, Caching &amp; UI States</a>
+          <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+          <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+          <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+          <a href="interview-nextjs-qa.html">Next.js Interview Q&amp;A</a>
+          <span class="group-label">React / JavaScript</span>
+          <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+          <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+          <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+          <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+          <a href="interview-routing.html">🧭 React Router Interview</a>
+          <span class="group-label">MongoDB</span>
+          <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+          <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+          <span class="group-label">PostgreSQL</span>
+          <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+          <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+        </div>
+      </details>
+
+      <div class="toc">
+        <a onclick="document.getElementById('zod').scrollIntoView({behavior:'smooth'});return false;">Zod Validation</a>
+        <a onclick="document.getElementById('mongoose').scrollIntoView({behavior:'smooth'});return false;">Mongoose Validation</a>
+        <a onclick="document.getElementById('dto').scrollIntoView({behavior:'smooth'});return false;">DTO &amp; Sanitization</a>
+        <a onclick="document.getElementById('architecture').scrollIntoView({behavior:'smooth'});return false;">Error Architecture</a>
+        <a onclick="document.getElementById('async-handler').scrollIntoView({behavior:'smooth'});return false;">asyncHandler</a>
+        <a onclick="document.getElementById('global-handler').scrollIntoView({behavior:'smooth'});return false;">Global Handler</a>
+        <a onclick="document.getElementById('full-flow').scrollIntoView({behavior:'smooth'});return false;">Full Request Flow</a>
+        <a onclick="document.getElementById('auth-vs-authz').scrollIntoView({behavior:'smooth'});return false;">401 vs 403</a>
+        <a onclick="document.getElementById('faq').scrollIntoView({behavior:'smooth'});return false;">Interview Q&amp;A</a>
+        <a onclick="document.getElementById('summary').scrollIntoView({behavior:'smooth'});return false;">30-Second Answer</a>
+      </div>
+    </div>
+
+    <div class="intro-summary">
+      <div class="intro-summary-title">🧩 At a Glance — Three Layers of Validation</div>
+      <div class="summary-grid">
+        <div class="summary-item summary-blue" onclick="document.getElementById('zod').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">1️⃣</div>
+          <div class="summary-text"><strong>Zod:</strong> validates HTTP body / params / query before the controller ever runs.</div>
+        </div>
+        <div class="summary-item summary-green" onclick="document.getElementById('mongoose').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">2️⃣</div>
+          <div class="summary-text"><strong>Mongoose:</strong> schema validators are the DB-side safety net for every write source.</div>
+        </div>
+        <div class="summary-item summary-amber" onclick="document.getElementById('dto').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">3️⃣</div>
+          <div class="summary-text"><strong>Service checks:</strong> DB-dependent business rules — email exists, resource exists, ownership.</div>
+        </div>
+        <div class="summary-item summary-purple" onclick="document.getElementById('architecture').scrollIntoView({behavior:'smooth'});">
+          <div class="summary-icon">🏗️</div>
+          <div class="summary-text"><strong>Error architecture:</strong> <code>AppError</code> → <code>asyncHandler</code> → <code>errorHandler</code>.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ZOD -->
+    <div class="section-divider" id="zod"><span>1️⃣ Zod — API Boundary Validation ⭐⭐⭐⭐⭐</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="flow">
+          <span class="step">Request</span><span class="arrow">→</span>
+          <span class="step">validate(schema)</span><span class="arrow">→</span>
+          <span class="step">Controller</span><span class="arrow">→</span>
+          <span class="step">Service</span><span class="arrow">→</span>
+          <span class="step">DB</span>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">user.schema.ts</span></div>
+          <pre><code><span class="kw">import</span> { z } <span class="kw">from</span> <span class="str">"zod"</span>;
+
+<span class="kw">const</span> <span class="type">createUserSchema</span> = z.<span class="fn">object</span>({
+  name: z.<span class="fn">string</span>().<span class="fn">trim</span>().<span class="fn">min</span>(<span class="num">2</span>).<span class="fn">max</span>(<span class="num">50</span>),
+  email: z.<span class="fn">string</span>().<span class="fn">email</span>().<span class="fn">toLowerCase</span>(),
+  password: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="num">8</span>),
+  role: z.<span class="fn">enum</span>([<span class="str">"ADMIN"</span>, <span class="str">"USER"</span>]).<span class="fn">default</span>(<span class="str">"USER"</span>)
+});
+
+<span class="kw">type</span> <span class="type">CreateUserDTO</span> = z.infer&lt;<span class="kw">typeof</span> createUserSchema&gt;;
+<span class="kw">const</span> <span class="type">updateUserSchema</span> = createUserSchema.<span class="fn">partial</span>(); <span class="cmt">// PATCH</span></code></pre>
+        </div>
+
+        <h4>🧩 Reusable middleware</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">validate.middleware.ts</span></div>
+          <pre><code><span class="kw">const</span> <span class="type">validate</span> = (schema: z.ZodType) =&gt; (req, res, next) =&gt; {
+  <span class="kw">const</span> <span class="type">result</span> = schema.<span class="fn">safeParse</span>(req.body);
+
+  <span class="kw">if</span> (!result.success) {
+    <span class="kw">return</span> res.status(<span class="num">400</span>).<span class="fn">json</span>({
+      success: <span class="kw">false</span>,
+      errors: result.error.issues.<span class="fn">map</span>(e =&gt; ({
+        field: e.path.<span class="fn">join</span>(<span class="str">"."</span>), message: e.message
+      }))
+    });
+  }
+
+  req.body = result.data;   <span class="cmt">// validated + transformed data</span>
+  <span class="fn">next</span>();
+};
+
+router.<span class="fn">post</span>(<span class="str">"/users"</span>, validate(createUserSchema), createUser);</code></pre>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th>Method</th><th>Behavior</th></tr>
+            <tr><td><code>parse()</code></td><td>Returns parsed data; throws <code>ZodError</code> if invalid.</td></tr>
+            <tr><td><code>safeParse()</code></td><td>Never throws; returns <code>{ success, data | error }</code>. Convenient for validation middleware.</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MONGOOSE -->
+    <div class="section-divider" id="mongoose"><span>2️⃣ Mongoose Validation — Last Safety Net</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="table-scroll">
+          <table>
+            <tr><th>Rule</th><th>Example</th><th>Purpose</th></tr>
+            <tr><td>required</td><td><code>required: true</code></td><td>Mandatory field</td></tr>
+            <tr><td>min / max</td><td><code>min: 18</code></td><td>Number range</td></tr>
+            <tr><td>minlength / maxlength</td><td><code>minlength: 2</code></td><td>String length</td></tr>
+            <tr><td>enum</td><td><code>["admin","user"]</code></td><td>Allowed values</td></tr>
+            <tr><td>custom validate</td><td><code>validator: fn</code></td><td>Custom field rule</td></tr>
+          </table>
+        </div>
+
+        <div class="warning"><strong>⚠️ Important:</strong> <code>unique: true</code> creates a database unique index. It is <strong>not</strong> a Mongoose validator; duplicates normally surface as MongoDB error <code>11000</code>.</div>
+      </div>
+    </div>
+
+    <!-- DTO -->
+    <div class="section-divider" id="dto"><span>3️⃣ DTO + Async Validation + Sanitization</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="table-scroll">
+          <table>
+            <tr><th>Concept</th><th>What It Does</th></tr>
+            <tr><td>DTO</td><td><code>z.infer</code> gives one typed contract from request → controller → service → DB. Avoid passing raw <code>req.body</code> everywhere.</td></tr>
+            <tr><td>Async business validation</td><td>Checks needing DB access belong in the service layer, e.g. email already registered → <code>409</code>.</td></tr>
+          </table>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">users.service.ts</span></div>
+          <pre><code><span class="kw">const</span> <span class="type">existing</span> = <span class="kw">await</span> User.<span class="fn">findOne</span>({ email: dto.email });
+<span class="kw">if</span> (existing) <span class="kw">throw new</span> <span class="fn">AppError</span>(<span class="str">"Email already registered"</span>, <span class="num">409</span>);
+<span class="kw">return</span> User.<span class="fn">create</span>(dto);</code></pre>
+        </div>
+
+        <div class="remember"><strong>✅ Sanitization:</strong> use Zod transforms such as <code>trim()</code>, <code>toLowerCase()</code>, parsed output to drop unwanted fields, and Mongo sanitization for dangerous <code>$</code>/dot operators.</div>
+      </div>
+    </div>
+
+    <!-- ARCHITECTURE -->
+    <div class="section-divider" id="architecture"><span>🏗️ Centralized Error Handling — Core Architecture ⭐⭐⭐⭐⭐</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="flow">
+          <span class="step">Route / Middleware</span><span class="arrow">→</span>
+          <span class="step">Controller</span><span class="arrow">→</span>
+          <span class="step">Service</span><span class="arrow">→</span>
+          <span class="step">throw AppError</span><span class="arrow">→</span>
+          <span class="step">asyncHandler</span><span class="arrow">→</span>
+          <span class="step">errorHandler</span>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th>Piece</th><th>Role</th></tr>
+            <tr><td><code>AppError</code></td><td>Base class for expected/operational errors. Stores message, status code and optional details.</td></tr>
+            <tr><td><code>errorHandler</code></td><td>One 4-argument Express middleware registered last. Converts every error to one response format.</td></tr>
+            <tr><td><code>asyncHandler</code></td><td>Wraps async controllers and forwards promise rejection using <code>.catch(next)</code>.</td></tr>
+            <tr><td><code>handleMongooseError</code></td><td>Normalizes validation, duplicate-key and cast errors.</td></tr>
+          </table>
+        </div>
+
+        <h4>🧱 AppError pattern</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">AppError.ts</span></div>
+          <pre><code><span class="kw">class</span> <span class="type">AppError</span> <span class="kw">extends</span> <span class="type">Error</span> {
+  <span class="fn">constructor</span>(
+    message: <span class="type">string</span>,
+    <span class="kw">public</span> statusCode = <span class="num">500</span>,
+    <span class="kw">public</span> errors?: <span class="type">unknown</span>
+  ) {
+    <span class="kw">super</span>(message);
+    <span class="kw">this</span>.name = <span class="kw">this</span>.constructor.name;
+  }
+}
+
+<span class="kw">class</span> <span class="type">NotFoundError</span> <span class="kw">extends</span> <span class="type">AppError</span> {
+  <span class="fn">constructor</span>(resource = <span class="str">"Resource"</span>) { <span class="kw">super</span>(<span class="str">`${resource} not found`</span>, <span class="num">404</span>); }
+}
+<span class="kw">class</span> <span class="type">UnauthorizedError</span> <span class="kw">extends</span> <span class="type">AppError</span> { <span class="fn">constructor</span>(msg=<span class="str">"Unauthorized"</span>){ <span class="kw">super</span>(msg,<span class="num">401</span>); } }
+<span class="kw">class</span> <span class="type">ForbiddenError</span> <span class="kw">extends</span> <span class="type">AppError</span> { <span class="fn">constructor</span>(msg=<span class="str">"Forbidden"</span>){ <span class="kw">super</span>(msg,<span class="num">403</span>); } }
+<span class="kw">class</span> <span class="type">ConflictError</span> <span class="kw">extends</span> <span class="type">AppError</span> { <span class="fn">constructor</span>(msg=<span class="str">"Conflict"</span>){ <span class="kw">super</span>(msg,<span class="num">409</span>); } }</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASYNC HANDLER -->
+    <div class="section-divider" id="async-handler"><span>🔁 asyncHandler — Remove Repeated try/catch</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">asyncHandler.ts</span></div>
+          <pre><code><span class="kw">const</span> <span class="type">asyncHandler</span> = (fn) =&gt; (req, res, next) =&gt;
+  Promise.<span class="fn">resolve</span>(fn(req, res, next)).<span class="fn">catch</span>(next);
+
+router.<span class="fn">get</span>(<span class="str">"/:id"</span>, asyncHandler(<span class="kw">async</span> (req, res) =&gt; {
+  <span class="kw">const</span> <span class="type">user</span> = <span class="kw">await</span> userService.<span class="fn">getUserById</span>(req.params.id);
+  res.<span class="fn">json</span>(user);
+}));</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- GLOBAL HANDLER -->
+    <div class="section-divider" id="global-handler"><span>🧯 Global Error Handler — Decision Order</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">errorHandler.ts</span></div>
+          <pre><code><span class="kw">const</span> <span class="type">errorHandler</span> = (err, req, res, next) =&gt; {
+  <span class="kw">if</span> (err <span class="kw">instanceof</span> <span class="type">ZodError</span>)
+    <span class="kw">return</span> res.status(<span class="num">400</span>).<span class="fn">json</span>({ success:<span class="kw">false</span>, message:<span class="str">"Validation failed"</span> });
+
+  <span class="kw">if</span> (err <span class="kw">instanceof</span> <span class="type">AppError</span>)
+    <span class="kw">return</span> res.status(err.statusCode).<span class="fn">json</span>({ success:<span class="kw">false</span>, message:err.message });
+
+  <span class="kw">const</span> <span class="type">mongo</span> = <span class="fn">handleMongooseError</span>(err);
+  <span class="kw">if</span> (mongo) <span class="kw">return</span> res.status(mongo.statusCode).<span class="fn">json</span>(mongo.body);
+
+  <span class="kw">return</span> res.status(<span class="num">500</span>).<span class="fn">json</span>({ success:<span class="kw">false</span>, message:<span class="str">"Internal Server Error"</span> });
+};
+
+app.<span class="fn">use</span>(notFound);
+app.<span class="fn">use</span>(errorHandler); <span class="cmt">// LAST</span></code></pre>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th>Error</th><th>Typical Cause</th><th>Status</th></tr>
+            <tr><td>Zod / request validation</td><td>Invalid request shape or format</td><td><strong>400</strong></td></tr>
+            <tr><td>Mongoose ValidationError</td><td>Schema rule failed</td><td><strong>400</strong></td></tr>
+            <tr><td>Mongoose CastError</td><td>Invalid ObjectId / type cast</td><td><strong>400</strong></td></tr>
+            <tr><td>Unauthorized</td><td>Missing / invalid / expired token</td><td><strong>401</strong></td></tr>
+            <tr><td>Forbidden</td><td>Authenticated but insufficient permission</td><td><strong>403</strong></td></tr>
+            <tr><td>Not found</td><td>Resource does not exist</td><td><strong>404</strong></td></tr>
+            <tr><td>Duplicate key / conflict</td><td>Unique index violated</td><td><strong>409</strong></td></tr>
+            <tr><td>Unexpected error</td><td>Unknown server failure</td><td><strong>500</strong></td></tr>
+          </table>
+        </div>
+
+        <div class="tip"><strong>💡 Production rule:</strong> return safe messages to clients. Keep stack traces/details for development or server logs, not normal production responses.</div>
+      </div>
+    </div>
+
+    <!-- FULL FLOW -->
+    <div class="section-divider" id="full-flow"><span>🔄 Complete Request Flow</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="flow">
+          <span class="step">Request</span><span class="arrow">→</span>
+          <span class="step">Auth / Authorise</span><span class="arrow">→</span>
+          <span class="step">Zod Validate</span><span class="arrow">→</span>
+          <span class="step">Controller</span><span class="arrow">→</span>
+          <span class="step">Service</span><span class="arrow">→</span>
+          <span class="step">Mongoose / DB</span>
+        </div>
+        <div class="flow">
+          <span class="step">Any forwarded/thrown error</span><span class="arrow">→</span>
+          <span class="step">next(err)</span><span class="arrow">→</span>
+          <span class="step">Global errorHandler</span><span class="arrow">→</span>
+          <span class="step">JSON response</span>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <tr><th>Layer</th><th>Main Responsibility</th><th>Error Behavior</th></tr>
+            <tr><td>Route</td><td>Wire middleware + controller</td><td>No business logic</td></tr>
+            <tr><td>Validate middleware</td><td>Request shape / format</td><td>400 on invalid input</td></tr>
+            <tr><td>Auth middleware</td><td>Verify identity</td><td>401</td></tr>
+            <tr><td>Authorise middleware</td><td>Verify role / permission</td><td>403</td></tr>
+            <tr><td>Controller</td><td>HTTP input/output orchestration</td><td>Async wrapper forwards errors</td></tr>
+            <tr><td>Service</td><td>Business logic + DB-dependent rules</td><td>Throw AppError subclasses</td></tr>
+            <tr><td>Mongoose</td><td>Persistence + schema constraints</td><td>ValidationError / CastError / 11000</td></tr>
+            <tr><td>errorHandler</td><td>One consistent error response</td><td>Registered last</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTH VS AUTHZ -->
+    <div class="section-divider" id="auth-vs-authz"><span>🔐 Authentication vs Authorisation</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="gotcha-grid">
+          <div class="gotcha-card dont">
+            <span class="gotcha-tag">401 Unauthorized</span>
+            <p>User is <strong>not successfully authenticated</strong>: no token, expired token, invalid token.</p>
+          </div>
+          <div class="gotcha-card do">
+            <span class="gotcha-tag">403 Forbidden</span>
+            <p>User <strong>is</strong> authenticated, but <strong>not allowed</strong> to perform the action.</p>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">routes/users.routes.ts</span></div>
+          <pre><code>router.<span class="fn">delete</span>(
+  <span class="str">"/:id"</span>,
+  authenticate,
+  authorise(<span class="str">"ADMIN"</span>, <span class="str">"MANAGER"</span>),
+  asyncHandler(controller.remove)
+);</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="section-divider" id="faq"><span>❓ Most Asked Interview Questions</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="qa-grid">
+          <div class="qa-item"><div class="q">Where should request validation happen?</div><div class="a">Reusable middleware before controller/business logic.</div></div>
+          <div class="qa-item"><div class="q">Why Zod + Mongoose both?</div><div class="a">Zod protects the HTTP boundary; Mongoose protects DB writes from any source.</div></div>
+          <div class="qa-item"><div class="q">Why use DTOs?</div><div class="a">Type-safe contract between layers; avoids spreading raw <code>any</code>/<code>req.body</code>.</div></div>
+          <div class="qa-item"><div class="q">Where do DB-dependent validations belong?</div><div class="a">Service layer, because they are business rules requiring queries.</div></div>
+          <div class="qa-item"><div class="q">Why centralized error handling?</div><div class="a">Consistent responses, no repeated status/message logic, easier logging and maintenance.</div></div>
+          <div class="qa-item"><div class="q">Why asyncHandler?</div><div class="a">Forwards rejected async controller promises to Express error middleware without repeated try/catch.</div></div>
+          <div class="qa-item"><div class="q">Is <code>unique:true</code> validation?</div><div class="a">No. It creates a unique index; duplicate inserts surface as error code <code>11000</code>.</div></div>
+          <div class="qa-item"><div class="q">400 vs 409?</div><div class="a">400 = invalid input/type/schema. 409 = request conflicts with current state, e.g. duplicate email.</div></div>
+          <div class="qa-item"><div class="q">401 vs 403?</div><div class="a">401 = authentication failed. 403 = identity known but action not permitted.</div></div>
+          <div class="qa-item"><div class="q">Why must errorHandler be last?</div><div class="a">It should receive errors forwarded from all earlier routes/middleware.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="section-divider" id="summary"><span>🎤 30-Second Interview Answer</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="remember">
+          <strong>"I use layered validation and centralized error handling."</strong> Zod validates and sanitizes API input in reusable middleware, and <code>z.infer</code> gives typed DTOs. Mongoose schema validators protect database writes, while DB-dependent checks stay in the service layer. Services throw typed <code>AppError</code> errors, async controllers forward failures through <code>asyncHandler</code>, and one global error middleware maps Zod, application and MongoDB errors into consistent HTTP responses.
+        </div>
+        <div class="tip"><strong>💡 Golden rule:</strong> Route wires → middleware guards → controller orchestrates → service decides → Mongoose persists → errorHandler responds.</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
