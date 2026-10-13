@@ -32,6 +32,7 @@
     .sidebar::-webkit-scrollbar { width: 6px; }
     .sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     .sidebar h2 { margin: 2px 8px 14px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
+    .main.sidebar-hidden .sidebar { display: none; }
 
     /* ── LEVEL 1 — static section heading (not clickable, always visible).
        Colours: --c main, --c2 dark, --t tint, --b border ── */
@@ -95,7 +96,7 @@
     /* number badge */
     .leaf .ci { display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; font-size: 11.5px; font-weight: 800; font-style: normal; font-variant-numeric: tabular-nums; color: var(--c2); background: var(--t); border: 1.5px solid var(--b); box-shadow: inset 0 0 0 2px #fff; transition: background .18s, color .18s, border-color .18s, transform .18s; }
     .leaf .body { flex: 1; min-width: 0; }
-    .leaf .ttl { display: block; font-size: 13px; font-weight: 600; line-height: 1.45; color: var(--c2); letter-spacing: .005em; }
+    .leaf .ttl { display: block; font-size: 13px; font-weight: 700; line-height: 1.45; color: var(--c2); letter-spacing: .005em; }
 
     /* done tick */
     .leaf .chk { display: grid; place-items: center; flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #cbd5e1; background: #fff; color: transparent; font-size: 12px; cursor: pointer; transition: border-color .15s, background .15s, color .15s; }
@@ -139,7 +140,7 @@
 </head>
 <body>
   <header class="topbar">
-    <button class="toggle" id="toggle" title="Toggle navigation"><i class="ti ti-menu-2"></i></button>
+    <button class="toggle" id="toggle" type="button" title="Toggle navigation" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="true"><i class="ti ti-menu-2"></i></button>
     <div class="title"><i class="ti ti-algorithm"></i><span>DSA Roadmap</span></div>
     <button class="back" id="back" title="Return to Dev Hub"><i class="ti ti-arrow-left"></i> Back</button>
     <input class="search" id="search" type="search" placeholder="Search DSA topics" aria-label="Search DSA topics" />
@@ -328,12 +329,23 @@
     const groups = [...links.querySelectorAll(".grp")];
     const allLinks = [...links.querySelectorAll("a")];
     const sidebar = document.getElementById("sidebar");
+    const main = document.querySelector(".main");
+    const toggle = document.getElementById("toggle");
+    const mobileLayout = window.matchMedia("(max-width: 768px)");
+
+    function updateToggleState() {
+      const expanded = mobileLayout.matches
+        ? sidebar.classList.contains("open")
+        : !main.classList.contains("sidebar-hidden");
+      toggle.setAttribute("aria-expanded", String(expanded));
+    }
 
     function activate(link) {
       allLinks.forEach(a => a.classList.remove("active"));
       link.classList.add("active");
       link.closest(".sub").open = true;
       sidebar.classList.remove("open");
+      updateToggleState();
     }
     allLinks.forEach(l => l.addEventListener("click", () => activate(l)));
 
@@ -371,7 +383,16 @@
     // Start with the first topic expanded (sections are static headings)
     groups[0].querySelector(".sub").open = true;
 
-    document.getElementById("toggle").addEventListener("click", () => sidebar.classList.toggle("open"));
+    toggle.addEventListener("click", () => {
+      if (mobileLayout.matches) {
+        sidebar.classList.toggle("open");
+      } else {
+        main.classList.toggle("sidebar-hidden");
+      }
+      updateToggleState();
+    });
+    mobileLayout.addEventListener("change", updateToggleState);
+    updateToggleState();
     document.getElementById("back").addEventListener("click", () => { window.location.href = "../index.html"; });
 
     // Search: matches section names, topic names ("imp" lists the important topics) and links.
