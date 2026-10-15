@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Monolith vs Microservices and Service Boundaries</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:#f4f5fa;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.6}
+.container{width:92%;max-width:1120px;margin:34px auto 70px}
+.container{--accent-dark:#1e3a8a;--accent:#2563eb;--accent-light:#3b82f6;--content-bg:#eff6ff;--heading:#1e3a8a;--shadow-rgb:37,99,235}
+a{color:#2563eb}
+code{font-family:'Fira Code','Consolas',monospace;font-size:.88em;background:rgba(37,99,235,.1);color:#1e3a8a;padding:2px 7px;border-radius:5px}
+.mono{font-family:'Fira Code','Consolas',monospace}
+svg.diagram{width:100%;height:auto;display:block}
+svg.diagram text{font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+svg.diagram text.mono{font-family:'Fira Code','Consolas',monospace}
+
+/* header */
+.header{background:linear-gradient(120deg,var(--accent-dark),var(--accent-light));border-radius:22px;padding:42px 38px;margin-bottom:22px;box-shadow:0 16px 36px rgba(var(--shadow-rgb),.3);position:relative;overflow:hidden}
+.header::after{content:'';position:absolute;top:-70px;right:-70px;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.08)}
+.header::before{content:'';position:absolute;bottom:-90px;left:38%;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.05)}
+.header .tag{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-size:12px;font-weight:800;letter-spacing:.6px;padding:5px 14px;border-radius:20px;margin-bottom:14px;position:relative}
+.header h1{color:#fff;font-size:33px;font-weight:800;letter-spacing:-.6px;margin-bottom:10px;position:relative;line-height:1.2}
+.header p{color:#dbe6ff;font-size:16px;max-width:760px;line-height:1.65;position:relative}
+.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;position:relative}
+.meta span{background:rgba(255,255,255,.14);color:#fff;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.28)}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;position:relative}
+.toc a{text-decoration:none;padding:7px 15px;border-radius:20px;font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);transition:all .2s ease}
+.toc a:hover{background:#fff;color:var(--accent);transform:translateY(-1px)}
+
+/* view switch + tabs */
+.viewswitch{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;background:rgba(244,245,250,.92);backdrop-filter:blur(8px);padding:10px 4px;margin-bottom:6px;border-bottom:1px solid #e2e8f0}
+.viewswitch>span{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8}
+.tabbar{display:inline-flex;gap:6px;background:#e9edf5;padding:4px;border-radius:12px;margin:0 0 14px}
+.viewswitch .tabbar{margin:0}
+.tbtn{border:none;background:transparent;font-family:inherit;font-size:13px;font-weight:800;color:#64748b;padding:7px 16px;border-radius:9px;cursor:pointer;transition:all .15s ease}
+.tbtn:hover{color:#1e3a8a}
+.tbtn.active{background:#fff;color:#1e3a8a;box-shadow:0 3px 10px rgba(0,0,0,.1)}
+.tabpanel{display:none}
+body[data-view="mongo"] .tabpanel[data-panel="mongo"],body[data-view="pg"] .tabpanel[data-panel="pg"],body[data-view="both"] .tabpanel{display:block}
+.plabel{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.5px;padding:5px 14px;border-radius:20px;margin-bottom:12px}
+.plabel.mongo{background:#dcfce7;color:#166534}
+.plabel.pg{background:#dbeafe;color:#1e3a8a}
+body[data-view="both"] .tabpanel+.tabpanel{margin-top:26px;padding-top:22px;border-top:2px dashed #e2e8f0}
+
+/* section divider */
+.section-divider{margin:46px 0 20px;position:relative;display:flex;align-items:center;scroll-margin-top:60px}
+.section-divider::before{content:'';position:absolute;top:50%;left:0;right:0;height:2px;background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd);opacity:.22}
+.section-divider>span{background:#f4f5fa;padding:0 18px 0 0;position:relative;font-size:21px;font-weight:800;display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+.secnum{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;padding:0 8px;border-radius:11px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-size:16px;box-shadow:0 6px 14px rgba(37,99,235,.3)}
+.star{font-size:11.5px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;padding:3px 11px;border-radius:14px}
+
+/* cards */
+.card{border-radius:18px;background:#fff;box-shadow:0 10px 26px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.04);overflow:hidden;margin-bottom:20px}
+.card-pad{padding:24px 26px}
+.card p{color:#334155;font-size:15.5px;line-height:1.8;margin-bottom:12px;font-weight:500}
+.h3{font-size:18px;font-weight:800;color:#1e3a8a;margin:0 0 12px;padding-left:12px;border-left:4px solid #2563eb}
+.h4{font-size:12.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#64748b;margin:20px 0 8px}
+ul.plain{margin:6px 0 12px 22px}
+ul.plain li{font-size:15px;line-height:1.8;color:#334155;font-weight:500}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+
+/* callouts */
+.callout{border-radius:14px;padding:15px 20px;margin:14px 0;font-size:15px;line-height:1.75;font-weight:600}
+.callout.info{background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#3730a3}
+.callout.warn{background:linear-gradient(135deg,#ffe4e6,#fecdd3);color:#9f1239}
+.callout.ok{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46}
+.callout.amber{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e}
+.callout .cl{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.75;margin-bottom:3px}
+.callout code{background:rgba(255,255,255,.55)}
+
+/* level cards */
+.lvls{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+@media(max-width:900px){.lvls{grid-template-columns:1fr}}
+.lvl{background:#fff;border-radius:18px;padding:20px;border-top:6px solid var(--lc);box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.lvl-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.lvl-n{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#fff;background:var(--lc);padding:4px 12px;border-radius:14px}
+.lvl-star{font-size:11px;font-weight:800;color:#92400e;background:#fef3c7;padding:3px 10px;border-radius:12px}
+.lvl h3{font-size:17px;font-weight:800;margin-bottom:12px;color:#1a1a1a}
+.lvl-line{display:flex;flex-direction:column;gap:2px;background:#f8fafc;border-radius:11px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;color:#334155;font-weight:500;line-height:1.55}
+.lvl-line b{font-size:11.5px;letter-spacing:.5px;color:var(--lc)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips i{font-style:normal;font-size:11.5px;font-weight:800;padding:4px 11px;border-radius:12px}
+.chips i.ok{background:#dcfce7;color:#166534}
+.chips i.no{background:#ffe4e6;color:#9f1239}
+ul.takeaway{list-style:none;display:grid;gap:10px;margin-bottom:6px}
+ul.takeaway li{display:flex;gap:14px;align-items:flex-start;background:#f8fafc;border-left:5px solid var(--lc);border-radius:0 12px 12px 0;padding:12px 16px;font-size:14.5px;line-height:1.65;color:#334155;font-weight:500}
+ul.takeaway li b{flex-shrink:0;min-width:74px;color:var(--lc);font-weight:800}
+
+/* services */
+.svcs{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:14px 0 8px}
+@media(max-width:900px){.svcs{grid-template-columns:repeat(2,1fr)}}
+.svc{background:var(--l);border-radius:16px;padding:16px 14px;border-top:5px solid var(--c)}
+.svc-ic{width:42px;height:42px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:10px;box-shadow:0 4px 10px rgba(0,0,0,.08)}
+.svc h4{font-size:14.5px;font-weight:800;color:var(--c);margin-bottom:4px}
+.svc p{font-size:13px!important;line-height:1.55!important;margin:0!important;color:#334155}
+
+/* diagrams */
+.dfig{margin:16px 0;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+.dtitle{background:linear-gradient(120deg,#1e3a8a,#3b82f6);color:#fff;font-size:13px;font-weight:800;padding:9px 18px;letter-spacing:.2px}
+.dfig svg{padding:14px}
+.dcap{font-size:12.5px;color:#64748b;font-weight:600;text-align:center;padding:0 16px 12px;font-style:italic}
+
+/* pros / cons */
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+@media(max-width:820px){.pc{grid-template-columns:1fr}}
+.pro,.con{border-radius:16px;padding:16px 18px}
+.pro{background:#f0fdf4;border:1px solid #bbf7d0}
+.con{background:#fff1f2;border:1px solid #fecdd3}
+.pro h4,.con h4{font-size:14px;font-weight:800;margin-bottom:8px}
+.pro h4{color:#166534}.con h4{color:#9f1239}
+.pro ul,.con ul{margin-left:18px}
+.pro li,.con li{font-size:14px;line-height:1.7;color:#334155;font-weight:500;margin-bottom:3px}
+.pro p,.con p{font-size:14px!important;line-height:1.7!important;color:#334155}
+
+/* steps */
+ol.steps{list-style:none;counter-reset:st;display:grid;gap:8px;margin:8px 0 14px}
+ol.steps li{counter-increment:st;display:flex;gap:12px;align-items:flex-start;background:#f0fdf4;border-radius:12px;padding:11px 14px;font-size:14.5px;line-height:1.6;color:#334155;font-weight:500}
+ol.steps li::before{content:counter(st);flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#16a34a;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+ol.steps li b{color:#166534;font-weight:800;margin-right:4px}
+ol.steps li b::after{content:' —'}
+ol.steps.big li{background:#eff6ff;padding:14px 16px;font-size:15px}
+ol.steps.big li::before{background:linear-gradient(135deg,#1e3a8a,#3b82f6)}
+ol.steps.big li b{color:#1e3a8a}
+ol.steps.big li b::after{content:''}
+
+/* code + tree */
+.code-block{background:#1a1a1a;border-radius:12px;overflow:hidden;margin:12px 0;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+.code-bar{background:#111;padding:8px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #2b2b2b}
+.code-bar .dot{width:9px;height:9px;border-radius:50%}
+.dot-red{background:#ff5f57}.dot-grey{background:#febc2e}.dot-green{background:#28c840}
+.code-bar .filename{color:#999;font-size:12px;margin-left:8px;font-family:'Fira Code',monospace}
+.code-block pre{padding:16px 18px;overflow-x:auto;margin:0}
+.code-block code{background:none;color:#d4d4d4;font-size:13px;font-family:'Fira Code','Consolas',monospace;line-height:1.65;white-space:pre;padding:0}
+.kw{color:#c792ea;font-weight:600}.str{color:#c3e88d}.fn{color:#82aaff}.cmt{color:#7a7a7a;font-style:italic}.num{color:#f78c6c}
+details.tree{margin:8px 0}
+details.tree>summary{cursor:pointer;font-size:13px;font-weight:800;color:#475569;background:#f1f5f9;display:inline-block;padding:7px 14px;border-radius:10px;list-style:none;user-select:none}
+details.tree>summary::-webkit-details-marker{display:none}
+details.tree>summary:hover{background:#e2e8f0}
+
+/* tables */
+.tscroll{overflow-x:auto;margin:8px 0}
+table{width:100%;border-collapse:separate;border-spacing:0 8px;min-width:560px}
+th{background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899);color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;padding:12px 16px;text-align:left}
+th:first-child{border-radius:12px 0 0 12px}th:last-child{border-radius:0 12px 12px 0}
+td{padding:12px 16px;font-size:14px;font-weight:600;color:#334155;vertical-align:top;background:var(--rb,#eff6ff);line-height:1.6}
+td:first-child{border-radius:12px 0 0 12px;border-left:6px solid var(--rc,#2563eb);font-weight:800;color:var(--rd,#1e3a8a)}
+td:last-child{border-radius:0 12px 12px 0}
+td code{background:#fff;border:1px solid var(--rc,#2563eb);color:var(--rd,#1e3a8a);font-weight:700}
+tr:nth-child(6n+2){--rc:#db2777;--rb:#fdf2f8;--rd:#9d174d}
+tr:nth-child(6n+3){--rc:#d97706;--rb:#fffbeb;--rd:#92400e}
+tr:nth-child(6n+4){--rc:#059669;--rb:#ecfdf5;--rd:#065f46}
+tr:nth-child(6n+5){--rc:#7c3aed;--rb:#f5f3ff;--rd:#5b21b6}
+tr:nth-child(6n+6){--rc:#0d9488;--rb:#f0fdfa;--rd:#115e59}
+
+/* chat */
+.chat{display:grid;gap:12px}
+.bub{border-radius:18px;padding:14px 18px;max-width:92%}
+.bub .who{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:5px}
+.bub p{margin:0 0 8px!important;font-size:15px!important;line-height:1.75!important}
+.bub p:last-child{margin:0!important}
+.bub.q{background:#f1f5f9;border-bottom-left-radius:4px;color:#1e293b}
+.bub.a{background:linear-gradient(135deg,#dbeafe,#e0e7ff);border-bottom-right-radius:4px;color:#1e3a8a;margin-left:auto}
+.bub.a p{color:#1e3a8a!important;font-weight:600!important}
+
+/* faq */
+details.faq{border:1px solid #e2e8f0;border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff}
+details.faq>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:14px 18px;background:#f8fafc;user-select:none}
+details.faq>summary::-webkit-details-marker{display:none}
+details.faq>summary:hover{background:#eff6ff}
+.fn{flex-shrink:0}
+details.faq .fn{width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.fq{flex:1;font-size:15px;font-weight:700;color:#1a1a1a;line-height:1.45}
+.fch{color:#2563eb;font-size:12px;transition:transform .2s ease}
+details.faq[open] .fch{transform:rotate(180deg)}
+details.faq[open]>summary{background:#eff6ff}
+.fa{padding:14px 20px 16px 62px;font-size:14.5px;line-height:1.75;color:#334155;font-weight:500;border-top:1px solid #e2e8f0}
+
+/* revision */
+.revs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:820px){.revs{grid-template-columns:1fr}}
+.rev{background:#fff;border-radius:18px;padding:20px 22px;border-top:6px solid var(--rc);box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.rev h3{font-size:18px;font-weight:800;color:var(--rc);margin-bottom:12px}
+.rev ul{list-style:none;display:grid;gap:8px}
+.rev li{background:#f8fafc;border-radius:11px;padding:10px 14px;font-size:14px;line-height:1.6;color:#334155;font-weight:500}
+.rev li b{display:inline-block;min-width:68px;color:var(--rc);font-weight:800}
+
+@media(max-width:768px){.header h1{font-size:25px}.header{padding:30px 22px}.card-pad{padding:18px}.fa{padding-left:20px}}
+@media print{.viewswitch{display:none}.tabpanel{display:block!important}}
+
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.tab{text-decoration:none;font-size:13.5px;font-weight:800;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:9px 18px;border-radius:12px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 3px 10px rgba(0,0,0,.04);transition:all .15s ease}
+.tab:hover{color:#2563eb;border-color:#bfdbfe;transform:translateY(-1px)}
+.tab.active{background:linear-gradient(120deg,#1e3a8a,#3b82f6);color:#fff;border-color:transparent;box-shadow:0 8px 18px rgba(37,99,235,.3)}
+.tab small{font-weight:700;opacity:.8;font-size:11.5px}
+.svcs.six{grid-template-columns:repeat(3,1fr)}
+@media(max-width:820px){.svcs.six{grid-template-columns:repeat(2,1fr)}}
+ul.feat{list-style:none;display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:10px 0 6px}
+@media(max-width:900px){ul.feat{grid-template-columns:repeat(2,1fr)}}
+ul.feat li{background:#f5f3ff;border-radius:14px;padding:14px 12px;font-size:13.5px;font-weight:700;color:#5b21b6;text-align:center;line-height:1.4}
+ul.feat li span{display:block;font-size:24px;margin-bottom:6px}
+.scns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0 14px}
+@media(max-width:820px){.scns{grid-template-columns:1fr}}
+.scn{border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:#fff}
+.scn-h{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#f8fafc}
+.scn-h span{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.scn-h h4{font-size:15px;font-weight:800;color:#1a1a1a}
+.scn-r{padding:11px 16px;border-top:1px solid #eef0f4}
+.scn-r b{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;margin-bottom:2px}
+.scn-r p{margin:0!important;font-size:14px!important;line-height:1.65!important}
+.scn-r.bad{background:#fff1f2}.scn-r.bad b{color:#be123c}
+.scn-r.good{background:#f0fdf4}.scn-r.good b{color:#15803d}
+.sctx{font-size:13px;line-height:1.7;color:#64748b;background:#f8fafc;border-radius:12px;padding:10px 14px;margin-bottom:6px}
+.sctx b{color:#475569;margin-right:6px;text-transform:uppercase;font-size:11px;letter-spacing:.8px}
+.diss{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:10px 0}
+@media(max-width:900px){.diss{grid-template-columns:1fr 1fr}}@media(max-width:560px){.diss{grid-template-columns:1fr}}
+.dis{background:#fff1f2;border-radius:16px;padding:16px;border-top:5px solid #f43f5e}
+.dis-i{width:40px;height:40px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:8px;box-shadow:0 4px 10px rgba(0,0,0,.08)}
+.dis h4{font-size:14.5px;font-weight:800;color:#9f1239;margin-bottom:4px}
+.dis p{margin:0!important;font-size:13.5px!important;line-height:1.6!important;color:#475569}
+.mchip{display:inline-block;font-size:12px;font-weight:800;padding:4px 13px;border-radius:14px}
+.mchip.mm{background:#dcfce7;color:#166534}.mchip.ms{background:#ede9fe;color:#5b21b6}
+.owns{margin-top:10px;font-size:12px;font-weight:700;color:var(--c);background:#fff;border-radius:9px;padding:6px 9px;line-height:1.4}
+.owns b{display:block;font-size:10px;letter-spacing:.9px;text-transform:uppercase;opacity:.7}
+.formula{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;background:linear-gradient(120deg,#1e3a8a,#3b82f6);border-radius:16px;padding:16px 20px;margin-bottom:16px}
+.formula span{background:rgba(255,255,255,.16);color:#fff;font-weight:800;font-size:14px;padding:7px 16px;border-radius:20px;border:1px solid rgba(255,255,255,.3)}
+.formula i{color:#fff;font-style:normal;font-weight:800;font-size:20px}
+.formula strong{background:#fff;color:#15803d;font-weight:800;font-size:14.5px;padding:8px 18px;border-radius:20px}
+.ccs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.ccs{grid-template-columns:1fr}}
+.cc{border-radius:16px;padding:16px 18px}
+.cc.good{background:#f0fdf4;border:1px solid #bbf7d0;border-top:5px solid #16a34a}
+.cc.bad{background:#fff1f2;border:1px solid #fecdd3;border-top:5px solid #f43f5e}
+.cc-h{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.cc-h span{font-size:22px}
+.cc-h h4{font-size:16px;font-weight:800}
+.cc.good h4{color:#166534}.cc.bad h4{color:#9f1239}
+.cc p{margin:0 0 10px!important;font-size:14.5px!important;line-height:1.6!important}
+.cc-ex{background:#fff;border-radius:11px;padding:9px 12px;font-size:13.5px;line-height:1.6;color:#334155;font-weight:600}
+.cc-ex b{display:block;font-size:10.5px;letter-spacing:.9px;text-transform:uppercase;color:#94a3b8}
+details.faq .fnum{width:30px;height:30px;flex-shrink:0;border-radius:10px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.fa ul.plain{margin:0 0 0 18px}
+ol.steps li span{flex:1}
+ol.steps li::before{margin-top:0}
+.pager{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap}
+.nextcard{flex:1;min-width:260px;text-decoration:none;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:18px 22px;box-shadow:0 6px 16px rgba(0,0,0,.05);transition:all .15s ease;display:block}
+.nextcard:hover{border-color:#93c5fd;transform:translateY(-2px)}
+.nextcard small{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8}
+.nextcard b{display:block;font-size:19px;color:#1e3a8a;margin:2px 0 6px}
+.nextcard span{display:block;font-size:14px;color:#475569;line-height:1.65;font-weight:500}
+.nextcard.prev{text-align:left}
+.dtitle+svg{padding:14px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="ar-slate" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#64748b"/></marker>
+<marker id="ar-red" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#e11d48"/></marker>
+<marker id="ar-green" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#16a34a"/></marker>
+<marker id="ar-blue" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#2563eb"/></marker>
+<marker id="ar-amber" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#d97706"/></marker>
+<marker id="ar-purple" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#7c3aed"/></marker>
+<marker id="ar-orange" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#f97316"/></marker>
+</defs></svg>
+<div class="container">
+<nav class="tabs"><a class="tab active" href="#topic1">🏛️ Topic 1 <small>Monolith vs Microservices ⭐</small></a><a class="tab" href="#topic2">🧭 Topic 2 <small>Service Boundaries ⭐</small></a></nav>
+<div class="section-divider" id="topic1"><span><b class="secnum">1</b>Monolith vs Microservices</span></div>
+<div class="card"><div class="card-pad">
+<p>A <strong>monolith</strong> packages an application's main capabilities into one deployable unit. A <strong>modular monolith</strong> keeps those capabilities separated in code while still deploying the application together. <strong>Microservices</strong> split a system into independently deployable services organized around business capabilities.</p>
+<div class="two">
+  <div class="callout info"><span class="cl">Monolith</span>One application and deployment. It is straightforward to develop and operate, but teams and releases share the same runtime and scaling boundary.</div>
+  <div class="callout ok"><span class="cl">Microservices</span>Multiple services with explicit business ownership and independent deployment. They enable selective scaling and releases, at the cost of distributed-system complexity.</div>
+</div>
+<h3 class="h3">How to choose</h3>
+<div class="tscroll"><table><thead><tr><th>Consideration</th><th>Monolith / modular monolith</th><th>Microservices</th></tr></thead><tbody>
+<tr><td>Best fit</td><td>Early products, small teams, tightly related capabilities</td><td>Stable business boundaries, multiple teams, independent scaling or release needs</td></tr>
+<tr><td>Deployment</td><td>Deploy the application as one unit</td><td>Deploy each service independently</td></tr>
+<tr><td>Data</td><td>Can share one database and transactions</td><td>Each service owns its data; cross-service workflows need APIs or events</td></tr>
+<tr><td>Operations</td><td>Fewer network and infrastructure concerns</td><td>Requires service discovery, observability, resilience, and distributed consistency</td></tr>
+</tbody></table></div>
+<div class="callout amber"><span class="cl">Practical guidance</span>Start with a well-structured modular monolith unless independent ownership, scaling, or delivery needs justify the operational cost of splitting services. Microservices are not an automatic upgrade.</div>
+<h3 class="h3">Interview-ready summary</h3>
+<p>Choose the architecture based on business boundaries, team ownership, deployment needs, and operational maturity. A modular monolith provides clear internal boundaries without network and distributed-data costs; split a capability into a service when its independent evolution provides more value than the added complexity.</p>
+</div></div>
+<div class="header" id="topic2">
+  <span class="tag">ARCHITECTURE FUNDAMENTALS · TOPIC 2</span>
+  <h1>🧭 Service Boundaries in Microservices</h1>
+  <p>A service boundary defines what a microservice is responsible for, which business logic and data it owns, and how it communicates with other services.</p>
+  <div class="meta"><span>⭐ Very important</span><span>🧲 Cohesion &amp; coupling</span><span>🗄️ Data ownership</span></div>
+  <div class="toc"><a href="#b21">2.1 Business capability</a><a href="#b22">2.2 Bounded context ⭐</a><a href="#b23">2.3 Cohesion vs coupling ⭐</a><a href="#b24">2.4 Database ownership</a><a href="#b25">2.5 When to split</a><a href="#b26">2.6 Common mistakes</a><a href="#b27">2.7 Interview-ready Qs</a><a href="#b28">Final revision</a></div>
+</div>
+<div class="section-divider" id="b21"><span><b class="secnum">2.1</b>Divide by Business Capability</span></div><div class="card"><div class="card-pad">
+<p>Divide microservices based on <strong>business responsibilities</strong>, not technical layers (controllers, models, database queries).</p>
+<figure class="dfig"><div class="dtitle">Business capabilities, not technical layers</div><svg class="diagram" viewBox="0 0 760 352" role="img" aria-label="Technical layers versus business capabilities"><rect x="8" y="8" width="330" height="336" rx="16" fill="#fff1f2" stroke="#fda4af" stroke-width="2"/><rect x="362" y="8" width="390" height="336" rx="16" fill="#f0fdf4" stroke="#86efac" stroke-width="2"/><text x="173" y="38" font-size="14.5" font-weight="800" fill="#be123c" text-anchor="middle">❌ Divided by technical layers</text><text x="557" y="38" font-size="14.5" font-weight="800" fill="#15803d" text-anchor="middle">✅ Divided by business capability</text><rect x="28" y="66" width="290" height="66" rx="12" fill="#fff" stroke="#e11d48" stroke-width="1.8" stroke-dasharray="6 4"/><text x="173" y="106" font-size="14" font-weight="800" fill="#9f1239" text-anchor="middle">Controllers</text><rect x="28" y="148" width="290" height="66" rx="12" fill="#fff" stroke="#e11d48" stroke-width="1.8" stroke-dasharray="6 4"/><text x="173" y="188" font-size="14" font-weight="800" fill="#9f1239" text-anchor="middle">Services</text><rect x="28" y="230" width="290" height="66" rx="12" fill="#fff" stroke="#e11d48" stroke-width="1.8" stroke-dasharray="6 4"/><text x="173" y="270" font-size="14" font-weight="800" fill="#9f1239" text-anchor="middle">Models / DB queries</text><text x="173" y="322" font-size="12" font-weight="700" fill="#9f1239" text-anchor="middle" font-style="italic">Every feature is spread across every layer</text><rect x="376" y="66" width="56" height="246" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><text x="404" y="86" font-size="9.5" font-weight="800" fill="#2563eb" text-anchor="middle">Auth</text><rect x="382" y="100" width="44" height="56" rx="8" fill="#fff" stroke="#2563eb" stroke-width="1.3"/><text x="404" y="133" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">API</text><rect x="382" y="170" width="44" height="56" rx="8" fill="#fff" stroke="#2563eb" stroke-width="1.3"/><text x="404" y="203" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Logic</text><rect x="382" y="240" width="44" height="56" rx="8" fill="#fff" stroke="#2563eb" stroke-width="1.3"/><text x="404" y="273" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Data</text><rect x="438" y="66" width="56" height="246" rx="10" fill="#d1fae5" stroke="#059669" stroke-width="2"/><text x="466" y="86" font-size="9.5" font-weight="800" fill="#059669" text-anchor="middle">Property</text><rect x="444" y="100" width="44" height="56" rx="8" fill="#fff" stroke="#059669" stroke-width="1.3"/><text x="466" y="133" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">API</text><rect x="444" y="170" width="44" height="56" rx="8" fill="#fff" stroke="#059669" stroke-width="1.3"/><text x="466" y="203" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Logic</text><rect x="444" y="240" width="44" height="56" rx="8" fill="#fff" stroke="#059669" stroke-width="1.3"/><text x="466" y="273" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Data</text><rect x="500" y="66" width="56" height="246" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/><text x="528" y="86" font-size="9.5" font-weight="800" fill="#d97706" text-anchor="middle">Document</text><rect x="506" y="100" width="44" height="56" rx="8" fill="#fff" stroke="#d97706" stroke-width="1.3"/><text x="528" y="133" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">API</text><rect x="506" y="170" width="44" height="56" rx="8" fill="#fff" stroke="#d97706" stroke-width="1.3"/><text x="528" y="203" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Logic</text><rect x="506" y="240" width="44" height="56" rx="8" fill="#fff" stroke="#d97706" stroke-width="1.3"/><text x="528" y="273" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Data</text><rect x="562" y="66" width="56" height="246" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="590" y="86" font-size="9.5" font-weight="800" fill="#7c3aed" text-anchor="middle">Review</text><rect x="568" y="100" width="44" height="56" rx="8" fill="#fff" stroke="#7c3aed" stroke-width="1.3"/><text x="590" y="133" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">API</text><rect x="568" y="170" width="44" height="56" rx="8" fill="#fff" stroke="#7c3aed" stroke-width="1.3"/><text x="590" y="203" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Logic</text><rect x="568" y="240" width="44" height="56" rx="8" fill="#fff" stroke="#7c3aed" stroke-width="1.3"/><text x="590" y="273" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Data</text><rect x="624" y="66" width="56" height="246" rx="10" fill="#ffe4e6" stroke="#e11d48" stroke-width="2"/><text x="652" y="86" font-size="9.5" font-weight="800" fill="#e11d48" text-anchor="middle">Payment</text><rect x="630" y="100" width="44" height="56" rx="8" fill="#fff" stroke="#e11d48" stroke-width="1.3"/><text x="652" y="133" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">API</text><rect x="630" y="170" width="44" height="56" rx="8" fill="#fff" stroke="#e11d48" stroke-width="1.3"/><text x="652" y="203" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Logic</text><rect x="630" y="240" width="44" height="56" rx="8" fill="#fff" stroke="#e11d48" stroke-width="1.3"/><text x="652" y="273" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Data</text><rect x="686" y="66" width="56" height="246" rx="10" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/><text x="714" y="86" font-size="9.5" font-weight="800" fill="#0d9488" text-anchor="middle">Notif.</text><rect x="692" y="100" width="44" height="56" rx="8" fill="#fff" stroke="#0d9488" stroke-width="1.3"/><text x="714" y="133" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">API</text><rect x="692" y="170" width="44" height="56" rx="8" fill="#fff" stroke="#0d9488" stroke-width="1.3"/><text x="714" y="203" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Logic</text><rect x="692" y="240" width="44" height="56" rx="8" fill="#fff" stroke="#0d9488" stroke-width="1.3"/><text x="714" y="273" font-size="10" font-weight="700" fill="#475569" text-anchor="middle">Data</text><text x="557" y="332" font-size="12" font-weight="700" fill="#15803d" text-anchor="middle" font-style="italic">Each service: one clear business responsibility</text></svg></figure>
+<div class="svcs six"><div class="svc" style="--c:#2563eb;--l:#dbeafe"><div class="svc-ic">🔐</div><h4>Auth Service</h4><p>Login, registration, authentication</p><div class="owns"><b>Owns</b>Users, sessions</div></div><div class="svc" style="--c:#059669;--l:#d1fae5"><div class="svc-ic">🏠</div><h4>Property Service</h4><p>Property registration and management</p><div class="owns"><b>Owns</b>Properties</div></div><div class="svc" style="--c:#d97706;--l:#fef3c7"><div class="svc-ic">📄</div><h4>Document Service</h4><p>Upload, verification, document management</p><div class="owns"><b>Owns</b>Documents</div></div><div class="svc" style="--c:#7c3aed;--l:#ede9fe"><div class="svc-ic">⭐</div><h4>Review Service</h4><p>Review assignment, approval, rejection</p><div class="owns"><b>Owns</b>Reviews, decisions</div></div><div class="svc" style="--c:#e11d48;--l:#ffe4e6"><div class="svc-ic">💳</div><h4>Payment Service</h4><p>Payments and refunds</p><div class="owns"><b>Owns</b>Payments, refunds</div></div><div class="svc" style="--c:#0d9488;--l:#ccfbf1"><div class="svc-ic">🔔</div><h4>Notification Service</h4><p>Email, SMS, alerts</p><div class="owns"><b>Owns</b>Notification logs</div></div></div>
+<div class="callout ok"><span class="cl">Rule</span>Every service should have <strong>one clearly defined business responsibility</strong>.</div></div></div>
+<div class="section-divider" id="b22"><span><b class="secnum">2.2</b>Bounded Context <span class="star">⭐ Very important</span></span></div><div class="card"><div class="card-pad">
+<p>A bounded context is a business area where terms, rules, and data models have a specific meaning.</p>
+<figure class="dfig"><div class="dtitle">Same person, different context</div><svg class="diagram" viewBox="0 0 760 284" role="img" aria-label="Bounded contexts: User in Auth Service and Reviewer in Review Service refer to the same person via userId"><rect x="14" y="24" width="300" height="220" rx="60" fill="#dbeafe" stroke="#2563eb" stroke-width="2.5"/><rect x="446" y="24" width="300" height="220" rx="60" fill="#ede9fe" stroke="#7c3aed" stroke-width="2.5"/><text x="164" y="62" font-size="15" font-weight="800" fill="#2563eb" text-anchor="middle">🔐 Auth Service</text><text x="596" y="62" font-size="15" font-weight="800" fill="#7c3aed" text-anchor="middle">⭐ Review Service</text><rect x="66" y="82" width="196" height="40" rx="10" fill="#fff" stroke="#2563eb" stroke-width="1.8"/><text x="164" y="108" font-size="15" font-weight="800" fill="#1e3a8a" text-anchor="middle">User</text><rect x="498" y="82" width="196" height="40" rx="10" fill="#fff" stroke="#7c3aed" stroke-width="1.8"/><text x="596" y="108" font-size="15" font-weight="800" fill="#5b21b6" text-anchor="middle">Reviewer</text><text x="164" y="150" font-size="12.5" font-weight="600" fill="#1e3a8a" text-anchor="middle">• login credentials</text><text x="164" y="174" font-size="12.5" font-weight="600" fill="#1e3a8a" text-anchor="middle">• account status</text><text x="164" y="198" font-size="12.5" font-weight="600" fill="#1e3a8a" text-anchor="middle">• authentication</text><text x="596" y="150" font-size="12.5" font-weight="600" fill="#5b21b6" text-anchor="middle">• assigned reviews</text><text x="596" y="174" font-size="12.5" font-weight="600" fill="#5b21b6" text-anchor="middle">• approval permissions</text><text x="596" y="198" font-size="12.5" font-weight="600" fill="#5b21b6" text-anchor="middle">• availability</text><circle cx="380" cy="134" r="38" fill="#fef3c7" stroke="#d97706" stroke-width="2.5"/><text x="380" y="142" font-size="26" font-weight="700" fill="#92400e" text-anchor="middle">👤</text><line x1="342" y1="134" x2="318" y2="134" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" marker-end="url(#ar-amber)"/><line x1="418" y1="134" x2="442" y2="134" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" marker-end="url(#ar-amber)"/><text x="380" y="192" font-size="13" font-weight="800" fill="#92400e" text-anchor="middle" class="mono">userId</text><text x="380" y="210" font-size="11.5" font-weight="700" fill="#92400e" text-anchor="middle">same person</text><text x="380" y="270" font-size="12.5" font-weight="800" fill="#475569" text-anchor="middle">Same person, different context — each service keeps its own business model</text></svg></figure>
+<div class="pc"><div class="pro" style="background:#dbeafe;border-color:#93c5fd"><h4 style="color:#1e3a8a">🔐 Auth Service</h4><p><b>User</b> means login credentials, account status, authentication.</p></div>
+<div class="pro" style="background:#ede9fe;border-color:#c4b5fd"><h4 style="color:#5b21b6">⭐ Review Service</h4><p><b>Reviewer</b> means assigned reviews, approval permissions, availability.</p></div></div>
+<p>Both can refer to the same person using <code>userId</code>, but maintain their own business models.</p>
+<div class="callout ok"><span class="cl">Remember</span>One bounded context does <strong>not</strong> necessarily mean one microservice.</div></div></div>
+<div class="section-divider" id="b23"><span><b class="secnum">2.3</b>High Cohesion vs Low Coupling <span class="star">⭐ Very important</span></span></div><div class="card"><div class="card-pad">
+<div class="formula"><span>High cohesion</span><i>+</i><span>Low coupling</span><i>=</i><strong>✅ Ideal architecture</strong></div>
+<div class="ccs">
+<div class="cc good"><div class="cc-h"><span>🧲</span><h4>High cohesion</h4></div><p>Keep related business logic together</p><div class="cc-ex"><b>Example</b>Review creation, approval, rejection, history in Review Service</div></div>
+<div class="cc good"><div class="cc-h"><span>🔌</span><h4>Low coupling</h4></div><p>Minimize dependencies between services</p><div class="cc-ex"><b>Example</b>Review calls Property API instead of accessing Property DB</div></div>
+<div class="cc bad"><div class="cc-h"><span>🧩</span><h4>Low cohesion</h4></div><p>Unrelated features grouped together</p><div class="cc-ex"><b>Example</b>Authentication and payment processing in one service</div></div>
+<div class="cc bad"><div class="cc-h"><span>⛓️</span><h4>High coupling</h4></div><p>Services depend heavily on each other</p><div class="cc-ex"><b>Example</b>Review needs 5 Property API calls for one operation</div></div>
+</div></div></div>
+<div class="section-divider" id="b24"><span><b class="secnum">2.4</b>Database Ownership</span></div><div class="card"><div class="card-pad">
+<p>Each service owns and modifies its own data.</p>
+<figure class="dfig"><div class="dtitle">Database ownership and event flow</div><svg class="diagram" viewBox="0 0 760 482" role="img" aria-label="Incorrect direct DB access, correct API access, and event-driven approval flow"><rect x="8" y="8" width="744" height="112" rx="16" fill="#fff1f2" stroke="#fda4af" stroke-width="2"/><text x="28" y="36" font-size="14.5" font-weight="800" fill="#be123c" text-anchor="start">❌ Incorrect</text><rect x="40" y="54" width="170" height="50" rx="12" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="125.0" y="83.5" font-size="12" font-weight="800" fill="#7c3aed" text-anchor="middle">⭐ Review Service</text><line x1="212" y1="79" x2="516" y2="79" stroke="#e11d48" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 6" marker-end="url(#ar-red)"/><circle cx="364" cy="79" r="14" fill="#e11d48"/><text x="364" y="85" font-size="16" font-weight="800" fill="#fff" text-anchor="middle">✕</text><path d="M520,49 v54 a75.0,9 0 0 0 150,0 v-54 z" fill="#d1fae5" stroke="#059669" stroke-width="1.8"/><ellipse cx="595.0" cy="49" rx="75.0" ry="9" fill="#d1fae5" stroke="#059669" stroke-width="1.8"/><text x="595.0" y="84.0" font-size="12" font-weight="800" fill="#059669" text-anchor="middle" class="mono">Property DB</text><text x="364" y="62" font-size="11.5" font-weight="700" fill="#881337" text-anchor="middle" class="mono">Review Service → Property Database</text><rect x="8" y="134" width="744" height="112" rx="16" fill="#f0fdf4" stroke="#86efac" stroke-width="2"/><text x="28" y="162" font-size="14.5" font-weight="800" fill="#15803d" text-anchor="start">✅ Correct</text><rect x="40" y="182" width="170" height="50" rx="12" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="125.0" y="211.5" font-size="12" font-weight="800" fill="#7c3aed" text-anchor="middle">⭐ Review Service</text><line x1="212" y1="207" x2="286" y2="207" stroke="#16a34a" stroke-width="3" stroke-linecap="round" marker-end="url(#ar-green)"/><rect x="290" y="182" width="150" height="50" rx="12" fill="#fef3c7" stroke="#d97706" stroke-width="2"/><text x="365" y="212" font-size="13" font-weight="800" fill="#b45309" text-anchor="middle">Property API</text><line x1="442" y1="207" x2="516" y2="207" stroke="#16a34a" stroke-width="3" stroke-linecap="round" marker-end="url(#ar-green)"/><path d="M520,177 v54 a75.0,9 0 0 0 150,0 v-54 z" fill="#d1fae5" stroke="#059669" stroke-width="1.8"/><ellipse cx="595.0" cy="177" rx="75.0" ry="9" fill="#d1fae5" stroke="#059669" stroke-width="1.8"/><text x="595.0" y="212.0" font-size="12" font-weight="800" fill="#059669" text-anchor="middle" class="mono">Property DB</text><rect x="8" y="260" width="744" height="212" rx="16" fill="#eff6ff" stroke="#93c5fd" stroke-width="2"/><text x="28" y="288" font-size="14.5" font-weight="800" fill="#1e3a8a" text-anchor="start">📣 Event flow — a lawyer approves a review</text><rect x="24" y="308" width="170" height="56" rx="12" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="109.0" y="340.5" font-size="12" font-weight="800" fill="#7c3aed" text-anchor="middle">⭐ Review Service</text><line x1="109" y1="366" x2="109" y2="400" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ar-purple)"/><circle cx="131" cy="384" r="11" fill="#7c3aed"/><text x="131" y="388.5" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">1</text><path d="M44,411 v40 a65.0,9 0 0 0 130,0 v-40 z" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.8"/><ellipse cx="109.0" cy="411" rx="65.0" ry="9" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.8"/><text x="109.0" y="439.0" font-size="11.5" font-weight="800" fill="#7c3aed" text-anchor="middle" class="mono">Review DB</text><line x1="196" y1="336" x2="296" y2="336" stroke="#d97706" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ar-amber)"/><circle cx="246" cy="318" r="11" fill="#d97706"/><text x="246" y="322.5" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">2</text><rect x="300" y="308" width="170" height="56" rx="12" fill="#fef3c7" stroke="#d97706" stroke-width="2"/><text x="385" y="332" font-size="12.5" font-weight="800" fill="#b45309" text-anchor="middle" class="mono">ReviewApproved</text><text x="385" y="350" font-size="11" font-weight="700" fill="#92400e" text-anchor="middle">event published</text><line x1="472" y1="336" x2="570" y2="336" stroke="#d97706" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ar-amber)"/><circle cx="521" cy="318" r="11" fill="#d97706"/><text x="521" y="322.5" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">3</text><rect x="574" y="308" width="170" height="56" rx="12" fill="#d1fae5" stroke="#059669" stroke-width="2"/><text x="659.0" y="340.5" font-size="12" font-weight="800" fill="#059669" text-anchor="middle">🏠 Property Service</text><line x1="659" y1="366" x2="659" y2="400" stroke="#16a34a" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ar-green)"/><text x="742" y="388" font-size="10.5" font-weight="700" fill="#166534" text-anchor="end">updates own data</text><text x="742" y="402" font-size="10.5" font-weight="700" fill="#166534" text-anchor="end">if required</text><path d="M594,411 v40 a65.0,9 0 0 0 130,0 v-40 z" fill="#d1fae5" stroke="#059669" stroke-width="1.8"/><ellipse cx="659.0" cy="411" rx="65.0" ry="9" fill="#d1fae5" stroke="#059669" stroke-width="1.8"/><text x="659.0" y="439.0" font-size="11.5" font-weight="800" fill="#059669" text-anchor="middle" class="mono">Property DB</text></svg></figure>
+<div class="pc"><div class="con"><h4>❌ Incorrect</h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">flow</span></div><pre><code>Review Service → Property Database</code></pre></div></div><div class="pro"><h4>✅ Correct</h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">flow</span></div><pre><code>Review Service → Property API → Property Database</code></pre></div></div></div>
+<h4 class="h4">Example: when a lawyer approves a review</h4>
+<ol class="steps"><li><span>Review Service updates review status and decision history in its database.</span></li><li><span>Review Service publishes <code>ReviewApproved</code> event.</span></li><li><span>Property Service consumes the event and updates its own data if required.</span></li></ol>
+<div class="callout ok"><span class="cl">Benefit</span>Independent data ownership and reduced coupling. Related changes within Review can remain in <strong>one local transaction</strong>.</div></div></div>
+<div class="section-divider" id="b25"><span><b class="secnum">2.5</b>When Should We Split a Service?</span></div><div class="card"><div class="card-pad">
+<div class="tscroll"><table><tr><th>Question</th><th>Why it matters</th></tr><tr><td>Does it have a separate business responsibility?</td><td>Clear ownership</td></tr><tr><td>Does it own specific data?</td><td>Avoid shared database access</td></tr><tr><td>Can it deploy independently?</td><td>Independent releases</td></tr><tr><td>Does it need independent scaling?</td><td>Better resource utilization</td></tr><tr><td>Does it frequently depend on another service?</td><td>Identify tight coupling</td></tr><tr><td>Do related operations require one transaction?</td><td>Keep atomic operations together</td></tr><tr><td>Does splitting justify additional complexity?</td><td>Avoid unnecessary microservices</td></tr></table></div>
+<div class="callout info"><span class="cl">Example</span>Create a separate Review Service if it has complex workflows, independent deployment needs, or dedicated ownership. Otherwise, keep it inside Property or Conveyancing Service.</div></div></div>
+<div class="section-divider" id="b26"><span><b class="secnum">2.6</b>Common Service Boundary Mistakes</span></div><div class="card"><div class="card-pad"><div class="tscroll"><table><tr><th>Mistake</th><th>Problem</th><th>Solution</th></tr><tr><td>Too many small services</td><td>Excessive network calls</td><td>Combine related capabilities</td></tr><tr><td>Shared database models</td><td>Tight coupling</td><td>Separate data ownership</td></tr><tr><td>Direct DB access</td><td>Cross-service dependency</td><td>Use APIs/events</td></tr><tr><td>Frequent synchronous calls</td><td>Latency and cascading failures</td><td>Reduce calls or use async events</td></tr><tr><td>Always deploy together</td><td>Weak independence</td><td>Reconsider service boundaries</td></tr><tr><td>Duplicate business rules</td><td>Inconsistent behavior</td><td>Define authoritative owner</td></tr><tr><td>Too many distributed transactions</td><td>Complex recovery</td><td>Keep related data together</td></tr></table></div></div></div>
+<div class="section-divider" id="b27"><span><b class="secnum">2.7</b>Interview-Ready Questions</span></div><div class="card"><div class="card-pad"><details class="faq"><summary><span class="fnum">Q</span><span class="fq">Q1. How do you identify microservice boundaries?</span><span class="fch">▼</span></summary><div class="fa">By analyzing business capabilities, bounded contexts, data ownership, high cohesion, low coupling, and independent deployment requirements.</div></details><details class="faq"><summary><span class="fnum">Q</span><span class="fq">Q2. What is the difference between cohesion and coupling?</span><span class="fch">▼</span></summary><div class="fa"><ul class="plain" style="margin-bottom:0"><li><b>Cohesion</b> measures how closely related operations within a service are.</li><li><b>Coupling</b> measures how dependent services are on each other.</li></ul></div></details><details class="faq"><summary><span class="fnum">Q</span><span class="fq">Q3. What is a bounded context?</span><span class="fch">▼</span></summary><div class="fa">A clearly defined business area where domain concepts and rules have consistent meaning.</div></details><details class="faq"><summary><span class="fnum">Q</span><span class="fq">Q4. Can two microservices share a database?</span><span class="fch">▼</span></summary><div class="fa">Yes, but they should maintain clear data ownership. Directly modifying another service's tables or collections should be avoided.</div></details><details class="faq"><summary><span class="fnum">Q</span><span class="fq">Q5. When should two features remain in one microservice?</span><span class="fch">▼</span></summary><div class="fa">When they share tightly related business rules, require frequent atomic updates, or splitting would introduce excessive network communication.</div></details></div></div>
+<div class="section-divider" id="b28"><span><b class="secnum">✓</b>Final Revision</span></div><div class="card"><div class="card-pad"><div class="tscroll"><table><tr><th>Concept</th><th>Remember</th></tr><tr><td>Service Boundary</td><td>Defines service responsibility</td></tr><tr><td>Business Capability</td><td>Divide by business function</td></tr><tr><td>Bounded Context</td><td>Defines domain-model boundaries</td></tr><tr><td>High Cohesion</td><td>Related logic together</td></tr><tr><td>Low Coupling</td><td>Minimal service dependencies</td></tr><tr><td>Database Ownership</td><td>Each service controls its own data</td></tr><tr><td>Communication</td><td>APIs or events</td></tr><tr><td>Independent Deployment</td><td>Release services separately</td></tr></table></div><div class="callout ok"><span class="cl">Golden rule</span>Design microservices around <strong>business capabilities</strong> with <strong>high cohesion, low coupling, and clear data ownership</strong>, not around technical layers or the number of APIs.</div></div></div>
+<div class="pager"><a class="nextcard prev" href="index.html"><small>← Back to topics</small><b>Microservices Architecture</b><span>Return to the microservices topic list.</span></a></div>
+</div>
+</body>
+</html>

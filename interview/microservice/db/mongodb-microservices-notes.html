@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>🍃 MongoDB in Microservices</title><style>*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:#f4f5fa;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.6}
+.container{width:92%;max-width:1120px;margin:34px auto 70px}
+.container{--accent-dark:#1e3a8a;--accent:#2563eb;--accent-light:#3b82f6;--content-bg:#eff6ff;--heading:#1e3a8a;--shadow-rgb:37,99,235}
+a{color:#2563eb}
+code{font-family:'Fira Code','Consolas',monospace;font-size:.88em;background:rgba(37,99,235,.1);color:#1e3a8a;padding:2px 7px;border-radius:5px}
+.mono{font-family:'Fira Code','Consolas',monospace}
+svg.diagram{width:100%;height:auto;display:block}
+svg.diagram text{font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+svg.diagram text.mono{font-family:'Fira Code','Consolas',monospace}
+
+/* header */
+.header{background:linear-gradient(120deg,var(--accent-dark),var(--accent-light));border-radius:22px;padding:42px 38px;margin-bottom:22px;box-shadow:0 16px 36px rgba(var(--shadow-rgb),.3);position:relative;overflow:hidden}
+.header::after{content:'';position:absolute;top:-70px;right:-70px;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.08)}
+.header::before{content:'';position:absolute;bottom:-90px;left:38%;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.05)}
+.header .tag{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-size:12px;font-weight:800;letter-spacing:.6px;padding:5px 14px;border-radius:20px;margin-bottom:14px;position:relative}
+.header h1{color:#fff;font-size:33px;font-weight:800;letter-spacing:-.6px;margin-bottom:10px;position:relative;line-height:1.2}
+.header p{color:#dbe6ff;font-size:16px;max-width:760px;line-height:1.65;position:relative}
+.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;position:relative}
+.meta span{background:rgba(255,255,255,.14);color:#fff;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.28)}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;position:relative}
+.toc a{text-decoration:none;padding:7px 15px;border-radius:20px;font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);transition:all .2s ease}
+.toc a:hover{background:#fff;color:var(--accent);transform:translateY(-1px)}
+
+/* view switch + tabs */
+.viewswitch{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;background:rgba(244,245,250,.92);backdrop-filter:blur(8px);padding:10px 4px;margin-bottom:6px;border-bottom:1px solid #e2e8f0}
+.viewswitch>span{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8}
+.tabbar{display:inline-flex;gap:6px;background:#e9edf5;padding:4px;border-radius:12px;margin:0 0 14px}
+.viewswitch .tabbar{margin:0}
+.tbtn{border:none;background:transparent;font-family:inherit;font-size:13px;font-weight:800;color:#64748b;padding:7px 16px;border-radius:9px;cursor:pointer;transition:all .15s ease}
+.tbtn:hover{color:#1e3a8a}
+.tbtn.active{background:#fff;color:#1e3a8a;box-shadow:0 3px 10px rgba(0,0,0,.1)}
+.tabpanel{display:none}
+body[data-view="mongo"] .tabpanel[data-panel="mongo"],body[data-view="pg"] .tabpanel[data-panel="pg"],body[data-view="both"] .tabpanel{display:block}
+.plabel{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.5px;padding:5px 14px;border-radius:20px;margin-bottom:12px}
+.plabel.mongo{background:#dcfce7;color:#166534}
+.plabel.pg{background:#dbeafe;color:#1e3a8a}
+body[data-view="both"] .tabpanel+.tabpanel{margin-top:26px;padding-top:22px;border-top:2px dashed #e2e8f0}
+
+/* section divider */
+.section-divider{margin:46px 0 20px;position:relative;display:flex;align-items:center;scroll-margin-top:60px}
+.section-divider::before{content:'';position:absolute;top:50%;left:0;right:0;height:2px;background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd);opacity:.22}
+.section-divider>span{background:#f4f5fa;padding:0 18px 0 0;position:relative;font-size:21px;font-weight:800;display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+.secnum{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;padding:0 8px;border-radius:11px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-size:16px;box-shadow:0 6px 14px rgba(37,99,235,.3)}
+.star{font-size:11.5px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;padding:3px 11px;border-radius:14px}
+
+/* cards */
+.card{border-radius:18px;background:#fff;box-shadow:0 10px 26px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.04);overflow:hidden;margin-bottom:20px}
+.card-pad{padding:24px 26px}
+.card p{color:#334155;font-size:15.5px;line-height:1.8;margin-bottom:12px;font-weight:500}
+.h3{font-size:18px;font-weight:800;color:#1e3a8a;margin:0 0 12px;padding-left:12px;border-left:4px solid #2563eb}
+.h4{font-size:12.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#64748b;margin:20px 0 8px}
+ul.plain{margin:6px 0 12px 22px}
+ul.plain li{font-size:15px;line-height:1.8;color:#334155;font-weight:500}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+
+/* callouts */
+.callout{border-radius:14px;padding:15px 20px;margin:14px 0;font-size:15px;line-height:1.75;font-weight:600}
+.callout.info{background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#3730a3}
+.callout.warn{background:linear-gradient(135deg,#ffe4e6,#fecdd3);color:#9f1239}
+.callout.ok{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46}
+.callout.amber{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e}
+.callout .cl{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.75;margin-bottom:3px}
+.callout code{background:rgba(255,255,255,.55)}
+
+/* level cards */
+.lvls{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+@media(max-width:900px){.lvls{grid-template-columns:1fr}}
+.lvl{background:#fff;border-radius:18px;padding:20px;border-top:6px solid var(--lc);box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.lvl-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.lvl-n{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#fff;background:var(--lc);padding:4px 12px;border-radius:14px}
+.lvl-star{font-size:11px;font-weight:800;color:#92400e;background:#fef3c7;padding:3px 10px;border-radius:12px}
+.lvl h3{font-size:17px;font-weight:800;margin-bottom:12px;color:#1a1a1a}
+.lvl-line{display:flex;flex-direction:column;gap:2px;background:#f8fafc;border-radius:11px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;color:#334155;font-weight:500;line-height:1.55}
+.lvl-line b{font-size:11.5px;letter-spacing:.5px;color:var(--lc)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips i{font-style:normal;font-size:11.5px;font-weight:800;padding:4px 11px;border-radius:12px}
+.chips i.ok{background:#dcfce7;color:#166534}
+.chips i.no{background:#ffe4e6;color:#9f1239}
+ul.takeaway{list-style:none;display:grid;gap:10px;margin-bottom:6px}
+ul.takeaway li{display:flex;gap:14px;align-items:flex-start;background:#f8fafc;border-left:5px solid var(--lc);border-radius:0 12px 12px 0;padding:12px 16px;font-size:14.5px;line-height:1.65;color:#334155;font-weight:500}
+ul.takeaway li b{flex-shrink:0;min-width:74px;color:var(--lc);font-weight:800}
+
+/* services */
+.svcs{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:14px 0 8px}
+@media(max-width:900px){.svcs{grid-template-columns:repeat(2,1fr)}}
+.svc{background:var(--l);border-radius:16px;padding:16px 14px;border-top:5px solid var(--c)}
+.svc-ic{width:42px;height:42px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:10px;box-shadow:0 4px 10px rgba(0,0,0,.08)}
+.svc h4{font-size:14.5px;font-weight:800;color:var(--c);margin-bottom:4px}
+.svc p{font-size:13px!important;line-height:1.55!important;margin:0!important;color:#334155}
+
+/* diagrams */
+.dfig{margin:16px 0;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+.dtitle{background:linear-gradient(120deg,#1e3a8a,#3b82f6);color:#fff;font-size:13px;font-weight:800;padding:9px 18px;letter-spacing:.2px}
+.dfig svg{padding:14px}
+.dcap{font-size:12.5px;color:#64748b;font-weight:600;text-align:center;padding:0 16px 12px;font-style:italic}
+
+/* pros / cons */
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+@media(max-width:820px){.pc{grid-template-columns:1fr}}
+.pro,.con{border-radius:16px;padding:16px 18px}
+.pro{background:#f0fdf4;border:1px solid #bbf7d0}
+.con{background:#fff1f2;border:1px solid #fecdd3}
+.pro h4,.con h4{font-size:14px;font-weight:800;margin-bottom:8px}
+.pro h4{color:#166534}.con h4{color:#9f1239}
+.pro ul,.con ul{margin-left:18px}
+.pro li,.con li{font-size:14px;line-height:1.7;color:#334155;font-weight:500;margin-bottom:3px}
+.pro p,.con p{font-size:14px!important;line-height:1.7!important;color:#334155}
+
+/* steps */
+ol.steps{list-style:none;counter-reset:st;display:grid;gap:8px;margin:8px 0 14px}
+ol.steps li{counter-increment:st;display:flex;gap:12px;align-items:flex-start;background:#f0fdf4;border-radius:12px;padding:11px 14px;font-size:14.5px;line-height:1.6;color:#334155;font-weight:500}
+ol.steps li::before{content:counter(st);flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#16a34a;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+ol.steps li b{color:#166534;font-weight:800;margin-right:4px}
+ol.steps li b::after{content:' —'}
+ol.steps.big li{background:#eff6ff;padding:14px 16px;font-size:15px}
+ol.steps.big li::before{background:linear-gradient(135deg,#1e3a8a,#3b82f6)}
+ol.steps.big li b{color:#1e3a8a}
+ol.steps.big li b::after{content:''}
+
+/* code + tree */
+.code-block{background:#1a1a1a;border-radius:12px;overflow:hidden;margin:12px 0;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+.code-bar{background:#111;padding:8px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #2b2b2b}
+.code-bar .dot{width:9px;height:9px;border-radius:50%}
+.dot-red{background:#ff5f57}.dot-grey{background:#febc2e}.dot-green{background:#28c840}
+.code-bar .filename{color:#999;font-size:12px;margin-left:8px;font-family:'Fira Code',monospace}
+.code-block pre{padding:16px 18px;overflow-x:auto;margin:0}
+.code-block code{background:none;color:#d4d4d4;font-size:13px;font-family:'Fira Code','Consolas',monospace;line-height:1.65;white-space:pre;padding:0}
+.kw{color:#c792ea;font-weight:600}.str{color:#c3e88d}.fn{color:#82aaff}.cmt{color:#7a7a7a;font-style:italic}.num{color:#f78c6c}
+details.tree{margin:8px 0}
+details.tree>summary{cursor:pointer;font-size:13px;font-weight:800;color:#475569;background:#f1f5f9;display:inline-block;padding:7px 14px;border-radius:10px;list-style:none;user-select:none}
+details.tree>summary::-webkit-details-marker{display:none}
+details.tree>summary:hover{background:#e2e8f0}
+
+/* tables */
+.tscroll{overflow-x:auto;margin:8px 0}
+table{width:100%;border-collapse:separate;border-spacing:0 8px;min-width:560px}
+th{background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899);color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;padding:12px 16px;text-align:left}
+th:first-child{border-radius:12px 0 0 12px}th:last-child{border-radius:0 12px 12px 0}
+td{padding:12px 16px;font-size:14px;font-weight:600;color:#334155;vertical-align:top;background:var(--rb,#eff6ff);line-height:1.6}
+td:first-child{border-radius:12px 0 0 12px;border-left:6px solid var(--rc,#2563eb);font-weight:800;color:var(--rd,#1e3a8a)}
+td:last-child{border-radius:0 12px 12px 0}
+td code{background:#fff;border:1px solid var(--rc,#2563eb);color:var(--rd,#1e3a8a);font-weight:700}
+tr:nth-child(6n+2){--rc:#db2777;--rb:#fdf2f8;--rd:#9d174d}
+tr:nth-child(6n+3){--rc:#d97706;--rb:#fffbeb;--rd:#92400e}
+tr:nth-child(6n+4){--rc:#059669;--rb:#ecfdf5;--rd:#065f46}
+tr:nth-child(6n+5){--rc:#7c3aed;--rb:#f5f3ff;--rd:#5b21b6}
+tr:nth-child(6n+6){--rc:#0d9488;--rb:#f0fdfa;--rd:#115e59}
+
+/* chat */
+.chat{display:grid;gap:12px}
+.bub{border-radius:18px;padding:14px 18px;max-width:92%}
+.bub .who{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:5px}
+.bub p{margin:0 0 8px!important;font-size:15px!important;line-height:1.75!important}
+.bub p:last-child{margin:0!important}
+.bub.q{background:#f1f5f9;border-bottom-left-radius:4px;color:#1e293b}
+.bub.a{background:linear-gradient(135deg,#dbeafe,#e0e7ff);border-bottom-right-radius:4px;color:#1e3a8a;margin-left:auto}
+.bub.a p{color:#1e3a8a!important;font-weight:600!important}
+
+/* faq */
+details.faq{border:1px solid #e2e8f0;border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff}
+details.faq>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:14px 18px;background:#f8fafc;user-select:none}
+details.faq>summary::-webkit-details-marker{display:none}
+details.faq>summary:hover{background:#eff6ff}
+.fn{flex-shrink:0}
+details.faq .fn{width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.fq{flex:1;font-size:15px;font-weight:700;color:#1a1a1a;line-height:1.45}
+.fch{color:#2563eb;font-size:12px;transition:transform .2s ease}
+details.faq[open] .fch{transform:rotate(180deg)}
+details.faq[open]>summary{background:#eff6ff}
+.fa{padding:14px 20px 16px 62px;font-size:14.5px;line-height:1.75;color:#334155;font-weight:500;border-top:1px solid #e2e8f0}
+
+/* revision */
+.revs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:820px){.revs{grid-template-columns:1fr}}
+.rev{background:#fff;border-radius:18px;padding:20px 22px;border-top:6px solid var(--rc);box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.rev h3{font-size:18px;font-weight:800;color:var(--rc);margin-bottom:12px}
+.rev ul{list-style:none;display:grid;gap:8px}
+.rev li{background:#f8fafc;border-radius:11px;padding:10px 14px;font-size:14px;line-height:1.6;color:#334155;font-weight:500}
+.rev li b{display:inline-block;min-width:68px;color:var(--rc);font-weight:800}
+
+@media(max-width:768px){.header h1{font-size:25px}.header{padding:30px 22px}.card-pad{padding:18px}.fa{padding-left:20px}}
+@media print{.viewswitch{display:none}.tabpanel{display:block!important}}
+
+/* Connection labs: preserve readable code and contain mobile overflow. */
+.two > *{min-width:0}
+#connection-labs{scroll-margin-top:72px}
+#mongo-lab .h3,#pg-lab .h3{margin-top:2px}
+@media(max-width:480px){.viewswitch{gap:5px}.viewswitch>span{display:none}.tbtn{padding:7px 9px;font-size:12px}.container{width:94%}.code-bar .filename{overflow-wrap:anywhere}.code-block pre{padding:14px}}
+@media print{.code-block pre{white-space:pre-wrap}.code-block code{white-space:pre-wrap;overflow-wrap:anywhere}.card{overflow:visible;box-shadow:none}.code-block{break-inside:auto}.toc,.tabbar{display:none}}
+
+/* Each document is standalone; all its sections are always visible. */
+.tabpanel{display:block!important}
+.tabbar,.viewswitch{display:none!important}
+.section-divider{scroll-margin-top:16px}
+@media print{.header{box-shadow:none}.section-divider{break-after:avoid}}
+</style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="ar-slate" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#64748b"/></marker>
+<marker id="ar-red" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#e11d48"/></marker>
+<marker id="ar-green" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#16a34a"/></marker>
+<marker id="ar-blue" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#2563eb"/></marker>
+<marker id="ar-amber" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#d97706"/></marker>
+<marker id="ar-purple" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#7c3aed"/></marker>
+<marker id="ar-orange" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#f97316"/></marker>
+</defs></svg><div class="container"><div class="header"><span class="tag">MICROSERVICES · STUDY NOTES</span><h1>🍃 MongoDB in Microservices</h1><p>Database architecture, Level 1–3 isolation, Node.js connections, service communication, and practical examples.</p><div class="toc"><a href="#overview">Architecture overview</a><a href="#level-1">Level 1</a><a href="#level-2">Level 2 ⭐</a><a href="#level-3">Level 3</a><a href="#connection-examples">Connections &amp; communication ⭐</a><a href="#references">References between services</a><a href="#revision">Quick revision</a><a href="#sources">Official references</a></div></div><div class="section-divider" id="overview"><span><b class="secnum">1</b>Architecture overview</span></div><div class="card"><div class="card-pad"><h3 class="h3">🍃 MongoDB — Architecture Comparison</h3><div class="tscroll"><table><tr><th>Level</th><th>Architecture</th><th>Advantages</th><th>Disadvantages</th></tr><tr><td>Level 1</td><td>Same cluster → Same database → Separate collections</td><td>Simple setup, low cost, easy maintenance.</td><td>Weak logical isolation; collection-level permissions needed.</td></tr><tr><td>Level 2 ⭐</td><td>Same cluster → Separate databases → Separate collections per service</td><td>Clear data ownership, easier database-level security, independent schema changes.</td><td>Shared CPU/RAM; cluster failure can affect all services.</td></tr><tr><td>Level 3</td><td>Separate clusters → Separate databases</td><td>Independent scaling, stronger fault isolation, dedicated resources.</td><td>Higher cost, complex deployment and monitoring.</td></tr></table></div></div></div><div class="section-divider" id="level-1"><span><b class="secnum">2</b>Level 1</span></div><div class="card"><div class="card-pad"><div class="tabpanel" data-panel="mongo"><div class="plabel mongo">🍃 MongoDB</div><h3 class="h3">MongoDB: Same Database, Separate Collections</h3><p>All microservices connect to one MongoDB database, but every microservice owns specific collections.</p><figure class="dfig"><div class="dtitle">MongoDB · Level 1 — one database, separate collections</div><svg class="diagram" viewBox="0 0 760 336" role="img" aria-label="MongoDB level 1: one cluster, one database, separate collections per service"><rect x="8" y="8" width="744" height="320" rx="16" fill="#f0fdf4" stroke="#13aa52" stroke-width="2"/><text x="28" y="36" font-size="15" font-weight="800" fill="#13aa52" text-anchor="start">🍃 MongoDB Cluster</text><rect x="28" y="56" width="704" height="252" rx="14" fill="#fff" stroke="#86efac" stroke-width="1.8"/><text x="48" y="84" font-size="14" font-weight="800" fill="#166534" text-anchor="start">🗄 Database: property_portal</text><rect x="52" y="118" width="118" height="44" rx="9" fill="#fff" stroke="#2563eb" stroke-width="1.6"/><rect x="52" y="118" width="7" height="44" rx="3" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="114.0" y="144.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">users</text><rect x="54" y="176" width="114" height="24" rx="12.0" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="111.0" y="192.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Auth Service</text><rect x="186" y="118" width="118" height="44" rx="9" fill="#fff" stroke="#2563eb" stroke-width="1.6"/><rect x="186" y="118" width="7" height="44" rx="3" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="248.0" y="144.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">sessions</text><rect x="188" y="176" width="114" height="24" rx="12.0" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="245.0" y="192.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Auth Service</text><rect x="320" y="118" width="118" height="44" rx="9" fill="#fff" stroke="#059669" stroke-width="1.6"/><rect x="320" y="118" width="7" height="44" rx="3" fill="#059669" stroke="none" stroke-width="1.5"/><text x="382.0" y="144.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">properties</text><rect x="322" y="176" width="114" height="24" rx="12.0" fill="#059669" stroke="none" stroke-width="1.5"/><text x="379.0" y="192.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Property Service</text><rect x="454" y="118" width="118" height="44" rx="9" fill="#fff" stroke="#d97706" stroke-width="1.6"/><rect x="454" y="118" width="7" height="44" rx="3" fill="#d97706" stroke="none" stroke-width="1.5"/><text x="516.0" y="144.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">documents</text><rect x="456" y="176" width="114" height="24" rx="12.0" fill="#d97706" stroke="none" stroke-width="1.5"/><text x="513.0" y="192.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Document Service</text><rect x="588" y="118" width="118" height="44" rx="9" fill="#fff" stroke="#7c3aed" stroke-width="1.6"/><rect x="588" y="118" width="7" height="44" rx="3" fill="#7c3aed" stroke="none" stroke-width="1.5"/><text x="650.0" y="144.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">reviews</text><rect x="590" y="176" width="114" height="24" rx="12.0" fill="#7c3aed" stroke="none" stroke-width="1.5"/><text x="647.0" y="192.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Review Service</text><text x="380" y="238" font-size="12.5" font-weight="600" fill="#475569" text-anchor="middle" font-style="italic">One logical database — each service owns specific collections</text><text x="380" y="266" font-size="12" font-weight="700" fill="#be123c" text-anchor="middle">⚠ Built-in database-level readWrite grants ALL collections → configure custom collection-level roles</text></svg></figure><details class="tree"><summary>🌳 Show text tree</summary><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">structure.txt</span></div><pre><code>MongoDB Cluster
+└── property_portal
+    ├── users            → Auth Service
+    ├── sessions         → Auth Service
+    ├── properties       → Property Service
+    ├── documents        → Document Service
+    └── reviews          → Review Service</code></pre></div></details><h4 class="h4">Configuration example</h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">.env</span></div><pre><code><span class="cmt"># Auth Service</span>
+<span class="fn">MONGO_URI</span>=mongodb+srv://auth_user:<span class="num">&lt;password&gt;</span>@cluster.example.mongodb.net/property_portal
+
+<span class="cmt"># Review Service</span>
+<span class="fn">MONGO_URI</span>=mongodb+srv://review_user:<span class="num">&lt;password&gt;</span>@cluster.example.mongodb.net/property_portal</code></pre></div><p>Both services use the same database but should have different database users.</p><div class="callout warn"><span class="cl">Important</span>MongoDB's built-in database-level <code>readWrite</code> role would give access to all collections in that database. To enforce collection ownership, configure custom collection-level roles.</div><div class="pc"><div class="pro"><h4>👍 Advantages</h4><ul><li>Simple database setup and administration.</li><li>Suitable for small systems or gradual monolith migrations.</li><li>Services can independently manage their application logic.</li><li>Infrastructure cost is low because everything uses the same cluster.</li></ul></div><div class="con"><h4>⚠️ Disadvantages</h4><ul><li>Weaker separation between service data.</li><li>Collection-level access control requires additional configuration.</li><li>Developers may accidentally access another service's collections.</li><li>Database-wide changes and operations may affect multiple services.</li><li>Shared cluster resource contention and failures remain possible.</li></ul></div></div></div></div></div><div class="section-divider" id="level-2"><span><b class="secnum">3</b>Level 2 ⭐</span></div><div class="card"><div class="card-pad"><div class="tabpanel" data-panel="mongo"><div class="plabel mongo">🍃 MongoDB</div><h3 class="h3">MongoDB: Same Cluster, Separate Databases</h3><p>All microservices use one MongoDB cluster, but each owns a different logical database.</p><figure class="dfig"><div class="dtitle">MongoDB · Level 2 — same cluster, separate databases ⭐</div><svg class="diagram" viewBox="0 0 760 352" role="img" aria-label="Level 2: one cluster, separate databases per service"><rect x="8" y="8" width="744" height="336" rx="16" fill="#f0fdf4" stroke="#13aa52" stroke-width="2"/><text x="28" y="36" font-size="15" font-weight="800" fill="#13aa52" text-anchor="start">🍃 MongoDB Cluster</text><rect x="26" y="56" width="168" height="214" rx="14" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><text x="110" y="86" font-size="13.5" font-weight="800" fill="#2563eb" text-anchor="middle" class="mono">🗄 auth_db</text><rect x="40" y="98" width="140" height="22" rx="11.0" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="110.0" y="113.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Auth Service</text><rect x="42" y="142" width="136" height="38" rx="9" fill="#fff" stroke="#2563eb" stroke-width="1.6"/><rect x="42" y="142" width="7" height="38" rx="3" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="113.0" y="165.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">users</text><rect x="42" y="190" width="136" height="38" rx="9" fill="#fff" stroke="#2563eb" stroke-width="1.6"/><rect x="42" y="190" width="7" height="38" rx="3" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="113.0" y="213.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">sessions</text><rect x="208" y="56" width="168" height="214" rx="14" fill="#d1fae5" stroke="#059669" stroke-width="2"/><text x="292" y="86" font-size="13.5" font-weight="800" fill="#059669" text-anchor="middle" class="mono">🗄 property_db</text><rect x="222" y="98" width="140" height="22" rx="11.0" fill="#059669" stroke="none" stroke-width="1.5"/><text x="292.0" y="113.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Property Service</text><rect x="224" y="142" width="136" height="38" rx="9" fill="#fff" stroke="#059669" stroke-width="1.6"/><rect x="224" y="142" width="7" height="38" rx="3" fill="#059669" stroke="none" stroke-width="1.5"/><text x="295.0" y="165.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">properties</text><rect x="224" y="190" width="136" height="38" rx="9" fill="#fff" stroke="#059669" stroke-width="1.6"/><rect x="224" y="190" width="7" height="38" rx="3" fill="#059669" stroke="none" stroke-width="1.5"/><text x="295.0" y="213.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">transactions</text><rect x="390" y="56" width="168" height="214" rx="14" fill="#fef3c7" stroke="#d97706" stroke-width="2"/><text x="474" y="86" font-size="13.5" font-weight="800" fill="#d97706" text-anchor="middle" class="mono">🗄 document_db</text><rect x="404" y="98" width="140" height="22" rx="11.0" fill="#d97706" stroke="none" stroke-width="1.5"/><text x="474.0" y="113.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Document Service</text><rect x="406" y="142" width="136" height="38" rx="9" fill="#fff" stroke="#d97706" stroke-width="1.6"/><rect x="406" y="142" width="7" height="38" rx="3" fill="#d97706" stroke="none" stroke-width="1.5"/><text x="477.0" y="165.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">documents</text><rect x="572" y="56" width="168" height="214" rx="14" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="656" y="86" font-size="13.5" font-weight="800" fill="#7c3aed" text-anchor="middle" class="mono">🗄 review_db</text><rect x="586" y="98" width="140" height="22" rx="11.0" fill="#7c3aed" stroke="none" stroke-width="1.5"/><text x="656.0" y="113.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Review Service</text><rect x="588" y="142" width="136" height="38" rx="9" fill="#fff" stroke="#7c3aed" stroke-width="1.6"/><rect x="588" y="142" width="7" height="38" rx="3" fill="#7c3aed" stroke="none" stroke-width="1.5"/><text x="659.0" y="165.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">reviews</text><text x="380" y="298" font-size="12.5" font-weight="700" fill="#475569" text-anchor="middle">Shared CPU · RAM · storage · connections — still one physical cluster</text><text x="380" y="320" font-size="12" font-weight="600" fill="#64748b" text-anchor="middle" font-style="italic">Isolation is logical: separate databases + separate credentials per service</text></svg></figure><details class="tree"><summary>🌳 Show text tree</summary><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">structure.txt</span></div><pre><code>MongoDB Cluster
+├── auth_db
+│   ├── users
+│   └── sessions
+│
+├── property_db
+│   ├── properties
+│   └── transactions
+│
+├── document_db
+│   └── documents
+│
+└── review_db
+    └── reviews</code></pre></div></details><h4 class="h4">Configuration</h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">.env</span></div><pre><code><span class="cmt"># Auth Service</span>
+<span class="fn">MONGO_URI</span>=mongodb+srv://auth_user:<span class="num">&lt;password&gt;</span>@cluster.example.mongodb.net/auth_db
+
+<span class="cmt"># Property Service</span>
+<span class="fn">MONGO_URI</span>=mongodb+srv://property_user:<span class="num">&lt;password&gt;</span>@cluster.example.mongodb.net/property_db
+
+<span class="cmt"># Review Service</span>
+<span class="fn">MONGO_URI</span>=mongodb+srv://review_user:<span class="num">&lt;password&gt;</span>@cluster.example.mongodb.net/review_db</code></pre></div><h4 class="h4">Notice</h4><ul class="plain"><li>The hostname is the same.</li><li>Each database name is different.</li><li>Each service can have its own database credentials.</li><li>Each user should have permissions only for its respective database.</li></ul><p>For example, <code>auth_user</code> can receive the <code>readWrite</code> role on <code>auth_db</code> without receiving access to <code>property_db</code>.</p><h4 class="h4">Advantages</h4><ol class="steps"><li><b>Clear database ownership</b><span>Each service manages its own database.</span></li><li><b>Simpler permissions</b><span>Database-level access controls are straightforward.</span></li><li><b>Independent schema evolution</b><span>One service can modify its collections without changing another service's database.</span></li><li><b>Easier future migration</b><span>Individual databases can be moved to dedicated clusters.</span></li><li><b>Lower infrastructure cost</b><span>All databases share one cluster.</span></li></ol><h4 class="h4">Disadvantages</h4><div class="pc"><div class="con" style="grid-column:1/-1"><ul><li>CPU, memory, storage capacity, and database connections are still shared.</li><li>A cluster-wide outage can affect all services.</li><li>Heavy traffic from one service may impact another.</li><li>Database infrastructure cannot scale independently per service.</li><li>Cross-service data consistency still needs explicit coordination.</li></ul></div></div></div></div></div><div class="section-divider" id="level-3"><span><b class="secnum">4</b>Level 3</span></div><div class="card"><div class="card-pad"><div class="tabpanel" data-panel="mongo"><div class="plabel mongo">🍃 MongoDB</div><h3 class="h3">MongoDB: Separate Clusters</h3><figure class="dfig"><div class="dtitle">MongoDB · Level 3 — separate clusters</div><svg class="diagram" viewBox="0 0 760 292" role="img" aria-label="Level 3: separate clusters per service"><rect x="22" y="10" width="156" height="28" rx="14.0" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="100.0" y="28.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">Auth Service</text><line x1="100" y1="42" x2="100" y2="80" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="14" y="84" width="172" height="196" rx="16" fill="#f0fdf4" stroke="#13aa52" stroke-width="2"/><text x="100" y="110" font-size="12" font-weight="800" fill="#13aa52" text-anchor="middle">🍃 MongoDB Auth Cluster</text><path d="M45,137 v66 a55.0,9 0 0 0 110,0 v-66 z" fill="#dbeafe" stroke="#2563eb" stroke-width="1.8"/><ellipse cx="100.0" cy="137" rx="55.0" ry="9" fill="#dbeafe" stroke="#2563eb" stroke-width="1.8"/><text x="100.0" y="178.0" font-size="12" font-weight="800" fill="#2563eb" text-anchor="middle" class="mono">auth_db</text><text x="100" y="240" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own compute · storage</text><text x="100" y="258" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own scaling · own maintenance</text><rect x="208" y="10" width="156" height="28" rx="14.0" fill="#059669" stroke="none" stroke-width="1.5"/><text x="286.0" y="28.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">Property Service</text><line x1="286" y1="42" x2="286" y2="80" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="200" y="84" width="172" height="196" rx="16" fill="#f0fdf4" stroke="#13aa52" stroke-width="2"/><text x="286" y="110" font-size="12" font-weight="800" fill="#13aa52" text-anchor="middle">🍃 MongoDB Property Cluster</text><path d="M231,137 v66 a55.0,9 0 0 0 110,0 v-66 z" fill="#d1fae5" stroke="#059669" stroke-width="1.8"/><ellipse cx="286.0" cy="137" rx="55.0" ry="9" fill="#d1fae5" stroke="#059669" stroke-width="1.8"/><text x="286.0" y="178.0" font-size="12" font-weight="800" fill="#059669" text-anchor="middle" class="mono">property_db</text><text x="286" y="240" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own compute · storage</text><text x="286" y="258" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own scaling · own maintenance</text><rect x="394" y="10" width="156" height="28" rx="14.0" fill="#d97706" stroke="none" stroke-width="1.5"/><text x="472.0" y="28.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">Document Service</text><line x1="472" y1="42" x2="472" y2="80" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="386" y="84" width="172" height="196" rx="16" fill="#f0fdf4" stroke="#13aa52" stroke-width="2"/><text x="472" y="110" font-size="12" font-weight="800" fill="#13aa52" text-anchor="middle">🍃 MongoDB Document Cluster</text><path d="M417,137 v66 a55.0,9 0 0 0 110,0 v-66 z" fill="#fef3c7" stroke="#d97706" stroke-width="1.8"/><ellipse cx="472.0" cy="137" rx="55.0" ry="9" fill="#fef3c7" stroke="#d97706" stroke-width="1.8"/><text x="472.0" y="178.0" font-size="12" font-weight="800" fill="#d97706" text-anchor="middle" class="mono">document_db</text><text x="472" y="240" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own compute · storage</text><text x="472" y="258" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own scaling · own maintenance</text><rect x="580" y="10" width="156" height="28" rx="14.0" fill="#7c3aed" stroke="none" stroke-width="1.5"/><text x="658.0" y="28.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">Review Service</text><line x1="658" y1="42" x2="658" y2="80" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="572" y="84" width="172" height="196" rx="16" fill="#f0fdf4" stroke="#13aa52" stroke-width="2"/><text x="658" y="110" font-size="12" font-weight="800" fill="#13aa52" text-anchor="middle">🍃 MongoDB Review Cluster</text><path d="M603,137 v66 a55.0,9 0 0 0 110,0 v-66 z" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.8"/><ellipse cx="658.0" cy="137" rx="55.0" ry="9" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.8"/><text x="658.0" y="178.0" font-size="12" font-weight="800" fill="#7c3aed" text-anchor="middle" class="mono">review_db</text><text x="658" y="240" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own compute · storage</text><text x="658" y="258" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own scaling · own maintenance</text></svg></figure><details class="tree"><summary>🌳 Show text tree</summary><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">structure.txt</span></div><pre><code>Auth Service
+└── MongoDB Auth Cluster
+    └── auth_db
+
+Property Service
+└── MongoDB Property Cluster
+    └── property_db
+
+Document Service
+└── MongoDB Document Cluster
+    └── document_db
+
+Review Service
+└── MongoDB Review Cluster
+    └── review_db</code></pre></div></details><h4 class="h4">Configuration</h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">.env</span></div><pre><code><span class="cmt"># Auth Service</span>
+<span class="fn">MONGO_URI</span>=mongodb+srv://auth_user:<span class="num">&lt;password&gt;</span>@auth-cluster.example.mongodb.net/auth_db
+
+<span class="cmt"># Property Service</span>
+<span class="fn">MONGO_URI</span>=mongodb+srv://property_user:<span class="num">&lt;password&gt;</span>@property-cluster.example.mongodb.net/property_db</code></pre></div><p>Each service has a separate MongoDB cluster hostname and its own provisioned database infrastructure.</p></div></div></div><div class="section-divider" id="connection-examples"><span><b class="secnum">5</b>Connections &amp; communication ⭐</span></div><div class="card"><div class="card-pad"><p>These examples use <strong>Auth Service on port 3001</strong> and <strong>Property Service on port 3002</strong>. Choose Level 1 or Level 2 for a local exercise and run the services in separate terminals.</p></div></div><div class="tabpanel" data-panel="mongo" id="mongo-lab"><span class="plabel mongo">🍃 MongoDB — Node.js + Mongoose</span><div class="card"><div class="card-pad"><h3 class="h3">M1. What does “New Connection” in Compass mean?</h3><p>Compass is a database client. A saved connection tells it which MongoDB deployment to contact; clicking <strong>New Connection</strong> does not create another MongoDB server. Two saved connections pointing to <code>localhost:27017</code> can reach the same deployment.</p><div class="tscroll"><table><thead><tr><th>Item</th><th>Your local example</th><th>Meaning</th></tr></thead><tbody><tr><td>Deployment / server</td><td><code>localhost:27017</code></td><td>The running MongoDB process. A production deployment may be a replica set or sharded cluster.</td></tr><tr><td>Database</td><td><code>child-db-1</code>, <code>child-db-2</code></td><td>Two sibling logical databases; neither is the parent of the other.</td></tr><tr><td>Collection</td><td><code>users</code>, <code>properties</code></td><td>A collection belongs to one database.</td></tr><tr><td>Document</td><td><code>{ _id: "U101", name: "Rahul" }</code></td><td>A record inside a collection.</td></tr></tbody></table></div><div class="callout info"><span class="cl">Remember</span>The word <code>child</code> is only part of your database name. MongoDB databases are not nested. A Mongoose connection also does not create separate infrastructure.</div></div></div><div class="card"><div class="card-pad"><h3 class="h3">M2. Level 1 — Same database, separate collections</h3><div class="tscroll"><table><thead><tr><th>Service</th><th>MongoDB URI</th><th>Owned collection</th></tr></thead><tbody><tr><td>Auth :3001</td><td><code>mongodb://localhost:27017/property_portal</code></td><td><code>users</code></td></tr><tr><td>Property :3002</td><td><code>mongodb://localhost:27017/property_portal</code></td><td><code>properties</code></td></tr></tbody></table></div><p>Both services connect to the same database. Each service registers only the models for the collections it owns.</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Level 1 — connection lines in separate services</span></div><pre><code class="language-javascript">// auth-service/db.js
+const authConnection = await mongoose.createConnection(
+  &quot;mongodb://localhost:27017/property_portal&quot;
+).asPromise();
+
+// property-service/db.js — a DIFFERENT Node.js process
+const propertyConnection = await mongoose.createConnection(
+  &quot;mongodb://localhost:27017/property_portal&quot;
+).asPromise();</code></pre></div><div class="two"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">auth-service/.env — Level 1</span></div><pre><code class="language-ini">PORT=3001
+MONGO_URI=mongodb://localhost:27017/property_portal</code></pre></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">property-service/.env — Level 1</span></div><pre><code class="language-ini">PORT=3002
+MONGO_URI=mongodb://localhost:27017/property_portal
+AUTH_SERVICE_URL=http://localhost:3001</code></pre></div></div><div class="callout amber"><span class="cl">Ownership at Level 1</span>Different connection variables or model names do not enforce collection ownership. With MongoDB authentication enabled, use separate database users and custom collection-level privileges; a database-wide <code>readWrite</code> role would allow access to both collections.</div></div></div><div class="card"><div class="card-pad"><h3 class="h3">M3. Level 2 ⭐ — Same deployment, separate databases</h3><div class="tscroll"><table><thead><tr><th>Service</th><th>MongoDB URI</th><th>Owned collection</th></tr></thead><tbody><tr><td>Auth :3001</td><td><code>mongodb://localhost:27017/child-db-1</code></td><td><code>users</code></td></tr><tr><td>Property :3002</td><td><code>mongodb://localhost:27017/child-db-2</code></td><td><code>properties</code></td></tr></tbody></table></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Level 2 — the exact createConnection() difference</span></div><pre><code class="language-javascript">// auth-service/db.js
+const authConnection = await mongoose.createConnection(
+  &quot;mongodb://localhost:27017/child-db-1&quot;
+).asPromise();
+
+// property-service/db.js — a DIFFERENT Node.js process
+const propertyConnection = await mongoose.createConnection(
+  &quot;mongodb://localhost:27017/child-db-2&quot;
+).asPromise();</code></pre></div><p>Only the database name after <code>27017/</code> changes. The server address is identical. These lines are shown together for comparison; the REST design runs each connection inside its owning service.</p><div class="two"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">auth-service/.env — Level 2</span></div><pre><code class="language-ini">PORT=3001
+MONGO_URI=mongodb://localhost:27017/child-db-1</code></pre></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">property-service/.env — Level 2</span></div><pre><code class="language-ini">PORT=3002
+MONGO_URI=mongodb://localhost:27017/child-db-2
+AUTH_SERVICE_URL=http://localhost:3001</code></pre></div></div><div class="callout ok"><span class="cl">Connection → model → collection</span><code>createConnection()</code> returns a Connection object. <code>.asPromise()</code> lets you wait until it connects. Register models using <code>authConnection.model(...)</code> or <code>propertyConnection.model(...)</code>. <code>mongoose.model(...)</code> uses the default connection instead.</div></div></div><div class="card"><div class="card-pad"><h3 class="h3">M4. Reusable connection and model files — both levels</h3><p>Create separate <code>auth-service</code> and <code>property-service</code> folders. In <strong>each folder</strong>, run these commands and create its selected Level 1 or Level 2 <code>.env</code>. Use a supported Node.js LTS release with built-in <code>fetch</code> and <code>AbortSignal.timeout</code>.</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Terminal — run inside each service folder</span></div><pre><code class="language-bash">npm init -y
+npm pkg set type=module
+npm install express mongoose dotenv</code></pre></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">auth-service/db.js</span></div><pre><code class="language-javascript">import &quot;dotenv/config&quot;;
+import mongoose from &quot;mongoose&quot;;
+
+export const authConnection = await mongoose.createConnection(
+  process.env.MONGO_URI,
+  { serverSelectionTimeoutMS: 5000 }
+).asPromise();
+
+const userSchema = new mongoose.Schema({
+  _id: String, // Makes the example ID &quot;U101&quot; valid
+  name: { type: String, required: true },
+  email: { type: String, required: true }
+});
+
+export const User = authConnection.model(&quot;User&quot;, userSchema, &quot;users&quot;);</code></pre></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">property-service/db.js</span></div><pre><code class="language-javascript">import &quot;dotenv/config&quot;;
+import mongoose from &quot;mongoose&quot;;
+
+export const propertyConnection = await mongoose.createConnection(
+  process.env.MONGO_URI,
+  { serverSelectionTimeoutMS: 5000 }
+).asPromise();
+
+const propertySchema = new mongoose.Schema({
+  propertyId: { type: String, required: true, unique: true },
+  title: { type: String, required: true },
+  ownerId: { type: String, required: true }
+});
+
+export const Property = propertyConnection.model(
+  &quot;Property&quot;, propertySchema, &quot;properties&quot;
+);</code></pre></div><ul class="plain"><li>The third <code>model()</code> argument sets the collection name explicitly.</li><li>Create connections once at service startup and reuse them. Do not open a new connection for every request.</li><li>These examples intentionally use string user IDs. If your existing users have ObjectId <code>_id</code> values, use matching ObjectId values/types. If <code>U101</code> is stored in a separate <code>userId</code> field, query <code>findOne({ userId: req.params.id })</code>.</li><li>The sample connection strings assume local MongoDB with authentication disabled. Database users, authentication, and permissions must be configured to enforce ownership.</li><li>A Mongoose Schema describes document fields; it is not a PostgreSQL-style database namespace.</li></ul></div></div><div class="card"><div class="card-pad"><h3 class="h3">M5. Insert example data in MongoDB Compass</h3><ol class="steps"><li><span>Connect Compass to <code>mongodb://localhost:27017</code>.</span></li><li><span>For <strong>Level 2</strong>, create database <code>child-db-1</code> with collection <code>users</code>, and database <code>child-db-2</code> with collection <code>properties</code>.</span></li><li><span>Use <strong>Add Data → Insert Document</strong> in each collection and insert the documents below once.</span></li><li><span>For <strong>Level 1</strong>, insert the same documents into <code>property_portal.users</code> and <code>property_portal.properties</code>.</span></li></ol><div class="two"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">users — Auth-owned document</span></div><pre><code class="language-json">{
+  &quot;_id&quot;: &quot;U101&quot;,
+  &quot;name&quot;: &quot;Rahul&quot;,
+  &quot;email&quot;: &quot;rahul@example.com&quot;
+}</code></pre></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">properties — Property-owned document</span></div><pre><code class="language-json">{
+  &quot;propertyId&quot;: &quot;P101&quot;,
+  &quot;title&quot;: &quot;Apartment&quot;,
+  &quot;ownerId&quot;: &quot;U101&quot;
+}</code></pre></div></div><div class="callout info"><span class="cl">Why is my database missing?</span>A database may not appear just because an application connected to its name; create a collection or write data, then refresh Compass. Compass can generate the property document’s <code>_id</code>; the application queries it by <code>propertyId</code>.</div></div></div><div class="card"><div class="card-pad"><h3 class="h3">M6. How microservices communicate across MongoDB databases ⭐</h3><p>Property Service has <code>ownerId</code>, but Auth Service owns the user’s name and email. Store the ID as a reference, then ask the owning service for the permitted fields. This also applies at Level 1: sharing a database does not remove the service boundary.</p><ol class="steps"><li><span>Frontend requests <code>GET http://localhost:3002/properties/P101</code>.</span></li><li><span>Property Service queries <code>child-db-2.properties</code> and reads <code>ownerId: "U101"</code>.</span></li><li><span>Property Service requests <code>GET http://localhost:3001/users/U101</code>.</span></li><li><span>Auth Service queries <code>child-db-1.users</code> and returns the owner’s name and email.</span></li><li><span>Property Service combines the two results and responds to the frontend.</span></li></ol><div class="callout ok"><span class="cl">Method 1 — REST API ⭐</span>Fetching data from owning services and combining it into one response is <strong>API composition</strong>. This composition lives in Property Service in the example; larger systems may use a dedicated composition layer.</div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">auth-service/server.js</span></div><pre><code class="language-javascript">import &quot;dotenv/config&quot;;
+import express from &quot;express&quot;;
+import { authConnection, User } from &quot;./db.js&quot;;
+
+const app = express();
+
+app.get(&quot;/test-db&quot;, async (req, res) =&gt; {
+  try {
+    await authConnection.db.command({ ping: 1 });
+    res.json({ service: &quot;auth&quot;, database: authConnection.name });
+  } catch (error) {
+    console.error(error);
+    res.status(503).json({ message: &quot;Database unavailable&quot; });
+  }
+});
+
+app.get(&quot;/users/:id&quot;, async (req, res) =&gt; {
+  try {
+    const user = await User.findById(req.params.id)
+      .select(&quot;name email -_id&quot;)
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: &quot;User not found&quot; });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: &quot;Unable to retrieve user&quot; });
+  }
+});
+
+const port = Number(process.env.PORT || 3001);
+app.listen(port, () =&gt; console.log(`Auth Service: ${port}`));</code></pre></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">property-service/server.js</span></div><pre><code class="language-javascript">import &quot;dotenv/config&quot;;
+import express from &quot;express&quot;;
+import { propertyConnection, Property } from &quot;./db.js&quot;;
+
+const app = express();
+const authBaseUrl = process.env.AUTH_SERVICE_URL;
+if (!authBaseUrl) throw new Error(&quot;AUTH_SERVICE_URL is required&quot;);
+
+app.get(&quot;/test-db&quot;, async (req, res) =&gt; {
+  try {
+    await propertyConnection.db.command({ ping: 1 });
+    res.json({ service: &quot;property&quot;, database: propertyConnection.name });
+  } catch (error) {
+    console.error(error);
+    res.status(503).json({ message: &quot;Database unavailable&quot; });
+  }
+});
+
+app.get(&quot;/properties/:id&quot;, async (req, res) =&gt; {
+  let property;
+  try {
+    property = await Property.findOne({
+      propertyId: req.params.id
+    }).lean();
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: &quot;Unable to read property&quot; });
+  }
+
+  if (!property) {
+    return res.status(404).json({ message: &quot;Property not found&quot; });
+  }
+
+  try {
+    const url = new URL(
+      `/users/${encodeURIComponent(property.ownerId)}`,
+      authBaseUrl
+    );
+    const signal = AbortSignal.timeout(3000);
+    const response = await fetch(url, { signal });
+
+    if (!response.ok) {
+      return res.status(502).json({
+        message: response.status === 404
+          ? &quot;Referenced owner not found&quot;
+          : &quot;Unable to retrieve owner details&quot;
+      });
+    }
+
+    const owner = await response.json();
+    if (typeof owner?.name !== &quot;string&quot; || typeof owner?.email !== &quot;string&quot;) {
+      return res.status(502).json({ message: &quot;Invalid owner response&quot; });
+    }
+
+    res.json({
+      propertyId: property.propertyId,
+      title: property.title,
+      owner: { name: owner.name, email: owner.email }
+    });
+  } catch (error) {
+    console.error(error);
+    const timedOut = error.name === &quot;TimeoutError&quot; || error.name === &quot;AbortError&quot;;
+    res.status(timedOut ? 504 : 502).json({
+      message: timedOut ? &quot;Owner service timed out&quot; : &quot;Owner service unavailable&quot;
+    });
+  }
+});
+
+const port = Number(process.env.PORT || 3002);
+app.listen(port, () =&gt; console.log(`Property Service: ${port}`));</code></pre></div><p>Start <code>node server.js</code> from each service folder in two terminals. Then open these URLs:</p><div class="tscroll"><table><thead><tr><th>Request</th><th>Expected result</th></tr></thead><tbody><tr><td><code>http://localhost:3001/test-db</code></td><td>Level 2: database <code>child-db-1</code>; Level 1: <code>property_portal</code>.</td></tr><tr><td><code>http://localhost:3002/test-db</code></td><td>Level 2: database <code>child-db-2</code>; Level 1: <code>property_portal</code>.</td></tr><tr><td><code>http://localhost:3001/users/U101</code></td><td>The user’s name and email.</td></tr><tr><td><code>http://localhost:3002/properties/P101</code></td><td>The composed response below.</td></tr></tbody></table></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Expected API response</span></div><pre><code class="language-json">{
+  &quot;propertyId&quot;: &quot;P101&quot;,
+  &quot;title&quot;: &quot;Apartment&quot;,
+  &quot;owner&quot;: {
+    &quot;name&quot;: &quot;Rahul&quot;,
+    &quot;email&quot;: &quot;rahul@example.com&quot;
+  }
+}</code></pre></div><div class="callout amber"><span class="cl">Failure and access policy</span>These are local learning endpoints. Production endpoints need caller authentication, authorization to view the property and owner fields, and a defined policy for missing users. This example requires owner details and fails with 502/504 if they cannot be retrieved; a product may instead allow a clearly marked partial response.</div></div></div><div class="card"><div class="card-pad"><h3 class="h3">M7. Method 2 — Events + a local read model</h3><p>Auth remains the source of truth. When a user changes, it publishes an event through a broker such as RabbitMQ or Kafka. Property Service consumes it and stores only the user fields it needs in its own <code>user_profiles</code> collection.</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Example event — define this contract between services</span></div><pre><code class="language-json">{
+  &quot;eventId&quot;: &quot;evt-101&quot;,
+  &quot;type&quot;: &quot;UserUpdated&quot;,
+  &quot;userId&quot;: &quot;U101&quot;,
+  &quot;version&quot;: 2,
+  &quot;name&quot;: &quot;Rahul Sharma&quot;,
+  &quot;email&quot;: &quot;rahul@example.com&quot;
+}</code></pre></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">child-db-2.user_profiles — local projection</span></div><pre><code class="language-json">{
+  &quot;userId&quot;: &quot;U101&quot;,
+  &quot;version&quot;: 2,
+  &quot;name&quot;: &quot;Rahul Sharma&quot;,
+  &quot;email&quot;: &quot;rahul@example.com&quot;
+}</code></pre></div><p>Property Service now reads the property and profile from its own database. It can combine them in application code, or use a local aggregation. The projection is read-only for business operations; only the event consumer updates it.</p><div class="tscroll"><table><thead><tr><th>Advantages</th><th>Trade-offs</th></tr></thead><tbody><tr><td>Fast local reads; no Auth HTTP call for every request.</td><td>The copy may lag behind Auth: eventual consistency.</td></tr><tr><td>Reads can continue while Auth is unavailable, if the projection exists.</td><td>Events, retries, backfills, and recovery need operational work.</td></tr><tr><td>Only the required fields are replicated.</td><td>Duplicates, out-of-order events, and deletes must be handled.</td></tr></tbody></table></div><ul class="plain"><li>Load an initial snapshot or replay events so existing users are present before relying on the projection.</li><li>Use a unique <code>userId</code> index and idempotent consumers. Apply newer versions atomically so an older event cannot overwrite a newer profile.</li><li>Use durable delivery, retries, and a dead-letter process for events that repeatedly fail.</li><li>An outbox pattern helps avoid saving a user change without publishing its event. Handle user deletion and restrict replicated fields.</li><li>Do not rely on a stale profile projection for critical authorization or account-revocation checks.</li></ul></div></div><div class="card"><div class="card-pad"><h3 class="h3">M8. Method 3 — Direct cross-database populate (technical demo)</h3><p>Mongoose can populate through a model on another connection. This is useful in some applications under one ownership boundary. It is generally a poor default between independently owned microservices because the caller needs direct access to another service’s database and data shape.</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">cross-db-demo.js — standalone demo, not either REST service</span></div><pre><code class="language-javascript">import mongoose from &quot;mongoose&quot;;
+
+const authConnection = mongoose.createConnection(
+  &quot;mongodb://localhost:27017/child-db-1&quot;
+);
+const propertyConnection = mongoose.createConnection(
+  &quot;mongodb://localhost:27017/child-db-2&quot;
+);
+
+try {
+  await Promise.all([
+    authConnection.asPromise(),
+    propertyConnection.asPromise()
+  ]);
+
+  const User = authConnection.model(&quot;User&quot;, new mongoose.Schema({
+    _id: String,
+    name: String,
+    email: String
+  }), &quot;users&quot;);
+
+  const Property = propertyConnection.model(&quot;Property&quot;, new mongoose.Schema({
+    propertyId: String,
+    title: String,
+    ownerId: String
+  }), &quot;properties&quot;);
+
+  const property = await Property.findOne({ propertyId: &quot;P101&quot; })
+    .populate({
+      path: &quot;ownerId&quot;,
+      model: User, // Actual model on authConnection
+      select: &quot;name email -_id&quot;
+    })
+    .lean();
+
+  console.log(property);
+} finally {
+  await Promise.allSettled([
+    authConnection.close(),
+    propertyConnection.close()
+  ]);
+}</code></pre></div><div class="callout info"><span class="cl">What populate actually does</span>This replaces <code>ownerId</code> in the returned object with the populated user (or <code>null</code> if missing). It does not add an <code>owner</code> field or change the stored document. A string <code>ref: "User"</code> alone looks for that model on the same connection; the explicit <code>model: User</code> selects the other connection.</div><ul class="plain"><li>The caller becomes coupled to Auth’s database structure and requires its database credentials.</li><li>Changing Auth’s storage structure can break consumers even if its API contract stays stable.</li><li>Mongoose population uses additional database queries; it is not a MongoDB server-side join.</li><li>Ordinary MongoDB <code>$lookup</code> joins a collection in the same database. It does not make <code>child-db-1.users</code> available to an ordinary aggregation in <code>child-db-2</code>.</li></ul></div></div><div class="card"><div class="card-pad"><h3 class="h3">M9. Which approach should you use? ⭐</h3><div class="tscroll"><table><thead><tr><th>Approach</th><th>How it works</th><th>Benefit</th><th>Trade-off</th></tr></thead><tbody><tr><td>REST / API composition ⭐</td><td>Property calls Auth’s API.</td><td>Clear ownership; reads Auth’s current committed data.</td><td>Latency; Auth must respond; no atomic snapshot across services.</td></tr><tr><td>Events + local copy</td><td>Auth publishes; Property maintains a projection.</td><td>Fast reads and fewer synchronous dependencies.</td><td>Eventual consistency, duplicate data, messaging complexity.</td></tr><tr><td>Cross-DB populate</td><td>One process connects to both databases.</td><td>Familiar Mongoose syntax.</td><td>Direct database coupling across ownership boundaries.</td></tr></tbody></table></div><p><strong>Learning order:</strong> start with REST and timeouts, then study events and eventual consistency. Use cross-database populate to understand the capability, not as the default service integration pattern.</p><div class="bub a"><span class="who">Interview-ready answer</span><p>When related data belongs to another microservice, I store its ID and use the owning service’s API to fetch the required fields. I combine responses using API composition. For frequent reads, I may maintain a local projection through events and accept eventual consistency. Cross-database populate is technically possible, but it couples services to each other’s database structure. The choice depends on freshness, latency, and availability requirements.</p></div></div></div><div class="card"><div class="card-pad"><h3 class="h3">M10. MongoDB — essential connection reminders</h3><div class="tscroll"><table><thead><tr><th>Level</th><th>What changes in code?</th><th>What stays shared?</th></tr></thead><tbody><tr><td>1</td><td>Same database URI; service-owned collections/models.</td><td>Database and server resources.</td></tr><tr><td>2 ⭐</td><td>Database name in <code>MONGO_URI</code>.</td><td>MongoDB deployment resources.</td></tr><tr><td>3</td><td>Connection endpoint for a genuinely separate deployment.</td><td>Any remaining application dependencies.</td></tr></tbody></table></div><ul class="plain"><li><code>authSource</code> identifies the database used to authenticate the database user; it is not necessarily the database storing the application’s data.</li><li>If <code>localhost</code> resolves to IPv6 but MongoDB listens only on IPv4, use <code>127.0.0.1</code> consistently in the local URI.</li><li>Inside a container, <code>localhost</code> points to that container. Use configured service hostnames for MongoDB and the other service.</li><li>Different ports can represent separate local MongoDB processes, but processes on one machine still share that machine’s hardware and failure risk.</li><li>Sharing a host does not make <code>ownerId</code> a foreign key. Model references do not enforce cross-service referential integrity.</li></ul></div></div></div><div class="section-divider" id="references"><span><b class="secnum">6</b>References between services</span></div><div class="card"><div class="card-pad"><div><div class="plabel mongo">🍃 MongoDB</div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">review.json</span></div><pre><code>{
+  _id: <span class="fn">ObjectId</span>(<span class="str">"..."</span>),
+  propertyId: <span class="str">"P101"</span>,
+  rating: 5,
+  comment: <span class="str">"Good property"</span>
+}</code></pre></div></div><p>The property ID is a logical reference to data owned by Property Service. Validate it through that service’s API, or maintain a local projection through events.</p><p>MongoDB references do not enforce relational foreign-key constraints.</p></div></div><div class="section-divider" id="revision"><span><b class="secnum">7</b>Quick revision</span></div><div class="rev" style="--rc:#13aa52"><h3>🍃 MongoDB</h3><ul><li><b>Level 1</b>Same cluster → Same database → Separate collections.</li><li><b>Level 2 ⭐</b>Same cluster → Separate databases → Separate collections per service.</li><li><b>Level 3</b>Separate clusters → Separate databases → Stronger infrastructure isolation.</li></ul></div><div class="section-divider" id="sources"><span><b class="secnum">8</b>Official references</span></div><div class="card"><div class="card-pad"><ul class="plain"><li><a href="https://mongoosejs.com/docs/connections.html">Mongoose — connections, model scope, and asPromise()</a></li><li><a href="https://mongoosejs.com/docs/populate.html#cross-db-populate">Mongoose — populate across databases</a></li><li><a href="https://www.mongodb.com/docs/manual/reference/operator/aggregation/lookup/">MongoDB — $lookup</a></li></ul></div></div></div></body></html>

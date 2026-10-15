@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>🐘 PostgreSQL in Microservices</title><style>*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:#f4f5fa;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.6}
+.container{width:92%;max-width:1120px;margin:34px auto 70px}
+.container{--accent-dark:#1e3a8a;--accent:#2563eb;--accent-light:#3b82f6;--content-bg:#eff6ff;--heading:#1e3a8a;--shadow-rgb:37,99,235}
+a{color:#2563eb}
+code{font-family:'Fira Code','Consolas',monospace;font-size:.88em;background:rgba(37,99,235,.1);color:#1e3a8a;padding:2px 7px;border-radius:5px}
+.mono{font-family:'Fira Code','Consolas',monospace}
+svg.diagram{width:100%;height:auto;display:block}
+svg.diagram text{font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+svg.diagram text.mono{font-family:'Fira Code','Consolas',monospace}
+
+/* header */
+.header{background:linear-gradient(120deg,var(--accent-dark),var(--accent-light));border-radius:22px;padding:42px 38px;margin-bottom:22px;box-shadow:0 16px 36px rgba(var(--shadow-rgb),.3);position:relative;overflow:hidden}
+.header::after{content:'';position:absolute;top:-70px;right:-70px;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.08)}
+.header::before{content:'';position:absolute;bottom:-90px;left:38%;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.05)}
+.header .tag{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-size:12px;font-weight:800;letter-spacing:.6px;padding:5px 14px;border-radius:20px;margin-bottom:14px;position:relative}
+.header h1{color:#fff;font-size:33px;font-weight:800;letter-spacing:-.6px;margin-bottom:10px;position:relative;line-height:1.2}
+.header p{color:#dbe6ff;font-size:16px;max-width:760px;line-height:1.65;position:relative}
+.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;position:relative}
+.meta span{background:rgba(255,255,255,.14);color:#fff;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.28)}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;position:relative}
+.toc a{text-decoration:none;padding:7px 15px;border-radius:20px;font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);transition:all .2s ease}
+.toc a:hover{background:#fff;color:var(--accent);transform:translateY(-1px)}
+
+/* view switch + tabs */
+.viewswitch{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;background:rgba(244,245,250,.92);backdrop-filter:blur(8px);padding:10px 4px;margin-bottom:6px;border-bottom:1px solid #e2e8f0}
+.viewswitch>span{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8}
+.tabbar{display:inline-flex;gap:6px;background:#e9edf5;padding:4px;border-radius:12px;margin:0 0 14px}
+.viewswitch .tabbar{margin:0}
+.tbtn{border:none;background:transparent;font-family:inherit;font-size:13px;font-weight:800;color:#64748b;padding:7px 16px;border-radius:9px;cursor:pointer;transition:all .15s ease}
+.tbtn:hover{color:#1e3a8a}
+.tbtn.active{background:#fff;color:#1e3a8a;box-shadow:0 3px 10px rgba(0,0,0,.1)}
+.tabpanel{display:none}
+body[data-view="mongo"] .tabpanel[data-panel="mongo"],body[data-view="pg"] .tabpanel[data-panel="pg"],body[data-view="both"] .tabpanel{display:block}
+.plabel{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.5px;padding:5px 14px;border-radius:20px;margin-bottom:12px}
+.plabel.mongo{background:#dcfce7;color:#166534}
+.plabel.pg{background:#dbeafe;color:#1e3a8a}
+body[data-view="both"] .tabpanel+.tabpanel{margin-top:26px;padding-top:22px;border-top:2px dashed #e2e8f0}
+
+/* section divider */
+.section-divider{margin:46px 0 20px;position:relative;display:flex;align-items:center;scroll-margin-top:60px}
+.section-divider::before{content:'';position:absolute;top:50%;left:0;right:0;height:2px;background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd);opacity:.22}
+.section-divider>span{background:#f4f5fa;padding:0 18px 0 0;position:relative;font-size:21px;font-weight:800;display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+.secnum{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;padding:0 8px;border-radius:11px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-size:16px;box-shadow:0 6px 14px rgba(37,99,235,.3)}
+.star{font-size:11.5px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;padding:3px 11px;border-radius:14px}
+
+/* cards */
+.card{border-radius:18px;background:#fff;box-shadow:0 10px 26px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.04);overflow:hidden;margin-bottom:20px}
+.card-pad{padding:24px 26px}
+.card p{color:#334155;font-size:15.5px;line-height:1.8;margin-bottom:12px;font-weight:500}
+.h3{font-size:18px;font-weight:800;color:#1e3a8a;margin:0 0 12px;padding-left:12px;border-left:4px solid #2563eb}
+.h4{font-size:12.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#64748b;margin:20px 0 8px}
+ul.plain{margin:6px 0 12px 22px}
+ul.plain li{font-size:15px;line-height:1.8;color:#334155;font-weight:500}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+
+/* callouts */
+.callout{border-radius:14px;padding:15px 20px;margin:14px 0;font-size:15px;line-height:1.75;font-weight:600}
+.callout.info{background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#3730a3}
+.callout.warn{background:linear-gradient(135deg,#ffe4e6,#fecdd3);color:#9f1239}
+.callout.ok{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46}
+.callout.amber{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e}
+.callout .cl{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.75;margin-bottom:3px}
+.callout code{background:rgba(255,255,255,.55)}
+
+/* level cards */
+.lvls{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+@media(max-width:900px){.lvls{grid-template-columns:1fr}}
+.lvl{background:#fff;border-radius:18px;padding:20px;border-top:6px solid var(--lc);box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.lvl-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.lvl-n{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#fff;background:var(--lc);padding:4px 12px;border-radius:14px}
+.lvl-star{font-size:11px;font-weight:800;color:#92400e;background:#fef3c7;padding:3px 10px;border-radius:12px}
+.lvl h3{font-size:17px;font-weight:800;margin-bottom:12px;color:#1a1a1a}
+.lvl-line{display:flex;flex-direction:column;gap:2px;background:#f8fafc;border-radius:11px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;color:#334155;font-weight:500;line-height:1.55}
+.lvl-line b{font-size:11.5px;letter-spacing:.5px;color:var(--lc)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips i{font-style:normal;font-size:11.5px;font-weight:800;padding:4px 11px;border-radius:12px}
+.chips i.ok{background:#dcfce7;color:#166534}
+.chips i.no{background:#ffe4e6;color:#9f1239}
+ul.takeaway{list-style:none;display:grid;gap:10px;margin-bottom:6px}
+ul.takeaway li{display:flex;gap:14px;align-items:flex-start;background:#f8fafc;border-left:5px solid var(--lc);border-radius:0 12px 12px 0;padding:12px 16px;font-size:14.5px;line-height:1.65;color:#334155;font-weight:500}
+ul.takeaway li b{flex-shrink:0;min-width:74px;color:var(--lc);font-weight:800}
+
+/* services */
+.svcs{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:14px 0 8px}
+@media(max-width:900px){.svcs{grid-template-columns:repeat(2,1fr)}}
+.svc{background:var(--l);border-radius:16px;padding:16px 14px;border-top:5px solid var(--c)}
+.svc-ic{width:42px;height:42px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:10px;box-shadow:0 4px 10px rgba(0,0,0,.08)}
+.svc h4{font-size:14.5px;font-weight:800;color:var(--c);margin-bottom:4px}
+.svc p{font-size:13px!important;line-height:1.55!important;margin:0!important;color:#334155}
+
+/* diagrams */
+.dfig{margin:16px 0;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+.dtitle{background:linear-gradient(120deg,#1e3a8a,#3b82f6);color:#fff;font-size:13px;font-weight:800;padding:9px 18px;letter-spacing:.2px}
+.dfig svg{padding:14px}
+.dcap{font-size:12.5px;color:#64748b;font-weight:600;text-align:center;padding:0 16px 12px;font-style:italic}
+
+/* pros / cons */
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+@media(max-width:820px){.pc{grid-template-columns:1fr}}
+.pro,.con{border-radius:16px;padding:16px 18px}
+.pro{background:#f0fdf4;border:1px solid #bbf7d0}
+.con{background:#fff1f2;border:1px solid #fecdd3}
+.pro h4,.con h4{font-size:14px;font-weight:800;margin-bottom:8px}
+.pro h4{color:#166534}.con h4{color:#9f1239}
+.pro ul,.con ul{margin-left:18px}
+.pro li,.con li{font-size:14px;line-height:1.7;color:#334155;font-weight:500;margin-bottom:3px}
+.pro p,.con p{font-size:14px!important;line-height:1.7!important;color:#334155}
+
+/* steps */
+ol.steps{list-style:none;counter-reset:st;display:grid;gap:8px;margin:8px 0 14px}
+ol.steps li{counter-increment:st;display:flex;gap:12px;align-items:flex-start;background:#f0fdf4;border-radius:12px;padding:11px 14px;font-size:14.5px;line-height:1.6;color:#334155;font-weight:500}
+ol.steps li::before{content:counter(st);flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#16a34a;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+ol.steps li b{color:#166534;font-weight:800;margin-right:4px}
+ol.steps li b::after{content:' —'}
+ol.steps.big li{background:#eff6ff;padding:14px 16px;font-size:15px}
+ol.steps.big li::before{background:linear-gradient(135deg,#1e3a8a,#3b82f6)}
+ol.steps.big li b{color:#1e3a8a}
+ol.steps.big li b::after{content:''}
+
+/* code + tree */
+.code-block{background:#1a1a1a;border-radius:12px;overflow:hidden;margin:12px 0;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+.code-bar{background:#111;padding:8px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #2b2b2b}
+.code-bar .dot{width:9px;height:9px;border-radius:50%}
+.dot-red{background:#ff5f57}.dot-grey{background:#febc2e}.dot-green{background:#28c840}
+.code-bar .filename{color:#999;font-size:12px;margin-left:8px;font-family:'Fira Code',monospace}
+.code-block pre{padding:16px 18px;overflow-x:auto;margin:0}
+.code-block code{background:none;color:#d4d4d4;font-size:13px;font-family:'Fira Code','Consolas',monospace;line-height:1.65;white-space:pre;padding:0}
+.kw{color:#c792ea;font-weight:600}.str{color:#c3e88d}.fn{color:#82aaff}.cmt{color:#7a7a7a;font-style:italic}.num{color:#f78c6c}
+details.tree{margin:8px 0}
+details.tree>summary{cursor:pointer;font-size:13px;font-weight:800;color:#475569;background:#f1f5f9;display:inline-block;padding:7px 14px;border-radius:10px;list-style:none;user-select:none}
+details.tree>summary::-webkit-details-marker{display:none}
+details.tree>summary:hover{background:#e2e8f0}
+
+/* tables */
+.tscroll{overflow-x:auto;margin:8px 0}
+table{width:100%;border-collapse:separate;border-spacing:0 8px;min-width:560px}
+th{background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899);color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;padding:12px 16px;text-align:left}
+th:first-child{border-radius:12px 0 0 12px}th:last-child{border-radius:0 12px 12px 0}
+td{padding:12px 16px;font-size:14px;font-weight:600;color:#334155;vertical-align:top;background:var(--rb,#eff6ff);line-height:1.6}
+td:first-child{border-radius:12px 0 0 12px;border-left:6px solid var(--rc,#2563eb);font-weight:800;color:var(--rd,#1e3a8a)}
+td:last-child{border-radius:0 12px 12px 0}
+td code{background:#fff;border:1px solid var(--rc,#2563eb);color:var(--rd,#1e3a8a);font-weight:700}
+tr:nth-child(6n+2){--rc:#db2777;--rb:#fdf2f8;--rd:#9d174d}
+tr:nth-child(6n+3){--rc:#d97706;--rb:#fffbeb;--rd:#92400e}
+tr:nth-child(6n+4){--rc:#059669;--rb:#ecfdf5;--rd:#065f46}
+tr:nth-child(6n+5){--rc:#7c3aed;--rb:#f5f3ff;--rd:#5b21b6}
+tr:nth-child(6n+6){--rc:#0d9488;--rb:#f0fdfa;--rd:#115e59}
+
+/* chat */
+.chat{display:grid;gap:12px}
+.bub{border-radius:18px;padding:14px 18px;max-width:92%}
+.bub .who{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:5px}
+.bub p{margin:0 0 8px!important;font-size:15px!important;line-height:1.75!important}
+.bub p:last-child{margin:0!important}
+.bub.q{background:#f1f5f9;border-bottom-left-radius:4px;color:#1e293b}
+.bub.a{background:linear-gradient(135deg,#dbeafe,#e0e7ff);border-bottom-right-radius:4px;color:#1e3a8a;margin-left:auto}
+.bub.a p{color:#1e3a8a!important;font-weight:600!important}
+
+/* faq */
+details.faq{border:1px solid #e2e8f0;border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff}
+details.faq>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:14px 18px;background:#f8fafc;user-select:none}
+details.faq>summary::-webkit-details-marker{display:none}
+details.faq>summary:hover{background:#eff6ff}
+.fn{flex-shrink:0}
+details.faq .fn{width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.fq{flex:1;font-size:15px;font-weight:700;color:#1a1a1a;line-height:1.45}
+.fch{color:#2563eb;font-size:12px;transition:transform .2s ease}
+details.faq[open] .fch{transform:rotate(180deg)}
+details.faq[open]>summary{background:#eff6ff}
+.fa{padding:14px 20px 16px 62px;font-size:14.5px;line-height:1.75;color:#334155;font-weight:500;border-top:1px solid #e2e8f0}
+
+/* revision */
+.revs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:820px){.revs{grid-template-columns:1fr}}
+.rev{background:#fff;border-radius:18px;padding:20px 22px;border-top:6px solid var(--rc);box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.rev h3{font-size:18px;font-weight:800;color:var(--rc);margin-bottom:12px}
+.rev ul{list-style:none;display:grid;gap:8px}
+.rev li{background:#f8fafc;border-radius:11px;padding:10px 14px;font-size:14px;line-height:1.6;color:#334155;font-weight:500}
+.rev li b{display:inline-block;min-width:68px;color:var(--rc);font-weight:800}
+
+@media(max-width:768px){.header h1{font-size:25px}.header{padding:30px 22px}.card-pad{padding:18px}.fa{padding-left:20px}}
+@media print{.viewswitch{display:none}.tabpanel{display:block!important}}
+
+/* Connection labs: preserve readable code and contain mobile overflow. */
+.two > *{min-width:0}
+#connection-labs{scroll-margin-top:72px}
+#mongo-lab .h3,#pg-lab .h3{margin-top:2px}
+@media(max-width:480px){.viewswitch{gap:5px}.viewswitch>span{display:none}.tbtn{padding:7px 9px;font-size:12px}.container{width:94%}.code-bar .filename{overflow-wrap:anywhere}.code-block pre{padding:14px}}
+@media print{.code-block pre{white-space:pre-wrap}.code-block code{white-space:pre-wrap;overflow-wrap:anywhere}.card{overflow:visible;box-shadow:none}.code-block{break-inside:auto}.toc,.tabbar{display:none}}
+
+/* Each document is standalone; all its sections are always visible. */
+.tabpanel{display:block!important}
+.tabbar,.viewswitch{display:none!important}
+.section-divider{scroll-margin-top:16px}
+@media print{.header{box-shadow:none}.section-divider{break-after:avoid}}
+</style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="ar-slate" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#64748b"/></marker>
+<marker id="ar-red" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#e11d48"/></marker>
+<marker id="ar-green" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#16a34a"/></marker>
+<marker id="ar-blue" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#2563eb"/></marker>
+<marker id="ar-amber" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#d97706"/></marker>
+<marker id="ar-purple" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#7c3aed"/></marker>
+<marker id="ar-orange" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#f97316"/></marker>
+</defs></svg><div class="container"><div class="header"><span class="tag">MICROSERVICES · STUDY NOTES</span><h1>🐘 PostgreSQL in Microservices</h1><p>Database architecture, Level 1–3 isolation, Node.js connections, service communication, and practical examples.</p><div class="toc"><a href="#overview">Architecture overview</a><a href="#level-1">Level 1</a><a href="#level-2">Level 2 ⭐</a><a href="#level-3">Level 3</a><a href="#connection-examples">Connections &amp; communication ⭐</a><a href="#references">References between services</a><a href="#revision">Quick revision</a><a href="#sources">Official references</a></div></div><div class="section-divider" id="overview"><span><b class="secnum">1</b>Architecture overview</span></div><div class="card"><div class="card-pad"><h3 class="h3">🐘 PostgreSQL — Architecture Comparison</h3><div class="tscroll"><table><tr><th>Level</th><th>Architecture</th><th>Advantages</th><th>Disadvantages</th></tr><tr><td>Level 1</td><td>Same instance → Same database → Separate schemas</td><td>Simple setup, low cost, schema-level separation.</td><td>Shared resources; requires careful schema/table permissions.</td></tr><tr><td>Level 2 ⭐</td><td>Same instance → Separate databases</td><td>Clear database ownership, easier access control, independent schema migrations.</td><td>Shared CPU/RAM; instance failure affects all databases.</td></tr><tr><td>Level 3</td><td>Separate instances/clusters → Separate databases</td><td>Independent scaling, stronger fault isolation, dedicated resources.</td><td>Higher infrastructure cost, more maintenance and monitoring.</td></tr></table></div></div></div><div class="section-divider" id="level-1"><span><b class="secnum">2</b>Level 1</span></div><div class="card"><div class="card-pad"><div class="tabpanel" data-panel="pg"><div class="plabel pg">🐘 PostgreSQL</div><h3 class="h3">PostgreSQL: Same Database, Separate Schemas</h3><p>In PostgreSQL, the comparable approach is to use separate schemas. A <strong>schema</strong> is a logical namespace inside a PostgreSQL database that contains tables and other database objects.</p><figure class="dfig"><div class="dtitle">PostgreSQL · Level 1 — one database, separate schemas</div><svg class="diagram" viewBox="0 0 760 362" role="img" aria-label="PostgreSQL level 1: one instance, one database, separate schemas per service"><rect x="8" y="8" width="744" height="346" rx="16" fill="#eff6ff" stroke="#336791" stroke-width="2"/><text x="28" y="36" font-size="15" font-weight="800" fill="#336791" text-anchor="start">🐘 PostgreSQL Instance</text><rect x="28" y="56" width="704" height="284" rx="14" fill="#fff" stroke="#93c5fd" stroke-width="1.8"/><text x="48" y="84" font-size="14" font-weight="800" fill="#1e3a8a" text-anchor="start">🗄 Database: property_portal</text><rect x="44" y="98" width="158" height="176" rx="12" fill="#dbeafe" stroke="#2563eb" stroke-width="1.8" stroke-dasharray="5 4"/><text x="123" y="124" font-size="12.5" font-weight="800" fill="#2563eb" text-anchor="middle" class="mono">auth_schema</text><rect x="58" y="142" width="130" height="34" rx="9" fill="#fff" stroke="#2563eb" stroke-width="1.6"/><rect x="58" y="142" width="7" height="34" rx="3" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="126.0" y="163.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">users</text><rect x="58" y="186" width="130" height="34" rx="9" fill="#fff" stroke="#2563eb" stroke-width="1.6"/><rect x="58" y="186" width="7" height="34" rx="3" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="126.0" y="207.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">sessions</text><rect x="52" y="236" width="142" height="24" rx="12.0" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="123.0" y="252.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Auth Service</text><rect x="214" y="98" width="158" height="176" rx="12" fill="#d1fae5" stroke="#059669" stroke-width="1.8" stroke-dasharray="5 4"/><text x="293" y="124" font-size="12.5" font-weight="800" fill="#059669" text-anchor="middle" class="mono">property_schema</text><rect x="228" y="142" width="130" height="34" rx="9" fill="#fff" stroke="#059669" stroke-width="1.6"/><rect x="228" y="142" width="7" height="34" rx="3" fill="#059669" stroke="none" stroke-width="1.5"/><text x="296.0" y="163.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">properties</text><rect x="222" y="236" width="142" height="24" rx="12.0" fill="#059669" stroke="none" stroke-width="1.5"/><text x="293.0" y="252.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Property Service</text><rect x="384" y="98" width="158" height="176" rx="12" fill="#fef3c7" stroke="#d97706" stroke-width="1.8" stroke-dasharray="5 4"/><text x="463" y="124" font-size="12.5" font-weight="800" fill="#d97706" text-anchor="middle" class="mono">document_schema</text><rect x="398" y="142" width="130" height="34" rx="9" fill="#fff" stroke="#d97706" stroke-width="1.6"/><rect x="398" y="142" width="7" height="34" rx="3" fill="#d97706" stroke="none" stroke-width="1.5"/><text x="466.0" y="163.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">documents</text><rect x="392" y="236" width="142" height="24" rx="12.0" fill="#d97706" stroke="none" stroke-width="1.5"/><text x="463.0" y="252.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Document Service</text><rect x="554" y="98" width="158" height="176" rx="12" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.8" stroke-dasharray="5 4"/><text x="633" y="124" font-size="12.5" font-weight="800" fill="#7c3aed" text-anchor="middle" class="mono">review_schema</text><rect x="568" y="142" width="130" height="34" rx="9" fill="#fff" stroke="#7c3aed" stroke-width="1.6"/><rect x="568" y="142" width="7" height="34" rx="3" fill="#7c3aed" stroke="none" stroke-width="1.5"/><text x="636.0" y="163.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">reviews</text><rect x="562" y="236" width="142" height="24" rx="12.0" fill="#7c3aed" stroke="none" stroke-width="1.5"/><text x="633.0" y="252.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Review Service</text><text x="380" y="304" font-size="12.5" font-weight="600" fill="#475569" text-anchor="middle" font-style="italic">One database — each service owns a schema (a namespace of tables)</text><text x="380" y="326" font-size="12" font-weight="700" fill="#be123c" text-anchor="middle">⚠ Incorrect privileges can permit cross-service queries</text></svg></figure><details class="tree"><summary>🌳 Show text tree</summary><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">structure.txt</span></div><pre><code>PostgreSQL Instance
+└── property_portal
+    ├── auth_schema
+    │   ├── users
+    │   └── sessions
+    │
+    ├── property_schema
+    │   └── properties
+    │
+    ├── document_schema
+    │   └── documents
+    │
+    └── review_schema
+        └── reviews</code></pre></div></details><h4 class="h4">Example SQL</h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">schemas.sql</span></div><pre><code><span class="kw">CREATE</span> <span class="kw">DATABASE</span> property_portal;
+
+<span class="cmt">-- Connect to property_portal</span>
+
+<span class="kw">CREATE</span> <span class="kw">SCHEMA</span> auth_schema;
+<span class="kw">CREATE</span> <span class="kw">SCHEMA</span> property_schema;
+<span class="kw">CREATE</span> <span class="kw">SCHEMA</span> review_schema;
+
+<span class="kw">CREATE</span> <span class="kw">TABLE</span> auth_schema.users (
+    id <span class="kw">BIGINT</span> <span class="kw">GENERATED</span> <span class="kw">ALWAYS</span> <span class="kw">AS</span> <span class="kw">IDENTITY</span> <span class="kw">PRIMARY</span> <span class="kw">KEY</span>,
+    name <span class="kw">VARCHAR</span>(100) <span class="kw">NOT</span> <span class="kw">NULL</span>
+);
+
+<span class="kw">CREATE</span> <span class="kw">TABLE</span> property_schema.properties (
+    id <span class="kw">BIGINT</span> <span class="kw">GENERATED</span> <span class="kw">ALWAYS</span> <span class="kw">AS</span> <span class="kw">IDENTITY</span> <span class="kw">PRIMARY</span> <span class="kw">KEY</span>,
+    title <span class="kw">VARCHAR</span>(200) <span class="kw">NOT</span> <span class="kw">NULL</span>
+);</code></pre></div><h4 class="h4">Configuration</h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">.env</span></div><pre><code><span class="cmt"># Auth Service</span>
+<span class="fn">DATABASE_URL</span>=postgresql://auth_user:<span class="num">&lt;password&gt;</span>@localhost:5432/property_portal
+
+<span class="cmt"># Review Service</span>
+<span class="fn">DATABASE_URL</span>=postgresql://review_user:<span class="num">&lt;password&gt;</span>@localhost:5432/property_portal</code></pre></div><p>The database name is identical. Each service should use its own login role with access restricted to its schema and tables. For example, Auth Service can manage <code>auth_schema.users</code> but should not access <code>property_schema.properties</code>.</p><div class="pc"><div class="pro"><h4>👍 Advantages</h4><ul><li>Schemas make business boundaries explicit.</li><li>Schema-level access controls can enforce ownership.</li><li>Easy to introduce when splitting a monolith.</li><li>Centralized database infrastructure simplifies administration.</li></ul></div><div class="con"><h4>⚠️ Disadvantages</h4><ul><li>All services share a database and PostgreSQL instance.</li><li>Incorrect privileges can permit cross-service queries.</li><li>Database-wide operations create shared dependencies.</li><li>Independent database-level administration and migration are limited.</li></ul></div></div></div></div></div><div class="section-divider" id="level-2"><span><b class="secnum">3</b>Level 2 ⭐</span></div><div class="card"><div class="card-pad"><div class="tabpanel" data-panel="pg"><div class="plabel pg">🐘 PostgreSQL</div><h3 class="h3">PostgreSQL: Same Instance, Separate Databases</h3><p>In PostgreSQL, one server instance can manage multiple databases.</p><figure class="dfig"><div class="dtitle">PostgreSQL · Level 2 — same instance, separate databases ⭐</div><svg class="diagram" viewBox="0 0 760 352" role="img" aria-label="Level 2: one instance, separate databases per service"><rect x="8" y="8" width="744" height="336" rx="16" fill="#eff6ff" stroke="#336791" stroke-width="2"/><text x="28" y="36" font-size="15" font-weight="800" fill="#336791" text-anchor="start">🐘 PostgreSQL Instance</text><rect x="26" y="56" width="168" height="214" rx="14" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><text x="110" y="86" font-size="13.5" font-weight="800" fill="#2563eb" text-anchor="middle" class="mono">🗄 auth_db</text><rect x="40" y="98" width="140" height="22" rx="11.0" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="110.0" y="113.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Auth Service</text><rect x="42" y="142" width="136" height="38" rx="9" fill="#fff" stroke="#2563eb" stroke-width="1.6"/><rect x="42" y="142" width="7" height="38" rx="3" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="113.0" y="165.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">public.users</text><rect x="208" y="56" width="168" height="214" rx="14" fill="#d1fae5" stroke="#059669" stroke-width="2"/><text x="292" y="86" font-size="13.5" font-weight="800" fill="#059669" text-anchor="middle" class="mono">🗄 property_db</text><rect x="222" y="98" width="140" height="22" rx="11.0" fill="#059669" stroke="none" stroke-width="1.5"/><text x="292.0" y="113.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Property Service</text><rect x="224" y="142" width="136" height="38" rx="9" fill="#fff" stroke="#059669" stroke-width="1.6"/><rect x="224" y="142" width="7" height="38" rx="3" fill="#059669" stroke="none" stroke-width="1.5"/><text x="295.0" y="165.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">public.properties</text><rect x="390" y="56" width="168" height="214" rx="14" fill="#fef3c7" stroke="#d97706" stroke-width="2"/><text x="474" y="86" font-size="13.5" font-weight="800" fill="#d97706" text-anchor="middle" class="mono">🗄 document_db</text><rect x="404" y="98" width="140" height="22" rx="11.0" fill="#d97706" stroke="none" stroke-width="1.5"/><text x="474.0" y="113.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Document Service</text><rect x="406" y="142" width="136" height="38" rx="9" fill="#fff" stroke="#d97706" stroke-width="1.6"/><rect x="406" y="142" width="7" height="38" rx="3" fill="#d97706" stroke="none" stroke-width="1.5"/><text x="477.0" y="165.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">public.documents</text><rect x="572" y="56" width="168" height="214" rx="14" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="656" y="86" font-size="13.5" font-weight="800" fill="#7c3aed" text-anchor="middle" class="mono">🗄 review_db</text><rect x="586" y="98" width="140" height="22" rx="11.0" fill="#7c3aed" stroke="none" stroke-width="1.5"/><text x="656.0" y="113.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Review Service</text><rect x="588" y="142" width="136" height="38" rx="9" fill="#fff" stroke="#7c3aed" stroke-width="1.6"/><rect x="588" y="142" width="7" height="38" rx="3" fill="#7c3aed" stroke="none" stroke-width="1.5"/><text x="659.0" y="165.5" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="middle" class="mono">public.reviews</text><text x="380" y="298" font-size="12.5" font-weight="700" fill="#475569" text-anchor="middle">Shared CPU · RAM · storage · connections — still one physical instance</text><text x="380" y="320" font-size="12" font-weight="600" fill="#64748b" text-anchor="middle" font-style="italic">Isolation is logical: separate databases + separate credentials per service</text></svg></figure><details class="tree"><summary>🌳 Show text tree</summary><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">structure.txt</span></div><pre><code>PostgreSQL Instance
+├── auth_db
+│   └── public.users
+│
+├── property_db
+│   └── public.properties
+│
+├── document_db
+│   └── public.documents
+│
+└── review_db
+    └── public.reviews</code></pre></div></details><h4 class="h4">Configuration</h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">databases.sql</span></div><pre><code><span class="kw">CREATE</span> <span class="kw">DATABASE</span> auth_db;
+<span class="kw">CREATE</span> <span class="kw">DATABASE</span> property_db;
+<span class="kw">CREATE</span> <span class="kw">DATABASE</span> document_db;
+<span class="kw">CREATE</span> <span class="kw">DATABASE</span> review_db;</code></pre></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">.env</span></div><pre><code><span class="cmt"># Auth Service</span>
+<span class="fn">DATABASE_URL</span>=postgresql://auth_user:<span class="num">&lt;password&gt;</span>@localhost:5432/auth_db
+
+<span class="cmt"># Property Service</span>
+<span class="fn">DATABASE_URL</span>=postgresql://property_user:<span class="num">&lt;password&gt;</span>@localhost:5432/property_db</code></pre></div><p>These examples assume roles and their permissions have been configured separately. In production, secure credentials appropriately.</p><div class="pc"><div class="pro"><h4>👍 Advantages</h4><ul><li>Clear database separation.</li><li>Database-level access controls.</li><li>Independent schema migrations.</li><li>Independent database object naming.</li><li>Practical for a limited number of services on shared infrastructure.</li></ul></div><div class="con"><h4>⚠️ Disadvantages</h4><ul><li>Instance resources and availability are shared.</li><li>Independent database scaling is not available without moving databases elsewhere.</li><li>Database maintenance can create shared operational impact.</li><li>Queries across different databases are not available through ordinary PostgreSQL joins.</li></ul></div></div><div class="callout warn"><span class="cl">Important PostgreSQL detail</span>You cannot simply write a normal SQL join across <code>auth_db</code> and <code>property_db</code> using a single PostgreSQL connection. Special mechanisms such as foreign data wrappers are required, and using them to bypass service ownership is generally not recommended.</div></div></div></div><div class="section-divider" id="level-3"><span><b class="secnum">4</b>Level 3</span></div><div class="card"><div class="card-pad"><div class="tabpanel" data-panel="pg"><div class="plabel pg">🐘 PostgreSQL</div><h3 class="h3">PostgreSQL: Separate Instances</h3><figure class="dfig"><div class="dtitle">PostgreSQL · Level 3 — separate instances</div><svg class="diagram" viewBox="0 0 760 292" role="img" aria-label="Level 3: separate instances per service"><rect x="22" y="10" width="156" height="28" rx="14.0" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="100.0" y="28.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">Auth Service</text><line x1="100" y1="42" x2="100" y2="80" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="14" y="84" width="172" height="196" rx="16" fill="#eff6ff" stroke="#336791" stroke-width="2"/><text x="100" y="110" font-size="12" font-weight="800" fill="#336791" text-anchor="middle">🐘 PostgreSQL Instance A</text><path d="M45,137 v66 a55.0,9 0 0 0 110,0 v-66 z" fill="#dbeafe" stroke="#2563eb" stroke-width="1.8"/><ellipse cx="100.0" cy="137" rx="55.0" ry="9" fill="#dbeafe" stroke="#2563eb" stroke-width="1.8"/><text x="100.0" y="178.0" font-size="12" font-weight="800" fill="#2563eb" text-anchor="middle" class="mono">auth_db</text><text x="100" y="240" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own compute · storage</text><text x="100" y="258" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own scaling · own maintenance</text><rect x="208" y="10" width="156" height="28" rx="14.0" fill="#059669" stroke="none" stroke-width="1.5"/><text x="286.0" y="28.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">Property Service</text><line x1="286" y1="42" x2="286" y2="80" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="200" y="84" width="172" height="196" rx="16" fill="#eff6ff" stroke="#336791" stroke-width="2"/><text x="286" y="110" font-size="12" font-weight="800" fill="#336791" text-anchor="middle">🐘 PostgreSQL Instance B</text><path d="M231,137 v66 a55.0,9 0 0 0 110,0 v-66 z" fill="#d1fae5" stroke="#059669" stroke-width="1.8"/><ellipse cx="286.0" cy="137" rx="55.0" ry="9" fill="#d1fae5" stroke="#059669" stroke-width="1.8"/><text x="286.0" y="178.0" font-size="12" font-weight="800" fill="#059669" text-anchor="middle" class="mono">property_db</text><text x="286" y="240" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own compute · storage</text><text x="286" y="258" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own scaling · own maintenance</text><rect x="394" y="10" width="156" height="28" rx="14.0" fill="#d97706" stroke="none" stroke-width="1.5"/><text x="472.0" y="28.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">Document Service</text><line x1="472" y1="42" x2="472" y2="80" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="386" y="84" width="172" height="196" rx="16" fill="#eff6ff" stroke="#336791" stroke-width="2"/><text x="472" y="110" font-size="12" font-weight="800" fill="#336791" text-anchor="middle">🐘 PostgreSQL Instance C</text><path d="M417,137 v66 a55.0,9 0 0 0 110,0 v-66 z" fill="#fef3c7" stroke="#d97706" stroke-width="1.8"/><ellipse cx="472.0" cy="137" rx="55.0" ry="9" fill="#fef3c7" stroke="#d97706" stroke-width="1.8"/><text x="472.0" y="178.0" font-size="12" font-weight="800" fill="#d97706" text-anchor="middle" class="mono">document_db</text><text x="472" y="240" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own compute · storage</text><text x="472" y="258" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own scaling · own maintenance</text><rect x="580" y="10" width="156" height="28" rx="14.0" fill="#7c3aed" stroke="none" stroke-width="1.5"/><text x="658.0" y="28.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">Review Service</text><line x1="658" y1="42" x2="658" y2="80" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="572" y="84" width="172" height="196" rx="16" fill="#eff6ff" stroke="#336791" stroke-width="2"/><text x="658" y="110" font-size="12" font-weight="800" fill="#336791" text-anchor="middle">🐘 PostgreSQL Instance D</text><path d="M603,137 v66 a55.0,9 0 0 0 110,0 v-66 z" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.8"/><ellipse cx="658.0" cy="137" rx="55.0" ry="9" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.8"/><text x="658.0" y="178.0" font-size="12" font-weight="800" fill="#7c3aed" text-anchor="middle" class="mono">review_db</text><text x="658" y="240" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own compute · storage</text><text x="658" y="258" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">own scaling · own maintenance</text></svg></figure><details class="tree"><summary>🌳 Show text tree</summary><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">structure.txt</span></div><pre><code>Auth Service
+└── PostgreSQL Instance A
+    └── auth_db
+
+Property Service
+└── PostgreSQL Instance B
+    └── property_db
+
+Document Service
+└── PostgreSQL Instance C
+    └── document_db
+
+Review Service
+└── PostgreSQL Instance D
+    └── review_db</code></pre></div></details><h4 class="h4">Configuration</h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">.env</span></div><pre><code><span class="cmt"># Auth Service</span>
+<span class="fn">DATABASE_URL</span>=postgresql://auth_user:<span class="num">&lt;password&gt;</span>@auth-db.example:5432/auth_db
+
+<span class="cmt"># Property Service</span>
+<span class="fn">DATABASE_URL</span>=postgresql://property_user:<span class="num">&lt;password&gt;</span>@property-db.example:5432/property_db</code></pre></div><p>For example, separate managed PostgreSQL instances can be created using Amazon RDS.</p></div></div></div><div class="section-divider" id="connection-examples"><span><b class="secnum">5</b>Connections &amp; communication ⭐</span></div><div class="card"><div class="card-pad"><p>These examples use <strong>Auth Service on port 3001</strong> and <strong>Property Service on port 3002</strong>. Choose Level 1 or Level 2 for a local exercise and run the services in separate terminals.</p></div></div><div class="tabpanel" data-panel="pg" id="pg-lab"><span class="plabel pg">🐘 PostgreSQL — Node.js + Express + pg</span><div class="card"><div class="card-pad"><h3 class="h3">P1. Database vs schema vs connection</h3><div class="tscroll"><table><thead><tr><th>Item</th><th>Example</th><th>Meaning</th></tr></thead><tbody><tr><td>Server / instance</td><td><code>localhost:5432</code></td><td>One PostgreSQL instance managing databases. A pgAdmin server registration is a client connection profile.</td></tr><tr><td>Database</td><td><code>testbbps</code> or <code>auth</code></td><td>A client connection targets one database.</td></tr><tr><td>Schema</td><td><code>auth_schema</code>, <code>property_schema</code>, <code>public</code></td><td>A namespace for tables and other objects inside that database.</td></tr><tr><td>Table</td><td><code>auth_schema.users</code></td><td>Rows owned by that service.</td></tr></tbody></table></div><div class="callout info"><span class="cl">Remember</span>In these labs, Level 1 changes <code>DB_SCHEMA</code>; Level 2 changes <code>DB_NAME</code>. Both use <code>localhost:5432</code>. A different database is not a different PostgreSQL instance.</div></div></div><div class="card"><div class="card-pad"><h3 class="h3">P2. Level 1 — Same database, separate schemas</h3><div class="tscroll"><table><thead><tr><th>Service</th><th>Database</th><th>Schema</th><th>Table</th></tr></thead><tbody><tr><td>Auth :3001</td><td><code>testbbps</code></td><td><code>auth_schema</code></td><td><code>users</code></td></tr><tr><td>Property :3002</td><td><code>testbbps</code></td><td><code>property_schema</code></td><td><code>properties</code></td></tr></tbody></table></div><p>Use a fresh learning database. If <code>testbbps</code> does not exist, connect pgAdmin to a maintenance database such as <code>postgres</code> and run <code>CREATE DATABASE testbbps;</code> once with autocommit enabled. Then open the Query Tool for <code>testbbps</code>.</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Level 1 — run in testbbps</span></div><pre><code class="language-sql">CREATE SCHEMA auth_schema;
+CREATE SCHEMA property_schema;
+
+CREATE TABLE auth_schema.users (
+  id VARCHAR(30) PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE property_schema.properties (
+  property_id VARCHAR(30) PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  owner_id VARCHAR(30) NOT NULL
+);
+
+INSERT INTO auth_schema.users (id, name, email)
+VALUES (&#x27;U101&#x27;, &#x27;Rahul&#x27;, &#x27;rahul@example.com&#x27;);
+
+INSERT INTO property_schema.properties (property_id, title, owner_id)
+VALUES (&#x27;P101&#x27;, &#x27;Apartment&#x27;, &#x27;U101&#x27;);</code></pre></div><p>The string IDs keep this lab consistent with the MongoDB communication example. PostgreSQL also supports integer identity and UUID IDs. No cross-service foreign key is added here.</p><div class="two"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">auth-service/.env — Level 1</span></div><pre><code class="language-ini">PORT=3001
+SERVICE_NAME=auth
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=testbbps
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_SCHEMA=auth_schema</code></pre></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">property-service/.env — Level 1</span></div><pre><code class="language-ini">PORT=3002
+SERVICE_NAME=property
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=testbbps
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_SCHEMA=property_schema
+AUTH_SERVICE_URL=http://localhost:3001</code></pre></div></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Level 1 — core Pool configuration</span></div><pre><code class="language-javascript">import &quot;dotenv/config&quot;;
+import pg from &quot;pg&quot;;
+
+const { Pool } = pg;
+const db = new Pool({
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT),
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  options: `-c search_path=${process.env.DB_SCHEMA}`
+});</code></pre></div><p>This core snippet assumes a trusted configured schema name. The reusable version in P4 validates it. <code>search_path</code> determines where PostgreSQL resolves an unqualified table name.</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Queries — each runs in its own service</span></div><pre><code class="language-javascript">// Auth Service: testbbps → auth_schema → users
+const { rows: users } = await db.query(&quot;SELECT * FROM users&quot;);
+
+// Property Service: testbbps → property_schema → properties
+const { rows: properties } = await db.query(&quot;SELECT * FROM properties&quot;);
+
+// Explicit schema name, inside the connected database:
+await db.query(&quot;SELECT * FROM auth_schema.users&quot;);</code></pre></div><div class="callout amber"><span class="cl">Schema selection ≠ access isolation</span><code>search_path</code> controls name resolution, not permissions. A role with access to another schema can still query it explicitly. Give each service its own login role and only the database, schema, table, and sequence privileges it needs. Do not allow untrusted roles to create objects in schemas on your search path.</div></div></div><div class="card"><div class="card-pad"><h3 class="h3">P3. Level 2 ⭐ — Same instance, separate databases</h3><div class="tscroll"><table><thead><tr><th>Service</th><th>Host : port</th><th>Database</th><th>Schema / table</th></tr></thead><tbody><tr><td>Auth :3001</td><td><code>localhost:5432</code></td><td><code>auth</code></td><td><code>public.users</code></td></tr><tr><td>Property :3002</td><td><code>localhost:5432</code></td><td><code>testbbps</code></td><td><code>public.properties</code></td></tr></tbody></table></div><p>If missing, create <code>auth</code> and <code>testbbps</code> from a maintenance database. Run each <code>CREATE DATABASE</code> statement separately with autocommit; it cannot run inside a transaction block. Reuse an existing database without dropping it.</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Admin setup — execute separately as needed</span></div><pre><code class="language-sql">CREATE DATABASE auth;
+-- Run separately, only if testbbps does not already exist:
+CREATE DATABASE testbbps;</code></pre></div><div class="two"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">pgAdmin Query Tool connected to auth</span></div><pre><code class="language-sql">CREATE TABLE public.users (
+  id VARCHAR(30) PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(255) NOT NULL
+);
+
+INSERT INTO public.users (id, name, email)
+VALUES (&#x27;U101&#x27;, &#x27;Rahul&#x27;, &#x27;rahul@example.com&#x27;);</code></pre></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">pgAdmin Query Tool connected to testbbps</span></div><pre><code class="language-sql">CREATE TABLE public.properties (
+  property_id VARCHAR(30) PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  owner_id VARCHAR(30) NOT NULL
+);
+
+INSERT INTO public.properties (property_id, title, owner_id)
+VALUES (&#x27;P101&#x27;, &#x27;Apartment&#x27;, &#x27;U101&#x27;);</code></pre></div></div><div class="two"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">auth-service/.env — Level 2</span></div><pre><code class="language-ini">PORT=3001
+SERVICE_NAME=auth
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=auth
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_SCHEMA=public</code></pre></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">property-service/.env — Level 2</span></div><pre><code class="language-ini">PORT=3002
+SERVICE_NAME=property
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=testbbps
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_SCHEMA=public
+AUTH_SERVICE_URL=http://localhost:3001</code></pre></div></div><p>Both services now use <code>public</code>; the database names differ. Explicitly setting <code>DB_SCHEMA=public</code> makes this lab predictable. With the usual default search path, unqualified names also resolve to <code>public</code> when no earlier matching object exists.</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Level 2 — core connection difference</span></div><pre><code class="language-javascript">// auth-service/db.js
+const authDb = new Pool({
+  host: &quot;localhost&quot;,
+  port: 5432,
+  database: &quot;auth&quot;,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD
+});
+
+// property-service/db.js — a DIFFERENT Node.js process
+const propertyDb = new Pool({
+  host: &quot;localhost&quot;,
+  port: 5432,
+  database: &quot;testbbps&quot;,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD
+});</code></pre></div><div class="callout amber"><span class="cl">Logical separation needs permissions</span>For a local exercise, <code>postgres</code> works. It is typically a superuser, so these credentials do not demonstrate security isolation. Real services should use separate limited login roles, such as <code>auth_user</code> and <code>property_user</code>. Review inherited and PUBLIC grants as well as explicit grants.</div></div></div><div class="card"><div class="card-pad"><h3 class="h3">P4. Reusable db.js + a working connection-check endpoint</h3><p>Create a separate PostgreSQL lab with <code>auth-service</code> and <code>property-service</code> folders. In each folder, run the commands below, add the chosen <code>.env</code>, and create the same <code>db.js</code> and <code>server.js</code>.</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Terminal — each PostgreSQL service folder</span></div><pre><code class="language-bash">npm init -y
+npm pkg set type=module
+npm install express pg dotenv</code></pre></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">db.js — same file in each service, both levels</span></div><pre><code class="language-javascript">import &quot;dotenv/config&quot;;
+import pg from &quot;pg&quot;;
+
+const { Pool } = pg;
+const schema = process.env.DB_SCHEMA || &quot;public&quot;;
+
+// Keep schema selection in trusted startup configuration.
+if (!/^[a-z_][a-z0-9_]*$/.test(schema)) {
+  throw new Error(&quot;Invalid DB_SCHEMA&quot;);
+}
+
+export const db = new Pool({
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT || 5432),
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  options: `-c search_path=${schema}`,
+  max: 10,
+  connectionTimeoutMillis: 5000,
+  idleTimeoutMillis: 30000
+});
+
+// Handle errors from idle clients too.
+db.on(&quot;error&quot;, error =&gt; {
+  console.error(&quot;Unexpected idle database client error:&quot;, error.message);
+});</code></pre></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">server.js — same file in each service, both levels</span></div><pre><code class="language-javascript">import &quot;dotenv/config&quot;;
+import express from &quot;express&quot;;
+import { db } from &quot;./db.js&quot;;
+
+const app = express();
+
+app.get(&quot;/test-db&quot;, async (req, res) =&gt; {
+  try {
+    const { rows } = await db.query(`
+      SELECT current_database() AS database,
+             current_schema() AS schema,
+             current_user AS username
+    `);
+    res.json({ service: process.env.SERVICE_NAME, ...rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(503).json({ message: &quot;Database unavailable&quot; });
+  }
+});
+
+// Add your service-specific routes here, before app.listen().
+
+// Pool construction alone does not verify connectivity.
+await db.query(&quot;SELECT 1&quot;);
+const port = Number(process.env.PORT);
+const server = app.listen(port, () =&gt; {
+  console.log(`${process.env.SERVICE_NAME} Service: ${port}`);
+});
+
+function shutdown() {
+  server.close(async () =&gt; {
+    await db.end();
+  });
+}
+process.once(&quot;SIGINT&quot;, shutdown);
+process.once(&quot;SIGTERM&quot;, shutdown);</code></pre></div><p>Run <code>node server.js</code> in two terminals. Open <code>http://localhost:3001/test-db</code> and <code>http://localhost:3002/test-db</code>. Restart both services after changing their environment configuration.</p><div class="tscroll"><table><thead><tr><th>Level</th><th>Service</th><th>Expected database</th><th>Expected schema</th></tr></thead><tbody><tr><td>1</td><td>Auth</td><td><code>testbbps</code></td><td><code>auth_schema</code></td></tr><tr><td>1</td><td>Property</td><td><code>testbbps</code></td><td><code>property_schema</code></td></tr><tr><td>2</td><td>Auth</td><td><code>auth</code></td><td><code>public</code></td></tr><tr><td>2</td><td>Property</td><td><code>testbbps</code></td><td><code>public</code></td></tr></tbody></table></div><div class="callout info"><span class="cl">Connection debugging</span>A connection may succeed even if the intended table is missing. <code>current_schema()</code> shows the first existing, usable schema on the search path; it can be <code>null</code> if none exists. Check both your schema/table setup and privileges if a query says <code>relation does not exist</code>.</div></div></div><div class="card"><div class="card-pad"><h3 class="h3">P5. How do PostgreSQL services fetch related data?</h3><p>Use API composition: Property reads its row, calls Auth with <code>owner_id</code>, then combines the results. Each service queries its own database and exposes the agreed HTTP response fields.</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Auth Service route — add to its server.js</span></div><pre><code class="language-javascript">app.get(&quot;/users/:id&quot;, async (req, res) =&gt; {
+  try {
+    const { rows } = await db.query(
+      &quot;SELECT name, email FROM users WHERE id = $1&quot;,
+      [req.params.id]
+    );
+    if (!rows[0]) {
+      return res.status(404).json({ message: &quot;User not found&quot; });
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: &quot;Unable to retrieve user&quot; });
+  }
+});</code></pre></div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Property Service route — add to its server.js</span></div><pre><code class="language-javascript">app.get(&quot;/properties/:id&quot;, async (req, res) =&gt; {
+  let property;
+  try {
+    const { rows } = await db.query(
+      &quot;SELECT property_id, title, owner_id FROM properties WHERE property_id = $1&quot;,
+      [req.params.id]
+    );
+    property = rows[0];
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: &quot;Unable to read property&quot; });
+  }
+
+  if (!property) {
+    return res.status(404).json({ message: &quot;Property not found&quot; });
+  }
+
+  try {
+    const url = new URL(
+      `/users/${encodeURIComponent(property.owner_id)}`,
+      process.env.AUTH_SERVICE_URL
+    );
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(3000)
+    });
+    if (!response.ok) {
+      return res.status(502).json({ message: &quot;Unable to retrieve owner details&quot; });
+    }
+    const owner = await response.json();
+    if (typeof owner?.name !== &quot;string&quot; || typeof owner?.email !== &quot;string&quot;) {
+      return res.status(502).json({ message: &quot;Invalid owner response&quot; });
+    }
+    res.json({
+      propertyId: property.property_id,
+      title: property.title,
+      owner: { name: owner.name, email: owner.email }
+    });
+  } catch (error) {
+    console.error(error);
+    const timedOut = error.name === &quot;TimeoutError&quot; || error.name === &quot;AbortError&quot;;
+    res.status(timedOut ? 504 : 502).json({
+      message: timedOut ? &quot;Owner service timed out&quot; : &quot;Owner service unavailable&quot;
+    });
+  }
+});</code></pre></div><p>With the seeded rows, <code>GET http://localhost:3002/properties/P101</code> returns <code>propertyId</code>, <code>title</code>, and <code>owner: { name, email }</code>. These routes work at both levels because each service’s configuration resolves its own table.</p><div class="tscroll"><table><thead><tr><th>Approach</th><th>Level 1</th><th>Level 2</th></tr></thead><tbody><tr><td>REST / API composition ⭐</td><td>Use the owning service’s API.</td><td>Use the owning service’s API.</td></tr><tr><td>Events + local projection</td><td>Maintain required fields in the Property-owned schema.</td><td>Maintain required fields in the Property-owned database.</td></tr><tr><td>Direct SQL join</td><td>Cross-schema joins are technically possible if privileges permit. Avoid joining across independent service ownership.</td><td>An ordinary query cannot join another database directly; FDW or dblink requires extra configuration and access.</td></tr></tbody></table></div><div class="callout ok"><span class="cl">Same ownership rule, different database tools</span>PostgreSQL uses SQL joins; <code>populate()</code> is a Mongoose feature. A single PostgreSQL connection targets one database. <code>auth_schema.users</code> means a schema and table in the connected database, not database <code>auth</code>.</div><p>For events, Auth can publish <code>UserUpdated</code> and Property can maintain a local <code>user_profiles</code> table. Apply the same initial-load, idempotency, version ordering, retry, deletion, and outbox considerations for any event-driven projection.</p></div></div><div class="card"><div class="card-pad"><h3 class="h3">P6. PostgreSQL — essential connection reminders</h3><div class="tscroll"><table><thead><tr><th>Configuration</th><th>Level 1</th><th>Level 2 ⭐</th></tr></thead><tbody><tr><td>Host / port</td><td><code>localhost:5432</code></td><td><code>localhost:5432</code></td></tr><tr><td>Auth DB</td><td><code>testbbps</code></td><td><code>auth</code></td></tr><tr><td>Property DB</td><td><code>testbbps</code></td><td><code>testbbps</code></td></tr><tr><td>Auth schema</td><td><code>auth_schema</code></td><td><code>public</code></td></tr><tr><td>Property schema</td><td><code>property_schema</code></td><td><code>public</code></td></tr><tr><td>Primary code difference</td><td><code>search_path</code> changes.</td><td><code>database</code> changes.</td></tr><tr><td>Permissions</td><td>Database CONNECT + schema/table/sequence privileges.</td><td>Separate database access + schema/table/sequence privileges.</td></tr></tbody></table></div><ul class="plain"><li>Create one <code>Pool</code> per service process and reuse it; <code>pool.query()</code> checks out and returns a client for a single query.</li><li>For a transaction, obtain one client with <code>pool.connect()</code>, use that client for <code>BEGIN</code>, all statements, and <code>COMMIT</code>/<code>ROLLBACK</code>, then release it in <code>finally</code>. Do not scatter a transaction across <code>pool.query()</code> calls.</li><li>Use <code>$1</code>, <code>$2</code>, etc. for query values. Parameters do not substitute schema or table identifiers; keep those fixed or validate and quote them safely.</li><li>The <code>max</code> setting applies per process. More service replicas multiply the total potential connection count.</li><li>Cross-schema foreign keys are technically possible in Level 1, but create cross-service coupling. Ordinary foreign keys cannot reference a different PostgreSQL database.</li><li>Level 3 means an independent PostgreSQL deployment, not merely another pgAdmin registration. Two local instances on different ports still share their machine.</li><li>The URI <code>postgresql://user:password@localhost:5432/auth</code> chooses database <code>auth</code>; it does not choose a schema.</li></ul></div></div></div><div class="section-divider" id="references"><span><b class="secnum">6</b>References between services</span></div><div class="card"><div class="card-pad"><div><div class="plabel pg">🐘 PostgreSQL</div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">reviews.sql</span></div><pre><code><span class="kw">CREATE</span> <span class="kw">TABLE</span> reviews (
+    id <span class="kw">BIGINT</span> <span class="kw">GENERATED</span> <span class="kw">ALWAYS</span> <span class="kw">AS</span> <span class="kw">IDENTITY</span> <span class="kw">PRIMARY</span> <span class="kw">KEY</span>,
+    property_id <span class="kw">VARCHAR</span>(50) <span class="kw">NOT</span> <span class="kw">NULL</span>,
+    rating <span class="kw">INT</span> <span class="kw">NOT</span> <span class="kw">NULL</span> <span class="kw">CHECK</span> (rating <span class="kw">BETWEEN</span> 1 <span class="kw">AND</span> 5)
+);</code></pre></div></div><p>The property ID is a logical reference to data owned by Property Service. Validate it through that service’s API, or maintain a local projection through events.</p><p>A normal foreign key cannot reference a different PostgreSQL database.</p></div></div><div class="section-divider" id="revision"><span><b class="secnum">7</b>Quick revision</span></div><div class="rev" style="--rc:#336791"><h3>🐘 PostgreSQL</h3><ul><li><b>Level 1</b>Same instance → Same database → Separate schemas.</li><li><b>Level 2 ⭐</b>Same instance → Separate databases.</li><li><b>Level 3</b>Separate instances/clusters → Separate databases → Stronger infrastructure isolation.</li></ul></div><div class="section-divider" id="sources"><span><b class="secnum">8</b>Official references</span></div><div class="card"><div class="card-pad"><ul class="plain"><li><a href="https://www.postgresql.org/docs/current/ddl-schemas.html">PostgreSQL — databases, schemas, search paths, and privileges</a></li><li><a href="https://node-postgres.com/apis/pool">node-postgres — Pool lifecycle and queries</a></li><li><a href="https://node-postgres.com/apis/client">node-postgres — connection configuration</a></li><li><a href="https://node-postgres.com/features/queries">node-postgres — parameterized queries</a></li></ul></div></div></div></body></html>

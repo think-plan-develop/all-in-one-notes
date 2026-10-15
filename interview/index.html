@@ -60,6 +60,10 @@
     .nav-children a.active .ci { color: #fff; background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.3); }
     .nav-children a.active .go { color: #fff; opacity: 1; transform: none; }
     .nav-children a.active .nav-imp { background: rgba(255,255,255,.95); }
+    .nav-pending { display:flex; align-items:center; gap:11px; padding:8px 10px 8px 8px; border:1px solid var(--b); border-radius:11px; background:#fff; color:#475569; font-size:13px; font-weight:650; line-height:1.35; }
+    .nav-pending .ci { display:grid; place-items:center; width:30px; height:30px; flex-shrink:0; border:1px solid var(--b); border-radius:8px; background:var(--t); color:var(--c2); font-size:16px; }
+    .nav-pending .txt { flex:1; min-width:0; }
+    .nav-status { flex-shrink:0; padding:3px 7px; border-radius:8px; background:#fef3c7; color:#92400e; font-size:9px; font-weight:800; text-transform:uppercase; }
 
     /* Sub-dropdown (Practice) inside a technology group */
     .sub { border: 1px dashed var(--b); border-radius: 12px; background: #fff; }
@@ -81,6 +85,7 @@
     .t-react { --c:#06b6d4; --c2:#0e7490; --t:#ecfeff; --b:#a5f3fc; }
     .t-next  { --c:#475569; --c2:#0f172a; --t:#f1f5f9; --b:#cbd5e1; }
     .t-mongo { --c:#13aa52; --c2:#166534; --t:#f0fdf4; --b:#bbf7d0; }
+    .t-microservice { --c:#8b5cf6; --c2:#6d28d9; --t:#f5f3ff; --b:#ddd6fe; }
     .t-node  { --c:#84cc16; --c2:#3f6212; --t:#f7fee7; --b:#d9f99d; }
     .t-js    { --c:#f59e0b; --c2:#b45309; --t:#fffbeb; --b:#fde68a; }
     .t-sql   { --c:#4f7cbf; --c2:#1e3a8a; --t:#eff6ff; --b:#bfdbfe; }
@@ -135,6 +140,27 @@
         { icon: "ti-notes", text: "1. MongoDB & Mongoose Quick Notes", href: "mongodb/mongodb-quick.html" },
         { icon: "ti-filter", text: "2. MongoDB Query Operators", href: "mongodb/mongodb-query.html" }
       ] },
+      { key: "microservice", icon: "ti-hierarchy-3", text: "Microservices", children: [
+        { icon: "ti-hierarchy-3", text: "1–2. Monolith vs microservices; Service boundaries", href: "microservice/microservices-2-service-boundaries.html" },
+        { pending: true, icon: "ti-route", text: "3. API gateway and routing" },
+        { pending: true, icon: "ti-settings", text: "4. Configuration management" },
+        { pending: true, icon: "ti-arrows-right-left", text: "5. Service discovery and load balancing" },
+        { pending: true, icon: "ti-arrows-exchange", text: "6. Service-to-service communication" },
+        { sub: true, countAsSingle: true, icon: "ti-database", text: "7. Database ownership", children: [
+          { icon: "ti-hierarchy-3", text: "Common database architecture", href: "microservice/db/common-microservices-architecture.html" },
+          { icon: "ti-brand-mongodb", text: "MongoDB microservices notes", href: "microservice/db/mongodb-microservices-notes.html" },
+          { icon: "ti-database", text: "PostgreSQL microservices notes", href: "microservice/db/postgresql-microservices-notes.html" }
+        ] },
+        { pending: true, icon: "ti-arrows-split", text: "8. Distributed transactions and consistency" },
+        { pending: true, icon: "ti-shield-exclamation", text: "9. Failure handling and resilience" },
+        { pending: true, icon: "ti-repeat", text: "10. Idempotency and message reliability" },
+        { pending: true, icon: "ti-shield-lock", text: "11. Security architecture" },
+        { pending: true, icon: "ti-chart-dots-3", text: "12. Observability, scaling, and deployment" },
+        { pending: true, icon: "ti-building-community", text: "13. Complete property-review walkthrough" },
+        { pending: true, icon: "ti-list-check", text: "14. Architecture decision checklist" },
+        { pending: true, icon: "ti-messages", text: "15. Interview revision questions" },
+        { pending: true, icon: "ti-book-2", text: "16. References" }
+      ] },
       { key: "node", icon: "ti-brand-nodejs", text: "Node.js", children: [
         { icon: "ti-settings", text: "1. Node.js Setup", href: "node/node-setup.html" },
         { icon: "ti-brand-nodejs", text: "2. Node.js Fundamentals", href: "node/node-fundamentals.html" },
@@ -174,13 +200,17 @@
     const links = document.getElementById("links");
 
     const linkHTML = l => `
-      <a href="${l.href}" target="contentFrame">
+      <a class="nav-entry" href="${l.href}" target="contentFrame">
         <i class="ti ${l.icon} ci"></i><span class="txt">${l.text}</span>
         ${l.isImp ? `<span class="nav-imp"><i class="ti ti-star-filled"></i>Imp</span>` : ""}
         <i class="ti ti-chevron-right go"></i>
       </a>`;
 
-    const itemHTML = c => c.sub ? `
+    const itemHTML = c => c.pending ? `
+      <div class="nav-pending nav-entry" aria-disabled="true">
+        <i class="ti ${c.icon} ci"></i><span class="txt">${c.text}</span>
+        <span class="nav-status">In progress</span>
+      </div>` : c.sub ? `
       <details class="sub">
         <summary>
           <i class="ti ${c.icon} ci"></i><span class="txt">${c.text}</span>
@@ -190,7 +220,7 @@
         <div class="nav-children">${c.children.map(linkHTML).join("")}</div>
       </details>` : linkHTML(c);
 
-    const countLinks = g => g.children.reduce((n, c) => n + (c.sub ? c.children.length : 1), 0);
+    const countLinks = g => g.children.reduce((n, c) => n + (c.sub ? (c.countAsSingle ? 1 : c.children.length) : 1), 0);
 
     links.innerHTML = NAV.map(g => `
       <details class="grp t-${g.key}">
@@ -225,18 +255,25 @@
       const q = e.target.value.trim().toLowerCase();
       let any = false;
       groups.forEach(g => {
-        const gl = [...g.querySelectorAll("a")];
+        const entries = [...g.querySelectorAll(".nav-entry")];
+        const subs = [...g.querySelectorAll(".sub")];
         const groupHit = g.querySelector("summary").textContent.toLowerCase().includes(q);
         let hits = 0;
-        gl.forEach(a => { const show = !q || groupHit || a.textContent.toLowerCase().includes(q); a.hidden = !show; if (show) hits++; });
-        g.querySelectorAll(".sub").forEach(s => {
-          const sh = [...s.querySelectorAll("a")].filter(a => !a.hidden).length;
-          s.hidden = sh === 0;
-          if (q && sh) s.open = true;
+        entries.forEach(entry => {
+          const show = !q || groupHit || entry.textContent.toLowerCase().includes(q);
+          entry.hidden = !show;
+          if (show) hits++;
         });
-        g.hidden = hits === 0;
-        if (q && hits) g.open = true;
-        if (hits) any = true;
+        subs.forEach(s => {
+          const sh = [...s.querySelectorAll("a")].filter(a => !a.hidden).length;
+          const summaryHit = s.querySelector("summary").textContent.toLowerCase().includes(q);
+          s.hidden = !!q && sh === 0 && !summaryHit && !groupHit;
+          if (q && (sh || summaryHit || groupHit)) s.open = true;
+        });
+        const visibleSubs = subs.some(s => !s.hidden);
+        g.hidden = hits === 0 && !visibleSubs;
+        if (q && !g.hidden) g.open = true;
+        if (!g.hidden) any = true;
       });
       document.getElementById("empty").style.display = any ? "none" : "block";
     });
