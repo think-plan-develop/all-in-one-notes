@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Complete API Gateway Setup in Node.js — Theory + Practical</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:#f4f5fa;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.6}
+.container{width:92%;max-width:1120px;margin:34px auto 70px}
+.container{--accent-dark:#1e3a8a;--accent:#2563eb;--accent-light:#3b82f6;--content-bg:#eff6ff;--heading:#1e3a8a;--shadow-rgb:37,99,235}
+a{color:#2563eb}
+code{font-family:'Fira Code','Consolas',monospace;font-size:.88em;background:rgba(37,99,235,.1);color:#1e3a8a;padding:2px 7px;border-radius:5px}
+.mono{font-family:'Fira Code','Consolas',monospace}
+svg.diagram{width:100%;height:auto;display:block}
+svg.diagram text{font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+svg.diagram text.mono{font-family:'Fira Code','Consolas',monospace}
+
+/* header */
+.header{background:linear-gradient(120deg,var(--accent-dark),var(--accent-light));border-radius:22px;padding:42px 38px;margin-bottom:22px;box-shadow:0 16px 36px rgba(var(--shadow-rgb),.3);position:relative;overflow:hidden}
+.header::after{content:'';position:absolute;top:-70px;right:-70px;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.08)}
+.header::before{content:'';position:absolute;bottom:-90px;left:38%;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.05)}
+.header .tag{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-size:12px;font-weight:800;letter-spacing:.6px;padding:5px 14px;border-radius:20px;margin-bottom:14px;position:relative}
+.header h1{color:#fff;font-size:33px;font-weight:800;letter-spacing:-.6px;margin-bottom:10px;position:relative;line-height:1.2}
+.header p{color:#dbe6ff;font-size:16px;max-width:760px;line-height:1.65;position:relative}
+.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;position:relative}
+.meta span{background:rgba(255,255,255,.14);color:#fff;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.28)}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;position:relative}
+.toc a{text-decoration:none;padding:7px 15px;border-radius:20px;font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);transition:all .2s ease}
+.toc a:hover{background:#fff;color:var(--accent);transform:translateY(-1px)}
+
+/* view switch + tabs */
+.viewswitch{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;background:rgba(244,245,250,.92);backdrop-filter:blur(8px);padding:10px 4px;margin-bottom:6px;border-bottom:1px solid #e2e8f0}
+.viewswitch>span{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8}
+.tabbar{display:inline-flex;gap:6px;background:#e9edf5;padding:4px;border-radius:12px;margin:0 0 14px}
+.viewswitch .tabbar{margin:0}
+.tbtn{border:none;background:transparent;font-family:inherit;font-size:13px;font-weight:800;color:#64748b;padding:7px 16px;border-radius:9px;cursor:pointer;transition:all .15s ease}
+.tbtn:hover{color:#1e3a8a}
+.tbtn.active{background:#fff;color:#1e3a8a;box-shadow:0 3px 10px rgba(0,0,0,.1)}
+.tabpanel{display:none}
+body[data-view="mongo"] .tabpanel[data-panel="mongo"],body[data-view="pg"] .tabpanel[data-panel="pg"],body[data-view="both"] .tabpanel{display:block}
+.plabel{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.5px;padding:5px 14px;border-radius:20px;margin-bottom:12px}
+.plabel.mongo{background:#dcfce7;color:#166534}
+.plabel.pg{background:#dbeafe;color:#1e3a8a}
+body[data-view="both"] .tabpanel+.tabpanel{margin-top:26px;padding-top:22px;border-top:2px dashed #e2e8f0}
+
+/* section divider */
+.section-divider{margin:46px 0 20px;position:relative;display:flex;align-items:center;scroll-margin-top:60px}
+.section-divider::before{content:'';position:absolute;top:50%;left:0;right:0;height:2px;background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd);opacity:.22}
+.section-divider>span{background:#f4f5fa;padding:0 18px 0 0;position:relative;font-size:21px;font-weight:800;display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+.secnum{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;padding:0 8px;border-radius:11px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-size:16px;box-shadow:0 6px 14px rgba(37,99,235,.3)}
+.star{font-size:11.5px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;padding:3px 11px;border-radius:14px}
+
+/* cards */
+.card{border-radius:18px;background:#fff;box-shadow:0 10px 26px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.04);overflow:hidden;margin-bottom:20px}
+.card-pad{padding:24px 26px}
+.card p{color:#334155;font-size:15.5px;line-height:1.8;margin-bottom:12px;font-weight:500}
+.h3{font-size:18px;font-weight:800;color:#1e3a8a;margin:0 0 12px;padding-left:12px;border-left:4px solid #2563eb}
+.h4{font-size:12.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#64748b;margin:20px 0 8px}
+ul.plain{margin:6px 0 12px 22px}
+ul.plain li{font-size:15px;line-height:1.8;color:#334155;font-weight:500}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+
+/* callouts */
+.callout{border-radius:14px;padding:15px 20px;margin:14px 0;font-size:15px;line-height:1.75;font-weight:600}
+.callout.info{background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#3730a3}
+.callout.warn{background:linear-gradient(135deg,#ffe4e6,#fecdd3);color:#9f1239}
+.callout.ok{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46}
+.callout.amber{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e}
+.callout .cl{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.75;margin-bottom:3px}
+.callout code{background:rgba(255,255,255,.55)}
+
+/* level cards */
+.lvls{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+@media(max-width:900px){.lvls{grid-template-columns:1fr}}
+.lvl{background:#fff;border-radius:18px;padding:20px;border-top:6px solid var(--lc);box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.lvl-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.lvl-n{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#fff;background:var(--lc);padding:4px 12px;border-radius:14px}
+.lvl-star{font-size:11px;font-weight:800;color:#92400e;background:#fef3c7;padding:3px 10px;border-radius:12px}
+.lvl h3{font-size:17px;font-weight:800;margin-bottom:12px;color:#1a1a1a}
+.lvl-line{display:flex;flex-direction:column;gap:2px;background:#f8fafc;border-radius:11px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;color:#334155;font-weight:500;line-height:1.55}
+.lvl-line b{font-size:11.5px;letter-spacing:.5px;color:var(--lc)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips i{font-style:normal;font-size:11.5px;font-weight:800;padding:4px 11px;border-radius:12px}
+.chips i.ok{background:#dcfce7;color:#166534}
+.chips i.no{background:#ffe4e6;color:#9f1239}
+ul.takeaway{list-style:none;display:grid;gap:10px;margin-bottom:6px}
+ul.takeaway li{display:flex;gap:14px;align-items:flex-start;background:#f8fafc;border-left:5px solid var(--lc);border-radius:0 12px 12px 0;padding:12px 16px;font-size:14.5px;line-height:1.65;color:#334155;font-weight:500}
+ul.takeaway li b{flex-shrink:0;min-width:74px;color:var(--lc);font-weight:800}
+
+/* services */
+.svcs{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:14px 0 8px}
+@media(max-width:900px){.svcs{grid-template-columns:repeat(2,1fr)}}
+.svc{background:var(--l);border-radius:16px;padding:16px 14px;border-top:5px solid var(--c)}
+.svc-ic{width:42px;height:42px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:10px;box-shadow:0 4px 10px rgba(0,0,0,.08)}
+.svc h4{font-size:14.5px;font-weight:800;color:var(--c);margin-bottom:4px}
+.svc p{font-size:13px!important;line-height:1.55!important;margin:0!important;color:#334155}
+
+/* diagrams */
+.dfig{margin:16px 0;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+.dtitle{background:linear-gradient(120deg,#1e3a8a,#3b82f6);color:#fff;font-size:13px;font-weight:800;padding:9px 18px;letter-spacing:.2px}
+.dfig svg{padding:14px}
+.dcap{font-size:12.5px;color:#64748b;font-weight:600;text-align:center;padding:0 16px 12px;font-style:italic}
+
+/* pros / cons */
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+@media(max-width:820px){.pc{grid-template-columns:1fr}}
+.pro,.con{border-radius:16px;padding:16px 18px}
+.pro{background:#f0fdf4;border:1px solid #bbf7d0}
+.con{background:#fff1f2;border:1px solid #fecdd3}
+.pro h4,.con h4{font-size:14px;font-weight:800;margin-bottom:8px}
+.pro h4{color:#166534}.con h4{color:#9f1239}
+.pro ul,.con ul{margin-left:18px}
+.pro li,.con li{font-size:14px;line-height:1.7;color:#334155;font-weight:500;margin-bottom:3px}
+.pro p,.con p{font-size:14px!important;line-height:1.7!important;color:#334155}
+
+/* steps */
+ol.steps{list-style:none;counter-reset:st;display:grid;gap:8px;margin:8px 0 14px}
+ol.steps li{counter-increment:st;display:flex;gap:12px;align-items:flex-start;background:#f0fdf4;border-radius:12px;padding:11px 14px;font-size:14.5px;line-height:1.6;color:#334155;font-weight:500}
+ol.steps li::before{content:counter(st);flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#16a34a;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+ol.steps li b{color:#166534;font-weight:800;margin-right:4px}
+ol.steps li b::after{content:' —'}
+ol.steps.big li{background:#eff6ff;padding:14px 16px;font-size:15px}
+ol.steps.big li::before{background:linear-gradient(135deg,#1e3a8a,#3b82f6)}
+ol.steps.big li b{color:#1e3a8a}
+ol.steps.big li b::after{content:''}
+
+/* code + tree */
+.code-block{background:#1a1a1a;border-radius:12px;overflow:hidden;margin:12px 0;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+.code-bar{background:#111;padding:8px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #2b2b2b}
+.code-bar .dot{width:9px;height:9px;border-radius:50%}
+.dot-red{background:#ff5f57}.dot-grey{background:#febc2e}.dot-green{background:#28c840}
+.code-bar .filename{color:#999;font-size:12px;margin-left:8px;font-family:'Fira Code',monospace}
+.code-block pre{padding:16px 18px;overflow-x:auto;margin:0}
+.code-block code{background:none;color:#d4d4d4;font-size:13px;font-family:'Fira Code','Consolas',monospace;line-height:1.65;white-space:pre;padding:0}
+.kw{color:#c792ea;font-weight:600}.str{color:#c3e88d}.fn{color:#82aaff}.cmt{color:#7a7a7a;font-style:italic}.num{color:#f78c6c}
+details.tree{margin:8px 0}
+details.tree>summary{cursor:pointer;font-size:13px;font-weight:800;color:#475569;background:#f1f5f9;display:inline-block;padding:7px 14px;border-radius:10px;list-style:none;user-select:none}
+details.tree>summary::-webkit-details-marker{display:none}
+details.tree>summary:hover{background:#e2e8f0}
+
+/* tables */
+.tscroll{overflow-x:auto;margin:8px 0}
+table{width:100%;border-collapse:separate;border-spacing:0 8px;min-width:560px}
+th{background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899);color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;padding:12px 16px;text-align:left}
+th:first-child{border-radius:12px 0 0 12px}th:last-child{border-radius:0 12px 12px 0}
+td{padding:12px 16px;font-size:14px;font-weight:600;color:#334155;vertical-align:top;background:var(--rb,#eff6ff);line-height:1.6}
+td:first-child{border-radius:12px 0 0 12px;border-left:6px solid var(--rc,#2563eb);font-weight:800;color:var(--rd,#1e3a8a)}
+td:last-child{border-radius:0 12px 12px 0}
+td code{background:#fff;border:1px solid var(--rc,#2563eb);color:var(--rd,#1e3a8a);font-weight:700}
+tr:nth-child(6n+2){--rc:#db2777;--rb:#fdf2f8;--rd:#9d174d}
+tr:nth-child(6n+3){--rc:#d97706;--rb:#fffbeb;--rd:#92400e}
+tr:nth-child(6n+4){--rc:#059669;--rb:#ecfdf5;--rd:#065f46}
+tr:nth-child(6n+5){--rc:#7c3aed;--rb:#f5f3ff;--rd:#5b21b6}
+tr:nth-child(6n+6){--rc:#0d9488;--rb:#f0fdfa;--rd:#115e59}
+
+/* chat */
+.chat{display:grid;gap:12px}
+.bub{border-radius:18px;padding:14px 18px;max-width:92%}
+.bub .who{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:5px}
+.bub p{margin:0 0 8px!important;font-size:15px!important;line-height:1.75!important}
+.bub p:last-child{margin:0!important}
+.bub.q{background:#f1f5f9;border-bottom-left-radius:4px;color:#1e293b}
+.bub.a{background:linear-gradient(135deg,#dbeafe,#e0e7ff);border-bottom-right-radius:4px;color:#1e3a8a;margin-left:auto}
+.bub.a p{color:#1e3a8a!important;font-weight:600!important}
+
+/* faq */
+details.faq{border:1px solid #e2e8f0;border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff}
+details.faq>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:14px 18px;background:#f8fafc;user-select:none}
+details.faq>summary::-webkit-details-marker{display:none}
+details.faq>summary:hover{background:#eff6ff}
+.fn{flex-shrink:0}
+details.faq .fn{width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.fq{flex:1;font-size:15px;font-weight:700;color:#1a1a1a;line-height:1.45}
+.fch{color:#2563eb;font-size:12px;transition:transform .2s ease}
+details.faq[open] .fch{transform:rotate(180deg)}
+details.faq[open]>summary{background:#eff6ff}
+.fa{padding:14px 20px 16px 62px;font-size:14.5px;line-height:1.75;color:#334155;font-weight:500;border-top:1px solid #e2e8f0}
+
+/* revision */
+.revs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:820px){.revs{grid-template-columns:1fr}}
+.rev{background:#fff;border-radius:18px;padding:20px 22px;border-top:6px solid var(--rc);box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.rev h3{font-size:18px;font-weight:800;color:var(--rc);margin-bottom:12px}
+.rev ul{list-style:none;display:grid;gap:8px}
+.rev li{background:#f8fafc;border-radius:11px;padding:10px 14px;font-size:14px;line-height:1.6;color:#334155;font-weight:500}
+.rev li b{display:inline-block;min-width:68px;color:var(--rc);font-weight:800}
+
+@media(max-width:768px){.header h1{font-size:25px}.header{padding:30px 22px}.card-pad{padding:18px}.fa{padding-left:20px}}
+@media print{.viewswitch{display:none}.tabpanel{display:block!important}}
+
+.terms{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:6px 0}
+@media(max-width:900px){.terms{grid-template-columns:1fr 1fr}}@media(max-width:560px){.terms{grid-template-columns:1fr}}
+.term{background:#f8fafc;border-radius:16px;padding:14px;border-top:5px solid #2563eb}
+.term:nth-child(4n+2){border-top-color:#7c3aed}.term:nth-child(4n+3){border-top-color:#059669}.term:nth-child(4n+4){border-top-color:#d97706}
+.term-i{width:38px;height:38px;border-radius:11px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:19px;margin-bottom:8px;box-shadow:0 4px 10px rgba(0,0,0,.08)}
+.term h4{font-size:14.5px;font-weight:800;color:#1e3a8a;margin-bottom:3px}
+.term p{margin:0!important;font-size:13px!important;line-height:1.55!important;color:#475569}
+.filetree{background:#0f172a;border-radius:14px;padding:18px 20px;font-family:'Fira Code','Consolas',monospace;font-size:13.5px;overflow-x:auto}
+.tr{display:flex;align-items:center;gap:8px;padding:3px 0 3px calc(var(--d)*26px);white-space:nowrap}
+.tr .ti{font-size:15px}.tn{color:#e2e8f0;font-weight:600}.tn.folder{color:#7dd3fc;font-weight:800}
+.tnote{font-family:'Segoe UI',system-ui,sans-serif;font-size:11.5px;font-weight:700;color:#fde68a;background:rgba(253,230,138,.12);padding:2px 10px;border-radius:10px;margin-left:6px}
+.copybtn{margin-left:auto;border:none;background:rgba(255,255,255,.1);color:#cbd5e1;font-family:'Segoe UI',system-ui,sans-serif;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:8px;cursor:pointer}
+.copybtn:hover{background:rgba(255,255,255,.22);color:#fff}
+.copybtn.done{background:#16a34a;color:#fff}
+.terminals{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:10px 0}
+@media(max-width:900px){.terminals{grid-template-columns:1fr}}
+.terminal{border-radius:16px;border-top:5px solid var(--tc);background:#f8fafc;padding:12px 12px 4px}
+.term-h{display:flex;align-items:center;gap:10px;font-size:14.5px;font-weight:800;color:var(--tc);margin-bottom:2px}
+.term-h span{width:26px;height:26px;border-radius:8px;background:var(--tc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px}
+.terminal .code-block{margin:8px 0}
+.terminal .code-block pre{padding:12px 14px}
+.mth{display:inline-block;font-size:11.5px;font-weight:800;padding:3px 11px;border-radius:8px;font-family:'Fira Code',monospace}
+.mth.get{background:#dcfce7;color:#166534}.mth.post{background:#fef3c7;color:#92400e}
+.plabel{display:inline-block;font-size:12px;font-weight:800;padding:4px 12px;border-radius:14px;margin-bottom:6px;background:#dbeafe;color:#1e3a8a}.plabel.ok{background:#dcfce7;color:#166534}
+ol.steps li b{margin-right:6px}
+ol.steps li b::after{content:''}
+ol.steps li span{flex:1}
+ol.steps li::before{margin-top:0}
+ol.steps.big li{background:#eff6ff}
+.quote{border-left:5px solid #2563eb;background:linear-gradient(135deg,#eff6ff,#e0e7ff);border-radius:0 16px 16px 0;padding:16px 22px;margin:8px 0}
+.quote p{margin:0 0 10px!important;font-size:15px!important;line-height:1.8!important;color:#1e3a8a!important;font-weight:600!important}
+.quote p:last-child{margin:0!important}
+.quote code{background:rgba(255,255,255,.7)}
+details.faq .fnum{width:30px;height:30px;flex-shrink:0;border-radius:10px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+/* simulator */
+.sim{border:2px solid #bfdbfe;border-radius:18px;background:linear-gradient(135deg,#f8fbff,#eef2ff);padding:18px 20px;margin:18px 0}
+.sim-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.sim-top b{display:block;font-size:16px;color:#1e3a8a}
+.sim-top span{font-size:13px;color:#64748b;font-weight:600}
+.sw{margin-left:auto;display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:800;color:#475569;user-select:none}
+.sw input{display:none}
+.sw i{width:42px;height:24px;border-radius:14px;background:#cbd5e1;position:relative;transition:background .15s}
+.sw i::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.sw input:checked+i{background:#e11d48}.sw input:checked+i::after{transform:translateX(18px)}
+.sim-reqs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.sreq{border:1px solid #cbd5e1;background:#fff;border-radius:11px;padding:8px 12px;font-family:'Fira Code',monospace;font-size:12px;font-weight:700;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .12s}
+.sreq:hover{border-color:#60a5fa}
+.sreq.on{background:#1e3a8a;border-color:#1e3a8a;color:#fff;box-shadow:0 6px 14px rgba(30,58,138,.3)}
+.sreq .mth{font-size:10.5px;padding:2px 8px}
+.sreq.on .mth{background:rgba(255,255,255,.2);color:#fff}
+.sim-out{display:grid;gap:8px}
+.so{display:flex;gap:12px;align-items:flex-start;background:#fff;border-radius:12px;padding:10px 14px;border-left:5px solid var(--sc,#2563eb);font-size:13.5px;line-height:1.6;color:#334155;font-weight:600}
+.so b{flex-shrink:0;min-width:104px;font-size:11px;letter-spacing:.7px;text-transform:uppercase;color:var(--sc,#2563eb);padding-top:2px}
+.so code{background:#f1f5f9}
+.so pre{margin:4px 0 0;background:#0f172a;color:#cbd5e1;border-radius:10px;padding:10px 14px;font-family:'Fira Code',monospace;font-size:12px;line-height:1.6;overflow-x:auto}
+.so.bad{--sc:#e11d48;background:#fff1f2}.so.good{--sc:#16a34a}.so.gw{--sc:#d97706}
+.status{display:inline-block;font-size:12px;font-weight:800;padding:2px 11px;border-radius:10px;margin-bottom:2px}
+.status.s2{background:#dcfce7;color:#166534}.status.s4,.status.s5{background:#ffe4e6;color:#9f1239}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="ar-slate" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#64748b"/></marker>
+<marker id="ar-red" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#e11d48"/></marker>
+<marker id="ar-green" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#16a34a"/></marker>
+<marker id="ar-blue" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#2563eb"/></marker>
+<marker id="ar-amber" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#d97706"/></marker>
+<marker id="ar-purple" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#7c3aed"/></marker>
+<marker id="ar-orange" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#f97316"/></marker>
+</defs></svg>
+<div class="container">
+
+<div class="header">
+  <span class="tag">MICROSERVICES · API GATEWAY · THEORY + PRACTICAL</span>
+  <h1>🚪 Complete API Gateway Setup in Node.js</h1>
+  <p>Build a gateway that gives clients one entry point and uses a reverse proxy to route requests to an Auth microservice and a Property microservice.</p>
+  <div class="meta"><span>🟢 Node.js</span><span>🚂 Express.js (ES6)</span><span>🔀 http-proxy-middleware</span><span>🗄️ No database needed</span><span>⭐ Important</span></div>
+  <div class="toc"><a href="#g1">1 · Architecture</a><a href="#g2">2 · Structure</a><a href="#g3">3 · Install</a><a href="#g4">4 · Services</a><a href="#g5">5 · Gateway ⭐</a><a href="#g6">6 · Run</a><a href="#g7">7 · Test</a><a href="#g8">8 · One request</a><a href="#g9">9 · Failure</a><a href="#g10">10 · Components</a><a href="#g11">11 · Production</a><a href="#g12">12 · Interview</a><a href="#gf">Revision ⭐</a></div>
+</div>
+<div class="callout info"><span class="cl">The goal</span>Understand how microservices communicate with clients through an API Gateway using a reverse proxy.</div>
+<div class="section-divider" id="g1"><span><b class="secnum">1</b>Architecture and Request Flow</span></div><div class="card"><div class="card-pad">
+<p>An API Gateway is a <strong>single entry point</strong> that receives client requests and forwards them to the appropriate microservice. A <strong>reverse proxy</strong> performs the actual HTTP request forwarding.</p>
+<figure class="dfig"><div class="dtitle">Architecture and request flow</div><svg class="diagram" viewBox="0 0 760 346" role="img" aria-label="API Gateway on port 8080 routing /api/auth to Auth Service on 3001 and /api/properties to Property Service on 3002"><rect x="10" y="120" width="158" height="74" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="2.2"/><text x="89" y="152" font-size="13.5" font-weight="800" fill="#2563eb" text-anchor="middle">💻 Frontend</text><text x="89" y="172" font-size="12" font-weight="700" fill="#1e40af" text-anchor="middle">or Postman</text><line x1="170" y1="157" x2="222" y2="157" stroke="#2563eb" stroke-width="3" stroke-linecap="round" marker-end="url(#ar-blue)"/><rect x="226" y="24" width="300" height="290" rx="18" fill="#fef3c7" stroke="#d97706" stroke-width="2.5"/><text x="376" y="56" font-size="16" font-weight="800" fill="#b45309" text-anchor="middle">🚪 API Gateway</text><rect x="316" y="66" width="120" height="24" rx="12.0" fill="#d97706" stroke="none" stroke-width="1.5"/><text x="376.0" y="82.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">Port 8080</text><text x="376" y="112" font-size="12" font-weight="700" fill="#92400e" text-anchor="middle" font-style="italic">Routes requests using reverse proxy</text><rect x="246" y="130" width="260" height="52" rx="11" fill="#fff" stroke="#d97706" stroke-width="1.6"/><text x="376" y="152" font-size="13" font-weight="800" fill="#2563eb" text-anchor="middle" class="mono">/api/auth</text><text x="376" y="170" font-size="11" font-weight="700" fill="#64748b" text-anchor="middle" class="mono">→ http://localhost:3001</text><rect x="246" y="196" width="260" height="52" rx="11" fill="#fff" stroke="#d97706" stroke-width="1.6"/><text x="376" y="218" font-size="13" font-weight="800" fill="#059669" text-anchor="middle" class="mono">/api/properties</text><text x="376" y="236" font-size="11" font-weight="700" fill="#64748b" text-anchor="middle" class="mono">→ http://localhost:3002</text><text x="376" y="280" font-size="11.5" font-weight="800" fill="#92400e" text-anchor="middle" class="mono">http-proxy-middleware</text><text x="376" y="298" font-size="11" font-weight="600" fill="#92400e" text-anchor="middle" font-style="italic">one entry point for every service</text><rect x="582" y="30" width="168" height="120" rx="14" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><text x="666" y="62" font-size="13.5" font-weight="800" fill="#2563eb" text-anchor="middle">🔐 Auth Service</text><rect x="606" y="74" width="120" height="22" rx="11.0" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="666.0" y="89.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Port 3001</text><text x="666" y="120" font-size="14" font-weight="800" fill="#1e3a8a" text-anchor="middle" class="mono">/auth</text><rect x="582" y="190" width="168" height="120" rx="14" fill="#d1fae5" stroke="#059669" stroke-width="2"/><text x="666" y="222" font-size="13.5" font-weight="800" fill="#059669" text-anchor="middle">🏠 Property Service</text><rect x="606" y="234" width="120" height="22" rx="11.0" fill="#059669" stroke="none" stroke-width="1.5"/><text x="666.0" y="249.0" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">Port 3002</text><text x="666" y="280" font-size="14" font-weight="800" fill="#065f46" text-anchor="middle" class="mono">/properties</text><line x1="528" y1="156" x2="580" y2="92" stroke="#d97706" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ar-amber)"/><line x1="528" y1="222" x2="580" y2="250" stroke="#d97706" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ar-amber)"/><text x="380" y="336" font-size="12" font-weight="700" fill="#475569" text-anchor="middle" font-style="italic">The client never needs to know which port a service runs on</text></svg></figure>
+<h4 class="h4">Important terms</h4>
+<div class="terms"><div class="term"><div class="term-i">🚪</div><h4>API Gateway</h4><p>Single entry point for multiple microservices</p></div><div class="term"><div class="term-i">🔀</div><h4>Reverse Proxy</h4><p>Forwards incoming requests to backend services</p></div><div class="term"><div class="term-i">🧭</div><h4>Routing</h4><p>Selects the appropriate backend service</p></div><div class="term"><div class="term-i">🎯</div><h4>Target</h4><p>Backend service URL</p></div><div class="term"><div class="term-i">✂️</div><h4>Path Rewriting</h4><p>Modifies the request path before forwarding</p></div><div class="term"><div class="term-i">🧱</div><h4>Middleware</h4><p>Function that processes a request during its lifecycle</p></div><div class="term"><div class="term-i">📦</div><h4>Service</h4><p>Independent application responsible for a business capability</p></div><div class="term"><div class="term-i">🖥️</div><h4>Instance</h4><p>One running copy of a service</p></div></div></div></div>
+<div class="section-divider" id="g2"><span><b class="secnum">2</b>Project Structure</span></div><div class="card"><div class="card-pad"><div class="filetree"><div class="tr" style="--d:0"><span class="ti">📁</span><span class="tn folder">microservices/</span></div><div class="tr" style="--d:1"><span class="ti">📁</span><span class="tn folder">api-gateway/</span><span class="tnote">the single entry point</span></div><div class="tr" style="--d:2"><span class="ti">📁</span><span class="tn folder">config/</span></div><div class="tr" style="--d:3"><span class="ti">📄</span><span class="tn">services.js</span><span class="tnote">route table: path → target</span></div><div class="tr" style="--d:2"><span class="ti">📁</span><span class="tn folder">middleware/</span></div><div class="tr" style="--d:3"><span class="ti">📄</span><span class="tn">proxy.js</span><span class="tnote">reusable reverse proxy</span></div><div class="tr" style="--d:2"><span class="ti">📄</span><span class="tn">server.js</span><span class="tnote">gateway app</span></div><div class="tr" style="--d:2"><span class="ti">🔑</span><span class="tn">.env</span><span class="tnote">port + service URLs</span></div><div class="tr" style="--d:1"><span class="ti">📁</span><span class="tn folder">auth-service/</span></div><div class="tr" style="--d:2"><span class="ti">📄</span><span class="tn">server.js</span><span class="tnote">port 3001</span></div><div class="tr" style="--d:1"><span class="ti">📁</span><span class="tn folder">property-service/</span></div><div class="tr" style="--d:2"><span class="ti">📄</span><span class="tn">server.js</span><span class="tnote">port 3002</span></div><div class="tr" style="--d:1"><span class="ti">📄</span><span class="tn">package.json</span></div></div><p style="margin-top:14px">We'll keep the gateway modular and the two microservices simple.</p></div></div>
+<div class="section-divider" id="g3"><span><b class="secnum">3</b>Install Dependencies</span></div><div class="card"><div class="card-pad"><p>Inside your root <code>microservices</code> folder:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">npm</span> init -y
+<span class="kw">npm</span> install express http-proxy-middleware dotenv
+<span class="kw">npm</span> pkg set type=module</code></pre></div><div class="callout info"><span class="cl">ES modules</span>The last command enables ES6 <code>import/export</code>.</div></div></div>
+<div class="section-divider" id="g4"><span><b class="secnum">4</b>Create Two Microservices</span></div><div class="card"><div class="card-pad"><h3 class="h3">4.1 Auth Service</h3><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">auth-service/server.js</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">import</span> express <span class="kw">from</span> <span class="str">"express"</span>;
+
+<span class="kw">const</span> app = express();
+app.use(express.json());
+
+app.get(<span class="str">"/auth"</span>, (req, res) =&gt; {
+  res.json({
+    service: <span class="str">"Auth Service"</span>,
+    message: <span class="str">"Auth service working"</span>
+  });
+});
+
+app.post(<span class="str">"/auth/login"</span>, (req, res) =&gt; {
+  res.json({
+    message: <span class="str">"Login request received"</span>,
+    data: req.body
+  });
+});
+
+app.listen(<span class="num">3001</span>, () =&gt; {
+  console.log(<span class="str">"Auth Service running on port 3001"</span>);
+});</code></pre></div>
+<h3 class="h3" style="margin-top:22px">4.2 Property Service</h3><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">property-service/server.js</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">import</span> express <span class="kw">from</span> <span class="str">"express"</span>;
+
+<span class="kw">const</span> app = express();
+
+app.get(<span class="str">"/properties"</span>, (req, res) =&gt; {
+  res.json({
+    service: <span class="str">"Property Service"</span>,
+    properties: [<span class="str">"Apartment"</span>, <span class="str">"Villa"</span>]
+  });
+});
+
+app.get(<span class="str">"/properties/:id"</span>, (req, res) =&gt; {
+  res.json({
+    propertyId: req.params.id,
+    title: <span class="str">"Apartment"</span>
+  });
+});
+
+app.listen(<span class="num">3002</span>, () =&gt; {
+  console.log(<span class="str">"Property Service running on port 3002"</span>);
+});</code></pre></div>
+<div class="callout ok"><span class="cl">Remember</span>Both services are separate Node.js applications running independently.</div></div></div>
+<div class="section-divider" id="g5"><span><b class="secnum">5</b>Create API Gateway <span class="star">⭐ Important</span></span></div><div class="card"><div class="card-pad">
+<p>Instead of repeating proxy middleware for every service, use a <strong>configuration-driven approach</strong>.</p>
+<h3 class="h3">5.1 Environment Configuration</h3><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">api-gateway/.env</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="fn">PORT</span>=8080
+
+<span class="fn">AUTH_SERVICE_URL</span>=http://localhost:3001
+<span class="fn">PROPERTY_SERVICE_URL</span>=http://localhost:3002</code></pre></div>
+<div class="callout info"><span class="cl">Why use environment variables?</span>Because backend addresses may differ between development, testing, and production environments. Changing the <code>.env</code> file avoids changing source code.</div>
+<h3 class="h3" style="margin-top:22px">5.2 Route Configuration</h3><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">config/services.js</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">export</span> <span class="kw">const</span> services = [
+  {
+    path: <span class="str">"/api/auth"</span>,
+    target: process.env.AUTH_SERVICE_URL,
+  },
+  {
+    path: <span class="str">"/api/properties"</span>,
+    target: process.env.PROPERTY_SERVICE_URL,
+  },
+];</code></pre></div>
+<p>Each configuration object defines which public API path belongs to which microservice. Adding a new microservice requires a <strong>new route entry</strong> rather than duplicating middleware logic.</p>
+<h3 class="h3" style="margin-top:22px">5.3 Reusable Proxy</h3><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">middleware/proxy.js</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">import</span> { createProxyMiddleware } <span class="kw">from</span> <span class="str">"http-proxy-middleware"</span>;
+
+<span class="kw">export</span> <span class="kw">const</span> createServiceProxy = ({ path, target }) =&gt; {
+  <span class="kw">if</span> (!target) {
+    <span class="kw">throw</span> <span class="kw">new</span> Error(<span class="str">`Missing target for ${path}`</span>);
+  }
+
+  <span class="kw">new</span> URL(target);
+
+  <span class="kw">return</span> createProxyMiddleware({
+    pathFilter: (url) =&gt;
+      url === path || url.startsWith(<span class="str">`${path}/`</span>),
+
+    target,
+    changeOrigin: <span class="kw">true</span>,
+
+    pathRewrite: {
+      <span class="str">"^/api(?=/|$)"</span>: <span class="str">""</span>
+    },
+
+    proxyTimeout: <span class="num">5000</span>,
+    timeout: <span class="num">5000</span>,
+
+    on: {
+      error: (error, req, res) =&gt; {
+        console.error(<span class="str">"Proxy error:"</span>, error.message);
+
+        <span class="kw">if</span> (res.headersSent) {
+          <span class="kw">return</span> res.destroy();
+        }
+
+        res.writeHead(<span class="num">502</span>, {
+          <span class="str">"Content-Type"</span>: <span class="str">"application/json"</span>
+        });
+
+        res.end(JSON.stringify({
+          success: <span class="kw">false</span>,
+          message: <span class="str">"Backend service unavailable"</span>
+        }));
+      }
+    }
+  });
+};</code></pre></div>
+<h4 class="h4">Understand the proxy configuration</h4><div class="tscroll"><table><tr><th>Property</th><th>Explanation</th></tr><tr><td><code>pathFilter</code></td><td>Checks whether an incoming request belongs to the configured service</td></tr><tr><td><code>target</code></td><td>Specifies where to forward the request</td></tr><tr><td><code>changeOrigin: true</code></td><td>Changes the upstream Host header to match the target</td></tr><tr><td><code>pathRewrite</code></td><td>Removes <code>/api</code> before forwarding</td></tr><tr><td><code>proxyTimeout</code></td><td>Limits waiting for activity from the upstream server</td></tr><tr><td><code>timeout</code></td><td>Configures the proxy request timeout</td></tr><tr><td><code>on.error</code></td><td>Handles proxy errors such as connection failures</td></tr></table></div>
+<p>The gateway is using <code>http-proxy-middleware</code> to forward requests and stream responses. It does not need to create a separate <code>fetch()</code> call manually for every incoming request.</p>
+<h3 class="h3" style="margin-top:22px">5.4 Main Gateway</h3><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">api-gateway/server.js</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">import</span> <span class="str">"dotenv/config"</span>;
+<span class="kw">import</span> express <span class="kw">from</span> <span class="str">"express"</span>;
+
+<span class="kw">import</span> { services } <span class="kw">from</span> <span class="str">"./config/services.js"</span>;
+<span class="kw">import</span> { createServiceProxy } <span class="kw">from</span> <span class="str">"./middleware/proxy.js"</span>;
+
+<span class="kw">const</span> app = express();
+
+<span class="cmt">// Gateway health check</span>
+app.get(<span class="str">"/health"</span>, (req, res) =&gt; {
+  res.json({
+    status: <span class="str">"OK"</span>,
+    service: <span class="str">"API Gateway"</span>
+  });
+});
+
+<span class="cmt">// Register microservice proxies</span>
+<span class="kw">for</span> (<span class="kw">const</span> service <span class="kw">of</span> services) {
+  app.use(createServiceProxy(service));
+}
+
+<span class="cmt">// Handle unknown routes</span>
+app.use((req, res) =&gt; {
+  res.status(<span class="num">404</span>).json({
+    success: <span class="kw">false</span>,
+    message: <span class="str">"Route not found"</span>
+  });
+});
+
+<span class="kw">const</span> PORT = Number(process.env.PORT) || <span class="num">8080</span>;
+
+app.listen(PORT, () =&gt; {
+  console.log(<span class="str">`API Gateway running on port ${PORT}`</span>);
+});</code></pre></div>
+<div class="callout warn"><span class="cl">Important</span>We intentionally do <strong>not</strong> add <code>express.json()</code> before the gateway proxy because it can consume the incoming request body before proxy forwarding.</div></div></div>
+<div class="section-divider" id="g6"><span><b class="secnum">6</b>Run the Complete Architecture</span></div><div class="card"><div class="card-pad">
+<p>Open three terminals from the root <code>microservices</code> directory.</p>
+<div class="terminals">
+<div class="terminal" style="--tc:#2563eb"><div class="term-h"><span>1</span>Auth Service</div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal 1</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">node</span> auth-service/server.js</code></pre></div></div>
+<div class="terminal" style="--tc:#059669"><div class="term-h"><span>2</span>Property Service</div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal 2</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">node</span> property-service/server.js</code></pre></div></div>
+<div class="terminal" style="--tc:#d97706"><div class="term-h"><span>3</span>API Gateway</div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">terminal 3</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">node</span> <span class="num">--env-file=</span>api-gateway/.env api-gateway/server.js</code></pre></div></div>
+</div>
+<div class="callout amber"><span class="cl">Node version</span>For the third command, use a Node.js version supporting <code>--env-file</code>. This explicitly loads the gateway's <code>.env</code>, regardless of the current working directory.</div>
+<h4 class="h4">You should see</h4>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">output</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>Auth Service running on port 3001
+Property Service running on port 3002
+API Gateway running on port 8080</code></pre></div></div></div>
+<div class="section-divider" id="g7"><span><b class="secnum">7</b>Test Using Postman</span></div><div class="card"><div class="card-pad">
+<div class="tscroll"><table><tr><th>Method</th><th>Gateway URL</th><th>Backend destination</th></tr><tr><td><span class="mth get">GET</span></td><td><code>http://localhost:8080/api/auth</code></td><td><code>localhost:3001/auth</code></td></tr><tr><td><span class="mth post">POST</span></td><td><code>http://localhost:8080/api/auth/login</code></td><td><code>localhost:3001/auth/login</code></td></tr><tr><td><span class="mth get">GET</span></td><td><code>http://localhost:8080/api/properties</code></td><td><code>localhost:3002/properties</code></td></tr><tr><td><span class="mth get">GET</span></td><td><code>http://localhost:8080/api/properties/P101</code></td><td><code>localhost:3002/properties/P101</code></td></tr><tr><td><span class="mth get">GET</span></td><td><code>http://localhost:8080/health</code></td><td>Gateway itself</td></tr></table></div>
+
+<div class="sim" id="sim">
+  <div class="sim-top"><div><b>🧪 Try it — request simulator</b><span>Pick a request and see how the gateway routes it (based on the code above).</span></div>
+  <label class="sw"><input type="checkbox" id="simDown"><i></i><span>Stop Property Service</span></label></div>
+  <div class="sim-reqs" id="simReqs"></div>
+  <div class="sim-out" id="simOut"></div>
+</div>
+<h4 class="h4">Example POST request</h4>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Postman</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>POST http://localhost:8080/api/auth/login
+Content-Type: application/json</code></pre></div>
+<div class="two"><div><div class="plabel">Body</div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">request body</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>{
+  <span class="str">"email"</span>: <span class="str">"rahul@example.com"</span>,
+  <span class="str">"password"</span>: <span class="str">"test123"</span>
+}</code></pre></div></div>
+<div><div class="plabel ok">Expected response</div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">response</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>{
+  <span class="str">"message"</span>: <span class="str">"Login request received"</span>,
+  <span class="str">"data"</span>: {
+    <span class="str">"email"</span>: <span class="str">"rahul@example.com"</span>,
+    <span class="str">"password"</span>: <span class="str">"test123"</span>
+  }
+}</code></pre></div></div></div>
+<div class="callout warn"><span class="cl">Learning only</span>This response is just for learning HTTP forwarding. A real authentication API should <strong>never</strong> return plaintext passwords.</div></div></div>
+<div class="section-divider" id="g8"><span><b class="secnum">8</b>Understand One Complete Request</span></div><div class="card"><div class="card-pad">
+<p>Suppose you request:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">request</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>GET http://localhost:8080/api/properties/P101</code></pre></div>
+<figure class="dfig"><div class="dtitle">One complete request</div><svg class="diagram" viewBox="0 0 760 326" role="img" aria-label="One complete request through the gateway, with the /api prefix removed before forwarding"><rect x="8" y="38" width="132" height="112" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/><circle cx="24" cy="38" r="11" fill="#2563eb"/><text x="24" y="42.5" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">1</text><text x="74" y="78" font-size="11.5" font-weight="800" fill="#2563eb" text-anchor="middle">Frontend / Postman</text><text x="74" y="102" font-size="10.5" font-weight="700" fill="#334155" text-anchor="middle">GET</text><text x="74" y="118" font-size="10.5" font-weight="700" fill="#334155" text-anchor="middle">/api/properties/P101</text><line x1="142" y1="94" x2="160" y2="94" stroke="#64748b" stroke-width="2.4" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="162" y="38" width="132" height="112" rx="14" fill="#fef3c7" stroke="#d97706" stroke-width="2"/><circle cx="178" cy="38" r="11" fill="#d97706"/><text x="178" y="42.5" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">2</text><text x="228" y="78" font-size="11.5" font-weight="800" fill="#d97706" text-anchor="middle">API Gateway</text><text x="228" y="102" font-size="10.5" font-weight="700" fill="#334155" text-anchor="middle">Matches</text><text x="228" y="118" font-size="10.5" font-weight="700" fill="#334155" text-anchor="middle">/api/properties</text><line x1="296" y1="94" x2="314" y2="94" stroke="#64748b" stroke-width="2.4" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="316" y="38" width="132" height="112" rx="14" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/><circle cx="332" cy="38" r="11" fill="#7c3aed"/><text x="332" y="42.5" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">3</text><text x="382" y="78" font-size="11.5" font-weight="800" fill="#7c3aed" text-anchor="middle">Reverse Proxy</text><text x="382" y="102" font-size="10.5" font-weight="700" fill="#334155" text-anchor="middle">Removes /api, forwards</text><text x="382" y="118" font-size="10.5" font-weight="700" fill="#334155" text-anchor="middle">to port 3002</text><line x1="450" y1="94" x2="468" y2="94" stroke="#64748b" stroke-width="2.4" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="470" y="38" width="132" height="112" rx="14" fill="#d1fae5" stroke="#059669" stroke-width="2"/><circle cx="486" cy="38" r="11" fill="#059669"/><text x="486" y="42.5" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">4</text><text x="536" y="78" font-size="11.5" font-weight="800" fill="#059669" text-anchor="middle">Property Service</text><text x="536" y="102" font-size="10.5" font-weight="700" fill="#334155" text-anchor="middle">Handles GET</text><text x="536" y="118" font-size="10.5" font-weight="700" fill="#334155" text-anchor="middle">/properties/P101</text><line x1="604" y1="94" x2="622" y2="94" stroke="#64748b" stroke-width="2.4" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="624" y="38" width="132" height="112" rx="14" fill="#fef3c7" stroke="#d97706" stroke-width="2"/><circle cx="640" cy="38" r="11" fill="#d97706"/><text x="640" y="42.5" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">5</text><text x="690" y="78" font-size="11.5" font-weight="800" fill="#d97706" text-anchor="middle">API Gateway</text><text x="690" y="102" font-size="10.5" font-weight="700" fill="#334155" text-anchor="middle">Forwards the response</text><text x="690" y="118" font-size="10.5" font-weight="700" fill="#334155" text-anchor="middle">to the client</text><rect x="8" y="186" width="744" height="132" rx="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.8"/><text x="28" y="214" font-size="13.5" font-weight="800" fill="#475569" text-anchor="start">Path rewriting inside the proxy</text><rect x="40" y="232" width="70" height="34" rx="9" fill="#ffe4e6" stroke="#e11d48" stroke-width="1.8" stroke-dasharray="5 4"/><text x="75" y="254" font-size="13" font-weight="800" fill="#be123c" text-anchor="middle" class="mono">/api</text><rect x="114" y="232" width="190" height="34" rx="9" fill="#fff" stroke="#64748b" stroke-width="1.8"/><text x="209" y="254" font-size="13" font-weight="800" fill="#334155" text-anchor="middle" class="mono">/properties/P101</text><line x1="44" y1="249" x2="106" y2="249" stroke="#e11d48" stroke-width="2"/><line x1="310" y1="249" x2="392" y2="249" stroke="#16a34a" stroke-width="3" stroke-linecap="round" marker-end="url(#ar-green)"/><text x="351" y="226" font-size="11" font-weight="800" fill="#15803d" text-anchor="middle" class="mono">pathRewrite</text><rect x="396" y="232" width="190" height="34" rx="9" fill="#dcfce7" stroke="#16a34a" stroke-width="1.8"/><text x="491" y="254" font-size="13" font-weight="800" fill="#166534" text-anchor="middle" class="mono">/properties/P101</text><line x1="590" y1="249" x2="640" y2="249" stroke="#16a34a" stroke-width="3" stroke-linecap="round" marker-end="url(#ar-green)"/><rect x="644" y="224" width="100" height="50" rx="10" fill="#d1fae5" stroke="#059669" stroke-width="1.8"/><text x="694" y="246" font-size="11.5" font-weight="800" fill="#065f46" text-anchor="middle" class="mono">localhost</text><text x="694" y="262" font-size="12.5" font-weight="800" fill="#065f46" text-anchor="middle" class="mono">:3002</text><text x="380" y="298" font-size="11.5" font-weight="700" fill="#475569" text-anchor="middle" class="mono">"^/api(?=/|$)"  →  ""      (removes /api only at the start of the path)</text></svg></figure>
+<ol class="steps"><li><b>Frontend / Postman</b><span><code>GET /api/properties/P101</code></span></li><li><b>API Gateway</b><span>Matches <code>/api/properties</code></span></li><li><b>Reverse Proxy</b><span>Removes <code>/api</code> and forwards to port 3002</span></li><li><b>Property Service</b><span>Handles <code>GET /properties/P101</code></span></li><li><b>API Gateway</b><span>Forwards the response to the client</span></li></ol>
+<div class="callout ok"><span class="cl">Remember</span>The client never needs to know that Property Service runs on port <code>3002</code>.</div></div></div>
+<div class="section-divider" id="g9"><span><b class="secnum">9</b>What Happens If a Service Fails?</span></div><div class="card"><div class="card-pad">
+<p>Suppose Property Service is stopped, but API Gateway is still running. The client requests:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">request</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>GET http://localhost:8080/api/properties</code></pre></div>
+<p>The gateway attempts to forward the request to port <code>3002</code>, but the service is unavailable.</p>
+<figure class="dfig"><div class="dtitle">When a backend service fails</div><svg class="diagram" viewBox="0 0 760 300" role="img" aria-label="Property Service stopped: the gateway returns 502 Bad Gateway while Auth Service keeps working"><rect x="10" y="100" width="140" height="66" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/><text x="80" y="138" font-size="13.5" font-weight="800" fill="#2563eb" text-anchor="middle">💻 Client</text><line x1="152" y1="133" x2="198" y2="133" stroke="#2563eb" stroke-width="3" stroke-linecap="round" marker-end="url(#ar-blue)"/><rect x="202" y="90" width="170" height="86" rx="14" fill="#fef3c7" stroke="#d97706" stroke-width="2.2"/><text x="287" y="126" font-size="13.5" font-weight="800" fill="#b45309" text-anchor="middle">🚪 API Gateway</text><text x="287" y="148" font-size="11.5" font-weight="700" fill="#92400e" text-anchor="middle" font-style="italic">still running</text><line x1="374" y1="120" x2="520" y2="76" stroke="#e11d48" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 6" marker-end="url(#ar-red)"/><circle cx="446" cy="98" r="14" fill="#e11d48"/><text x="446" y="104" font-size="16" font-weight="800" fill="#fff" text-anchor="middle">✕</text><rect x="524" y="30" width="226" height="86" rx="14" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 4"/><text x="637" y="66" font-size="13.5" font-weight="800" fill="#94a3b8" text-anchor="middle">🏠 Property Service</text><text x="637" y="90" font-size="12" font-weight="700" fill="#be123c" text-anchor="middle" class="mono">stopped — port 3002</text><rect x="524" y="150" width="226" height="86" rx="14" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><text x="637" y="186" font-size="13.5" font-weight="800" fill="#2563eb" text-anchor="middle">🔐 Auth Service</text><text x="637" y="210" font-size="12" font-weight="700" fill="#166534" text-anchor="middle" class="mono">still works — port 3001</text><line x1="374" y1="150" x2="520" y2="190" stroke="#16a34a" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ar-green)"/><line x1="287" y1="178" x2="287" y2="220" stroke="#e11d48" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ar-red)"/><rect x="10" y="224" width="480" height="66" rx="14" fill="#fff1f2" stroke="#fda4af" stroke-width="2"/><rect x="24" y="238" width="128" height="26" rx="13.0" fill="#e11d48" stroke="none" stroke-width="1.5"/><text x="88.0" y="255.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">502 Bad Gateway</text><text x="166" y="256" font-size="12" font-weight="700" fill="#9f1239" text-anchor="start" class="mono">{ "success": false,</text><text x="166" y="276" font-size="12" font-weight="700" fill="#9f1239" text-anchor="start" class="mono">  "message": "Backend service unavailable" }</text><text x="620" y="270" font-size="12" font-weight="800" fill="#475569" text-anchor="middle" class="mono">GET /api/properties</text><text x="620" y="288" font-size="11" font-weight="600" fill="#64748b" text-anchor="middle" font-style="italic">is the failing request</text></svg></figure>
+<p>The proxy's error handler can return:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">response — 502 Bad Gateway</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>{
+  <span class="str">"success"</span>: <span class="kw">false</span>,
+  <span class="str">"message"</span>: <span class="str">"Backend service unavailable"</span>
+}</code></pre></div>
+<p>With the sample configuration, the status code is <strong>502 Bad Gateway</strong>. Other timeout conditions may require more detailed handling in production.</p>
+<div class="callout warn"><span class="cl">Health check caveat</span>The gateway's <code>/health</code> endpoint only indicates that the gateway process is responding; it does <strong>not</strong> prove that every upstream service is healthy.</div></div></div>
+<div class="section-divider" id="g10"><span><b class="secnum">10</b>Proxy vs API Gateway vs Microservice</span></div><div class="card"><div class="card-pad">
+<figure class="dfig"><div class="dtitle">How the pieces fit</div><svg class="diagram" viewBox="0 0 760 322" role="img" aria-label="Gateway containing service configuration and reverse proxy, with an optional load balancer in front of service instances"><rect x="8" y="110" width="104" height="64" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/><text x="60" y="147" font-size="13" font-weight="800" fill="#2563eb" text-anchor="middle">💻 Client</text><line x1="114" y1="142" x2="150" y2="142" stroke="#2563eb" stroke-width="3" stroke-linecap="round" marker-end="url(#ar-blue)"/><rect x="154" y="18" width="300" height="272" rx="18" fill="#fef3c7" stroke="#d97706" stroke-width="2.5"/><text x="304" y="46" font-size="15" font-weight="800" fill="#b45309" text-anchor="middle">🚪 API Gateway</text><rect x="172" y="62" width="264" height="78" rx="12" fill="#fff" stroke="#0d9488" stroke-width="1.8"/><text x="304" y="90" font-size="13" font-weight="800" fill="#0d9488" text-anchor="middle">🗂 Service Configuration</text><text x="304" y="112" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">routes and backend destination URLs</text><rect x="172" y="154" width="264" height="78" rx="12" fill="#fff" stroke="#7c3aed" stroke-width="1.8"/><text x="304" y="182" font-size="13" font-weight="800" fill="#7c3aed" text-anchor="middle">🔀 Reverse Proxy</text><text x="304" y="204" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">forwards HTTP requests and responses</text><text x="304" y="258" font-size="11.5" font-weight="700" fill="#92400e" text-anchor="middle" font-style="italic">client-facing routes + shared policies</text><text x="304" y="276" font-size="11" font-weight="600" fill="#92400e" text-anchor="middle" class="mono">(built with http-proxy-middleware)</text><line x1="456" y1="142" x2="500" y2="142" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 5" marker-end="url(#ar-purple)"/><rect x="504" y="106" width="112" height="72" rx="12" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6 4"/><text x="560" y="138" font-size="12.5" font-weight="800" fill="#7c3aed" text-anchor="middle">⚖️ Load</text><text x="560" y="156" font-size="12.5" font-weight="800" fill="#7c3aed" text-anchor="middle">Balancer</text><line x1="618" y1="128" x2="650" y2="78" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" marker-end="url(#ar-purple)"/><line x1="618" y1="158" x2="650" y2="214" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" marker-end="url(#ar-purple)"/><rect x="652" y="30" width="100" height="98" rx="12" fill="#d1fae5" stroke="#059669" stroke-width="2"/><text x="702" y="60" font-size="11.5" font-weight="800" fill="#059669" text-anchor="middle">Microservice</text><text x="702" y="78" font-size="11" font-weight="700" fill="#065f46" text-anchor="middle">instance 1</text><text x="702" y="100" font-size="10.5" font-weight="600" fill="#475569" text-anchor="middle">business logic</text><text x="702" y="114" font-size="10.5" font-weight="600" fill="#475569" text-anchor="middle">+ own data</text><rect x="652" y="186" width="100" height="98" rx="12" fill="#d1fae5" stroke="#059669" stroke-width="2"/><text x="702" y="216" font-size="11.5" font-weight="800" fill="#059669" text-anchor="middle">Microservice</text><text x="702" y="234" font-size="11" font-weight="700" fill="#065f46" text-anchor="middle">instance 2</text><text x="702" y="256" font-size="10.5" font-weight="600" fill="#475569" text-anchor="middle">business logic</text><text x="702" y="270" font-size="10.5" font-weight="600" fill="#475569" text-anchor="middle">+ own data</text><text x="380" y="310" font-size="11.5" font-weight="700" fill="#475569" text-anchor="middle" font-style="italic">Load balancer (optional here) distributes requests across multiple instances of one service</text></svg></figure>
+<div class="tscroll"><table><tr><th>Component</th><th>Responsibility</th></tr><tr><td>API Gateway</td><td>Main entry point that manages client-facing API routes and shared policies</td></tr><tr><td>Reverse Proxy</td><td>Forwards HTTP requests and responses between clients and backend services</td></tr><tr><td>Microservice</td><td>Executes business logic and manages its own data</td></tr><tr><td>Service Configuration</td><td>Stores routes and backend destination URLs</td></tr><tr><td>Load Balancer</td><td>Distributes requests across multiple service instances</td></tr></table></div>
+<div class="callout info"><span class="cl">Note</span>An API Gateway can use reverse-proxy functionality internally, as we implemented using <code>http-proxy-middleware</code>.</div></div></div>
+<div class="section-divider" id="g11"><span><b class="secnum">11</b>What Would You Add in Production?</span></div><div class="card"><div class="card-pad">
+<p>Our setup demonstrates routing, but a production API Gateway normally needs further controls.</p>
+<div class="tscroll"><table><tr><th>Feature</th><th>Why needed</th></tr><tr><td>🔑 JWT validation</td><td>Authenticate incoming requests</td></tr><tr><td>🚦 Rate limiting</td><td>Prevent excessive traffic</td></tr><tr><td>🌍 CORS</td><td>Restrict browser origins</td></tr><tr><td>🛡️ Security headers</td><td>Apply common HTTP protections</td></tr><tr><td>🆔 Request IDs</td><td>Trace requests across services</td></tr><tr><td>📜 Structured logging</td><td>Support debugging and monitoring</td></tr><tr><td>⏱️ Timeouts and retries</td><td>Handle unavailable or slow services</td></tr><tr><td>🧭 Service discovery</td><td>Resolve service destinations dynamically</td></tr><tr><td>⚖️ Load balancing</td><td>Distribute requests across healthy instances</td></tr><tr><td>🧱 Multiple gateway instances</td><td>Reduce gateway failure risk</td></tr></table></div>
+<div class="callout warn"><span class="cl">Careful with retries</span>Retries must be applied carefully, especially for <strong>non-idempotent operations</strong> such as payments.</div>
+<div class="callout ok"><span class="cl">Where logic belongs</span>Keep business logic, domain validation, and resource-level authorization in the <strong>owning microservices</strong>.</div></div></div>
+<div class="section-divider" id="g12"><span><b class="secnum">12</b>Interview Questions</span></div><div class="card"><div class="card-pad"><details class="faq"><summary><span class="fnum">1</span><span class="fq">What is an API Gateway?</span><span class="fch">▼</span></summary><div class="fa">A single entry point that receives client requests and forwards them to the appropriate microservice. It manages client-facing API routes and shared policies.</div></details><details class="faq"><summary><span class="fnum">2</span><span class="fq">What is a reverse proxy?</span><span class="fch">▼</span></summary><div class="fa">A component that forwards incoming HTTP requests to backend services and passes the responses back. The gateway uses reverse-proxy functionality internally.</div></details><details class="faq"><summary><span class="fnum">3</span><span class="fq">Why use http-proxy-middleware?</span><span class="fch">▼</span></summary><div class="fa">It forwards requests and streams responses for you, so you do not write a separate <code>fetch()</code> call for every incoming request. It also provides <code>pathFilter</code>, <code>target</code>, <code>pathRewrite</code>, timeouts, and error handling.</div></details><details class="faq"><summary><span class="fnum">4</span><span class="fq">What is path rewriting?</span><span class="fch">▼</span></summary><div class="fa">Modifying the request path before forwarding. Here <code>pathRewrite</code> removes <code>/api</code>, so <code>/api/properties</code> reaches the Property Service as <code>/properties</code>.</div></details><details class="faq"><summary><span class="fnum">5</span><span class="fq">Why use dynamic route configuration?</span><span class="fch">▼</span></summary><div class="fa">Each service is just a config entry (<code>path</code> and <code>target</code>). Adding a microservice means adding a route entry rather than duplicating middleware logic, and target URLs come from environment variables.</div></details><details class="faq"><summary><span class="fnum">6</span><span class="fq">What happens if a backend service is unavailable?</span><span class="fch">▼</span></summary><div class="fa">The proxy error handler returns a JSON "Backend service unavailable" response with status <code>502 Bad Gateway</code>. Other timeout conditions may need more detailed handling in production.</div></details><details class="faq"><summary><span class="fnum">7</span><span class="fq">Does the API Gateway need a database?</span><span class="fch">▼</span></summary><div class="fa">No — a database is not required for this practice. The gateway only routes requests; each microservice handles its own business logic and database access.</div></details><details class="faq"><summary><span class="fnum">8</span><span class="fq">Can an API Gateway handle authentication?</span><span class="fch">▼</span></summary><div class="fa">Yes. JWT validation is a typical production gateway feature. Business logic, domain validation, and resource-level authorization still belong in the owning microservices.</div></details><details class="faq"><summary><span class="fnum">9</span><span class="fq">Should microservices communicate through the public API Gateway?</span><span class="fch">▼</span></summary><div class="fa">Your notes do not answer this directly. They describe the gateway as the entry point for client traffic (Frontend → Gateway → services), so service-to-service calls are a separate design decision.</div></details><details class="faq"><summary><span class="fnum">10</span><span class="fq">Can API Gateway become a single point of failure?</span><span class="fch">▼</span></summary><div class="fa">Yes, it can. That is why production setups run multiple gateway instances to reduce gateway failure risk. Remember <code>/health</code> only shows the gateway process is responding.</div></details><div class="callout amber" style="margin-top:14px"><span class="cl">About these answers</span>Your notes list the questions without answers. These are short summaries of what the sections above say.</div></div></div>
+<div class="section-divider" id="gf"><span><b class="secnum">✓</b>Final Revision <span class="star">⭐ Important</span></span></div><div class="card"><div class="card-pad">
+<h4 class="h4" style="margin-top:0">Architecture</h4>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">architecture</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>Frontend
+   ↓
+API Gateway (8080)
+   ↓
+Reverse Proxy Routing
+   ├── Auth Service (3001)
+   └── Property Service (3002)</code></pre></div>
+<h4 class="h4">Five things to remember</h4><ol class="steps big"><li><span>API Gateway is the single client-facing entry point.</span></li><li><span>A reverse proxy forwards requests to backend services.</span></li><li><span><code>pathFilter</code> selects requests, while <code>target</code> defines the destination.</span></li><li><span><code>pathRewrite</code> modifies the URL before forwarding.</span></li><li><span>Microservices independently handle business logic and database access.</span></li></ol>
+<h4 class="h4">Interview-ready answer</h4>
+<blockquote class="quote"><p>I can implement an API Gateway in Node.js using Express and <code>http-proxy-middleware</code>. I maintain service routes in configuration, dynamically register reusable reverse-proxy middleware, and configure path rewriting, environment-based service URLs, timeouts, and proxy error handling.</p>
+<p>The frontend communicates with the gateway, which forwards requests to the appropriate backend service. Each service independently manages its business logic and database.</p>
+<p>For production, I would extend this architecture with authentication, rate limiting, service discovery, observability, and high availability.</p></blockquote></div></div>
+
+</div>
+<script>
+document.querySelectorAll('.copybtn').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var txt = b.closest('.code-block').querySelector('pre').innerText;
+    function done() { b.textContent = '✓ Copied'; b.classList.add('done'); setTimeout(function () { b.textContent = '📋 Copy'; b.classList.remove('done'); }, 1400); }
+    if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done, done); else done();
+  });
+});
+(function () {
+  var services = [{ path: '/api/auth', target: 'http://localhost:3001', name: 'Auth Service' }, { path: '/api/properties', target: 'http://localhost:3002', name: 'Property Service' }];
+  var body = { email: 'rahul@example.com', password: 'test123' };
+  var REQS = [
+    { m: 'GET', u: '/api/auth' }, { m: 'POST', u: '/api/auth/login' }, { m: 'GET', u: '/api/properties' },
+    { m: 'GET', u: '/api/properties/P101' }, { m: 'GET', u: '/health' }, { m: 'GET', u: '/api/unknown' }
+  ];
+  var cur = 0;
+  var wrap = document.getElementById('simReqs'), out = document.getElementById('simOut'), down = document.getElementById('simDown');
+  REQS.forEach(function (r, i) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'sreq';
+    b.innerHTML = '<span class="mth ' + r.m.toLowerCase() + '">' + r.m + '</span>' + r.u;
+    b.addEventListener('click', function () { cur = i; render(); });
+    wrap.appendChild(b);
+  });
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function row(cls, label, html) { return '<div class="so ' + cls + '"><b>' + label + '</b><div>' + html + '</div></div>'; }
+  function json(o) { return '<pre>' + esc(JSON.stringify(o, null, 2)) + '</pre>'; }
+  function backend(svc, rewritten) {
+    if (svc.name === 'Auth Service') {
+      if (rewritten === '/auth') return { service: 'Auth Service', message: 'Auth service working' };
+      return { message: 'Login request received', data: body };
+    }
+    if (rewritten === '/properties') return { service: 'Property Service', properties: ['Apartment', 'Villa'] };
+    return { propertyId: rewritten.split('/')[2], title: 'Apartment' };
+  }
+  function render() {
+    Array.prototype.forEach.call(wrap.children, function (b, i) { b.classList.toggle('on', i === cur); });
+    var r = REQS[cur], h = row('', '1 · Request', '<code>' + r.m + ' http://localhost:8080' + r.u + '</code>' + (r.m === 'POST' ? json(body) : ''));
+    if (r.u === '/health') {
+      h += row('gw', '2 · Gateway', 'Handled by the gateway itself — <code>app.get("/health")</code> runs before any proxy.');
+      h += row('good', '3 · Response', '<span class="status s2">200 OK</span>' + json({ status: 'OK', service: 'API Gateway' }));
+      out.innerHTML = h; return;
+    }
+    var svc = services.filter(function (s) { return r.u === s.path || r.u.indexOf(s.path + '/') === 0; })[0];
+    if (!svc) {
+      h += row('gw', '2 · Gateway', 'No <code>pathFilter</code> matches <code>' + r.u + '</code> — the request falls through every proxy.');
+      h += row('bad', '3 · Response', '<span class="status s4">404 Not Found</span>' + json({ success: false, message: 'Route not found' }));
+      out.innerHTML = h; return;
+    }
+    var rewritten = r.u.replace(/^\/api(?=\/|$)/, '');
+    h += row('gw', '2 · Match', '<code>pathFilter</code> matches <code>' + svc.path + '</code> → route for <b style="min-width:0;color:inherit;text-transform:none;letter-spacing:0;font-size:inherit">' + svc.name + '</b>');
+    h += row('gw', '3 · Rewrite', '<code>' + r.u + '</code> → <code>' + rewritten + '</code> &nbsp;(<code>/api</code> removed)');
+    h += row('gw', '4 · Forward', 'Proxied to <code>' + svc.target + rewritten + '</code>');
+    if (down.checked && svc.name === 'Property Service') {
+      h += row('bad', '5 · Response', 'Property Service is stopped — connection fails, the proxy error handler runs.<br><span class="status s5">502 Bad Gateway</span>' + json({ success: false, message: 'Backend service unavailable' }));
+    } else {
+      h += row('good', '5 · Response', '<span class="status s2">200 OK</span>' + json(backend(svc, rewritten)) + 'Streamed back to the client through the gateway.');
+    }
+    out.innerHTML = h;
+  }
+  down.addEventListener('change', render);
+  render();
+})();
+</script>
+</body>
+</html>
