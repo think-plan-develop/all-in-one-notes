@@ -3,13 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nginx - DevOps</title>
+    <meta name="theme-color" content="#101a35">
+    <title>Nginx Notes</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; }
+        body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: #f3f6fb; color: #172033; font-family: "Segoe UI", Arial, sans-serif; }
+        button { font: inherit; }
+
+        /* ── Top bar ── */
+        .topbar { height: 58px; flex-shrink: 0; position: relative; z-index: 2; display: flex; align-items: center; gap: 12px; padding: 0 18px; color: #fff; background: #101a35; box-shadow: 0 4px 20px rgba(16, 26, 53, .2); }
+        .toggle { width: 36px; height: 36px; border: 1px solid rgba(255,255,255,.24); border-radius: 8px; color: #fff; font-size: 18px; background: rgba(255,255,255,.12); cursor: pointer; }
+        .toggle:hover { background: rgba(255,255,255,.22); }
+        .brand { font-size: 17px; font-weight: 800; color: #fff; text-decoration: none; }
+
+        .main { display: flex; flex: 1; min-height: 0; }
+
+        /* ── Sidebar ── */
+        .sidebar { width: 280px; min-width: 280px; padding: 16px 12px 28px; overflow-y: auto; background: #fff; border-right: 1px solid #e1e7f0; }
+        .sidebar h2 { margin: 2px 8px 12px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
+        .sidebar a { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; padding: 11px 12px; border: 1px solid transparent; border-radius: 10px; color: #5c6880; font-size: 14px; font-weight: 700; text-decoration: none; transition: background .18s, color .18s, border-color .18s; }
+        .sidebar a .n { display: grid; place-items: center; width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; font-size: 12px; font-weight: 800; color: #1d4ed8; background: #eff6ff; border: 1px solid #dbeafe; }
+        .sidebar a:hover, .sidebar a:focus-visible { border-color: #dbeafe; background: #eff6ff; color: #1d4ed8; outline: 0; }
+        .sidebar a.active { color: #fff; background: #1d4ed8; border-color: #1d4ed8; }
+        .sidebar a.active .n { color: #fff; background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.5); }
+        .main.sidebar-hidden .sidebar { display: none; }
+
+        iframe { flex: 1; min-width: 0; border: 0; background: #fff; }
+
+        /* Floating button to bring the top bar and sidebar back */
+        .reopen { display: none; position: fixed; top: 10px; left: 10px; z-index: 5; width: 38px; height: 38px; place-items: center; border: 1px solid #e2e8f0; border-radius: 10px; color: #1e293b; font-size: 19px; cursor: pointer; background: #fff; box-shadow: 0 2px 10px rgba(15,23,42,.15); }
+        .reopen:hover { background: #f1f5f9; }
+        body.nav-hidden .topbar { display: none; }
+        body.nav-hidden .reopen { display: grid; }
+
+        @media (max-width: 768px) {
+            .sidebar { position: absolute; top: 58px; bottom: 0; left: -100%; z-index: 3; transition: transform .2s ease; box-shadow: 4px 0 24px rgba(15,23,42,.18); max-width: 88vw; min-width: 0; }
+            .sidebar.open { transform: translateX(100%); }
+            body.nav-hidden .sidebar { top: 0; }
+        }
+        @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+    </style>
 </head>
 <body>
-    <main>
-        <h1>Nginx</h1>
-        <p>Nginx notes are coming soon.</p>
-        <a href="../index.html">Back to DevOps</a>
+    <button class="reopen" id="reopen" type="button" title="Show navigation" aria-label="Show navigation">☰</button>
+    <header class="topbar">
+        <button class="toggle" id="toggle" type="button" title="Toggle navigation" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="true">☰</button>
+        <a class="brand" href="index.html">Nginx Notes</a>
+    </header>
+
+    <main class="main">
+        <nav class="sidebar" id="sidebar" aria-label="Nginx documents">
+            <h2>Nginx Documents</h2>
+            <a href="nginx-1-concepts.html" target="contentFrame"><span class="n">1</span>Nginx concepts</a>
+            <a href="nginx-2-docker-lab.html" target="contentFrame"><span class="n">2</span>Docker lab</a>
+             <a href="3-wsl-setup-and-workspace.html" target="contentFrame"><span class="n">4</span>WSL setup</a>
+            <a href="docker-point-4.html" target="contentFrame"><span class="n">3</span>Docker practice</a>
+           
+        </nav>
+        <iframe name="contentFrame" id="contentFrame" title="Nginx content"
+            srcdoc="<style>body{margin:0;height:100vh;display:grid;place-items:center;font-family:Segoe UI,Arial,sans-serif;background:#f3f6fb;color:#5c6880;text-align:center}div{max-width:420px;padding:24px}h1{margin:0 0 8px;color:#101a35;font-size:32px}p{margin:0;font-size:16px}</style><div><h1>Nginx notes</h1><p>Choose a document from the sidebar to open its full content.</p></div>"></iframe>
     </main>
+
+    <script>
+        const sidebar = document.getElementById("sidebar");
+        const main = document.querySelector(".main");
+        const toggle = document.getElementById("toggle");
+        const mobile = window.matchMedia("(max-width: 768px)");
+        const items = [...sidebar.querySelectorAll("a")];
+
+        function updateToggleState() {
+            const expanded = mobile.matches ? sidebar.classList.contains("open") : !main.classList.contains("sidebar-hidden");
+            toggle.setAttribute("aria-expanded", String(expanded));
+        }
+
+        items.forEach(a => a.addEventListener("click", () => {
+            items.forEach(x => x.classList.remove("active"));
+            a.classList.add("active");
+            sidebar.classList.remove("open");
+            updateToggleState();
+        }));
+
+        function setNavHidden(hide) {
+            main.classList.toggle("sidebar-hidden", hide && !mobile.matches);
+            document.body.classList.toggle("nav-hidden", hide);
+            if (!hide) sidebar.classList.remove("open");
+            updateToggleState();
+        }
+
+        toggle.addEventListener("click", () => {
+            if (mobile.matches) {
+                if (sidebar.classList.contains("open")) { sidebar.classList.remove("open"); setNavHidden(true); }
+                else { sidebar.classList.add("open"); updateToggleState(); }
+            } else {
+                setNavHidden(!main.classList.contains("sidebar-hidden"));
+            }
+        });
+
+        document.getElementById("reopen").addEventListener("click", () => {
+            setNavHidden(false);
+            if (mobile.matches) { sidebar.classList.add("open"); updateToggleState(); }
+        });
+
+        mobile.addEventListener("change", updateToggleState);
+        updateToggleState();
+    </script>
 </body>
 </html>

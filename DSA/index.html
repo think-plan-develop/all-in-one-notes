@@ -23,7 +23,6 @@
     .back { padding: 7px 14px; }
     .title { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 700; }
     .title i { font-size: 22px; }
-    .search { width: min(360px, 34vw); margin: 0 auto; padding: 8px 14px; border: 0; border-radius: 20px; outline: 0; background: #fff; color: #1e293b; }
     .author { margin-left: auto; font-size: 13px; font-weight: 700; white-space: nowrap; }
     .main { display: flex; flex: 1; min-height: 0; }
 
@@ -129,8 +128,6 @@
     .leaf.active .chk { background: transparent; border-color: rgba(255,255,255,.65); }
     .leaf.active.done .chk { background: #fff; border-color: #fff; color: var(--c2); }
 
-    .empty { display: none; margin: 16px 8px; font-size: 13px; color: #64748b; }
-
     /* ── Section colours ── */
     .t-s1 { --c:#6366f1; --c2:#3730a3; --t:#eef2ff; --b:#c7d2fe; }  /* Foundations: indigo */
     .t-s2 { --c:#10b981; --c2:#047857; --t:#ecfdf5; --b:#a7f3d0; }
@@ -143,27 +140,35 @@
     .t-orange { --c:#f97316; --c2:#c2410c; --t:#fff7ed; --b:#fed7aa; }  /* Arrays */
 
     iframe { flex: 1; min-width: 0; border: 0; background: #fff; }
+
+    /* Floating button to bring the top bar and sidebar back */
+    .reopen { display: none; position: fixed; top: 10px; left: 10px; z-index: 5; width: 38px; height: 38px; place-items: center; border: 1px solid #e2e8f0; border-radius: 10px; color: #1e293b; font-size: 19px; cursor: pointer; background: #fff; box-shadow: 0 2px 10px rgba(15,23,42,.15); }
+    .reopen:hover { background: #f1f5f9; }
+    body.nav-hidden .topbar { display: none; }
+    body.nav-hidden .reopen { display: grid; }
+
     @media (max-width: 768px) {
       .sidebar { position: absolute; top: 61px; bottom: 0; left: -100%; z-index: 3; transition: transform .2s ease; box-shadow: 4px 0 24px rgba(15,23,42,.18); max-width: 92vw; min-width: 0; }
       .sidebar.open { transform: translateX(100%); }
-      .search { width: 34vw; } .author { display: none; }
+      body.nav-hidden .sidebar { top: 0; }
+      body.nav-hidden .reopen { z-index: 4; }
+      .author { display: none; }
     }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   </style>
 </head>
 <body>
+  <button class="reopen" id="reopen" type="button" title="Show navigation" aria-label="Show navigation"><i class="ti ti-menu-2"></i></button>
   <header class="topbar">
     <button class="toggle" id="toggle" type="button" title="Toggle navigation" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="true"><i class="ti ti-menu-2"></i></button>
     <div class="title"><i class="ti ti-algorithm"></i><span>DSA Roadmap</span></div>
     <button class="back" id="back" title="Return to Dev Hub"><i class="ti ti-arrow-left"></i> Back</button>
-    <input class="search" id="search" type="search" placeholder="Search DSA topics" aria-label="Search DSA topics" />
     <div class="author">Shivam</div>
   </header>
   <main class="main">
     <nav class="sidebar" id="sidebar" aria-label="DSA topics">
       <h2>DSA Preparation</h2>
       <div id="links"></div>
-      <p class="empty" id="empty">No topics match your search.</p>
     </nav>
     <iframe name="contentFrame" id="contentFrame" title="DSA content"
       srcdoc="<style>body{margin:0;height:100vh;display:grid;place-items:center;font-family:Segoe UI,system-ui,sans-serif;background:#f8fafc;color:#475569}div{text-align:center;max-width:380px;padding:24px}h1{font-size:22px;color:#1e3a8a;margin:0 0 8px}p{margin:0;line-height:1.6}</style><div><h1>DSA Roadmap</h1><p>Pick a topic from the sidebar. Content pages will load here.</p></div>"></iframe>
@@ -400,42 +405,31 @@
     // Start with the first topic expanded (sections are static headings)
     groups[0].querySelector(".sub").open = true;
 
+    /* ── Sidebar + top bar toggle ── */
+    function setNavHidden(hide) {
+      main.classList.toggle("sidebar-hidden", hide && !mobileLayout.matches);
+      document.body.classList.toggle("nav-hidden", hide);
+      if (!hide) sidebar.classList.remove("open");
+      updateToggleState();
+    }
+
     toggle.addEventListener("click", () => {
       if (mobileLayout.matches) {
-        sidebar.classList.toggle("open");
+        // mobile: sidebar is an overlay — closing it also hides the top bar
+        if (sidebar.classList.contains("open")) { sidebar.classList.remove("open"); setNavHidden(true); }
+        else { sidebar.classList.add("open"); updateToggleState(); }
       } else {
-        main.classList.toggle("sidebar-hidden");
+        setNavHidden(!main.classList.contains("sidebar-hidden"));
       }
-      updateToggleState();
+    });
+
+    document.getElementById("reopen").addEventListener("click", () => {
+      setNavHidden(false);
+      if (mobileLayout.matches) { sidebar.classList.add("open"); updateToggleState(); }
     });
     mobileLayout.addEventListener("change", updateToggleState);
     updateToggleState();
     document.getElementById("back").addEventListener("click", () => { window.location.href = "../index.html"; });
-
-    // Search: matches section names, topic names ("imp" lists the important topics) and links.
-    document.getElementById("search").addEventListener("input", e => {
-      const q = e.target.value.trim().toLowerCase();
-      let any = false;
-      groups.forEach(g => {
-        const gHit = g.querySelector(":scope > .grp-head").textContent.toLowerCase().includes(q);
-        let hits = 0;
-        g.querySelectorAll(".sub").forEach(s => {
-          const sHit = s.querySelector(":scope > summary").textContent.toLowerCase().includes(q);
-          let sh = 0;
-          s.querySelectorAll("a").forEach(a => {
-            const show = !q || gHit || sHit || a.textContent.toLowerCase().includes(q);
-            a.hidden = !show;
-            if (show) sh++;
-          });
-          s.hidden = sh === 0;
-          if (q && sh) s.open = true;
-          hits += sh;
-        });
-        g.hidden = hits === 0;
-        if (hits) any = true;
-      });
-      document.getElementById("empty").style.display = any ? "none" : "block";
-    });
   </script>
 </body>
 </html>

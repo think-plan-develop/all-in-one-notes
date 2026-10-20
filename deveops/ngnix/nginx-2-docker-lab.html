@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WSL, Docker &amp; Nginx Lab Practice</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:#f4f5fa;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.6}
+.container{width:92%;max-width:1120px;margin:34px auto 70px}
+.container{--accent-dark:#1e3a8a;--accent:#2563eb;--accent-light:#3b82f6;--content-bg:#eff6ff;--heading:#1e3a8a;--shadow-rgb:37,99,235}
+a{color:#2563eb}
+code{font-family:'Fira Code','Consolas',monospace;font-size:.88em;background:rgba(37,99,235,.1);color:#1e3a8a;padding:2px 7px;border-radius:5px}
+.mono{font-family:'Fira Code','Consolas',monospace}
+svg.diagram{width:100%;height:auto;display:block}
+svg.diagram text{font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+svg.diagram text.mono{font-family:'Fira Code','Consolas',monospace}
+
+/* header */
+.header{background:linear-gradient(120deg,var(--accent-dark),var(--accent-light));border-radius:22px;padding:42px 38px;margin-bottom:22px;box-shadow:0 16px 36px rgba(var(--shadow-rgb),.3);position:relative;overflow:hidden}
+.header::after{content:'';position:absolute;top:-70px;right:-70px;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.08)}
+.header::before{content:'';position:absolute;bottom:-90px;left:38%;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.05)}
+.header .tag{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-size:12px;font-weight:800;letter-spacing:.6px;padding:5px 14px;border-radius:20px;margin-bottom:14px;position:relative}
+.header h1{color:#fff;font-size:33px;font-weight:800;letter-spacing:-.6px;margin-bottom:10px;position:relative;line-height:1.2}
+.header p{color:#dbe6ff;font-size:16px;max-width:760px;line-height:1.65;position:relative}
+.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;position:relative}
+.meta span{background:rgba(255,255,255,.14);color:#fff;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.28)}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;position:relative}
+.toc a{text-decoration:none;padding:7px 15px;border-radius:20px;font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);transition:all .2s ease}
+.toc a:hover{background:#fff;color:var(--accent);transform:translateY(-1px)}
+
+/* view switch + tabs */
+.viewswitch{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;background:rgba(244,245,250,.92);backdrop-filter:blur(8px);padding:10px 4px;margin-bottom:6px;border-bottom:1px solid #e2e8f0}
+.viewswitch>span{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8}
+.tabbar{display:inline-flex;gap:6px;background:#e9edf5;padding:4px;border-radius:12px;margin:0 0 14px}
+.viewswitch .tabbar{margin:0}
+.tbtn{border:none;background:transparent;font-family:inherit;font-size:13px;font-weight:800;color:#64748b;padding:7px 16px;border-radius:9px;cursor:pointer;transition:all .15s ease}
+.tbtn:hover{color:#1e3a8a}
+.tbtn.active{background:#fff;color:#1e3a8a;box-shadow:0 3px 10px rgba(0,0,0,.1)}
+.tabpanel{display:none}
+body[data-view="mongo"] .tabpanel[data-panel="mongo"],body[data-view="pg"] .tabpanel[data-panel="pg"],body[data-view="both"] .tabpanel{display:block}
+.plabel{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.5px;padding:5px 14px;border-radius:20px;margin-bottom:12px}
+.plabel.mongo{background:#dcfce7;color:#166534}
+.plabel.pg{background:#dbeafe;color:#1e3a8a}
+body[data-view="both"] .tabpanel+.tabpanel{margin-top:26px;padding-top:22px;border-top:2px dashed #e2e8f0}
+
+/* section divider */
+.section-divider{margin:46px 0 20px;position:relative;display:flex;align-items:center;scroll-margin-top:90px}
+.section-divider::before{content:'';position:absolute;top:50%;left:0;right:0;height:2px;background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd);opacity:.22}
+.section-divider>span{background:#f4f5fa;padding:0 18px 0 0;position:relative;font-size:21px;font-weight:800;display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+.secnum{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;padding:0 8px;border-radius:11px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-size:16px;box-shadow:0 6px 14px rgba(37,99,235,.3)}
+.star{font-size:11.5px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;padding:3px 11px;border-radius:14px}
+
+/* cards */
+.card{border-radius:18px;background:#fff;box-shadow:0 10px 26px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.04);overflow:hidden;margin-bottom:20px}
+.card-pad{padding:24px 26px}
+.card p{color:#334155;font-size:15.5px;line-height:1.8;margin-bottom:12px;font-weight:500}
+.h3{font-size:18px;font-weight:800;color:#1e3a8a;margin:0 0 12px;padding-left:12px;border-left:4px solid #2563eb}
+.h4{font-size:12.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#64748b;margin:20px 0 8px}
+ul.plain{margin:6px 0 12px 22px}
+ul.plain li{font-size:15px;line-height:1.8;color:#334155;font-weight:500}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+
+/* callouts */
+.callout{border-radius:14px;padding:15px 20px;margin:14px 0;font-size:15px;line-height:1.75;font-weight:600}
+.callout.info{background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#3730a3}
+.callout.warn{background:linear-gradient(135deg,#ffe4e6,#fecdd3);color:#9f1239}
+.callout.ok{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46}
+.callout.amber{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e}
+.callout .cl{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.75;margin-bottom:3px}
+.callout code{background:rgba(255,255,255,.55)}
+
+/* level cards */
+.lvls{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+@media(max-width:900px){.lvls{grid-template-columns:1fr}}
+.lvl{background:#fff;border-radius:18px;padding:20px;border-top:6px solid var(--lc);box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.lvl-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.lvl-n{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#fff;background:var(--lc);padding:4px 12px;border-radius:14px}
+.lvl-star{font-size:11px;font-weight:800;color:#92400e;background:#fef3c7;padding:3px 10px;border-radius:12px}
+.lvl h3{font-size:17px;font-weight:800;margin-bottom:12px;color:#1a1a1a}
+.lvl-line{display:flex;flex-direction:column;gap:2px;background:#f8fafc;border-radius:11px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;color:#334155;font-weight:500;line-height:1.55}
+.lvl-line b{font-size:11.5px;letter-spacing:.5px;color:var(--lc)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips i{font-style:normal;font-size:11.5px;font-weight:800;padding:4px 11px;border-radius:12px}
+.chips i.ok{background:#dcfce7;color:#166534}
+.chips i.no{background:#ffe4e6;color:#9f1239}
+ul.takeaway{list-style:none;display:grid;gap:10px;margin-bottom:6px}
+ul.takeaway li{display:flex;gap:14px;align-items:flex-start;background:#f8fafc;border-left:5px solid var(--lc);border-radius:0 12px 12px 0;padding:12px 16px;font-size:14.5px;line-height:1.65;color:#334155;font-weight:500}
+ul.takeaway li b{flex-shrink:0;min-width:74px;color:var(--lc);font-weight:800}
+
+/* services */
+.svcs{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:14px 0 8px}
+@media(max-width:900px){.svcs{grid-template-columns:repeat(2,1fr)}}
+.svc{background:var(--l);border-radius:16px;padding:16px 14px;border-top:5px solid var(--c)}
+.svc-ic{width:42px;height:42px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:10px;box-shadow:0 4px 10px rgba(0,0,0,.08)}
+.svc h4{font-size:14.5px;font-weight:800;color:var(--c);margin-bottom:4px}
+.svc p{font-size:13px!important;line-height:1.55!important;margin:0!important;color:#334155}
+
+/* diagrams */
+.dfig{margin:16px 0;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+.dtitle{background:linear-gradient(120deg,#1e3a8a,#3b82f6);color:#fff;font-size:13px;font-weight:800;padding:9px 18px;letter-spacing:.2px}
+.dfig svg{padding:14px}
+.dcap{font-size:12.5px;color:#64748b;font-weight:600;text-align:center;padding:0 16px 12px;font-style:italic}
+
+/* pros / cons */
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+@media(max-width:820px){.pc{grid-template-columns:1fr}}
+.pro,.con{border-radius:16px;padding:16px 18px}
+.pro{background:#f0fdf4;border:1px solid #bbf7d0}
+.con{background:#fff1f2;border:1px solid #fecdd3}
+.pro h4,.con h4{font-size:14px;font-weight:800;margin-bottom:8px}
+.pro h4{color:#166534}.con h4{color:#9f1239}
+.pro ul,.con ul{margin-left:18px}
+.pro li,.con li{font-size:14px;line-height:1.7;color:#334155;font-weight:500;margin-bottom:3px}
+.pro p,.con p{font-size:14px!important;line-height:1.7!important;color:#334155}
+
+/* steps */
+ol.steps{list-style:none;counter-reset:st;display:grid;gap:8px;margin:8px 0 14px}
+ol.steps li{counter-increment:st;display:flex;gap:12px;align-items:flex-start;background:#f0fdf4;border-radius:12px;padding:11px 14px;font-size:14.5px;line-height:1.6;color:#334155;font-weight:500}
+ol.steps li::before{content:counter(st);flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#16a34a;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+ol.steps li b{color:#166534;font-weight:800;margin-right:4px}
+ol.steps li b::after{content:' —'}
+ol.steps.big li{background:#eff6ff;padding:14px 16px;font-size:15px}
+ol.steps.big li::before{background:linear-gradient(135deg,#1e3a8a,#3b82f6)}
+ol.steps.big li b{color:#1e3a8a}
+ol.steps.big li b::after{content:''}
+
+/* code + tree */
+.code-block{background:#1a1a1a;border-radius:12px;overflow:hidden;margin:12px 0;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+.code-bar{background:#111;padding:8px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #2b2b2b}
+.code-bar .dot{width:9px;height:9px;border-radius:50%}
+.dot-red{background:#ff5f57}.dot-grey{background:#febc2e}.dot-green{background:#28c840}
+.code-bar .filename{color:#999;font-size:12px;margin-left:8px;font-family:'Fira Code',monospace}
+.code-block pre{padding:16px 18px;overflow-x:auto;margin:0}
+.code-block code{background:none;color:#d4d4d4;font-size:13px;font-family:'Fira Code','Consolas',monospace;line-height:1.65;white-space:pre;padding:0}
+.kw{color:#c792ea;font-weight:600}.str{color:#c3e88d}.fn{color:#82aaff}.cmt{color:#7a7a7a;font-style:italic}.num{color:#f78c6c}
+details.tree{margin:8px 0}
+details.tree>summary{cursor:pointer;font-size:13px;font-weight:800;color:#475569;background:#f1f5f9;display:inline-block;padding:7px 14px;border-radius:10px;list-style:none;user-select:none}
+details.tree>summary::-webkit-details-marker{display:none}
+details.tree>summary:hover{background:#e2e8f0}
+
+/* tables */
+.tscroll{overflow-x:auto;margin:8px 0}
+table{width:100%;border-collapse:separate;border-spacing:0 8px;min-width:560px}
+th{background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899);color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;padding:12px 16px;text-align:left}
+th:first-child{border-radius:12px 0 0 12px}th:last-child{border-radius:0 12px 12px 0}
+td{padding:12px 16px;font-size:14px;font-weight:600;color:#334155;vertical-align:top;background:var(--rb,#eff6ff);line-height:1.6}
+td:first-child{border-radius:12px 0 0 12px;border-left:6px solid var(--rc,#2563eb);font-weight:800;color:var(--rd,#1e3a8a)}
+td:last-child{border-radius:0 12px 12px 0}
+td code{background:#fff;border:1px solid var(--rc,#2563eb);color:var(--rd,#1e3a8a);font-weight:700}
+tr:nth-child(6n+2){--rc:#db2777;--rb:#fdf2f8;--rd:#9d174d}
+tr:nth-child(6n+3){--rc:#d97706;--rb:#fffbeb;--rd:#92400e}
+tr:nth-child(6n+4){--rc:#059669;--rb:#ecfdf5;--rd:#065f46}
+tr:nth-child(6n+5){--rc:#7c3aed;--rb:#f5f3ff;--rd:#5b21b6}
+tr:nth-child(6n+6){--rc:#0d9488;--rb:#f0fdfa;--rd:#115e59}
+
+/* chat */
+.chat{display:grid;gap:12px}
+.bub{border-radius:18px;padding:14px 18px;max-width:92%}
+.bub .who{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:5px}
+.bub p{margin:0 0 8px!important;font-size:15px!important;line-height:1.75!important}
+.bub p:last-child{margin:0!important}
+.bub.q{background:#f1f5f9;border-bottom-left-radius:4px;color:#1e293b}
+.bub.a{background:linear-gradient(135deg,#dbeafe,#e0e7ff);border-bottom-right-radius:4px;color:#1e3a8a;margin-left:auto}
+.bub.a p{color:#1e3a8a!important;font-weight:600!important}
+
+/* faq */
+details.faq{border:1px solid #e2e8f0;border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff}
+details.faq>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:14px 18px;background:#f8fafc;user-select:none}
+details.faq>summary::-webkit-details-marker{display:none}
+details.faq>summary:hover{background:#eff6ff}
+.fn{flex-shrink:0}
+details.faq .fn{width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.fq{flex:1;font-size:15px;font-weight:700;color:#1a1a1a;line-height:1.45}
+.fch{color:#2563eb;font-size:12px;transition:transform .2s ease}
+details.faq[open] .fch{transform:rotate(180deg)}
+details.faq[open]>summary{background:#eff6ff}
+.fa{padding:14px 20px 16px 62px;font-size:14.5px;line-height:1.75;color:#334155;font-weight:500;border-top:1px solid #e2e8f0}
+
+/* revision */
+.revs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:820px){.revs{grid-template-columns:1fr}}
+.rev{background:#fff;border-radius:18px;padding:20px 22px;border-top:6px solid var(--rc);box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.rev h3{font-size:18px;font-weight:800;color:var(--rc);margin-bottom:12px}
+.rev ul{list-style:none;display:grid;gap:8px}
+.rev li{background:#f8fafc;border-radius:11px;padding:10px 14px;font-size:14px;line-height:1.6;color:#334155;font-weight:500}
+.rev li b{display:inline-block;min-width:68px;color:var(--rc);font-weight:800}
+
+@media(max-width:768px){.header h1{font-size:25px}.header{padding:30px 22px}.card-pad{padding:18px}.fa{padding-left:20px}}
+@media print{.viewswitch{display:none}.tabpanel{display:block!important}}
+
+.tabs{position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 4px;margin-bottom:18px;background:rgba(244,245,250,.96);backdrop-filter:blur(10px);border-bottom:1px solid #e2e8f0}
+.tab{text-decoration:none;font-size:13.5px;font-weight:800;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:9px 18px;border-radius:12px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 3px 10px rgba(0,0,0,.04);transition:all .15s ease}
+.tab:hover{color:#2563eb;border-color:#bfdbfe;transform:translateY(-1px)}
+.tab.active{background:linear-gradient(120deg,#1e3a8a,#3b82f6);color:#fff;border-color:transparent;box-shadow:0 8px 18px rgba(37,99,235,.3)}
+.tab small{font-weight:700;opacity:.8;font-size:11.5px}
+.pager{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap}
+.nextcard{flex:1;min-width:260px;text-decoration:none;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:18px 22px;box-shadow:0 6px 16px rgba(0,0,0,.05);transition:all .15s ease;display:block}
+.nextcard:hover{border-color:#93c5fd;transform:translateY(-2px)}
+.nextcard small{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8}
+.nextcard b{display:block;font-size:19px;color:#1e3a8a;margin:2px 0 6px}
+.nextcard span{display:block;font-size:14px;color:#475569;line-height:1.65;font-weight:500}
+.bigdef{background:linear-gradient(135deg,#eff6ff,#e0e7ff);border-left:6px solid #2563eb;border-radius:0 16px 16px 0;padding:16px 22px;margin:0 0 14px;font-size:16.5px;line-height:1.7;color:#1e3a8a;font-weight:600}
+.bigdef.sm{font-size:15px;padding:12px 18px}
+.bigdef.yes{background:linear-gradient(135deg,#dcfce7,#d1fae5);border-left-color:#16a34a;color:#14532d}
+.bigdef code{background:rgba(255,255,255,.7)}
+.bd-k{font-size:22px;font-weight:800;color:#166534}.bd-p{color:#475569;font-weight:600}
+.roles{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:8px 0}
+@media(max-width:980px){.roles{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.roles{grid-template-columns:1fr}}
+.role{background:#fff;border:1px solid #e2e8f0;border-top:5px solid var(--c);border-radius:16px;padding:16px 14px;box-shadow:0 6px 16px rgba(0,0,0,.05)}
+.role-i{width:42px;height:42px;border-radius:12px;background:color-mix(in srgb,var(--c) 12%,#fff);display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:10px}
+.role h4{font-size:15px;font-weight:800;color:var(--c);margin-bottom:5px}
+.role p{margin:0!important;font-size:13px!important;line-height:1.6!important;color:#475569}
+.mini{font-size:12px}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center}
+.vs.two{grid-template-columns:1fr 1fr;margin:14px 0}
+@media(max-width:760px){.vs,.vs.two{grid-template-columns:1fr}.vs-mid{display:none}}
+.vs-c{background:color-mix(in srgb,var(--c) 8%,#fff);border:2px solid var(--c);border-radius:18px;padding:18px 20px}
+.vs-h{font-size:19px;font-weight:800;color:var(--c);margin-bottom:6px}
+.vs-c p{margin:0 0 8px!important;font-size:15px!important}
+.vs-c ul{margin:0 0 0 20px}.vs-c li{font-size:14.5px;font-weight:600;color:#334155;line-height:1.8}
+.vs-mid{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-size:26px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.path{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 2px}
+.path span{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;padding:8px 14px;font-size:13.5px;font-weight:800;color:#334155}
+.path span:last-child{background:#dcfce7;border-color:#86efac;color:#166534}
+.path i{font-style:normal;color:#94a3b8;font-weight:800}
+.stepcard{display:flex;gap:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:16px 18px;margin:12px 0}
+.sn{flex-shrink:0;width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 12px rgba(37,99,235,.3)}
+.sb{flex:1;min-width:0}
+.sb h4{font-size:16px;font-weight:800;color:#1a1a1a;margin-bottom:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sb p{margin-bottom:8px!important}
+.sb .code-block{margin:8px 0}
+.shell{font-size:11px;font-weight:800;letter-spacing:.4px;padding:3px 11px;border-radius:12px;color:#fff}
+.shell.ps{background:#2563eb}.shell.ub{background:#e95420}.shell.dd{background:#0891b2}
+.crumbs{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.crumbs span{background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:7px 14px;font-size:13.5px;font-weight:800;color:#334155}
+.crumbs span.go{background:#16a34a;border-color:#16a34a;color:#fff}
+.crumbs i{font-style:normal;color:#94a3b8;font-weight:800}
+.notecard{background:#fffbeb;border:1px solid #fde68a;border-radius:16px;padding:16px 20px;margin-top:16px}
+.nc-h{font-size:15px;font-weight:800;color:#92400e;margin-bottom:8px}
+.plainol{margin:0 0 10px 22px}.plainol li{font-size:15px;line-height:1.8;color:#334155;font-weight:500}
+.filetree{background:#0f172a;border-radius:14px;padding:16px 20px;font-family:'Fira Code','Consolas',monospace;font-size:13.5px;overflow-x:auto;margin:12px 0}
+.tr{display:flex;align-items:center;gap:8px;padding:3px 0 3px calc(var(--d)*26px);white-space:nowrap}
+.tr .ti{font-size:15px}.tn{color:#e2e8f0;font-weight:600}.tn.folder{color:#7dd3fc;font-weight:800}
+.tnote{font-family:'Segoe UI',system-ui,sans-serif;font-size:11.5px;font-weight:700;color:#fde68a;background:rgba(253,230,138,.12);padding:2px 10px;border-radius:10px;margin-left:6px}
+.copybtn{margin-left:auto;border:none;background:rgba(255,255,255,.1);color:#cbd5e1;font-family:'Segoe UI',system-ui,sans-serif;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:8px;cursor:pointer}
+.copybtn:hover{background:rgba(255,255,255,.22);color:#fff}.copybtn.done{background:#16a34a;color:#fff}
+.plabel{display:inline-block;font-size:12px;font-weight:800;padding:4px 12px;border-radius:14px;margin-bottom:6px;background:#dbeafe;color:#1e3a8a}
+.quote{border-left:5px solid #2563eb;background:linear-gradient(135deg,#eff6ff,#e0e7ff);border-radius:0 16px 16px 0;padding:16px 22px;margin:8px 0}
+.quote p{margin:0!important;font-size:16px!important;line-height:1.8!important;color:#1e3a8a!important;font-weight:600!important}
+.quote code{background:rgba(255,255,255,.7)}
+.refrow{margin-top:12px;display:flex}
+.ref{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;text-decoration:none;color:#1e3a8a;background:#fff;border:1px solid rgba(0,0,0,.08);padding:7px 14px;border-radius:20px;box-shadow:0 3px 8px rgba(0,0,0,.05)}
+.ref:hover{background:#eff6ff;border-color:#3b82f6}
+.hint{font-size:13.5px!important;color:#64748b!important}
+.pmap{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0 10px;font-family:'Fira Code',monospace}
+.pmap i{font-style:normal;font-size:26px;font-weight:800;color:#94a3b8}
+.pchip{border:3px solid transparent;font-family:'Fira Code',monospace;font-size:24px;font-weight:800;padding:10px 20px;border-radius:14px;cursor:pointer;transition:all .12s ease;color:#fff}
+.pchip.hip{background:#7c3aed}.pchip.hp{background:#d97706}.pchip.cp{background:#059669}
+.pchip:not(.on){opacity:.45}.pchip.on{box-shadow:0 8px 20px rgba(0,0,0,.25);transform:translateY(-2px);border-color:rgba(255,255,255,.7)}
+.pmean{border-radius:14px;padding:14px 20px;margin-bottom:12px;font-size:15.5px;font-weight:700;line-height:1.6;color:#fff;background:#7c3aed;transition:background .15s ease}
+.pmean small{display:block;font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;opacity:.8;margin-bottom:2px}
+.statuses{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0}
+@media(max-width:700px){.statuses{grid-template-columns:1fr}}
+.stt{border-radius:14px;padding:14px 18px;display:flex;flex-direction:column;gap:2px}
+.stt b{font-family:'Fira Code',monospace;font-size:15px}.stt span{font-size:14px;font-weight:600}
+.stt.up{background:#dcfce7;color:#166534}.stt.ex{background:#fef3c7;color:#92400e}
+.cmds{display:grid;gap:10px;margin:8px 0}
+.cmd{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:center}
+@media(max-width:760px){.cmd{grid-template-columns:1fr}}
+.cmd .code-block{margin:0}.cmd p{margin:0!important}
+ul.feat4{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:8px 0 14px}
+@media(max-width:820px){ul.feat4{grid-template-columns:1fr 1fr}}
+ul.feat4 li{background:#f5f3ff;border-radius:14px;padding:14px 12px;font-size:13.5px;font-weight:700;color:#5b21b6;text-align:center;line-height:1.45}
+ul.feat4 li span{display:block;font-size:24px;margin-bottom:6px}
+.triage{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;margin:8px 0}
+.triage div{flex:1;min-width:150px;background:#eff6ff;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.triage span{width:26px;height:26px;border-radius:8px;background:#2563eb;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px}
+.triage b{font-size:15px;color:#1e3a8a}.triage small{font-size:12.5px}
+.triage i{font-style:normal;align-self:center;font-weight:800;color:#94a3b8;font-size:20px}
+.chbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:8px 0 6px}
+#chq{flex:1;min-width:220px;border:1px solid #cbd5e1;border-radius:12px;padding:10px 14px;font:inherit;font-size:14px;outline:none}
+#chq:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+.chcats{display:flex;gap:6px;flex-wrap:wrap}
+.chcat{border:none;background:#f1f5f9;color:#475569;font-family:inherit;font-size:12px;font-weight:800;padding:6px 12px;border-radius:14px;cursor:pointer}
+.chcat.on{background:#1e3a8a;color:#fff}
+.chtable td:nth-child(2){font-family:'Fira Code',monospace;font-size:12.5px;cursor:pointer;word-break:break-all}
+.chtable td:nth-child(2):hover{text-decoration:underline}
+.chtable td:first-child{font-size:12.5px}
+.chempty{text-align:center;color:#94a3b8;font-weight:700;padding:14px}
+.chtable tr.flash td:nth-child(2){background:#bbf7d0!important}
+</style>
+<link rel="stylesheet" href="../docker/floating-side-nav.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="ar-slate" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#64748b"/></marker>
+<marker id="ar-red" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#e11d48"/></marker>
+<marker id="ar-green" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#16a34a"/></marker>
+<marker id="ar-blue" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#2563eb"/></marker>
+<marker id="ar-amber" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#d97706"/></marker>
+<marker id="ar-purple" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#7c3aed"/></marker>
+<marker id="ar-orange" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#f97316"/></marker>
+</defs></svg>
+<div class="container">
+<nav class="tabs"><a class="tab" href="nginx-1-concepts.html">🟩 Part 1 <small>Nginx concepts</small></a><a class="tab active" href="nginx-2-docker-lab.html">🐳 Part 2 <small>WSL, Docker &amp; lab practice</small></a></nav>
+<div class="header">
+  <span class="tag">NGINX · PART 2 OF 2 · HANDS-ON LAB</span>
+  <h1>🐳 WSL, Docker &amp; Nginx Lab Practice</h1>
+  <p>Set up a Linux environment on Windows, then practise running, testing, inspecting and removing Nginx containers.</p>
+  <div class="meta"><span>🪟 Windows</span><span>🐧 WSL 2 + Ubuntu</span><span>🐳 Docker Desktop</span><span>🟩 Nginx</span></div>
+  <div class="toc"><a href="#s0">Goal</a><a href="#sA">WSL &amp; Ubuntu</a><a href="#sB">Integration</a><a href="#sC">Helper tools</a><a href="#sD">Restart &amp; verify</a><a href="#sW">3.4 Workspace</a><a href="#d41">4 · Docker</a><a href="#d44">Port mapping</a><a href="#d410">Lifecycle</a><a href="#dch">Cheat sheet</a></div>
+</div>
+<div class="section-divider" id="s0"><span><b class="secnum">★</b>What this setup gives you</span></div><div class="card"><div class="card-pad"><div class="bigdef"><strong>Goal:</strong> the setup below lets you run <strong>Linux-based Docker containers</strong> — such as Nginx and Node.js — on your <strong>Windows laptop</strong>.</div>
+<div class="path"><span>🪟 Windows</span><i>→</i><span>⚙️ WSL 2</span><i>→</i><span>🐧 Ubuntu</span><i>→</i><span>🐳 Docker Desktop</span><i>→</i><span>🟩 Nginx + 🟢 Node.js containers</span></div></div></div>
+<div class="section-divider" id="sA"><span><b class="secnum">1</b>Install WSL and Ubuntu</span></div><div class="card"><div class="card-pad">
+<div class="stepcard"><div class="sn">1</div><div class="sb"><h4>Install WSL and Ubuntu <span class="shell ps">PowerShell</span></h4><p>Open <strong>PowerShell → Run as Administrator</strong>, then run:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">PowerShell (Administrator)</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">wsl</span> <span class="num">--install</span> <span class="num">-d</span> Ubuntu</code></pre></div></div></div>
+<div class="tscroll"><table><tr><th>Part</th><th>Meaning</th></tr><tr><td><code>wsl</code></td><td>Windows tool for managing Linux environments</td></tr><tr><td><code>--install</code></td><td>Installs the required components</td></tr><tr><td><code>-d Ubuntu</code></td><td>Selects Ubuntu as the Linux distribution</td></tr></table></div>
+<h4 class="h4">Note: what is WSL?</h4>
+<p><strong>WSL</strong> stands for <strong>Windows Subsystem for Linux</strong>. It lets you run Linux environments, such as Ubuntu, inside Windows. The “2” means version 2 of WSL.</p>
+<figure class="dfig"><div class="dtitle">How the layers stack up</div><svg class="diagram" viewBox="0 0 760 352" role="img" aria-label="Layers: Windows, WSL 2, Ubuntu and Docker containers, with WSL 1 versus WSL 2"><rect x="14" y="14" width="392" height="66" rx="14" fill="#dbeafe" stroke="#2563eb" stroke-width="2.2"/><text x="210" y="42" font-size="15" font-weight="800" fill="#2563eb" text-anchor="middle">🐳 Docker containers</text><text x="210" y="62" font-size="12" font-weight="700" fill="#475569" text-anchor="middle">Nginx · Node.js</text><line x1="210" y1="82" x2="210" y2="100" stroke="#64748b" stroke-width="2.2" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="14" y="92" width="392" height="66" rx="14" fill="#ffedd5" stroke="#e95420" stroke-width="2.2"/><text x="210" y="120" font-size="15" font-weight="800" fill="#e95420" text-anchor="middle">🐧 Ubuntu</text><text x="210" y="140" font-size="12" font-weight="700" fill="#475569" text-anchor="middle">the Linux distribution you use</text><line x1="210" y1="160" x2="210" y2="178" stroke="#64748b" stroke-width="2.2" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="14" y="170" width="392" height="66" rx="14" fill="#dcfce7" stroke="#16a34a" stroke-width="2.2"/><text x="210" y="198" font-size="15" font-weight="800" fill="#16a34a" text-anchor="middle">⚙️ WSL 2</text><text x="210" y="218" font-size="12" font-weight="700" fill="#475569" text-anchor="middle">real Linux kernel in a lightweight VM</text><line x1="210" y1="238" x2="210" y2="256" stroke="#64748b" stroke-width="2.2" stroke-linecap="round" marker-end="url(#ar-slate)"/><rect x="14" y="248" width="392" height="66" rx="14" fill="#e0f2fe" stroke="#0ea5e9" stroke-width="2.2"/><text x="210" y="276" font-size="15" font-weight="800" fill="#0ea5e9" text-anchor="middle">🪟 Windows</text><text x="210" y="296" font-size="12" font-weight="700" fill="#475569" text-anchor="middle">your operating system</text><text x="210" y="340" font-size="11.5" font-weight="700" fill="#64748b" text-anchor="middle" font-style="italic">runs on top of ↑ — each layer sits on the one below</text><rect x="440" y="22" width="310" height="138" rx="14" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="595" y="50" font-size="15" font-weight="800" fill="#475569" text-anchor="middle">WSL 1</text><text x="595" y="82" font-size="12.5" font-weight="700" fill="#334155" text-anchor="middle">Translates Linux system calls</text><text x="595" y="102" font-size="12.5" font-weight="700" fill="#334155" text-anchor="middle">into operations</text><text x="595" y="122" font-size="12.5" font-weight="700" fill="#334155" text-anchor="middle">Windows understands</text><rect x="440" y="178" width="310" height="150" rx="14" fill="#f0fdf4" stroke="#16a34a" stroke-width="2.4"/><text x="595" y="206" font-size="15" font-weight="800" fill="#166534" text-anchor="middle">WSL 2 ✅</text><text x="595" y="238" font-size="12.5" font-weight="700" fill="#14532d" text-anchor="middle">Runs a real Linux kernel</text><text x="595" y="258" font-size="12.5" font-weight="700" fill="#14532d" text-anchor="middle">inside a lightweight virtual machine</text><text x="595" y="288" font-size="12.5" font-weight="800" fill="#15803d" text-anchor="middle">Better Linux compatibility</text></svg></figure>
+<div class="tscroll"><table><tr><th>Version</th><th>How it works</th></tr><tr><td>WSL 1</td><td>Translates Linux system calls into operations Windows understands</td></tr><tr><td>WSL 2</td><td>Runs a real Linux kernel inside a lightweight virtual machine, providing better Linux compatibility</td></tr></table></div>
+<div class="callout ok"><span class="cl">For your setup</span>Windows is your operating system, <strong>WSL 2</strong> provides the Linux environment, and <strong>Ubuntu</strong> is the Linux distribution you use.</div></div></div>
+<div class="section-divider" id="sB"><span><b class="secnum">2</b>Enable Ubuntu integration</span></div><div class="card"><div class="card-pad">
+<div class="stepcard"><div class="sn">2</div><div class="sb"><h4>Enable Ubuntu integration <span class="shell dd">Docker Desktop</span></h4><p>In Docker Desktop, check:</p><div class="crumbs"><span>Settings</span><i>→</i><span>Resources</span><i>→</i><span>WSL Integration</span><i>→</i><span>enable Ubuntu</span><i>→</i><span class="go">Apply</span></div></div></div></div></div>
+<div class="section-divider" id="sC"><span><b class="secnum">3</b>Install the helper tools in Ubuntu</span></div><div class="card"><div class="card-pad">
+<div class="stepcard"><div class="sn">3</div><div class="sb"><h4>Install the helper tools in Ubuntu <span class="shell ub">Ubuntu / Bash</span></h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">sudo</span> apt update
+<span class="kw">sudo</span> apt install <span class="num">-y</span> ca-certificates curl openssl</code></pre></div></div></div>
+<h4 class="h4"><code>sudo apt update</code></h4>
+<p>This command refreshes Ubuntu’s list of available software packages and their versions.</p>
+<div class="tscroll"><table><tr><th>Part</th><th>Meaning</th></tr><tr><td><code>sudo</code></td><td>Runs the command with administrator privileges</td></tr><tr><td><code>apt</code></td><td>Advanced Package Tool — manages software packages in Ubuntu</td></tr><tr><td><code>update</code></td><td>Downloads the latest package information from configured repositories</td></tr></table></div>
+<div class="callout info"><span class="cl">Note</span>It updates the package <strong>list</strong>, not the installed software.</div>
+<h4 class="h4"><code>sudo apt install -y ca-certificates curl openssl</code></h4>
+<div class="bigdef sm"><strong>Meaning:</strong> “Install these three tools with administrator permission, and automatically answer yes.”</div>
+<div class="tscroll"><table><tr><th>Part</th><th>Simple meaning</th></tr><tr><td><code>sudo</code></td><td>Run as administrator</td></tr><tr><td><code>apt install</code></td><td>Install software</td></tr><tr><td><code>-y</code></td><td>Automatically say <strong>yes</strong> to confirmation</td></tr><tr><td><code>ca-certificates</code></td><td>Helps verify trusted HTTPS websites</td></tr><tr><td><code>curl</code></td><td>Sends requests to websites/APIs</td></tr><tr><td><code>openssl</code></td><td>Works with SSL/TLS certificates and encryption</td></tr></table></div>
+<div class="callout ok"><span class="cl">For your Nginx practice</span><code>curl</code> tests requests, and <code>openssl</code> helps create a local HTTPS certificate.</div></div></div>
+<div class="section-divider" id="sD"><span><b class="secnum">4</b>Restart WSL and verify Docker</span></div><div class="card"><div class="card-pad">
+<p>Restart WSL so the Docker integration takes effect, then verify.</p>
+<div class="stepcard"><div class="sn">1</div><div class="sb"><h4>Exit the Linux shell <span class="shell ub">Ubuntu / Bash</span></h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">exit</span></code></pre></div></div></div>
+<div class="stepcard"><div class="sn">2</div><div class="sb"><h4>Quit Docker Desktop, then run <span class="shell ps">PowerShell</span></h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">PowerShell</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">wsl</span> <span class="num">--shutdown</span></code></pre></div></div></div>
+<div class="stepcard"><div class="sn">3</div><div class="sb"><h4>Reopen Docker Desktop <span class="shell dd">Docker Desktop</span></h4><p>Wait for the engine to start.</p></div></div>
+<div class="stepcard"><div class="sn">4</div><div class="sb"><h4>Enter Ubuntu again <span class="shell ps">PowerShell</span></h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">PowerShell</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">wsl</span> <span class="num">-d</span> Ubuntu</code></pre></div></div></div>
+<div class="stepcard"><div class="sn">5</div><div class="sb"><h4>Verify Docker <span class="shell ub">Ubuntu / Bash</span></h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> version
+<span class="kw">docker</span> compose version
+<span class="kw">docker</span> run <span class="num">--rm</span> hello-world</code></pre></div></div></div></div></div>
+<div class="section-divider" id="sW"><span><b class="secnum">3.4</b>Create a workspace</span></div><div class="card"><div class="card-pad">
+<div class="stepcard"><div class="sn">1</div><div class="sb"><h4>Open Ubuntu </h4><p>If you are currently in PowerShell, run:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">PowerShell</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">wsl</span> <span class="num">-d</span> Ubuntu</code></pre></div></div></div>
+<div class="stepcard"><div class="sn">2</div><div class="sb"><h4>Create and enter the project folder <span class="shell ub">Ubuntu / Bash</span></h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu / Bash</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">mkdir</span> <span class="num">-p</span> ~/nginx-lab
+<span class="kw">cd</span> ~/nginx-lab</code></pre></div></div></div>
+<div class="tscroll"><table><tr><th>Command</th><th>Meaning</th></tr><tr><td><code>mkdir -p</code></td><td>Creates the folder and any missing parent folders; accepts existing folders</td></tr><tr><td><code>~</code></td><td>Your Ubuntu home directory: <code>/home/shivam_singh</code></td></tr><tr><td><code>cd</code></td><td>Moves into a directory</td></tr></table></div>
+<p>Your workspace will be:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">workspace path</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>/home/shivam_singh/nginx-lab</code></pre></div>
+<div class="callout warn"><span class="cl">Use one workspace</span>This is a separate location from your existing Windows folder, <code>D:\ngnix-learn</code>, which appears in Ubuntu as <code>/mnt/d/ngnix-learn</code>. Use one workspace consistently.</div>
+<div class="stepcard"><div class="sn">3</div><div class="sb"><h4>Create the lab folders <span class="shell ub">Ubuntu / Bash</span></h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">mkdir</span> <span class="num">-p</span> auth property nginx/conf.d nginx/snippets web frontend/src certs backups</code></pre></div></div></div>
+<div class="filetree"><div class="tr" style="--d:0"><span class="ti">📁</span><span class="tn folder">nginx-lab/</span><span class="tnote">/home/shivam_singh/nginx-lab</span></div><div class="tr" style="--d:1"><span class="ti">📁</span><span class="tn folder">auth/</span><span class="tnote">Node.js authentication service</span></div><div class="tr" style="--d:1"><span class="ti">📁</span><span class="tn folder">property/</span><span class="tnote">Node.js property service</span></div><div class="tr" style="--d:1"><span class="ti">📁</span><span class="tn folder">nginx/</span></div><div class="tr" style="--d:2"><span class="ti">📁</span><span class="tn folder">conf.d/</span><span class="tnote">server and routing configurations</span></div><div class="tr" style="--d:2"><span class="ti">📁</span><span class="tn folder">snippets/</span><span class="tnote">reusable Nginx configuration sections</span></div><div class="tr" style="--d:1"><span class="ti">📁</span><span class="tn folder">web/</span><span class="tnote">simple HTML files for static-site practice</span></div><div class="tr" style="--d:1"><span class="ti">📁</span><span class="tn folder">frontend/</span></div><div class="tr" style="--d:2"><span class="ti">📁</span><span class="tn folder">src/</span><span class="tnote">frontend source code</span></div><div class="tr" style="--d:1"><span class="ti">📁</span><span class="tn folder">certs/</span><span class="tnote">local HTTPS certificates and keys</span></div><div class="tr" style="--d:1"><span class="ti">📁</span><span class="tn folder">backups/</span><span class="tnote">configuration backups</span></div></div>
+<div class="tscroll"><table><tr><th>Folder</th><th>Purpose</th></tr><tr><td><code>auth</code></td><td>Node.js authentication service</td></tr><tr><td><code>property</code></td><td>Node.js property service</td></tr><tr><td><code>nginx/conf.d</code></td><td>Nginx server and routing configurations</td></tr><tr><td><code>nginx/snippets</code></td><td>Reusable Nginx configuration sections</td></tr><tr><td><code>web</code></td><td>Simple HTML files for static-site practice</td></tr><tr><td><code>frontend/src</code></td><td>Frontend source code</td></tr><tr><td><code>certs</code></td><td>Local HTTPS certificates and keys</td></tr><tr><td><code>backups</code></td><td>Configuration backups</td></tr></table></div>
+<div class="stepcard"><div class="sn">4</div><div class="sb"><h4>Verify the workspace </h4><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">pwd</span>
+<span class="kw">ls</span></code></pre></div><p><code>pwd</code> should display:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">output</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>/home/shivam_singh/nginx-lab</code></pre></div><p><code>ls</code> should list your newly created top-level folders.</p></div></div>
+<div class="stepcard"><div class="sn">5</div><div class="sb"><h4>Open it in VS Code </h4><p>With <strong>VS Code installed on Windows</strong> and its <strong>WSL extension</strong> enabled, run from Ubuntu:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">code</span> .</code></pre></div><p>The <code>.</code> means <strong>the current directory</strong>. VS Code should open the workspace in a WSL window.</p></div></div>
+<div class="notecard"><div class="nc-h">📝 Note — what does <code>mkdir -p</code> mean?</div>
+<p>In <code>mkdir -p</code>, the <code>-p</code> means <strong>“parents.”</strong> It does two things:</p><ol class="plainol"><li>Creates missing parent folders.</li><li>Doesn’t give an error if the folder already exists.</li></ol>
+<p>Example: <code>mkdir -p nginx/conf.d</code> — if neither folder exists, it creates <code>nginx</code> first, then <code>conf.d</code> inside it. Without <code>-p</code>, <code>mkdir nginx/conf.d</code> fails if the parent folder <code>nginx</code> doesn’t exist.</p>
+<div class="callout ok"><span class="cl">Remember</span><code>mkdir -p</code> = “Create the whole folder path, and accept folders that already exist.”</div></div></div></div>
+<div class="section-divider" id="d41"><span><b class="secnum">4.1</b>Image vs container</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>An image is a package; a container is an instance created from that package.</strong></div>
+<figure class="dfig"><div class="dtitle">One image, many containers</div><svg class="diagram" viewBox="0 0 760 304" role="img" aria-label="One image creating several containers, each with its own writable layer"><rect x="14" y="70" width="230" height="160" rx="16" fill="#eff6ff" stroke="#2563eb" stroke-width="2.4"/><text x="129" y="104" font-size="16" font-weight="800" fill="#1e3a8a" text-anchor="middle">📦 Image</text><text x="129" y="130" font-size="13" font-weight="800" fill="#2563eb" text-anchor="middle" class="mono">nginx:stable-alpine</text><text x="129" y="160" font-size="11.5" font-weight="700" fill="#475569" text-anchor="middle">app files · libraries ·</text><text x="129" y="178" font-size="11.5" font-weight="700" fill="#475569" text-anchor="middle">configuration · startup instructions</text><text x="129" y="208" font-size="11.5" font-weight="800" fill="#1e3a8a" text-anchor="middle" font-style="italic">a package — read-only</text><line x1="246" y1="150" x2="372" y2="60" stroke="#16a34a" stroke-width="2.4" stroke-linecap="round" marker-end="url(#ar-green)"/><rect x="376" y="26" width="374" height="76" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/><text x="396" y="54" font-size="13.5" font-weight="800" fill="#16a34a" text-anchor="start" class="mono">🐳 nginx-practice</text><text x="396" y="74" font-size="11.5" font-weight="700" fill="#64748b" text-anchor="start" class="mono">127.0.0.1:8080</text><rect x="584" y="40" width="152" height="48" rx="9" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/><text x="660" y="60" font-size="11.5" font-weight="800" fill="#92400e" text-anchor="middle">writable layer</text><text x="660" y="76" font-size="10.5" font-weight="600" fill="#92400e" text-anchor="middle">(its own)</text><line x1="246" y1="150" x2="372" y2="142" stroke="#16a34a" stroke-width="2.4" stroke-linecap="round" marker-end="url(#ar-green)"/><rect x="376" y="108" width="374" height="76" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/><text x="396" y="136" font-size="13.5" font-weight="800" fill="#16a34a" text-anchor="start" class="mono">🐳 nginx-site</text><text x="396" y="156" font-size="11.5" font-weight="700" fill="#64748b" text-anchor="start" class="mono">127.0.0.1:8081</text><rect x="584" y="122" width="152" height="48" rx="9" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/><text x="660" y="142" font-size="11.5" font-weight="800" fill="#92400e" text-anchor="middle">writable layer</text><text x="660" y="158" font-size="10.5" font-weight="600" fill="#92400e" text-anchor="middle">(its own)</text><line x1="246" y1="150" x2="372" y2="224" stroke="#64748b" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#ar-slate)"/><rect x="376" y="190" width="374" height="76" rx="12" fill="#f8fafc" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 4"/><text x="396" y="218" font-size="13.5" font-weight="800" fill="#94a3b8" text-anchor="start">🐳 …more containers</text><text x="396" y="238" font-size="11.5" font-weight="700" fill="#64748b" text-anchor="start">same image, new instance</text><rect x="584" y="204" width="152" height="48" rx="9" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/><text x="660" y="224" font-size="11.5" font-weight="800" fill="#92400e" text-anchor="middle">writable layer</text><text x="660" y="240" font-size="10.5" font-weight="600" fill="#92400e" text-anchor="middle">(its own)</text><text x="380" y="290" font-size="12.5" font-weight="800" fill="#475569" text-anchor="middle" font-style="italic">One image → several containers. Changing a container does not change the original image.</text></svg></figure>
+<div class="tscroll"><table><tr><th>Term</th><th>Better explanation</th><th>Example</th></tr><tr><td>Image</td><td>Contains application files, libraries, configuration and startup instructions</td><td><code>nginx:stable-alpine</code> contains Nginx and its supporting files</td></tr><tr><td>Container</td><td>An isolated environment created from an image; it can run or remain stopped</td><td>A container named <code>nginx-practice</code> running a web server</td></tr><tr><td>Dockerfile</td><td>A text file describing how to build your own image</td><td>Start with Nginx, then copy your website into the image</td></tr><tr><td>Docker Compose</td><td>A tool that reads a YAML file to manage related containers</td><td>Start Nginx, Auth and Property services together</td></tr><tr><td>Bind mount</td><td>Exposes an existing file or directory from your computer inside a container</td><td>Make your local HTML files available to Nginx</td></tr></table></div>
+<p>One image can create several containers. Each container has its own writable filesystem layer; modifying a container does not modify the original image.</p>
+<div class="refrow"><a class="ref" href="https://docs.docker.com/get-started/docker-concepts/the-basics/what-is-an-image/" target="_blank" rel="noopener">📘 Docker Docs — what is an image ↗</a></div></div></div>
+<div class="section-divider" id="d42"><span><b class="secnum">4.2</b>Download the Nginx image</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>First, download the Nginx image.</strong></div>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> pull nginx:stable-alpine</code></pre></div>
+<div class="tscroll"><table><tr><th>Part</th><th>Meaning</th></tr><tr><td><code>pull</code></td><td>Download an image</td></tr><tr><td><code>nginx</code></td><td>Image repository/name</td></tr><tr><td><code>stable-alpine</code></td><td>Tag identifying a particular image variant</td></tr><tr><td><code>alpine</code></td><td>A small Linux distribution used as the image’s base</td></tr></table></div>
+<p>List downloaded images:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> image ls</code></pre></div>
+<div class="callout info"><span class="cl">Good to know</span>Downloading an image <strong>does not start a container</strong>. Also, <code>docker run</code> automatically downloads a missing image, so a separate <code>pull</code> is optional.</div></div></div>
+<div class="section-divider" id="d43"><span><b class="secnum">4.3</b>Create a container you can stop and start</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>Now create a container you can stop and start repeatedly.</strong></div>
+<p>For this exercise, leave out <code>--rm</code> so the stopped container remains available:</p>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> run <span class="num">-d</span> <span class="num">--name</span> nginx-practice <span class="num">-p</span> 127.0.0.1:8080:80 nginx:stable-alpine</code></pre></div>
+<div class="callout warn"><span class="cl">Port 8080 busy?</span>If your earlier <code>nginx-check</code> container is still using port <code>8080</code>, stop it first: <code>docker stop nginx-check</code></div>
+<div class="tscroll"><table><tr><th>Part</th><th>Explanation</th></tr><tr><td><code>docker run</code></td><td>Creates and starts a <strong>new</strong> container</td></tr><tr><td><code>-d</code></td><td>Runs it in the background</td></tr><tr><td><code>--name nginx-practice</code></td><td>Assigns a name you can use in later commands</td></tr><tr><td><code>-p 127.0.0.1:8080:80</code></td><td>Publishes the container’s port</td></tr><tr><td><code>nginx:stable-alpine</code></td><td>Selects the image</td></tr></table></div>
+<p>With <code>-d</code>, your terminal becomes available immediately while Nginx continues running. Docker prints the new container’s ID.</p>
+<div class="refrow"><a class="ref" href="https://docs.docker.com/reference/cli/docker/container/run/" target="_blank" rel="noopener">📘 Docker Docs — docker container run ↗</a></div></div></div>
+<div class="section-divider" id="d44"><span><b class="secnum">4.4</b>Port mapping</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>Port mapping connects your browser to the application inside the container.</strong></div>
+<p class="hint">👆 Click each part of the mapping to see what it means.</p>
+<div class="pmap" id="pmap">
+  <button type="button" class="pchip hip on" data-k="0">127.0.0.1</button><i>:</i><button type="button" class="pchip hp" data-k="1">8080</button><i>:</i><button type="button" class="pchip cp" data-k="2">80</button>
+</div>
+<div class="pmean" id="pmean"></div>
+<figure class="dfig"><div class="dtitle">How a browser request reaches Nginx</div><svg class="diagram" viewBox="0 0 760 200" role="img" aria-label="Browser connects to host port 8080 which Docker forwards to container port 80"><rect x="10" y="54" width="190" height="80" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="2.2"/><text x="105" y="88" font-size="13.5" font-weight="800" fill="#2563eb" text-anchor="middle">🌐 Browser</text><text x="105" y="110" font-size="12.5" font-weight="800" fill="#1e40af" text-anchor="middle" class="mono">localhost:8080</text><line x1="202" y1="94" x2="262" y2="94" stroke="#2563eb" stroke-width="3" stroke-linecap="round" marker-end="url(#ar-blue)"/><rect x="266" y="30" width="230" height="128" rx="14" fill="#fef3c7" stroke="#d97706" stroke-width="2.2"/><text x="381" y="60" font-size="12.5" font-weight="800" fill="#b45309" text-anchor="middle">🐳 Docker on your computer</text><rect x="286" y="76" width="190" height="56" rx="10" fill="#fff" stroke="#d97706" stroke-width="1.6"/><text x="381" y="100" font-size="13" font-weight="800" fill="#92400e" text-anchor="middle" class="mono">host port 8080</text><text x="381" y="120" font-size="11" font-weight="700" fill="#64748b" text-anchor="middle">bound to 127.0.0.1</text><line x1="498" y1="94" x2="556" y2="94" stroke="#d97706" stroke-width="3" stroke-linecap="round" marker-end="url(#ar-amber)"/><rect x="560" y="54" width="190" height="80" rx="14" fill="#d1fae5" stroke="#059669" stroke-width="2.2"/><text x="655" y="86" font-size="13" font-weight="800" fill="#059669" text-anchor="middle">🗂️ Nginx container</text><text x="655" y="110" font-size="12.5" font-weight="800" fill="#065f46" text-anchor="middle" class="mono">container port 80</text><text x="380" y="186" font-size="12" font-weight="700" fill="#475569" text-anchor="middle" font-style="italic">Binding to 127.0.0.1 keeps the published entry point local to your computer</text></svg></figure>
+<div class="tscroll"><table><tr><th>Position</th><th>Value</th><th>Meaning</th></tr><tr><td>Host IP</td><td><code>127.0.0.1</code></td><td>Accept connections through your computer’s loopback address</td></tr><tr><td>Host port</td><td><code>8080</code></td><td>Port you use in your browser</td></tr><tr><td>Container port</td><td><code>80</code></td><td>Port where Nginx listens inside the container</td></tr></table></div>
+<p>Open <a href="http://localhost:8080" target="_blank" rel="noopener"><strong>http://localhost:8080</strong></a>. Docker receives the connection on your computer’s port <code>8080</code> and forwards it to Nginx on container port <code>80</code>.</p>
+<p>Two containers can both use port <code>80</code> internally, but they need different published host ports if they use the same host IP:</p>
+<div class="tscroll"><table><tr><th>Container</th><th>Port mapping</th><th>Browser address</th></tr><tr><td>First Nginx</td><td><code>127.0.0.1:8080:80</code></td><td><code>http://localhost:8080</code></td></tr><tr><td>Second Nginx</td><td><code>127.0.0.1:8081:80</code></td><td><code>http://localhost:8081</code></td></tr></table></div>
+<p>Binding to <code>127.0.0.1</code> keeps these published entry points local to your computer.</p>
+<div class="refrow"><a class="ref" href="https://docs.docker.com/engine/network/port-publishing/" target="_blank" rel="noopener">📘 Docker Docs — port publishing ↗</a></div></div></div>
+<div class="section-divider" id="d45"><span><b class="secnum">4.5</b>Check which containers exist</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>Check which containers exist and which are running.</strong></div>
+<div class="two"><div><div class="plabel">Running containers</div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> ps</code></pre></div></div><div><div class="plabel">All containers, including stopped</div><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> ps <span class="num">-a</span></code></pre></div></div></div>
+<div class="tscroll"><table><tr><th>Output column</th><th>Meaning</th></tr><tr><td><code>CONTAINER ID</code></td><td>Identifier for the container</td></tr><tr><td><code>IMAGE</code></td><td>Image used to create it</td></tr><tr><td><code>STATUS</code></td><td>Whether it is running, stopped or in another state</td></tr><tr><td><code>PORTS</code></td><td>Port information and published mappings</td></tr><tr><td><code>NAMES</code></td><td>Container name</td></tr></table></div>
+<p>Typical statuses:</p>
+<div class="statuses"><div class="stt up"><b>Up …</b><span>the container’s main process is running.</span></div><div class="stt ex"><b>Exited (…)</b><span>its main process has stopped.</span></div></div>
+<div class="callout warn"><span class="cl">Not proof</span><code>Up</code> alone does <strong>not</strong> prove that the website or API works — test it with a request.</div></div></div>
+<div class="section-divider" id="d46"><span><b class="secnum">4.6</b>Test with curl</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>Use <code>curl</code> to test Nginx without opening a browser.</strong></div>
+<div class="cmds">
+ <div class="cmd"><div class="cmd-c"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">curl</span> http://localhost:8080</code></pre></div></div><p>Prints the response body — in this case, the default page’s HTML.</p></div>
+ <div class="cmd"><div class="cmd-c"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">curl</span> <span class="num">-I</span> http://localhost:8080</code></pre></div></div><p>Sends a <strong>HEAD request</strong>, displaying response headers without the HTML body.</p></div>
+ <div class="cmd"><div class="cmd-c"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">curl</span> <span class="num">-i</span> http://localhost:8080</code></pre></div></div><p>Displays <strong>headers and body</strong>.</p></div>
+</div>
+<div class="tscroll"><table><tr><th>Option</th><th>Meaning</th></tr><tr><td>Uppercase <code>-I</code></td><td>Request headers only</td></tr><tr><td>Lowercase <code>-i</code></td><td>Include headers with the response body</td></tr><tr><td><code>-v</code></td><td>Show extra connection/request details for debugging</td></tr></table></div>
+<p>For the default page, expect:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">output</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>HTTP/1.1 200 OK</code></pre></div>
+<p><code>200</code> is the HTTP status indicating success.</p>
+<div class="refrow"><a class="ref" href="https://curl.se/docs/manpage.html" target="_blank" rel="noopener">📘 curl manual ↗</a></div></div></div>
+<div class="section-divider" id="d47"><span><b class="secnum">4.7</b>Run commands inside a container: docker exec</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>Use <code>docker exec</code> to run commands inside an existing container.</strong></div>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> exec nginx-practice nginx <span class="num">-t</span></code></pre></div>
+<p>Read this as:</p><blockquote class="quote"><p>Run <code>nginx -t</code> inside the running container named <code>nginx-practice</code>.</p></blockquote>
+<p>Other examples:</p>
+<div class="cmds">
+ <div class="cmd"><div class="cmd-c"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> exec nginx-practice ls /etc/nginx</code></pre></div></div><p>Lists the Nginx configuration directory <strong>inside the container</strong>.</p></div>
+ <div class="cmd"><div class="cmd-c"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> exec nginx-practice cat /etc/nginx/nginx.conf</code></pre></div></div><p>Displays its main configuration file.</p></div>
+</div>
+<p>To open an interactive shell:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> exec <span class="num">-it</span> nginx-practice sh</code></pre></div>
+<div class="tscroll"><table><tr><th>Part</th><th>Meaning</th></tr><tr><td><code>exec</code></td><td>Execute a command in a running container</td></tr><tr><td><code>-i</code></td><td>Keep input open so you can type</td></tr><tr><td><code>-t</code></td><td>Provide a terminal interface</td></tr><tr><td><code>sh</code></td><td>Start a shell available in the Alpine image</td></tr></table></div>
+<p>Once inside, you can run:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">inside the container</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">pwd</span>
+<span class="kw">ls</span>
+<span class="kw">cat</span> /etc/nginx/nginx.conf</code></pre></div>
+<p>Return to Ubuntu with:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">inside the container</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">exit</span></code></pre></div>
+<div class="callout ok"><span class="cl">Remember</span>Here, <code>exit</code> closes the extra shell; <strong>Nginx keeps running.</strong></div>
+<div class="refrow"><a class="ref" href="https://docs.docker.com/reference/cli/docker/container/exec/" target="_blank" rel="noopener">📘 Docker Docs — docker container exec ↗</a></div></div></div>
+<div class="section-divider" id="d48"><span><b class="secnum">4.8</b>Three Nginx commands</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>Three Nginx commands will be useful throughout your practice.</strong></div>
+<div class="tscroll"><table><tr><th>Command</th><th>Purpose</th></tr><tr><td><code>nginx -t</code></td><td>Validate configuration syntax and referenced files</td></tr><tr><td><code>nginx -T</code></td><td>Validate and print the configuration, including included files</td></tr><tr><td><code>nginx -s reload</code></td><td>Ask Nginx to reload its configuration</td></tr></table></div>
+<p>Run them inside the container:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> exec nginx-practice nginx <span class="num">-t</span></code></pre></div>
+<p>Expected output includes:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">output</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>syntax is ok
+test is successful</code></pre></div>
+<p>After a configuration change, <strong>reload only if the test succeeds</strong>:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> exec nginx-practice nginx <span class="num">-s</span> reload</code></pre></div>
+<div class="callout warn"><span class="cl">Syntax OK ≠ everything works</span>A successful syntax test does not prove that every API route or backend connection works. Test those with <code>curl</code> too.</div>
+<div class="refrow"><a class="ref" href="https://nginx.org/en/docs/switches.html" target="_blank" rel="noopener">📘 nginx.org — command-line switches ↗</a></div></div></div>
+<div class="section-divider" id="d49"><span><b class="secnum">4.9</b>Logs</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>Logs show what the container has been doing.</strong></div>
+<div class="cmds">
+ <div class="cmd"><div class="cmd-c"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> logs nginx-practice</code></pre></div></div><p>Displays its captured output.</p></div>
+ <div class="cmd"><div class="cmd-c"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> logs <span class="num">--tail</span> 20 nginx-practice</code></pre></div></div><p>The latest 20 lines.</p></div>
+ <div class="cmd"><div class="cmd-c"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> logs <span class="num">-f</span> nginx-practice</code></pre></div></div><p>Watch new messages arrive — <code>-f</code> means <strong>follow</strong>.</p></div>
+</div>
+<p>While following logs, refresh the page in your browser. With the standard Nginx image, you should see request logs appear.</p>
+<div class="callout ok"><span class="cl">Remember</span>Press <strong>Ctrl+C</strong> to stop following the logs. This <strong>does not stop the container</strong>.</div>
+<div class="refrow"><a class="ref" href="https://docs.docker.com/reference/cli/docker/container/logs/" target="_blank" rel="noopener">📘 Docker Docs — docker container logs ↗</a></div></div></div>
+<div class="section-divider" id="d410"><span><b class="secnum">4.10</b>Stop, start, restart, remove</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>Stopping, starting, restarting and removing are different operations.</strong></div>
+<figure class="dfig"><div class="dtitle">Container lifecycle</div><svg class="diagram" viewBox="0 0 760 340" role="img" aria-label="Container lifecycle: run creates, stop and start toggle running and stopped, rm removes"><rect x="14" y="128" width="140" height="76" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="2.2"/><text x="84" y="160" font-size="14" font-weight="800" fill="#2563eb" text-anchor="middle">🖼 Image</text><text x="84" y="182" font-size="10.5" font-weight="700" fill="#1e40af" text-anchor="middle" class="mono">nginx:stable-alpine</text><rect x="262" y="34" width="170" height="80" rx="14" fill="#dcfce7" stroke="#16a34a" stroke-width="2.4"/><text x="347" y="66" font-size="15" font-weight="800" fill="#166534" text-anchor="middle">🟢 Running</text><text x="347" y="90" font-size="12" font-weight="700" fill="#15803d" text-anchor="middle" class="mono">STATUS: Up …</text><rect x="262" y="222" width="170" height="80" rx="14" fill="#fef3c7" stroke="#d97706" stroke-width="2.4"/><text x="347" y="254" font-size="15" font-weight="800" fill="#92400e" text-anchor="middle">🟠 Stopped</text><text x="347" y="278" font-size="12" font-weight="700" fill="#b45309" text-anchor="middle" class="mono">STATUS: Exited (…)</text><rect x="590" y="128" width="156" height="76" rx="14" fill="#ffe4e6" stroke="#e11d48" stroke-width="2.4"/><text x="668" y="160" font-size="14" font-weight="800" fill="#be123c" text-anchor="middle">🗑 Removed</text><text x="668" y="182" font-size="11.5" font-weight="700" fill="#9f1239" text-anchor="middle">container gone</text><line x1="156" y1="154" x2="258" y2="88" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ar-green)"/><text x="20" y="96" font-size="12" font-weight="800" fill="#15803d" text-anchor="start" class="mono">docker run</text><text x="20" y="112" font-size="10.5" font-weight="700" fill="#166534" text-anchor="start">creates a NEW container</text><line x1="306" y1="118" x2="306" y2="218" stroke="#d97706" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ar-amber)"/><text x="296" y="172" font-size="11.5" font-weight="800" fill="#b45309" text-anchor="end" class="mono">docker stop</text><line x1="388" y1="218" x2="388" y2="118" stroke="#16a34a" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ar-green)"/><text x="398" y="172" font-size="11.5" font-weight="800" fill="#15803d" text-anchor="start" class="mono">docker start</text><text x="398" y="188" font-size="10.5" font-weight="700" fill="#166534" text-anchor="start">reuses the existing one</text><line x1="434" y1="270" x2="588" y2="196" stroke="#e11d48" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ar-red)"/><text x="520" y="262" font-size="12" font-weight="800" fill="#be123c" text-anchor="start" class="mono">docker rm</text><line x1="434" y1="74" x2="622" y2="126" stroke="#e11d48" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#ar-red)"/><text x="452" y="34" font-size="10.5" font-weight="700" fill="#9f1239" text-anchor="start">stop a container started with --rm</text><text x="452" y="50" font-size="10.5" font-weight="700" fill="#9f1239" text-anchor="start">→ it is removed automatically</text><text x="380" y="328" font-size="12" font-weight="800" fill="#475569" text-anchor="middle" font-style="italic">docker restart = stop + start on the existing container</text></svg></figure>
+<p>These examples apply to the container we created <strong>without <code>--rm</code></strong>:</p>
+<div class="tscroll"><table><tr><th>Command</th><th>What happens</th></tr><tr><td><code>docker stop nginx-practice</code></td><td>Stops its processes; retains the container</td></tr><tr><td><code>docker start nginx-practice</code></td><td>Starts that existing stopped container</td></tr><tr><td><code>docker restart nginx-practice</code></td><td>Stops and starts the existing container</td></tr><tr><td><code>docker rm nginx-practice</code></td><td>Removes the stopped container and its writable layer</td></tr></table></div>
+<p>Stopping normally gives the application time to shut down before Docker forcibly terminates it if necessary.</p>
+<p>Try:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> stop nginx-practice
+<span class="kw">docker</span> ps <span class="num">-a</span>
+<span class="kw">docker</span> start nginx-practice
+<span class="kw">curl</span> <span class="num">-I</span> http://localhost:8080</code></pre></div>
+<div class="callout ok"><span class="cl">run vs start</span><strong><code>run</code> creates a new container; <code>start</code> reuses an existing one.</strong></div>
+<div class="callout amber"><span class="cl">About --rm</span>Your original command included <code>--rm</code>. With that option, stopping the container automatically removes it, so it can no longer be started again. You would use <code>docker run</code> to create another one.</div>
+<div class="refrow"><a class="ref" href="https://docs.docker.com/reference/cli/docker/container/" target="_blank" rel="noopener">📘 Docker Docs — docker container ↗</a></div></div></div>
+<div class="section-divider" id="d411"><span><b class="secnum">4.11</b>Bind mount</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>A bind mount lets Nginx serve files you edit on your computer.</strong></div>
+<p>From your workspace:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">cd</span> ~/nginx-lab
+<span class="kw">mkdir</span> <span class="num">-p</span> web</code></pre></div>
+<p>Create <code>web/index.html</code> in your editor:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">web/index.html</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">&lt;h1&gt;</span>Hello from Shivam's Nginx lab<span class="kw">&lt;/h1&gt;</span></code></pre></div>
+<p>Start a second container on port <strong>8081</strong>:</p>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> run <span class="num">-d</span> <span class="num">--name</span> nginx-site <span class="num">-p</span> 127.0.0.1:8081:80 <span class="num">--mount</span> "type=bind,source=$PWD/web,target=/usr/share/nginx/html,readonly" nginx:stable-alpine</code></pre></div>
+<div class="tscroll"><table><tr><th>Mount option</th><th>Meaning</th></tr><tr><td><code>type=bind</code></td><td>Use a directory from your computer</td></tr><tr><td><code>source=$PWD/web</code></td><td>Use the <code>web</code> folder in your current directory</td></tr><tr><td><code>target=/usr/share/nginx/html</code></td><td>Make it visible at Nginx’s website directory</td></tr><tr><td><code>readonly</code></td><td>The container can read the files but cannot modify them through this mount</td></tr></table></div>
+<p><code>$PWD</code> contains your current directory’s full path.</p>
+<p>Open <a href="http://localhost:8081" target="_blank" rel="noopener"><strong>http://localhost:8081</strong></a>. Edit the HTML and refresh the browser.</p>
+<div class="callout info"><span class="cl">Persistence</span>The mounted files stay on your computer when the container is removed. Changes to HTML are available without rebuilding an image; Nginx configuration changes generally need a reload.</div>
+<div class="refrow"><a class="ref" href="https://docs.docker.com/engine/storage/bind-mounts/" target="_blank" rel="noopener">📘 Docker Docs — bind mounts ↗</a></div></div></div>
+<div class="section-divider" id="d412"><span><b class="secnum">4.12</b>Dockerfile</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>A Dockerfile packages your files into an image.</strong></div>
+<p>For example, create a file named <code>Dockerfile</code> in the workspace:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Dockerfile</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">FROM</span> nginx:stable-alpine
+<span class="kw">COPY</span> web/ /usr/share/nginx/html/</code></pre></div>
+<div class="tscroll"><table><tr><th>Instruction</th><th>Meaning</th></tr><tr><td><code>FROM</code></td><td>Choose the base image</td></tr><tr><td><code>COPY</code></td><td>Copy your local website files into the new image</td></tr></table></div>
+<p>Build it:</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> build <span class="num">-t</span> my-nginx:1.0 .</code></pre></div>
+<ul class="plain"><li><code>build</code>: build an image.</li><li><code>-t my-nginx:1.0</code>: give it a name and tag.</li><li><code>.</code>: use the current directory as the build context.</li></ul>
+<p>The build context supplies files that instructions such as <code>COPY</code> can use. Building creates an image; it does not start a container.</p>
+<figure class="dfig"><div class="dtitle">Bind mount vs Dockerfile COPY</div><svg class="diagram" viewBox="0 0 760 320" role="img" aria-label="Bind mount versus Dockerfile COPY when editing local HTML"><rect x="8" y="8" width="366" height="304" rx="16" fill="#f0fdf4" stroke="#86efac" stroke-width="2"/><rect x="386" y="8" width="366" height="304" rx="16" fill="#eff6ff" stroke="#93c5fd" stroke-width="2"/><text x="191" y="38" font-size="16" font-weight="800" fill="#15803d" text-anchor="middle">Bind mount</text><text x="569" y="38" font-size="16" font-weight="800" fill="#1e3a8a" text-anchor="middle">Dockerfile COPY</text><rect x="30" y="62" width="322" height="62" rx="12" fill="#fff" stroke="#16a34a" stroke-width="2"/><text x="191" y="88" font-size="12" font-weight="800" fill="#166534" text-anchor="middle">💻 Your computer</text><text x="191" y="108" font-size="12.5" font-weight="800" fill="#166534" text-anchor="middle" class="mono">~/nginx-lab/web</text><line x1="191" y1="126" x2="191" y2="160" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ar-green)"/><line x1="191" y1="160" x2="191" y2="126" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ar-green)"/><text x="206" y="148" font-size="11" font-weight="800" fill="#15803d" text-anchor="start">live link</text><rect x="30" y="164" width="322" height="62" rx="12" fill="#fff" stroke="#16a34a" stroke-width="2"/><text x="191" y="190" font-size="12" font-weight="800" fill="#166534" text-anchor="middle">🐳 Container (readonly)</text><text x="191" y="210" font-size="12.5" font-weight="800" fill="#166534" text-anchor="middle" class="mono">/usr/share/nginx/html</text><text x="191" y="252" font-size="12.5" font-weight="800" fill="#15803d" text-anchor="middle">Edit HTML → refresh the browser</text><text x="191" y="272" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">Files stay on your computer if the</text><text x="191" y="288" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">container is removed</text><rect x="404" y="90" width="100" height="66" rx="12" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><text x="454" y="128" font-size="13" font-weight="800" fill="#2563eb" text-anchor="middle" class="mono">web/</text><line x1="506" y1="123" x2="516" y2="123" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" marker-end="url(#ar-blue)"/><rect x="516" y="90" width="100" height="66" rx="12" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/><text x="566" y="128" font-size="13" font-weight="800" fill="#7c3aed" text-anchor="middle">Image</text><line x1="618" y1="123" x2="628" y2="123" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" marker-end="url(#ar-blue)"/><rect x="628" y="90" width="100" height="66" rx="12" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/><text x="678" y="128" font-size="13" font-weight="800" fill="#16a34a" text-anchor="middle">Container</text><text x="466" y="82" font-size="11" font-weight="800" fill="#1e3a8a" text-anchor="middle" class="mono">COPY</text><text x="578" y="82" font-size="11" font-weight="800" fill="#5b21b6" text-anchor="middle" class="mono">docker build</text><text x="690" y="82" font-size="11" font-weight="800" fill="#15803d" text-anchor="middle" class="mono">docker run</text><text x="569" y="204" font-size="12.5" font-weight="800" fill="#1e3a8a" text-anchor="middle">Edit HTML → rebuild the image</text><text x="569" y="226" font-size="12.5" font-weight="800" fill="#1e3a8a" text-anchor="middle">and recreate the container</text><text x="569" y="262" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">Building creates an image —</text><text x="569" y="278" font-size="11.5" font-weight="600" fill="#475569" text-anchor="middle">it does not start a container</text></svg></figure>
+<div class="tscroll"><table><tr><th>Approach</th><th>What happens when you edit local HTML?</th></tr><tr><td><strong>Bind mount</strong></td><td>The container sees the changed files</td></tr><tr><td><strong>Dockerfile <code>COPY</code></strong></td><td>Rebuild the image and recreate the container to use the changes</td></tr></table></div>
+<div class="refrow"><a class="ref" href="https://docs.docker.com/get-started/docker-concepts/building-images/writing-a-dockerfile/" target="_blank" rel="noopener">📘 Docker Docs — writing a Dockerfile ↗</a></div></div></div>
+<div class="section-divider" id="d413"><span><b class="secnum">4.13</b>Docker Compose</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>Compose becomes useful when your lab has several services.</strong></div>
+<p>Your future <code>compose.yaml</code> will describe:</p>
+<ul class="feat4"><li><span>🖼️</span>Which image or Dockerfile each service uses</li><li><span>🔌</span>Published ports</li><li><span>🔑</span>Environment variables</li><li><span>💾</span>Mounts and networks</li></ul>
+<p>Once that file exists, run these from the project directory:</p>
+<div class="tscroll"><table><tr><th>Command</th><th>Purpose</th></tr><tr><td><code>docker compose config</code></td><td>Validate and display the resolved configuration</td></tr><tr><td><code>docker compose up -d</code></td><td>Create/start the application in the background</td></tr><tr><td><code>docker compose up -d --build</code></td><td>Build applicable service images before starting</td></tr><tr><td><code>docker compose ps</code></td><td>Show project container status</td></tr><tr><td><code>docker compose logs -f</code></td><td>Follow project logs</td></tr><tr><td><code>docker compose stop</code></td><td>Stop the project’s containers</td></tr><tr><td><code>docker compose start</code></td><td>Start existing stopped project containers</td></tr><tr><td><code>docker compose down</code></td><td>Stop and remove project containers and its managed networks</td></tr></table></div>
+<div class="callout warn"><span class="cl">Careful with -v</span>Ordinary <code>down</code> keeps named volumes; adding <code>-v</code> also removes applicable volumes, so that option can delete stored database data.</div>
+<div class="refrow"><a class="ref" href="https://docs.docker.com/compose/intro/compose-application-model/" target="_blank" rel="noopener">📘 Docker Docs — Compose application model ↗</a></div></div></div>
+<div class="section-divider" id="d414"><span><b class="secnum">4.14</b>Inspect problems</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>These additional commands help you inspect problems.</strong></div>
+<div class="tscroll"><table><tr><th>Command</th><th>What it shows</th></tr><tr><td><code>docker port nginx-practice</code></td><td>Published port mappings</td></tr><tr><td><code>docker inspect nginx-practice</code></td><td>Detailed configuration, state, mounts and networking</td></tr><tr><td><code>docker stats nginx-practice</code></td><td>Live CPU and memory usage</td></tr><tr><td><code>docker top nginx-practice</code></td><td>Processes running inside the container</td></tr><tr><td><code>docker run --help</code></td><td>Available options for <code>docker run</code></td></tr></table></div>
+<p>For example, if a browser request fails, check in this order:</p>
+<div class="triage"><div><span>1</span><b>Container status</b><small><code>docker ps -a</code></small></div><i>→</i><div><span>2</span><b>Port mappings</b><small><code>docker port</code></small></div><i>→</i><div><span>3</span><b>Logs</b><small><code>docker logs</code></small></div></div></div></div>
+<div class="section-divider" id="d415"><span><b class="secnum">4.15</b>Clean up</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><strong>After finishing the exercises, remove only the practice containers you created.</strong></div>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">Ubuntu</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">docker</span> stop nginx-practice nginx-site
+<span class="kw">docker</span> rm nginx-practice nginx-site</code></pre></div>
+<div class="callout ok"><span class="cl">Safe cleanup</span>These commands remove those containers. Your images and the local <code>web</code> folder remain available for the next exercise.</div></div></div>
+<div class="section-divider" id="dch"><span><b class="secnum">⌘</b>Command cheat sheet</span></div><div class="card"><div class="card-pad"><p>Every command from this page in one searchable list. Click a row’s command to copy it.</p>
+<div class="chbar"><input type="search" id="chq" placeholder="Search commands…" aria-label="Search commands"><div class="chcats" id="chcats"></div></div>
+<div class="tscroll"><table class="chtable"><thead><tr><th style="width:130px">Area</th><th>Command</th><th>What it does</th></tr></thead><tbody id="chbody"></tbody></table></div>
+<div class="chempty" id="chempty" style="display:none">No commands match.</div></div></div>
+<div class="pager"><a class="nextcard prev" href="nginx-1-concepts.html"><small>← Part 1</small><b>🟩 Nginx concepts</b><span>Web server, reverse proxy, API gateway, and the interview answer.</span></a></div>
+</div>
+<script>
+document.querySelectorAll('.copybtn').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var txt = b.closest('.code-block').querySelector('pre').innerText;
+    function done() { b.textContent = '✓ Copied'; b.classList.add('done'); setTimeout(function () { b.textContent = '📋 Copy'; b.classList.remove('done'); }, 1400); }
+    if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done, done); else done();
+  });
+});
+(function () {
+  var pm = document.getElementById('pmap'); if (!pm) return;
+  var MEAN = [['Host IP', '#7c3aed', 'Accept connections through your computer’s loopback address (127.0.0.1).'],
+              ['Host port', '#d97706', 'Port you use in your browser — http://localhost:8080.'],
+              ['Container port', '#059669', 'Port where Nginx listens inside the container.']];
+  var out = document.getElementById('pmean');
+  function show(k) {
+    pm.querySelectorAll('.pchip').forEach(function (c) { c.classList.toggle('on', c.dataset.k == k); });
+    out.style.background = MEAN[k][1]; out.innerHTML = '<small>' + MEAN[k][0] + '</small>' + MEAN[k][2];
+  }
+  pm.querySelectorAll('.pchip').forEach(function (c) { c.addEventListener('click', function () { show(c.dataset.k); }); c.addEventListener('mouseenter', function () { show(c.dataset.k); }); });
+  show(0);
+})();
+(function () {
+  var DATA = [["Setup", "wsl --install -d Ubuntu", "Install WSL components and the Ubuntu distribution (PowerShell, Administrator)"], ["Setup", "sudo apt update", "Refresh the list of available packages"], ["Setup", "sudo apt install -y ca-certificates curl openssl", "Install the three helper tools, answering yes automatically"], ["Setup", "wsl --shutdown", "Shut down WSL (after quitting Docker Desktop)"], ["Setup", "wsl -d Ubuntu", "Enter Ubuntu again"], ["Setup", "docker version", "Verify Docker from Ubuntu"], ["Setup", "docker compose version", "Verify Docker Compose from Ubuntu"], ["Setup", "docker run --rm hello-world", "Run a throwaway test container"], ["Workspace", "mkdir -p ~/nginx-lab", "Create the workspace folder (and any missing parents)"], ["Workspace", "pwd", "Print the current directory"], ["Workspace", "ls", "List files and folders"], ["Workspace", "code .", "Open the current directory in VS Code (WSL window)"], ["Images", "docker pull nginx:stable-alpine", "Download the Nginx image"], ["Images", "docker image ls", "List downloaded images"], ["Images", "docker build -t my-nginx:1.0 .", "Build an image from the Dockerfile in the current directory"], ["Containers", "docker run -d --name nginx-practice -p 127.0.0.1:8080:80 nginx:stable-alpine", "Create and start a new background container with a published port"], ["Containers", "docker ps", "Show running containers"], ["Containers", "docker ps -a", "Show all containers, including stopped ones"], ["Containers", "docker exec -it nginx-practice sh", "Open an interactive shell inside a running container"], ["Lifecycle", "docker stop nginx-practice", "Stop the container; keep it"], ["Lifecycle", "docker start nginx-practice", "Start the existing stopped container"], ["Lifecycle", "docker restart nginx-practice", "Stop and start the existing container"], ["Lifecycle", "docker rm nginx-practice", "Remove the stopped container and its writable layer"], ["Nginx", "docker exec nginx-practice nginx -t", "Validate configuration syntax and referenced files"], ["Nginx", "docker exec nginx-practice nginx -T", "Validate and print the full configuration"], ["Nginx", "docker exec nginx-practice nginx -s reload", "Reload configuration (only after -t succeeds)"], ["curl", "curl http://localhost:8080", "Print the response body"], ["curl", "curl -I http://localhost:8080", "Response headers only (HEAD request)"], ["curl", "curl -i http://localhost:8080", "Headers and body"], ["curl", "curl -v http://localhost:8080", "Verbose connection/request details"], ["Logs", "docker logs nginx-practice", "Show captured output"], ["Logs", "docker logs --tail 20 nginx-practice", "Latest 20 lines"], ["Logs", "docker logs -f nginx-practice", "Follow new log lines (Ctrl+C stops following only)"], ["Inspect", "docker port nginx-practice", "Published port mappings"], ["Inspect", "docker inspect nginx-practice", "Detailed configuration, state, mounts and networking"], ["Inspect", "docker stats nginx-practice", "Live CPU and memory usage"], ["Inspect", "docker top nginx-practice", "Processes running inside the container"], ["Compose", "docker compose config", "Validate and display the resolved configuration"], ["Compose", "docker compose up -d", "Create/start the application in the background"], ["Compose", "docker compose up -d --build", "Build service images before starting"], ["Compose", "docker compose ps", "Show project container status"], ["Compose", "docker compose logs -f", "Follow project logs"], ["Compose", "docker compose stop", "Stop the project\u2019s containers"], ["Compose", "docker compose start", "Start existing stopped project containers"], ["Compose", "docker compose down", "Stop and remove project containers and managed networks"]];
+  var body = document.getElementById('chbody'); if (!body) return;
+  var q = document.getElementById('chq'), cats = document.getElementById('chcats'), empty = document.getElementById('chempty');
+  var cur = 'All', names = ['All'];
+  DATA.forEach(function (d) { if (names.indexOf(d[0]) < 0) names.push(d[0]); });
+  names.forEach(function (n) { var b = document.createElement('button'); b.type = 'button'; b.className = 'chcat' + (n === 'All' ? ' on' : ''); b.textContent = n; b.addEventListener('click', function () { cur = n; Array.prototype.forEach.call(cats.children, function (c) { c.classList.toggle('on', c === b); }); render(); }); cats.appendChild(b); });
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function render() {
+    var t = q.value.trim().toLowerCase(), n = 0, h = '';
+    DATA.forEach(function (d, i) { if ((cur === 'All' || d[0] === cur) && (!t || (d[1] + ' ' + d[2] + ' ' + d[0]).toLowerCase().indexOf(t) >= 0)) { n++; h += '<tr data-i="' + i + '"><td>' + d[0] + '</td><td title="Click to copy">' + esc(d[1]) + '</td><td>' + esc(d[2]) + '</td></tr>'; } });
+    body.innerHTML = h; empty.style.display = n ? 'none' : 'block';
+  }
+  body.addEventListener('click', function (e) {
+    var td = e.target.closest('td:nth-child(2)'); if (!td) return;
+    var tr = td.parentNode; var txt = DATA[tr.dataset.i][1];
+    function ok() { tr.classList.add('flash'); setTimeout(function () { tr.classList.remove('flash'); }, 700); }
+    if (navigator.clipboard) navigator.clipboard.writeText(txt).then(ok, ok); else ok();
+  });
+  q.addEventListener('input', render); render();
+})();
+</script>
+<nav class="side-nav" aria-label="Section navigation"></nav>
+<script src="../docker/floating-side-nav.js"></script>
+</body>
+</html>

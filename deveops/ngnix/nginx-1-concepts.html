@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nginx — Web Server, Reverse Proxy &amp; API Gateway</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:#f4f5fa;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.6}
+.container{width:92%;max-width:1120px;margin:34px auto 70px}
+.container{--accent-dark:#1e3a8a;--accent:#2563eb;--accent-light:#3b82f6;--content-bg:#eff6ff;--heading:#1e3a8a;--shadow-rgb:37,99,235}
+a{color:#2563eb}
+code{font-family:'Fira Code','Consolas',monospace;font-size:.88em;background:rgba(37,99,235,.1);color:#1e3a8a;padding:2px 7px;border-radius:5px}
+.mono{font-family:'Fira Code','Consolas',monospace}
+svg.diagram{width:100%;height:auto;display:block}
+svg.diagram text{font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+svg.diagram text.mono{font-family:'Fira Code','Consolas',monospace}
+
+/* header */
+.header{background:linear-gradient(120deg,var(--accent-dark),var(--accent-light));border-radius:22px;padding:42px 38px;margin-bottom:22px;box-shadow:0 16px 36px rgba(var(--shadow-rgb),.3);position:relative;overflow:hidden}
+.header::after{content:'';position:absolute;top:-70px;right:-70px;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.08)}
+.header::before{content:'';position:absolute;bottom:-90px;left:38%;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.05)}
+.header .tag{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-size:12px;font-weight:800;letter-spacing:.6px;padding:5px 14px;border-radius:20px;margin-bottom:14px;position:relative}
+.header h1{color:#fff;font-size:33px;font-weight:800;letter-spacing:-.6px;margin-bottom:10px;position:relative;line-height:1.2}
+.header p{color:#dbe6ff;font-size:16px;max-width:760px;line-height:1.65;position:relative}
+.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;position:relative}
+.meta span{background:rgba(255,255,255,.14);color:#fff;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.28)}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;position:relative}
+.toc a{text-decoration:none;padding:7px 15px;border-radius:20px;font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);transition:all .2s ease}
+.toc a:hover{background:#fff;color:var(--accent);transform:translateY(-1px)}
+
+/* view switch + tabs */
+.viewswitch{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;background:rgba(244,245,250,.92);backdrop-filter:blur(8px);padding:10px 4px;margin-bottom:6px;border-bottom:1px solid #e2e8f0}
+.viewswitch>span{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8}
+.tabbar{display:inline-flex;gap:6px;background:#e9edf5;padding:4px;border-radius:12px;margin:0 0 14px}
+.viewswitch .tabbar{margin:0}
+.tbtn{border:none;background:transparent;font-family:inherit;font-size:13px;font-weight:800;color:#64748b;padding:7px 16px;border-radius:9px;cursor:pointer;transition:all .15s ease}
+.tbtn:hover{color:#1e3a8a}
+.tbtn.active{background:#fff;color:#1e3a8a;box-shadow:0 3px 10px rgba(0,0,0,.1)}
+.tabpanel{display:none}
+body[data-view="mongo"] .tabpanel[data-panel="mongo"],body[data-view="pg"] .tabpanel[data-panel="pg"],body[data-view="both"] .tabpanel{display:block}
+.plabel{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.5px;padding:5px 14px;border-radius:20px;margin-bottom:12px}
+.plabel.mongo{background:#dcfce7;color:#166534}
+.plabel.pg{background:#dbeafe;color:#1e3a8a}
+body[data-view="both"] .tabpanel+.tabpanel{margin-top:26px;padding-top:22px;border-top:2px dashed #e2e8f0}
+
+/* section divider */
+.section-divider{margin:46px 0 20px;position:relative;display:flex;align-items:center;scroll-margin-top:90px}
+.section-divider::before{content:'';position:absolute;top:50%;left:0;right:0;height:2px;background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd);opacity:.22}
+.section-divider>span{background:#f4f5fa;padding:0 18px 0 0;position:relative;font-size:21px;font-weight:800;display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+.secnum{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;padding:0 8px;border-radius:11px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-size:16px;box-shadow:0 6px 14px rgba(37,99,235,.3)}
+.star{font-size:11.5px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;padding:3px 11px;border-radius:14px}
+
+/* cards */
+.card{border-radius:18px;background:#fff;box-shadow:0 10px 26px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.04);overflow:hidden;margin-bottom:20px}
+.card-pad{padding:24px 26px}
+.card p{color:#334155;font-size:15.5px;line-height:1.8;margin-bottom:12px;font-weight:500}
+.h3{font-size:18px;font-weight:800;color:#1e3a8a;margin:0 0 12px;padding-left:12px;border-left:4px solid #2563eb}
+.h4{font-size:12.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#64748b;margin:20px 0 8px}
+ul.plain{margin:6px 0 12px 22px}
+ul.plain li{font-size:15px;line-height:1.8;color:#334155;font-weight:500}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+
+/* callouts */
+.callout{border-radius:14px;padding:15px 20px;margin:14px 0;font-size:15px;line-height:1.75;font-weight:600}
+.callout.info{background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#3730a3}
+.callout.warn{background:linear-gradient(135deg,#ffe4e6,#fecdd3);color:#9f1239}
+.callout.ok{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46}
+.callout.amber{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e}
+.callout .cl{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.75;margin-bottom:3px}
+.callout code{background:rgba(255,255,255,.55)}
+
+/* level cards */
+.lvls{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+@media(max-width:900px){.lvls{grid-template-columns:1fr}}
+.lvl{background:#fff;border-radius:18px;padding:20px;border-top:6px solid var(--lc);box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.lvl-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.lvl-n{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#fff;background:var(--lc);padding:4px 12px;border-radius:14px}
+.lvl-star{font-size:11px;font-weight:800;color:#92400e;background:#fef3c7;padding:3px 10px;border-radius:12px}
+.lvl h3{font-size:17px;font-weight:800;margin-bottom:12px;color:#1a1a1a}
+.lvl-line{display:flex;flex-direction:column;gap:2px;background:#f8fafc;border-radius:11px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;color:#334155;font-weight:500;line-height:1.55}
+.lvl-line b{font-size:11.5px;letter-spacing:.5px;color:var(--lc)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips i{font-style:normal;font-size:11.5px;font-weight:800;padding:4px 11px;border-radius:12px}
+.chips i.ok{background:#dcfce7;color:#166534}
+.chips i.no{background:#ffe4e6;color:#9f1239}
+ul.takeaway{list-style:none;display:grid;gap:10px;margin-bottom:6px}
+ul.takeaway li{display:flex;gap:14px;align-items:flex-start;background:#f8fafc;border-left:5px solid var(--lc);border-radius:0 12px 12px 0;padding:12px 16px;font-size:14.5px;line-height:1.65;color:#334155;font-weight:500}
+ul.takeaway li b{flex-shrink:0;min-width:74px;color:var(--lc);font-weight:800}
+
+/* services */
+.svcs{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:14px 0 8px}
+@media(max-width:900px){.svcs{grid-template-columns:repeat(2,1fr)}}
+.svc{background:var(--l);border-radius:16px;padding:16px 14px;border-top:5px solid var(--c)}
+.svc-ic{width:42px;height:42px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:10px;box-shadow:0 4px 10px rgba(0,0,0,.08)}
+.svc h4{font-size:14.5px;font-weight:800;color:var(--c);margin-bottom:4px}
+.svc p{font-size:13px!important;line-height:1.55!important;margin:0!important;color:#334155}
+
+/* diagrams */
+.dfig{margin:16px 0;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+.dtitle{background:linear-gradient(120deg,#1e3a8a,#3b82f6);color:#fff;font-size:13px;font-weight:800;padding:9px 18px;letter-spacing:.2px}
+.dfig svg{padding:14px}
+.dcap{font-size:12.5px;color:#64748b;font-weight:600;text-align:center;padding:0 16px 12px;font-style:italic}
+
+/* pros / cons */
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+@media(max-width:820px){.pc{grid-template-columns:1fr}}
+.pro,.con{border-radius:16px;padding:16px 18px}
+.pro{background:#f0fdf4;border:1px solid #bbf7d0}
+.con{background:#fff1f2;border:1px solid #fecdd3}
+.pro h4,.con h4{font-size:14px;font-weight:800;margin-bottom:8px}
+.pro h4{color:#166534}.con h4{color:#9f1239}
+.pro ul,.con ul{margin-left:18px}
+.pro li,.con li{font-size:14px;line-height:1.7;color:#334155;font-weight:500;margin-bottom:3px}
+.pro p,.con p{font-size:14px!important;line-height:1.7!important;color:#334155}
+
+/* steps */
+ol.steps{list-style:none;counter-reset:st;display:grid;gap:8px;margin:8px 0 14px}
+ol.steps li{counter-increment:st;display:flex;gap:12px;align-items:flex-start;background:#f0fdf4;border-radius:12px;padding:11px 14px;font-size:14.5px;line-height:1.6;color:#334155;font-weight:500}
+ol.steps li::before{content:counter(st);flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#16a34a;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+ol.steps li b{color:#166534;font-weight:800;margin-right:4px}
+ol.steps li b::after{content:' —'}
+ol.steps.big li{background:#eff6ff;padding:14px 16px;font-size:15px}
+ol.steps.big li::before{background:linear-gradient(135deg,#1e3a8a,#3b82f6)}
+ol.steps.big li b{color:#1e3a8a}
+ol.steps.big li b::after{content:''}
+
+/* code + tree */
+.code-block{background:#1a1a1a;border-radius:12px;overflow:hidden;margin:12px 0;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+.code-bar{background:#111;padding:8px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #2b2b2b}
+.code-bar .dot{width:9px;height:9px;border-radius:50%}
+.dot-red{background:#ff5f57}.dot-grey{background:#febc2e}.dot-green{background:#28c840}
+.code-bar .filename{color:#999;font-size:12px;margin-left:8px;font-family:'Fira Code',monospace}
+.code-block pre{padding:16px 18px;overflow-x:auto;margin:0}
+.code-block code{background:none;color:#d4d4d4;font-size:13px;font-family:'Fira Code','Consolas',monospace;line-height:1.65;white-space:pre;padding:0}
+.kw{color:#c792ea;font-weight:600}.str{color:#c3e88d}.fn{color:#82aaff}.cmt{color:#7a7a7a;font-style:italic}.num{color:#f78c6c}
+details.tree{margin:8px 0}
+details.tree>summary{cursor:pointer;font-size:13px;font-weight:800;color:#475569;background:#f1f5f9;display:inline-block;padding:7px 14px;border-radius:10px;list-style:none;user-select:none}
+details.tree>summary::-webkit-details-marker{display:none}
+details.tree>summary:hover{background:#e2e8f0}
+
+/* tables */
+.tscroll{overflow-x:auto;margin:8px 0}
+table{width:100%;border-collapse:separate;border-spacing:0 8px;min-width:560px}
+th{background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899);color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;padding:12px 16px;text-align:left}
+th:first-child{border-radius:12px 0 0 12px}th:last-child{border-radius:0 12px 12px 0}
+td{padding:12px 16px;font-size:14px;font-weight:600;color:#334155;vertical-align:top;background:var(--rb,#eff6ff);line-height:1.6}
+td:first-child{border-radius:12px 0 0 12px;border-left:6px solid var(--rc,#2563eb);font-weight:800;color:var(--rd,#1e3a8a)}
+td:last-child{border-radius:0 12px 12px 0}
+td code{background:#fff;border:1px solid var(--rc,#2563eb);color:var(--rd,#1e3a8a);font-weight:700}
+tr:nth-child(6n+2){--rc:#db2777;--rb:#fdf2f8;--rd:#9d174d}
+tr:nth-child(6n+3){--rc:#d97706;--rb:#fffbeb;--rd:#92400e}
+tr:nth-child(6n+4){--rc:#059669;--rb:#ecfdf5;--rd:#065f46}
+tr:nth-child(6n+5){--rc:#7c3aed;--rb:#f5f3ff;--rd:#5b21b6}
+tr:nth-child(6n+6){--rc:#0d9488;--rb:#f0fdfa;--rd:#115e59}
+
+/* chat */
+.chat{display:grid;gap:12px}
+.bub{border-radius:18px;padding:14px 18px;max-width:92%}
+.bub .who{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:5px}
+.bub p{margin:0 0 8px!important;font-size:15px!important;line-height:1.75!important}
+.bub p:last-child{margin:0!important}
+.bub.q{background:#f1f5f9;border-bottom-left-radius:4px;color:#1e293b}
+.bub.a{background:linear-gradient(135deg,#dbeafe,#e0e7ff);border-bottom-right-radius:4px;color:#1e3a8a;margin-left:auto}
+.bub.a p{color:#1e3a8a!important;font-weight:600!important}
+
+/* faq */
+details.faq{border:1px solid #e2e8f0;border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff}
+details.faq>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:14px 18px;background:#f8fafc;user-select:none}
+details.faq>summary::-webkit-details-marker{display:none}
+details.faq>summary:hover{background:#eff6ff}
+.fn{flex-shrink:0}
+details.faq .fn{width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.fq{flex:1;font-size:15px;font-weight:700;color:#1a1a1a;line-height:1.45}
+.fch{color:#2563eb;font-size:12px;transition:transform .2s ease}
+details.faq[open] .fch{transform:rotate(180deg)}
+details.faq[open]>summary{background:#eff6ff}
+.fa{padding:14px 20px 16px 62px;font-size:14.5px;line-height:1.75;color:#334155;font-weight:500;border-top:1px solid #e2e8f0}
+
+/* revision */
+.revs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:820px){.revs{grid-template-columns:1fr}}
+.rev{background:#fff;border-radius:18px;padding:20px 22px;border-top:6px solid var(--rc);box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.rev h3{font-size:18px;font-weight:800;color:var(--rc);margin-bottom:12px}
+.rev ul{list-style:none;display:grid;gap:8px}
+.rev li{background:#f8fafc;border-radius:11px;padding:10px 14px;font-size:14px;line-height:1.6;color:#334155;font-weight:500}
+.rev li b{display:inline-block;min-width:68px;color:var(--rc);font-weight:800}
+
+@media(max-width:768px){.header h1{font-size:25px}.header{padding:30px 22px}.card-pad{padding:18px}.fa{padding-left:20px}}
+@media print{.viewswitch{display:none}.tabpanel{display:block!important}}
+
+.tabs{position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 4px;margin-bottom:18px;background:rgba(244,245,250,.96);backdrop-filter:blur(10px);border-bottom:1px solid #e2e8f0}
+.tab{text-decoration:none;font-size:13.5px;font-weight:800;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:9px 18px;border-radius:12px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 3px 10px rgba(0,0,0,.04);transition:all .15s ease}
+.tab:hover{color:#2563eb;border-color:#bfdbfe;transform:translateY(-1px)}
+.tab.active{background:linear-gradient(120deg,#1e3a8a,#3b82f6);color:#fff;border-color:transparent;box-shadow:0 8px 18px rgba(37,99,235,.3)}
+.tab small{font-weight:700;opacity:.8;font-size:11.5px}
+.pager{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap}
+.nextcard{flex:1;min-width:260px;text-decoration:none;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:18px 22px;box-shadow:0 6px 16px rgba(0,0,0,.05);transition:all .15s ease;display:block}
+.nextcard:hover{border-color:#93c5fd;transform:translateY(-2px)}
+.nextcard small{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8}
+.nextcard b{display:block;font-size:19px;color:#1e3a8a;margin:2px 0 6px}
+.nextcard span{display:block;font-size:14px;color:#475569;line-height:1.65;font-weight:500}
+.bigdef{background:linear-gradient(135deg,#eff6ff,#e0e7ff);border-left:6px solid #2563eb;border-radius:0 16px 16px 0;padding:16px 22px;margin:0 0 14px;font-size:16.5px;line-height:1.7;color:#1e3a8a;font-weight:600}
+.bigdef.sm{font-size:15px;padding:12px 18px}
+.bigdef.yes{background:linear-gradient(135deg,#dcfce7,#d1fae5);border-left-color:#16a34a;color:#14532d}
+.bigdef code{background:rgba(255,255,255,.7)}
+.bd-k{font-size:22px;font-weight:800;color:#166534}.bd-p{color:#475569;font-weight:600}
+.roles{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:8px 0}
+@media(max-width:980px){.roles{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.roles{grid-template-columns:1fr}}
+.role{background:#fff;border:1px solid #e2e8f0;border-top:5px solid var(--c);border-radius:16px;padding:16px 14px;box-shadow:0 6px 16px rgba(0,0,0,.05)}
+.role-i{width:42px;height:42px;border-radius:12px;background:color-mix(in srgb,var(--c) 12%,#fff);display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:10px}
+.role h4{font-size:15px;font-weight:800;color:var(--c);margin-bottom:5px}
+.role p{margin:0!important;font-size:13px!important;line-height:1.6!important;color:#475569}
+.mini{font-size:12px}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center}
+.vs.two{grid-template-columns:1fr 1fr;margin:14px 0}
+@media(max-width:760px){.vs,.vs.two{grid-template-columns:1fr}.vs-mid{display:none}}
+.vs-c{background:color-mix(in srgb,var(--c) 8%,#fff);border:2px solid var(--c);border-radius:18px;padding:18px 20px}
+.vs-h{font-size:19px;font-weight:800;color:var(--c);margin-bottom:6px}
+.vs-c p{margin:0 0 8px!important;font-size:15px!important}
+.vs-c ul{margin:0 0 0 20px}.vs-c li{font-size:14.5px;font-weight:600;color:#334155;line-height:1.8}
+.vs-mid{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-size:26px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.path{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 2px}
+.path span{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;padding:8px 14px;font-size:13.5px;font-weight:800;color:#334155}
+.path span:last-child{background:#dcfce7;border-color:#86efac;color:#166534}
+.path i{font-style:normal;color:#94a3b8;font-weight:800}
+.stepcard{display:flex;gap:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:16px 18px;margin:12px 0}
+.sn{flex-shrink:0;width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 12px rgba(37,99,235,.3)}
+.sb{flex:1;min-width:0}
+.sb h4{font-size:16px;font-weight:800;color:#1a1a1a;margin-bottom:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sb p{margin-bottom:8px!important}
+.sb .code-block{margin:8px 0}
+.shell{font-size:11px;font-weight:800;letter-spacing:.4px;padding:3px 11px;border-radius:12px;color:#fff}
+.shell.ps{background:#2563eb}.shell.ub{background:#e95420}.shell.dd{background:#0891b2}
+.crumbs{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.crumbs span{background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:7px 14px;font-size:13.5px;font-weight:800;color:#334155}
+.crumbs span.go{background:#16a34a;border-color:#16a34a;color:#fff}
+.crumbs i{font-style:normal;color:#94a3b8;font-weight:800}
+.notecard{background:#fffbeb;border:1px solid #fde68a;border-radius:16px;padding:16px 20px;margin-top:16px}
+.nc-h{font-size:15px;font-weight:800;color:#92400e;margin-bottom:8px}
+.plainol{margin:0 0 10px 22px}.plainol li{font-size:15px;line-height:1.8;color:#334155;font-weight:500}
+.filetree{background:#0f172a;border-radius:14px;padding:16px 20px;font-family:'Fira Code','Consolas',monospace;font-size:13.5px;overflow-x:auto;margin:12px 0}
+.tr{display:flex;align-items:center;gap:8px;padding:3px 0 3px calc(var(--d)*26px);white-space:nowrap}
+.tr .ti{font-size:15px}.tn{color:#e2e8f0;font-weight:600}.tn.folder{color:#7dd3fc;font-weight:800}
+.tnote{font-family:'Segoe UI',system-ui,sans-serif;font-size:11.5px;font-weight:700;color:#fde68a;background:rgba(253,230,138,.12);padding:2px 10px;border-radius:10px;margin-left:6px}
+.copybtn{margin-left:auto;border:none;background:rgba(255,255,255,.1);color:#cbd5e1;font-family:'Segoe UI',system-ui,sans-serif;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:8px;cursor:pointer}
+.copybtn:hover{background:rgba(255,255,255,.22);color:#fff}.copybtn.done{background:#16a34a;color:#fff}
+.plabel{display:inline-block;font-size:12px;font-weight:800;padding:4px 12px;border-radius:14px;margin-bottom:6px;background:#dbeafe;color:#1e3a8a}
+.quote{border-left:5px solid #2563eb;background:linear-gradient(135deg,#eff6ff,#e0e7ff);border-radius:0 16px 16px 0;padding:16px 22px;margin:8px 0}
+.quote p{margin:0!important;font-size:16px!important;line-height:1.8!important;color:#1e3a8a!important;font-weight:600!important}
+.quote code{background:rgba(255,255,255,.7)}
+.refrow{margin-top:12px;display:flex}
+.ref{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;text-decoration:none;color:#1e3a8a;background:#fff;border:1px solid rgba(0,0,0,.08);padding:7px 14px;border-radius:20px;box-shadow:0 3px 8px rgba(0,0,0,.05)}
+.ref:hover{background:#eff6ff;border-color:#3b82f6}
+.hint{font-size:13.5px!important;color:#64748b!important}
+.pmap{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0 10px;font-family:'Fira Code',monospace}
+.pmap i{font-style:normal;font-size:26px;font-weight:800;color:#94a3b8}
+.pchip{border:3px solid transparent;font-family:'Fira Code',monospace;font-size:24px;font-weight:800;padding:10px 20px;border-radius:14px;cursor:pointer;transition:all .12s ease;color:#fff}
+.pchip.hip{background:#7c3aed}.pchip.hp{background:#d97706}.pchip.cp{background:#059669}
+.pchip:not(.on){opacity:.45}.pchip.on{box-shadow:0 8px 20px rgba(0,0,0,.25);transform:translateY(-2px);border-color:rgba(255,255,255,.7)}
+.pmean{border-radius:14px;padding:14px 20px;margin-bottom:12px;font-size:15.5px;font-weight:700;line-height:1.6;color:#fff;background:#7c3aed;transition:background .15s ease}
+.pmean small{display:block;font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;opacity:.8;margin-bottom:2px}
+.statuses{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0}
+@media(max-width:700px){.statuses{grid-template-columns:1fr}}
+.stt{border-radius:14px;padding:14px 18px;display:flex;flex-direction:column;gap:2px}
+.stt b{font-family:'Fira Code',monospace;font-size:15px}.stt span{font-size:14px;font-weight:600}
+.stt.up{background:#dcfce7;color:#166534}.stt.ex{background:#fef3c7;color:#92400e}
+.cmds{display:grid;gap:10px;margin:8px 0}
+.cmd{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:center}
+@media(max-width:760px){.cmd{grid-template-columns:1fr}}
+.cmd .code-block{margin:0}.cmd p{margin:0!important}
+ul.feat4{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:8px 0 14px}
+@media(max-width:820px){ul.feat4{grid-template-columns:1fr 1fr}}
+ul.feat4 li{background:#f5f3ff;border-radius:14px;padding:14px 12px;font-size:13.5px;font-weight:700;color:#5b21b6;text-align:center;line-height:1.45}
+ul.feat4 li span{display:block;font-size:24px;margin-bottom:6px}
+.triage{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;margin:8px 0}
+.triage div{flex:1;min-width:150px;background:#eff6ff;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.triage span{width:26px;height:26px;border-radius:8px;background:#2563eb;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px}
+.triage b{font-size:15px;color:#1e3a8a}.triage small{font-size:12.5px}
+.triage i{font-style:normal;align-self:center;font-weight:800;color:#94a3b8;font-size:20px}
+.chbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:8px 0 6px}
+#chq{flex:1;min-width:220px;border:1px solid #cbd5e1;border-radius:12px;padding:10px 14px;font:inherit;font-size:14px;outline:none}
+#chq:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+.chcats{display:flex;gap:6px;flex-wrap:wrap}
+.chcat{border:none;background:#f1f5f9;color:#475569;font-family:inherit;font-size:12px;font-weight:800;padding:6px 12px;border-radius:14px;cursor:pointer}
+.chcat.on{background:#1e3a8a;color:#fff}
+.chtable td:nth-child(2){font-family:'Fira Code',monospace;font-size:12.5px;cursor:pointer;word-break:break-all}
+.chtable td:nth-child(2):hover{text-decoration:underline}
+.chtable td:first-child{font-size:12.5px}
+.chempty{text-align:center;color:#94a3b8;font-weight:700;padding:14px}
+.chtable tr.flash td:nth-child(2){background:#bbf7d0!important}
+</style>
+<link rel="stylesheet" href="../docker/floating-side-nav.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="ar-slate" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#64748b"/></marker>
+<marker id="ar-red" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#e11d48"/></marker>
+<marker id="ar-green" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#16a34a"/></marker>
+<marker id="ar-blue" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#2563eb"/></marker>
+<marker id="ar-amber" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#d97706"/></marker>
+<marker id="ar-purple" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#7c3aed"/></marker>
+<marker id="ar-orange" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#f97316"/></marker>
+</defs></svg>
+<div class="container">
+<nav class="tabs"><a class="tab active" href="nginx-1-concepts.html">🟩 Part 1 <small>Nginx concepts</small></a><a class="tab" href="nginx-2-docker-lab.html">🐳 Part 2 <small>WSL, Docker &amp; lab practice</small></a></nav>
+<div class="header">
+  <span class="tag">NGINX · PART 1 OF 2 · CONCEPTS</span>
+  <h1>🟩 Nginx — Web Server, Reverse Proxy &amp; API Gateway</h1>
+  <p>What Nginx does for a React + Node.js application, how it routes requests to your services, and when it can play the API gateway role.</p>
+  <div class="meta"><span>⚛️ React</span><span>🟢 Node.js</span><span>🔀 Reverse proxy ⭐</span><span>🚪 API gateway</span></div>
+  <div class="toc"><a href="#n1">What is Nginx?</a><a href="#n2">Routing example</a><a href="#n3">Express vs Nginx</a><a href="#n4">As an API gateway</a><a href="#n5">Proxy vs gateway</a><a href="#n6">Interview answer</a></div>
+</div>
+<div class="section-divider" id="n1"><span><b class="secnum">1</b>What is Nginx — and what jobs can it do?</span></div><div class="card"><div class="card-pad">
+<div class="bigdef"><span class="bd-k">Nginx</span> <span class="bd-p">(pronounced “engine-ex”)</span> is a <strong>web server</strong> that receives requests from browsers and either <strong>serves files</strong> or <strong>forwards requests</strong> to a backend application.</div>
+<p>For your <strong>React + Node.js application</strong>, it can do these jobs:</p>
+<div class="roles"><div class="role" style="--c:#0284c7"><div class="role-i">🗂️</div><h4>Web server</h4><p>Serves your React build files: HTML, CSS, JavaScript and images</p></div><div class="role" style="--c:#7c3aed"><div class="role-i">🔀</div><h4>Reverse proxy <span class="mini">⭐</span></h4><p>Receives API requests and forwards them to your Node.js server</p></div><div class="role" style="--c:#d97706"><div class="role-i">⚖️</div><h4>Load balancer</h4><p>Distributes requests across multiple backend instances</p></div><div class="role" style="--c:#e11d48"><div class="role-i">🔒</div><h4>HTTPS handling</h4><p>Uses SSL/TLS certificates to provide secure connections</p></div><div class="role" style="--c:#0d9488"><div class="role-i">💾</div><h4>Caching</h4><p>Stores reusable responses to reduce backend work</p></div></div></div></div>
+<div class="section-divider" id="n2"><span><b class="secnum">2</b>Routing requests to your services</span></div><div class="card"><div class="card-pad">
+<p>For example, suppose you have two Node.js services:</p>
+<figure class="dfig"><div class="dtitle">One Nginx in front of the React app and two Node.js services</div><svg class="diagram" viewBox="0 0 760 360" role="img" aria-label="Nginx receives browser requests and either serves React files or forwards API requests to the Auth and Property services"><rect x="10" y="140" width="124" height="80" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="2.2"/><text x="72" y="174" font-size="13.5" font-weight="800" fill="#2563eb" text-anchor="middle">🌐 Browser</text><text x="72" y="194" font-size="11.5" font-weight="700" fill="#1e40af" text-anchor="middle" class="mono">example.com</text><line x1="136" y1="180" x2="196" y2="180" stroke="#2563eb" stroke-width="3" stroke-linecap="round" marker-end="url(#ar-blue)"/><rect x="200" y="22" width="252" height="326" rx="18" fill="#ecfdf5" stroke="#16a34a" stroke-width="2.5"/><text x="326" y="52" font-size="18" font-weight="800" fill="#166534" text-anchor="middle">Nginx</text><text x="326" y="72" font-size="10.5" font-weight="700" fill="#15803d" text-anchor="middle" font-style="italic">receives requests · applies routing rules</text><rect x="220" y="90" width="212" height="36" rx="10" fill="#fff" stroke="#0284c7" stroke-width="1.8"/><text x="326" y="113" font-size="12.5" font-weight="800" fill="#0284c7" text-anchor="middle">🗂️ Web server</text><rect x="220" y="136" width="212" height="36" rx="10" fill="#fff" stroke="#7c3aed" stroke-width="1.8"/><text x="326" y="159" font-size="12.5" font-weight="800" fill="#7c3aed" text-anchor="middle">🔀 Reverse proxy ⭐</text><rect x="220" y="182" width="212" height="36" rx="10" fill="#fff" stroke="#d97706" stroke-width="1.8"/><text x="326" y="205" font-size="12.5" font-weight="800" fill="#d97706" text-anchor="middle">⚖️ Load balancer</text><rect x="220" y="228" width="212" height="36" rx="10" fill="#fff" stroke="#e11d48" stroke-width="1.8"/><text x="326" y="251" font-size="12.5" font-weight="800" fill="#e11d48" text-anchor="middle">🔒 HTTPS handling</text><rect x="220" y="274" width="212" height="36" rx="10" fill="#fff" stroke="#0d9488" stroke-width="1.8"/><text x="326" y="297" font-size="12.5" font-weight="800" fill="#0d9488" text-anchor="middle">💾 Caching</text><text x="326" y="334" font-size="11" font-weight="600" fill="#166534" text-anchor="middle" font-style="italic">one piece of software, five jobs</text><line x1="454" y1="72" x2="538" y2="72" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ar-green)"/><rect x="542" y="26" width="208" height="92" rx="14" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/><rect x="556" y="36" width="180" height="24" rx="12.0" fill="#0284c7" stroke="none" stroke-width="1.5"/><text x="646.0" y="52.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">/</text><text x="646" y="78" font-size="13" font-weight="800" fill="#0284c7" text-anchor="middle">⚛️ React frontend files</text><text x="646" y="98" font-size="11.5" font-weight="700" fill="#475569" text-anchor="middle">HTML · CSS · JS · images</text><line x1="454" y1="186" x2="538" y2="186" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ar-green)"/><rect x="542" y="140" width="208" height="92" rx="14" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="556" y="150" width="180" height="24" rx="12.0" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="646.0" y="166.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">/api/auth/login</text><text x="646" y="192" font-size="13" font-weight="800" fill="#2563eb" text-anchor="middle">🔐 Auth service</text><text x="646" y="212" font-size="11.5" font-weight="700" fill="#475569" text-anchor="middle" class="mono">port 3001</text><line x1="454" y1="300" x2="538" y2="300" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ar-green)"/><rect x="542" y="254" width="208" height="92" rx="14" fill="#d1fae5" stroke="#059669" stroke-width="2"/><rect x="556" y="264" width="180" height="24" rx="12.0" fill="#059669" stroke="none" stroke-width="1.5"/><text x="646.0" y="280.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">/api/properties</text><text x="646" y="306" font-size="13" font-weight="800" fill="#059669" text-anchor="middle">🏠 Property service</text><text x="646" y="326" font-size="11.5" font-weight="700" fill="#475569" text-anchor="middle" class="mono">port 3002</text></svg></figure>
+<div class="tscroll"><table><tr><th>Request received by Nginx</th><th>Where Nginx forwards it</th></tr><tr><td><code>example.com/api/auth/login</code></td><td>Auth service on port <code>3001</code></td></tr><tr><td><code>example.com/api/properties</code></td><td>Property service on port <code>3002</code></td></tr><tr><td><code>example.com/</code></td><td>Serves the React frontend files</td></tr></table></div>
+<div class="callout info"><span class="cl">Where the rules live</span>You configure these routing rules in Nginx.</div></div></div>
+<div class="section-divider" id="n3"><span><b class="secnum">3</b>Who does what: Express vs Nginx</span></div><div class="card"><div class="card-pad">
+<div class="vs">
+ <div class="vs-c" style="--c:#2563eb"><div class="vs-h">🚂 Express</div><p>handles your <strong>application logic</strong></p><ul><li>login</li><li>validation</li><li>database queries</li></ul></div>
+ <div class="vs-mid">+</div>
+ <div class="vs-c" style="--c:#16a34a"><div class="vs-h">🟩 Nginx</div><p>handles <strong>incoming traffic</strong></p><ul><li>serving files</li><li>forwarding requests to the appropriate application</li></ul></div>
+</div></div></div>
+<div class="section-divider" id="n4"><span><b class="secnum">4</b>Can Nginx act as an API gateway? <span class="star">⭐ Important</span></span></div><div class="card"><div class="card-pad">
+<div class="bigdef yes"><strong>Yes — Nginx can act as a basic API gateway</strong>, depending on how you configure it.</div>
+<p>An <strong>API gateway is the entry point for clients to access backend services</strong>. Nginx can perform that role by routing requests:</p>
+<figure class="dfig"><div class="dtitle">Nginx in the API gateway role</div><svg class="diagram" viewBox="0 0 760 376" role="img" aria-label="Nginx acting as an API gateway routing three API paths to three services and applying traffic policies"><rect x="10" y="150" width="116" height="84" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="2.2"/><text x="68" y="186" font-size="13.5" font-weight="800" fill="#2563eb" text-anchor="middle">💻 Clients</text><text x="68" y="206" font-size="11" font-weight="700" fill="#1e40af" text-anchor="middle">browser · app</text><line x1="128" y1="192" x2="176" y2="192" stroke="#2563eb" stroke-width="3" stroke-linecap="round" marker-end="url(#ar-blue)"/><rect x="180" y="20" width="270" height="342" rx="18" fill="#ecfdf5" stroke="#16a34a" stroke-width="2.5"/><text x="315" y="52" font-size="14.5" font-weight="800" fill="#166534" text-anchor="middle">🚪 Nginx — API gateway role</text><text x="315" y="72" font-size="11.5" font-weight="700" fill="#15803d" text-anchor="middle" font-style="italic">entry point for clients</text><rect x="198" y="90" width="234" height="34" rx="10" fill="#fff" stroke="#2563eb" stroke-width="1.8"/><text x="214" y="112" font-size="12" font-weight="800" fill="#2563eb" text-anchor="start" class="mono">/api/auth/*</text><text x="420" y="112" font-size="12" font-weight="800" fill="#334155" text-anchor="end" class="mono">→ :3001</text><rect x="198" y="134" width="234" height="34" rx="10" fill="#fff" stroke="#059669" stroke-width="1.8"/><text x="214" y="156" font-size="12" font-weight="800" fill="#059669" text-anchor="start" class="mono">/api/properties/*</text><text x="420" y="156" font-size="12" font-weight="800" fill="#334155" text-anchor="end" class="mono">→ :3002</text><rect x="198" y="178" width="234" height="34" rx="10" fill="#fff" stroke="#e11d48" stroke-width="1.8"/><text x="214" y="200" font-size="12" font-weight="800" fill="#e11d48" text-anchor="start" class="mono">/api/payments/*</text><text x="420" y="200" font-size="12" font-weight="800" fill="#334155" text-anchor="end" class="mono">→ :3003</text><text x="315" y="246" font-size="11.5" font-weight="800" fill="#166534" text-anchor="middle">Along with routing, Nginx can handle</text><rect x="198" y="262" width="114" height="34" rx="10" fill="#fff" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="5 4"/><text x="255" y="284" font-size="11" font-weight="800" fill="#166534" text-anchor="middle">Load balancing</text><rect x="318" y="262" width="114" height="34" rx="10" fill="#fff" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="5 4"/><text x="375" y="284" font-size="11" font-weight="800" fill="#166534" text-anchor="middle">HTTPS</text><rect x="198" y="304" width="114" height="34" rx="10" fill="#fff" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="5 4"/><text x="255" y="326" font-size="11" font-weight="800" fill="#166534" text-anchor="middle">Rate limiting</text><rect x="318" y="304" width="114" height="34" rx="10" fill="#fff" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="5 4"/><text x="375" y="326" font-size="11" font-weight="800" fill="#166534" text-anchor="middle">Request-size limits</text><line x1="452" y1="74" x2="536" y2="74" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ar-green)"/><rect x="540" y="24" width="210" height="100" rx="14" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/><rect x="556" y="36" width="178" height="24" rx="12.0" fill="#2563eb" stroke="none" stroke-width="1.5"/><text x="645.0" y="52.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">/api/auth/*</text><text x="645" y="82" font-size="13" font-weight="800" fill="#2563eb" text-anchor="middle">🔐 Auth service</text><text x="645" y="102" font-size="11.5" font-weight="700" fill="#475569" text-anchor="middle" class="mono">port 3001</text><line x1="452" y1="186" x2="536" y2="186" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ar-green)"/><rect x="540" y="136" width="210" height="100" rx="14" fill="#d1fae5" stroke="#059669" stroke-width="2"/><rect x="556" y="148" width="178" height="24" rx="12.0" fill="#059669" stroke="none" stroke-width="1.5"/><text x="645.0" y="164.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">/api/properties/*</text><text x="645" y="194" font-size="13" font-weight="800" fill="#059669" text-anchor="middle">🏠 Property service</text><text x="645" y="214" font-size="11.5" font-weight="700" fill="#475569" text-anchor="middle" class="mono">port 3002</text><line x1="452" y1="298" x2="536" y2="298" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ar-green)"/><rect x="540" y="248" width="210" height="100" rx="14" fill="#ffe4e6" stroke="#e11d48" stroke-width="2"/><rect x="556" y="260" width="178" height="24" rx="12.0" fill="#e11d48" stroke="none" stroke-width="1.5"/><text x="645.0" y="276.0" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">/api/payments/*</text><text x="645" y="306" font-size="13" font-weight="800" fill="#e11d48" text-anchor="middle">💳 Payment service</text><text x="645" y="326" font-size="11.5" font-weight="700" fill="#475569" text-anchor="middle" class="mono">port 3003</text></svg></figure>
+<div class="tscroll"><table><tr><th>Incoming request</th><th>Destination</th></tr><tr><td><code>/api/auth/*</code></td><td>Auth service — port <code>3001</code></td></tr><tr><td><code>/api/properties/*</code></td><td>Property service — port <code>3002</code></td></tr><tr><td><code>/api/payments/*</code></td><td>Payment service — port <code>3003</code></td></tr></table></div>
+<p>Along with routing, Nginx can handle <strong>load balancing, HTTPS, rate limiting and request-size limits</strong>.</p></div></div>
+<div class="section-divider" id="n5"><span><b class="secnum">5</b>Reverse proxy vs API gateway</span></div><div class="card"><div class="card-pad">
+<p>The distinction is:</p>
+<figure class="dfig"><div class="dtitle">Software vs role</div><svg class="diagram" viewBox="0 0 760 348" role="img" aria-label="Reverse proxy and API gateway as two roles of the Nginx software"><rect x="8" y="8" width="744" height="332" rx="18" fill="#f0fdf4" stroke="#16a34a" stroke-width="2.5"/><text x="380" y="40" font-size="17" font-weight="800" fill="#166534" text-anchor="middle">Nginx — the software</text><rect x="30" y="62" width="326" height="160" rx="16" fill="#ede9fe" stroke="#7c3aed" stroke-width="2.2"/><text x="193" y="94" font-size="16" font-weight="800" fill="#5b21b6" text-anchor="middle">🔀 Reverse proxy</text><text x="193" y="128" font-size="12.5" font-weight="700" fill="#6d28d9" text-anchor="middle">describes</text><text x="193" y="150" font-size="14" font-weight="800" fill="#4c1d95" text-anchor="middle">forwarding requests</text><text x="193" y="170" font-size="14" font-weight="800" fill="#4c1d95" text-anchor="middle">to backend servers</text><rect x="404" y="62" width="326" height="160" rx="16" fill="#fef3c7" stroke="#d97706" stroke-width="2.2"/><text x="567" y="94" font-size="16" font-weight="800" fill="#b45309" text-anchor="middle">🚪 API gateway</text><text x="567" y="124" font-size="14" font-weight="800" fill="#92400e" text-anchor="middle">describes managing access</text><text x="567" y="144" font-size="14" font-weight="800" fill="#92400e" text-anchor="middle">to backend APIs — often with</text><text x="567" y="164" font-size="13" font-weight="700" fill="#92400e" text-anchor="middle">routing, authentication</text><text x="567" y="182" font-size="13" font-weight="700" fill="#92400e" text-anchor="middle">and traffic policies</text><circle cx="380" cy="142" r="20" fill="#16a34a"/><text x="380" y="148" font-size="20" font-weight="800" fill="#fff" text-anchor="middle">+</text><text x="380" y="244" font-size="13.5" font-weight="800" fill="#166534" text-anchor="middle">Nginx is the software · API gateway is a role it can perform</text><rect x="30" y="262" width="700" height="62" rx="14" fill="#fff" stroke="#a78bfa" stroke-width="2" stroke-dasharray="7 5"/><text x="380" y="286" font-size="12.5" font-weight="800" fill="#5b21b6" text-anchor="middle">Advanced API management — developer portals · API subscriptions · usage billing</text><text x="380" y="306" font-size="12" font-weight="700" fill="#6d28d9" text-anchor="middle" font-style="italic">typically needs additional tools or a dedicated gateway product</text></svg></figure>
+<div class="vs two">
+ <div class="vs-c" style="--c:#7c3aed"><div class="vs-h">🔀 Reverse proxy</div><p>describes <strong>forwarding requests</strong> to backend servers.</p></div>
+ <div class="vs-c" style="--c:#d97706"><div class="vs-h">🚪 API gateway</div><p>describes <strong>managing access</strong> to backend APIs, often with routing, authentication and traffic policies.</p></div>
+</div>
+<div class="callout ok"><span class="cl">Remember</span><strong>Nginx is the software; API gateway is a role it can perform.</strong></div>
+<div class="callout amber"><span class="cl">Beyond Nginx</span>Advanced API management features — such as developer portals, API subscriptions and usage billing — typically require additional tools or a dedicated gateway product.</div></div></div>
+<div class="section-divider" id="n6"><span><b class="secnum">6</b>Interview answer <span class="star">⭐ Important</span></span></div><div class="card"><div class="card-pad"><blockquote class="quote"><p>“Nginx is primarily a web server and reverse proxy, but we can configure it as an API gateway for routing, load balancing, TLS termination and rate limiting.”</p></blockquote></div></div>
+<div class="pager"><a class="nextcard" href="nginx-2-docker-lab.html"><small>Next → Part 2</small><b>🐳 WSL, Docker &amp; Nginx lab practice</b><span>Set up WSL 2 + Ubuntu on Windows, install the helper tools, create the workspace, then practise running Nginx in Docker containers.</span></a></div>
+</div>
+<script>document.querySelectorAll('.copybtn').forEach(function(b){b.remove()});</script>
+<nav class="side-nav" aria-label="Section navigation"></nav>
+<script src="../docker/floating-side-nav.js"></script>
+</body>
+</html>
