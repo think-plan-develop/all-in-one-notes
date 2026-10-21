@@ -1,26 +1,22 @@
+const prices = [7, 1, 5, 3, 6, 4];
 
+// Write your solution here
 
-function rotateLeft(arr,k){
-  let n=arr.length;
-  if(n==0)return arr;
-   k = k%n;
+function maxProfit(prices){
+      let min=-Infinity;
+      let buy=prices[0];
+      let maxProfit=0;
+      for(let i=1;i<prices.length;i++){
+          if(prices[i]-buy>min){
+              min=prices[i]-buy;
+              buy=prices[i];
 
-     function reverse(left, right) {
-        while(left<right){
-          [arr[left],arr[right]]=[arr[right],arr[left]];
-          left++;
-          right--;
+          }
       }
-  }
-  
-
-
-
-
+      console.log("buy",buy,maxProfit)
 }
 
 
 
-
-
-console.log(rotateLeft([10, 20, 30, 40, 50, 60, 70, 80], 3));
+const result=maxProfit(prices);
+console.log("result",result);
