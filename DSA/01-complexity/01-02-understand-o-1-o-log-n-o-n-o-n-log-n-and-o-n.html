@@ -1,29 +1,973 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>01.02 - Common Complexity Classes</title>
-  <link rel="stylesheet" href="topic.css">
-</head>
-<body>
-  <main>
-    <a class="back" href="index.html">Back to Time and Space Complexity</a>
-    <article>
-      <span class="label">Learn</span>
-      <h1>01.02 - Understand O(1), O(log n), O(n), O(n log n) and O(n<sup>2</sup>)</h1>
-      <p>These common growth rates help estimate how an algorithm scales. The exact operation count may differ, but the growth category is useful for comparing approaches.</p>
-      <ul>
-        <li><strong>O(1), constant:</strong> work stays bounded as input grows, such as reading an array element by index.</li>
-        <li><strong>O(log n), logarithmic:</strong> each step reduces the remaining search space by a constant factor, as in binary search.</li>
-        <li><strong>O(n), linear:</strong> work grows proportionally to input size, as in one complete scan.</li>
-        <li><strong>O(n log n), linearithmic:</strong> commonly produced by repeatedly dividing the input and processing all elements per level, as in merge sort.</li>
-        <li><strong>O(n<sup>2</sup>), quadratic:</strong> often produced by two full nested loops over the same input.</li>
-      </ul>
-      <div class="example">For large inputs, the usual growth order is <code>O(1)</code>, <code>O(log n)</code>, <code>O(n)</code>, <code>O(n log n)</code>, then <code>O(n^2)</code>.</div>
-      <div class="takeaway"><strong>Key idea:</strong> identify what changes with <code>n</code>; fixed work is constant, repeated passes are linear, and nested passes can be quadratic.</div>
-      <nav class="nav"><a href="index.html">Topic list</a><a href="../index.html">DSA roadmap</a></nav>
-    </article>
-  </main>
-</body>
-</html>
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="DSA study notes on nested loops, logarithmic complexity, and best, average and worst cases, with JavaScript examples and interactive explanations."><title>Nested Loops, Logarithmic Complexity & Cases — DSA 4–6</title><style>*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:#f4f5fa;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.6}
+.container{width:92%;max-width:1120px;margin:34px auto 70px}
+.container{--accent-dark:#1e3a8a;--accent:#2563eb;--accent-light:#3b82f6;--content-bg:#eff6ff;--heading:#1e3a8a;--shadow-rgb:37,99,235}
+a{color:#2563eb}
+code{font-family:'Fira Code','Consolas',monospace;font-size:.88em;background:rgba(37,99,235,.1);color:#1e3a8a;padding:2px 7px;border-radius:5px}
+.mono{font-family:'Fira Code','Consolas',monospace}
+svg.diagram{width:100%;height:auto;display:block}
+svg.diagram text{font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+svg.diagram text.mono{font-family:'Fira Code','Consolas',monospace}
+
+/* header */
+.header{background:linear-gradient(120deg,var(--accent-dark),var(--accent-light));border-radius:22px;padding:42px 38px;margin-bottom:22px;box-shadow:0 16px 36px rgba(var(--shadow-rgb),.3);position:relative;overflow:hidden}
+.header::after{content:'';position:absolute;top:-70px;right:-70px;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.08)}
+.header::before{content:'';position:absolute;bottom:-90px;left:38%;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.05)}
+.header .tag{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-size:12px;font-weight:800;letter-spacing:.6px;padding:5px 14px;border-radius:20px;margin-bottom:14px;position:relative}
+.header h1{color:#fff;font-size:33px;font-weight:800;letter-spacing:-.6px;margin-bottom:10px;position:relative;line-height:1.2}
+.header p{color:#dbe6ff;font-size:16px;max-width:760px;line-height:1.65;position:relative}
+.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;position:relative}
+.meta span{background:rgba(255,255,255,.14);color:#fff;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.28)}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;position:relative}
+.toc a{text-decoration:none;padding:7px 15px;border-radius:20px;font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);transition:all .2s ease}
+.toc a:hover{background:#fff;color:var(--accent);transform:translateY(-1px)}
+
+/* view switch + tabs */
+.viewswitch{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;background:rgba(244,245,250,.92);backdrop-filter:blur(8px);padding:10px 4px;margin-bottom:6px;border-bottom:1px solid #e2e8f0}
+.viewswitch>span{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8}
+.tabbar{display:inline-flex;gap:6px;background:#e9edf5;padding:4px;border-radius:12px;margin:0 0 14px}
+.viewswitch .tabbar{margin:0}
+.tbtn{border:none;background:transparent;font-family:inherit;font-size:13px;font-weight:800;color:#64748b;padding:7px 16px;border-radius:9px;cursor:pointer;transition:all .15s ease}
+.tbtn:hover{color:#1e3a8a}
+.tbtn.active{background:#fff;color:#1e3a8a;box-shadow:0 3px 10px rgba(0,0,0,.1)}
+.tabpanel{display:none}
+body[data-view="mongo"] .tabpanel[data-panel="mongo"],body[data-view="pg"] .tabpanel[data-panel="pg"],body[data-view="both"] .tabpanel{display:block}
+.plabel{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.5px;padding:5px 14px;border-radius:20px;margin-bottom:12px}
+.plabel.mongo{background:#dcfce7;color:#166534}
+.plabel.pg{background:#dbeafe;color:#1e3a8a}
+body[data-view="both"] .tabpanel+.tabpanel{margin-top:26px;padding-top:22px;border-top:2px dashed #e2e8f0}
+
+/* section divider */
+.section-divider{margin:46px 0 20px;position:relative;display:flex;align-items:center;scroll-margin-top:60px}
+.section-divider::before{content:'';position:absolute;top:50%;left:0;right:0;height:2px;background:linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd);opacity:.22}
+.section-divider>span{background:#f4f5fa;padding:0 18px 0 0;position:relative;font-size:21px;font-weight:800;display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+.secnum{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;padding:0 8px;border-radius:11px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-size:16px;box-shadow:0 6px 14px rgba(37,99,235,.3)}
+.star{font-size:11.5px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;padding:3px 11px;border-radius:14px}
+
+/* cards */
+.card{border-radius:18px;background:#fff;box-shadow:0 10px 26px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.04);overflow:hidden;margin-bottom:20px}
+.card-pad{padding:24px 26px}
+.card p{color:#334155;font-size:15.5px;line-height:1.8;margin-bottom:12px;font-weight:500}
+.h3{font-size:18px;font-weight:800;color:#1e3a8a;margin:0 0 12px;padding-left:12px;border-left:4px solid #2563eb}
+.h4{font-size:12.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#64748b;margin:20px 0 8px}
+ul.plain{margin:6px 0 12px 22px}
+ul.plain li{font-size:15px;line-height:1.8;color:#334155;font-weight:500}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+
+/* callouts */
+.callout{border-radius:14px;padding:15px 20px;margin:14px 0;font-size:15px;line-height:1.75;font-weight:600}
+.callout.info{background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#3730a3}
+.callout.warn{background:linear-gradient(135deg,#ffe4e6,#fecdd3);color:#9f1239}
+.callout.ok{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46}
+.callout.amber{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e}
+.callout .cl{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.75;margin-bottom:3px}
+.callout code{background:rgba(255,255,255,.55)}
+
+/* level cards */
+.lvls{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+@media(max-width:900px){.lvls{grid-template-columns:1fr}}
+.lvl{background:#fff;border-radius:18px;padding:20px;border-top:6px solid var(--lc);box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.lvl-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.lvl-n{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#fff;background:var(--lc);padding:4px 12px;border-radius:14px}
+.lvl-star{font-size:11px;font-weight:800;color:#92400e;background:#fef3c7;padding:3px 10px;border-radius:12px}
+.lvl h3{font-size:17px;font-weight:800;margin-bottom:12px;color:#1a1a1a}
+.lvl-line{display:flex;flex-direction:column;gap:2px;background:#f8fafc;border-radius:11px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;color:#334155;font-weight:500;line-height:1.55}
+.lvl-line b{font-size:11.5px;letter-spacing:.5px;color:var(--lc)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips i{font-style:normal;font-size:11.5px;font-weight:800;padding:4px 11px;border-radius:12px}
+.chips i.ok{background:#dcfce7;color:#166534}
+.chips i.no{background:#ffe4e6;color:#9f1239}
+ul.takeaway{list-style:none;display:grid;gap:10px;margin-bottom:6px}
+ul.takeaway li{display:flex;gap:14px;align-items:flex-start;background:#f8fafc;border-left:5px solid var(--lc);border-radius:0 12px 12px 0;padding:12px 16px;font-size:14.5px;line-height:1.65;color:#334155;font-weight:500}
+ul.takeaway li b{flex-shrink:0;min-width:74px;color:var(--lc);font-weight:800}
+
+/* services */
+.svcs{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:14px 0 8px}
+@media(max-width:900px){.svcs{grid-template-columns:repeat(2,1fr)}}
+.svc{background:var(--l);border-radius:16px;padding:16px 14px;border-top:5px solid var(--c)}
+.svc-ic{width:42px;height:42px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:10px;box-shadow:0 4px 10px rgba(0,0,0,.08)}
+.svc h4{font-size:14.5px;font-weight:800;color:var(--c);margin-bottom:4px}
+.svc p{font-size:13px!important;line-height:1.55!important;margin:0!important;color:#334155}
+
+/* diagrams */
+.dfig{margin:16px 0;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+.dtitle{background:linear-gradient(120deg,#1e3a8a,#3b82f6);color:#fff;font-size:13px;font-weight:800;padding:9px 18px;letter-spacing:.2px}
+.dfig svg{padding:14px}
+.dcap{font-size:12.5px;color:#64748b;font-weight:600;text-align:center;padding:0 16px 12px;font-style:italic}
+
+/* pros / cons */
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+@media(max-width:820px){.pc{grid-template-columns:1fr}}
+.pro,.con{border-radius:16px;padding:16px 18px}
+.pro{background:#f0fdf4;border:1px solid #bbf7d0}
+.con{background:#fff1f2;border:1px solid #fecdd3}
+.pro h4,.con h4{font-size:14px;font-weight:800;margin-bottom:8px}
+.pro h4{color:#166534}.con h4{color:#9f1239}
+.pro ul,.con ul{margin-left:18px}
+.pro li,.con li{font-size:14px;line-height:1.7;color:#334155;font-weight:500;margin-bottom:3px}
+.pro p,.con p{font-size:14px!important;line-height:1.7!important;color:#334155}
+
+/* steps */
+ol.steps{list-style:none;counter-reset:st;display:grid;gap:8px;margin:8px 0 14px}
+ol.steps li{counter-increment:st;display:flex;gap:12px;align-items:flex-start;background:#f0fdf4;border-radius:12px;padding:11px 14px;font-size:14.5px;line-height:1.6;color:#334155;font-weight:500}
+ol.steps li::before{content:counter(st);flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#16a34a;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+ol.steps li b{color:#166534;font-weight:800;margin-right:4px}
+ol.steps li b::after{content:' —'}
+ol.steps.big li{background:#eff6ff;padding:14px 16px;font-size:15px}
+ol.steps.big li::before{background:linear-gradient(135deg,#1e3a8a,#3b82f6)}
+ol.steps.big li b{color:#1e3a8a}
+ol.steps.big li b::after{content:''}
+
+/* code + tree */
+.code-block{background:#1a1a1a;border-radius:12px;overflow:hidden;margin:12px 0;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+.code-bar{background:#111;padding:8px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #2b2b2b}
+.code-bar .dot{width:9px;height:9px;border-radius:50%}
+.dot-red{background:#ff5f57}.dot-grey{background:#febc2e}.dot-green{background:#28c840}
+.code-bar .filename{color:#999;font-size:12px;margin-left:8px;font-family:'Fira Code',monospace}
+.code-block pre{padding:16px 18px;overflow-x:auto;margin:0}
+.code-block code{background:none;color:#d4d4d4;font-size:13px;font-family:'Fira Code','Consolas',monospace;line-height:1.65;white-space:pre;padding:0}
+.kw{color:#c792ea;font-weight:600}.str{color:#c3e88d}.fn{color:#82aaff}.cmt{color:#7a7a7a;font-style:italic}.num{color:#f78c6c}
+details.tree{margin:8px 0}
+details.tree>summary{cursor:pointer;font-size:13px;font-weight:800;color:#475569;background:#f1f5f9;display:inline-block;padding:7px 14px;border-radius:10px;list-style:none;user-select:none}
+details.tree>summary::-webkit-details-marker{display:none}
+details.tree>summary:hover{background:#e2e8f0}
+
+/* tables */
+.tscroll{overflow-x:auto;margin:8px 0}
+table{width:100%;border-collapse:separate;border-spacing:0 8px;min-width:560px}
+th{background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899);color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;padding:12px 16px;text-align:left}
+th:first-child{border-radius:12px 0 0 12px}th:last-child{border-radius:0 12px 12px 0}
+td{padding:12px 16px;font-size:14px;font-weight:600;color:#334155;vertical-align:top;background:var(--rb,#eff6ff);line-height:1.6}
+td:first-child{border-radius:12px 0 0 12px;border-left:6px solid var(--rc,#2563eb);font-weight:800;color:var(--rd,#1e3a8a)}
+td:last-child{border-radius:0 12px 12px 0}
+td code{background:#fff;border:1px solid var(--rc,#2563eb);color:var(--rd,#1e3a8a);font-weight:700}
+tr:nth-child(6n+2){--rc:#db2777;--rb:#fdf2f8;--rd:#9d174d}
+tr:nth-child(6n+3){--rc:#d97706;--rb:#fffbeb;--rd:#92400e}
+tr:nth-child(6n+4){--rc:#059669;--rb:#ecfdf5;--rd:#065f46}
+tr:nth-child(6n+5){--rc:#7c3aed;--rb:#f5f3ff;--rd:#5b21b6}
+tr:nth-child(6n+6){--rc:#0d9488;--rb:#f0fdfa;--rd:#115e59}
+
+/* chat */
+.chat{display:grid;gap:12px}
+.bub{border-radius:18px;padding:14px 18px;max-width:92%}
+.bub .who{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:5px}
+.bub p{margin:0 0 8px!important;font-size:15px!important;line-height:1.75!important}
+.bub p:last-child{margin:0!important}
+.bub.q{background:#f1f5f9;border-bottom-left-radius:4px;color:#1e293b}
+.bub.a{background:linear-gradient(135deg,#dbeafe,#e0e7ff);border-bottom-right-radius:4px;color:#1e3a8a;margin-left:auto}
+.bub.a p{color:#1e3a8a!important;font-weight:600!important}
+
+/* faq */
+details.faq{border:1px solid #e2e8f0;border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff}
+details.faq>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:14px 18px;background:#f8fafc;user-select:none}
+details.faq>summary::-webkit-details-marker{display:none}
+details.faq>summary:hover{background:#eff6ff}
+.fn{flex-shrink:0}
+details.faq .fn{width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.fq{flex:1;font-size:15px;font-weight:700;color:#1a1a1a;line-height:1.45}
+.fch{color:#2563eb;font-size:12px;transition:transform .2s ease}
+details.faq[open] .fch{transform:rotate(180deg)}
+details.faq[open]>summary{background:#eff6ff}
+.fa{padding:14px 20px 16px 62px;font-size:14.5px;line-height:1.75;color:#334155;font-weight:500;border-top:1px solid #e2e8f0}
+
+/* revision */
+.revs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:820px){.revs{grid-template-columns:1fr}}
+.rev{background:#fff;border-radius:18px;padding:20px 22px;border-top:6px solid var(--rc);box-shadow:0 10px 26px rgba(0,0,0,.06)}
+.rev h3{font-size:18px;font-weight:800;color:var(--rc);margin-bottom:12px}
+.rev ul{list-style:none;display:grid;gap:8px}
+.rev li{background:#f8fafc;border-radius:11px;padding:10px 14px;font-size:14px;line-height:1.6;color:#334155;font-weight:500}
+.rev li b{display:inline-block;min-width:68px;color:var(--rc);font-weight:800}
+
+@media(max-width:768px){.header h1{font-size:25px}.header{padding:30px 22px}.card-pad{padding:18px}.fa{padding-left:20px}}
+@media print{.viewswitch{display:none}.tabpanel{display:block!important}}
+
+.header h1{font-size:30px}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.tbl{font-size:12px;font-weight:800;color:#64748b;letter-spacing:.5px;text-transform:uppercase;margin-right:auto}
+.toolbar button{font-family:inherit;font-size:12px;font-weight:800;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:7px 14px;border-radius:9px;cursor:pointer}.toolbar button:hover{background:#f1f5f9}
+.grp{margin-top:30px;scroll-margin-top:16px}
+.grp-h{display:flex;align-items:center;gap:14px;background:linear-gradient(120deg,var(--gd),var(--gc));color:#fff;border-radius:16px;padding:14px 20px;margin-bottom:10px;box-shadow:0 10px 22px rgba(0,0,0,.12)}
+.grp-i{width:44px;height:44px;border-radius:13px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.grp-h h2{font-size:19px;font-weight:800;line-height:1.2}.grp-h h2 b{background:rgba(255,255,255,.22);padding:1px 9px;border-radius:8px;margin-right:6px}
+.grp-h p{font-size:13px;opacity:.88;font-weight:600;margin-top:2px}
+.introline{font-size:14.5px;line-height:1.7;color:#334155;font-weight:500;background:#f8fafc;border-left:4px solid #7c3aed;border-radius:0 12px 12px 0;padding:11px 16px;margin-bottom:10px}
+details.tp{background:#fff;border-radius:14px;margin-bottom:8px;border:1px solid #e2e8f0;border-left:5px solid var(--gc);box-shadow:0 4px 12px rgba(0,0,0,.04);overflow:hidden}
+details.tp>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 16px;user-select:none}
+details.tp>summary::-webkit-details-marker{display:none}
+details.tp>summary:hover{background:#f8fafc}
+details.tp[open]>summary{background:#f8fafc;border-bottom:1px solid #e2e8f0}
+.tn{flex-shrink:0;width:28px;height:28px;border-radius:9px;background:var(--gc);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.tt{flex:1;min-width:0;font-size:15.5px;font-weight:700;color:#1a1a1a;line-height:1.45}
+.tt strong{color:var(--gc)}
+.cxb{font-family:'Fira Code',monospace;font-size:11.5px;font-weight:800;padding:3px 11px;border-radius:9px;white-space:nowrap;background:color-mix(in srgb,var(--cc) 14%,#fff);color:var(--cc)}
+.chev{color:var(--gc);font-size:11px;transition:transform .2s}details.tp[open] .chev{transform:rotate(180deg)}
+@media(max-width:700px){.cxb{display:none}}
+.tbody{padding:16px 20px 18px}
+.tbody p{color:#334155;font-size:15px;line-height:1.75;margin-bottom:10px;font-weight:500}
+.tbody .code-block{margin:8px 0}
+.tbody table{margin:4px 0}
+ul.plain{margin:4px 0 10px 22px}ul.plain li{font-size:14.5px;line-height:1.8;color:#334155;font-weight:500}
+.verdicts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}
+@media(max-width:600px){.verdicts{grid-template-columns:1fr}}
+.vd{background:color-mix(in srgb,var(--vc) 10%,#fff);border:2px solid var(--vc);border-radius:14px;padding:12px 16px}
+.vd small{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--vc)}
+.vd b{font-family:'Fira Code',monospace;font-size:26px;color:var(--vc)}
+ul.reasons{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 14px}
+@media(max-width:700px){ul.reasons{grid-template-columns:1fr}}
+ul.reasons li{display:flex;gap:12px;align-items:flex-start;background:#eff6ff;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.55;color:#334155;font-weight:500}
+ul.reasons li>span{font-size:22px}ul.reasons b{display:block;color:#1e3a8a;font-weight:800}
+.duel{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0 12px}
+.du{flex:1;min-width:180px;border-radius:14px;padding:14px 18px;text-align:center}
+.du small{display:block;font-size:11.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase}
+.du b{display:block;font-family:'Fira Code',monospace;font-size:26px;margin:2px 0}.du span{font-size:12px;font-weight:700;opacity:.8}
+.du.lin{background:#dcfce7;color:#166534}.du.quad{background:#ffe4e6;color:#9f1239}
+.du-vs{font-weight:800;color:#94a3b8}
+.halve{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0 10px}
+.halve span{min-width:46px;text-align:center;font-family:'Fira Code',monospace;font-size:18px;font-weight:800;background:#ccfbf1;color:#115e59;border:2px solid #0d9488;border-radius:12px;padding:8px 12px}
+.halve span.end{background:#0d9488;color:#fff}.halve i{font-style:normal;font-size:11.5px;font-weight:800;color:#0f766e}
+.two{display:grid;grid-template-columns:1fr 1.3fr;gap:14px;align-items:start;margin:6px 0}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+.perm{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.perm div{min-width:70px;background:#fff1f2;border:2px solid #fda4af;border-radius:12px;padding:8px 14px;text-align:center}
+.perm small{display:block;font-size:10.5px;font-weight:800;color:#9f1239;letter-spacing:.6px;text-transform:uppercase}.perm b{display:block;font-family:'Fira Code',monospace;font-size:24px;color:#9f1239}.perm span{font-size:11px;font-weight:700;color:#be123c}
+.perm div.tot{background:#9f1239;border-color:#9f1239}.perm div.tot small,.perm div.tot b,.perm div.tot span{color:#fff}
+.perm i{font-style:normal;font-weight:800;font-size:20px;color:#94a3b8;align-self:center}
+.order{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px 18px;margin:14px 0 10px;box-shadow:0 4px 12px rgba(0,0,0,.04)}
+.order>b{font-size:14px;color:#334155}
+.oc{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.oc span{font-family:'Fira Code',monospace;font-weight:800;font-size:15px;padding:7px 14px;border-radius:11px;color:#fff;background:var(--c)}
+.oc i{font-style:normal;font-weight:800;color:#94a3b8;font-size:18px}
+.gw,.lab{background:linear-gradient(135deg,#f8fbff,#eef2ff);border:2px solid #c7d2fe;border-radius:18px;padding:16px 18px;margin:12px 0}
+.gw-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.gw-top b{font-size:16px;color:#3730a3}
+.gw-top label,.lab-row label{display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:800;color:#334155}
+.gw-top output,.lab-row output{min-width:28px;display:inline-block;font-family:'Fira Code',monospace;color:#4f46e5}
+input[type=range]{accent-color:#4f46e5;width:180px}
+select{font-family:inherit;font-size:13px;font-weight:700;border:1px solid #c7d2fe;border-radius:10px;padding:7px 10px;background:#fff;color:#334155;max-width:100%}
+.g2{margin-left:auto;font-size:12.5px;font-weight:800;color:#6366f1;background:#fff;border-radius:10px;padding:4px 12px}
+.gwnote{font-size:13px!important;color:#64748b!important;margin:8px 0 10px!important}
+.gtab{min-width:560px;border-spacing:0 6px}
+.gtab td{font-size:13.5px;padding:8px 12px}
+.gtab td:first-child{font-family:'Fira Code',monospace;font-size:13px}
+.gtab td.num{font-family:'Fira Code',monospace;font-weight:700}
+.bar{height:16px;border-radius:8px;background:#e2e8f0;position:relative;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:8px}
+.bar i.b2{opacity:.35}
+.lab-row{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0}
+.lab-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:14px;align-items:stretch}
+@media(max-width:820px){.lab-grid{grid-template-columns:1fr}}
+.lab-code{margin:0;background:#0f172a;color:#d4d4d4;border-radius:12px;padding:14px 16px;font-family:'Fira Code',monospace;font-size:12.5px;line-height:1.7;overflow-x:auto;white-space:pre}
+.lab-out{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lo{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px}
+.lo small{display:block;font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#94a3b8}
+.lo b{font-family:'Fira Code',monospace;font-size:22px;color:#1e3a8a}
+.lo.big,.lo.cxo{grid-column:1/-1}
+.lo.cxo b{color:#fff}.lo.cxo{background:#4f46e5;border-color:#4f46e5}.lo.cxo small{color:#c7d2fe}
+.subcard{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px 20px;margin-top:14px;scroll-margin-top:16px}
+.subcard h4{font-size:14px;font-weight:800;color:#0f766e;margin-bottom:6px}
+.subcard .sc-p{font-size:14.5px;color:#334155;margin-bottom:6px;font-weight:500}
+.kw{color:#c792ea;font-weight:600}.str{color:#c3e88d}.cmt{color:#7a7a7a;font-style:italic}.num{color:#f78c6c}.fn{color:#82aaff}
+.copybtn{margin-left:auto;border:none;background:rgba(255,255,255,.1);color:#cbd5e1;font-family:'Segoe UI',system-ui,sans-serif;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:8px;cursor:pointer}
+.copybtn:hover{background:rgba(255,255,255,.22);color:#fff}.copybtn.done{background:#16a34a;color:#fff}
+
+:root{color-scheme:light}
+.container{max-width:1120px}
+.priority{font-size:14px;white-space:nowrap;vertical-align:middle;margin-left:8px}
+.tn{width:39px;font-size:12px}
+.cxb{font-family:Consolas,monospace}
+.assumptions{font-size:13.5px;color:#64748b;margin:0 2px 18px;line-height:1.8}
+.lead-callout{margin-bottom:8px}
+.section-intro{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 20px;margin-bottom:12px}
+.section-intro p{color:#334155;font-size:15px;line-height:1.8;margin:8px 0}
+.section-intro .callout{margin-bottom:0}
+.formula{background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:1px solid #c7d2fe;border-radius:12px;padding:15px 18px;color:#3730a3;font-size:18px;line-height:1.8;font-family:Consolas,monospace;font-weight:700;margin:12px 0;overflow-wrap:anywhere}
+.math-inline{font-family:Consolas,monospace;font-weight:700}
+.tbody blockquote{border-left:4px solid #6366f1}
+.tbody blockquote p{color:inherit;margin:0}
+.tbody a{overflow-wrap:anywhere}
+.tbody hr{border:0;height:1px;background:#e2e8f0;margin:20px 0}
+.tbody p:last-child{margin-bottom:0}
+.callout p:last-child{margin-bottom:0}
+.matrix-duo{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:20px}
+.matrix-duo h4{font-size:14px;color:#1e3a8a;margin-bottom:12px}
+.matrix-duo p{font-size:14px;margin:12px 0 0}
+.matrix{display:grid;grid-template-columns:34px repeat(5,minmax(22px,44px));gap:6px;align-items:center}
+.matrix>b{font-family:Consolas,monospace;font-size:11px;color:#64748b;text-align:center}
+.cell{height:33px;display:flex;align-items:center;justify-content:center;border-radius:7px;font-family:Consolas,monospace;font-size:13px;font-weight:700}
+.cell.filled{background:#2563eb;color:#fff}.cell.skipped{background:#f1f5f9;color:#94a3b8;border:1px dashed #cbd5e1}
+.step-figure{padding:14px 18px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:14px;margin-top:14px}
+.step-figure figcaption{color:#115e59;font-size:13px;font-weight:700;margin-bottom:10px}
+.case-strip{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:20px}
+.mini-label{font-size:13px;font-weight:800;color:#475569;display:block;margin-bottom:10px}
+.array-line{display:flex;gap:6px;flex-wrap:wrap}.array-line b{width:46px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid #cbd5e1;background:#f8fafc;color:#475569;border-radius:10px;font:700 16px Consolas,monospace}
+.array-line b.hit{background:#dcfce7;border-color:#16a34a;color:#166534}.array-line b.seen{background:#eff6ff;border-color:#60a5fa;color:#1e3a8a}
+.case-strip p{font-size:13px;margin:10px 0 0}
+.lab{margin-top:24px;padding:22px}
+.lab-heading{display:flex;align-items:center;gap:14px;justify-content:space-between}
+.lab-heading h2{font-size:20px;letter-spacing:-.3px;color:#3730a3;margin:3px 0}
+.eyebrow{font-size:10px;letter-spacing:1.2px;color:#6366f1;font-weight:800}
+.pill{color:#4338ca;background:#e0e7ff;border:1px solid #c7d2fe;border-radius:18px;padding:5px 11px;font-size:11px;font-weight:800;white-space:nowrap}
+.lab-row{align-items:center;gap:12px 20px;margin:18px 0}
+.lab-row label{flex-wrap:wrap}.lab-row [hidden]{display:none!important}
+.lab-row select{max-width:min(100%,340px)}
+.lab-row output{color:#4338ca}
+.lab-grid{grid-template-columns:1.03fr 1fr;align-items:start}
+.lab-code{min-width:0;line-height:1.85}
+.lab-code code{padding:0;background:transparent;color:#cbd5e1;font-size:12.5px}
+.lab-explanation{font-size:13px;line-height:1.75;color:#475569;margin:12px 0}
+.visit-rows{display:grid;gap:5px}
+.visit-row{display:grid;grid-template-columns:43px 1fr 30px;gap:8px;align-items:center;min-height:20px;font:11px Consolas,monospace;color:#64748b}
+.visit-row .dots{display:flex;flex-wrap:wrap;gap:3px;align-items:center;min-height:16px}
+.visit-row i{width:14px;height:14px;display:block;border-radius:4px;background:#3b82f6}
+.visit-row .zero{font-size:11px;color:#64748b}
+.visit-row strong{text-align:right;color:#1e3a8a}
+.lo small{color:#64748b;font-size:10px;letter-spacing:.3px}.lo b{font-size:23px}
+.lo.cxo small{color:#e0e7ff}
+.primary-button,.secondary-button{font-family:inherit;font-size:13px;font-weight:800;line-height:1.5;border-radius:10px;padding:8px 16px;cursor:pointer;border:1px solid #c7d2fe}
+.primary-button{background:#4f46e5;color:#fff;border-color:#4f46e5}.primary-button:hover{background:#4338ca}.primary-button:disabled{opacity:.55;cursor:default}
+.secondary-button{background:#fff;color:#4338ca}.secondary-button:hover{background:#eef2ff}
+.step-counter{color:#6366f1;font:700 13px Consolas,monospace;margin-left:auto}
+.search-array{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:9px;margin:16px 0 12px}
+.search-cell{display:flex;flex-direction:column;align-items:center;gap:5px}
+.search-cell>span{border:2px solid #93c5fd;background:#eff6ff;color:#1e3a8a;border-radius:12px;width:100%;height:57px;display:flex;justify-content:center;align-items:center;font:700 22px Consolas,monospace;transition:background .2s,border-color .2s}
+.search-cell>small{font:11px Consolas,monospace;color:#64748b}
+.search-cell.discarded>span{background:#f1f5f9;border-color:#e2e8f0;color:#94a3b8}
+.search-cell.middle>span{background:#ede9fe;border-color:#8b5cf6;color:#5b21b6}
+.search-cell.found>span{background:#dcfce7;border-color:#22c55e;color:#166534}
+.search-status{padding:13px 16px;border-radius:12px;background:#fff;border:1px solid #c7d2fe;color:#3730a3;font-size:14px;font-weight:600;line-height:1.75;min-height:52px}
+.legend{display:flex;flex-wrap:wrap;gap:12px 20px;margin:14px 0;font-size:11px;font-weight:600;color:#64748b}.legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:10px;height:10px;border-radius:3px;border:1px solid}.active-key{background:#eff6ff;border-color:#60a5fa!important}.mid-key{background:#ede9fe;border-color:#8b5cf6!important}.found-key{background:#dcfce7;border-color:#22c55e!important}.discard-key{background:#f1f5f9;border-color:#cbd5e1!important}
+.search-history{margin:0 0 12px 24px;color:#475569;font-size:13px;line-height:1.9}
+.search-history:empty{display:none}
+.page-footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:22px 2px 0;border-top:1px solid #dbe3ef;margin-top:30px;color:#64748b;font-size:12px;font-weight:700}
+.page-footer a{text-decoration:none;color:#2563eb}
+button:focus-visible,a:focus-visible,summary:focus-visible,select:focus-visible,input:focus-visible,.tscroll:focus-visible{outline:3px solid #a78bfa;outline-offset:4px}
+.skip-link{position:absolute;top:-100px;left:16px;padding:12px 20px;background:#fff;color:#1e3a8a;z-index:99;border:2px solid #2563eb;border-radius:8px}.skip-link:focus{top:12px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:820px){.lab-grid{grid-template-columns:1fr}.case-strip{grid-template-columns:1fr}.matrix-duo{gap:20px;padding:16px}.lab{padding:18px}.container{width:94%;margin-top:18px}}
+@media(max-width:600px){.header h1{font-size:25px}.header{padding:28px 20px}.header p{font-size:14px}.header .meta{gap:7px}.meta span{font-size:11px;padding:5px 10px}.toc a{font-size:12px;padding:6px 11px}.toolbar{flex-wrap:wrap;gap:7px}.tbl{width:100%;margin:4px 0}.toolbar button{padding:8px 12px}.grp-h{padding:14px}.grp-h h2{font-size:18px;line-height:1.5}.grp-h p{font-size:12px}.priority{font-size:11px}.grp-i{width:36px;height:38px;font-size:20px}.tbody{padding:14px}.tt{font-size:14px}.tn{width:34px;font-size:11px}.cxb{display:none}.matrix-duo{grid-template-columns:1fr}.matrix{grid-template-columns:34px repeat(5,1fr)}.matrix .cell{height:34px}.formula{font-size:15px;padding:12px}.lab-heading{align-items:flex-start}.lab-heading h2{font-size:18px}.pill{font-size:10px;padding:4px 8px}.lab-row label{font-size:13px}.lab-row select{max-width:100%;font-size:12px}.lab-row input[type=range]{width:150px}.search-array{gap:5px}.search-cell>span{height:42px;border-radius:8px;font-size:16px}.search-cell>small{font-size:9px}.lab-row .step-counter{margin-left:0}.code-block code{font-size:12px}.section-intro{padding:14px}.lo b{font-size:21px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+@media print{html{scroll-behavior:auto}body{background:white}.container{width:100%;max-width:none;margin:0}.header{box-shadow:none;padding:20px;background:#1e3a8a!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}.header::after,.header::before,.toc,.toolbar,.copybtn,.interactive-panel,.skip-link,.page-footer a{display:none!important}.header h1{font-size:22px}.header .meta{display:none}.grp{margin-top:20px}.grp-h{break-after:avoid;box-shadow:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}.grp-h h2{font-size:17px}details.tp{box-shadow:none;break-inside:auto}details.tp>summary{break-after:avoid}.tn,.cxb,.callout,th,td,.cell{print-color-adjust:exact;-webkit-print-color-adjust:exact}.code-block{box-shadow:none;break-inside:avoid;background:#f8fafc;border:1px solid #cbd5e1}.code-bar{background:#e2e8f0;border-color:#cbd5e1}.code-block code{color:#1e293b;font-size:10px;white-space:pre-wrap;overflow-wrap:anywhere}.code-block .kw{color:#6d28d9}.code-block .num{color:#b45309}.code-block .str{color:#047857}.code-block .cmt{color:#64748b}.code-bar .filename{color:#475569}.tscroll{overflow:visible}table{min-width:0;width:100%;font-size:10px}th,td{font-size:10px;padding:8px}tr{break-inside:avoid}.dfig,.formula,.callout,.rev{break-inside:avoid}.chev{display:none}.tbody p,.section-intro p{font-size:11px}.tbody li{font-size:11px!important}.header p{font-size:11px}a{color:inherit;text-decoration:none}.page-footer{font-size:10px}.matrix-duo,.case-strip{grid-template-columns:1fr 1fr}.matrix .cell{height:24px}.revs{grid-template-columns:1fr 1fr}}
+</style></head><body>
+<a class="skip-link" href="#pt4">Skip to study notes</a><main class="container" id="top">
+<header class="header"><span class="tag">DSA · COMPLEXITY ANALYSIS · PART 2</span><h1>🔁 Nested Loops, Logarithmic Complexity &amp; Cases</h1><p>Count the total work, understand why doubling and halving are fast, and compare best, average and worst cases — with step-by-step JavaScript examples.</p><div class="meta"><span>📘 Topics 4–6</span><span>🧩 17 subtopics</span><span>💻 JavaScript examples</span><span>🧪 2 interactive tools</span></div><nav class="toc" aria-label="On this page"><a href="#pt4">4 · Nested loops</a><a href="#loop-lab">Loop workbench</a><a href="#pt5">5 · Logarithmic</a><a href="#search-lab">Binary search explorer</a><a href="#pt6">6 · Cases</a><a href="#revision">Quick revision</a></nav></header>
+<div class="callout info lead-callout"><span class="cl">The main rule</span>Count the <strong>total work done across all iterations</strong>. Two nested loops give O(n²) when both run n times and the innermost work takes constant time.</div><p class="assumptions">In the examples, <code>n</code> is a positive integer and <code>count++</code> takes O(1) time.</p>
+<div class="toolbar"><span class="tbl">17 topics · 3 chapters</span><button type="button" id="openAll">Expand all</button><button type="button" id="closeAll">Collapse all</button><button type="button" id="printNotes">Print</button></div>
+<section class="grp" id="pt4" style="--gc:#2563eb;--gd:#1e3a8a" aria-labelledby="section-4"><div class="grp-h"><span class="grp-i" aria-hidden="true">🔁</span><div><h2 id="section-4"><b>4</b> Complexity of nested loops <span class="priority" aria-label="3 star priority">⭐⭐⭐</span></h2><p>Count the innermost work — check the bounds and whether the pointer resets.</p></div></div><details class="tp" id="topic-4-1" open><summary><span class="tn">4.1</span><span class="tt">Two loops, each running n times</span><span class="cxb" style="--cc:#2563eb">O(n²)</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-4.1-1.js</span><button class="copybtn" type="button" aria-label="Copy example-4.1-1.js">Copy</button></div><pre><code><span class="kw">let</span> count = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; n; i++) {
+  <span class="kw">for</span> (<span class="kw">let</span> j = <span class="num">0</span>; j &lt; n; j++) {
+    count++;
+  }
+}</code></pre></div>
+<p>For <strong>every single iteration</strong> of the outer loop, the inner loop starts again at <code>j = 0</code>.</p>
+<p>If <code>n = 4</code>:</p>
+<div class="tscroll" tabindex="0" aria-label="Scrollable comparison table"><table>
+<thead>
+<tr>
+<th>Outer loop: <code>i</code></th>
+<th>Inner loop: <code>j</code></th>
+<th align="right">Inner iterations</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>0, 1, 2, 3</td>
+<td align="right">4</td>
+</tr>
+<tr>
+<td>1</td>
+<td>0, 1, 2, 3</td>
+<td align="right">4</td>
+</tr>
+<tr>
+<td>2</td>
+<td>0, 1, 2, 3</td>
+<td align="right">4</td>
+</tr>
+<tr>
+<td>3</td>
+<td>0, 1, 2, 3</td>
+<td align="right">4</td>
+</tr>
+</tbody></table></div>
+<p>Total work:</p>
+<div class="formula" aria-label="Calculation">4 + 4 + 4 + 4 = 4 × 4 = 16</div>
+
+
+<p>Generally, <strong><code>n × n = n²</code> → O(n²)</strong>.</p>
+</div></details><details class="tp" id="topic-4-2"><summary><span class="tn">4.2</span><span class="tt">Three loops, each running n times</span><span class="cxb" style="--cc:#2563eb">O(n³)</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-4.2-1.js</span><button class="copybtn" type="button" aria-label="Copy example-4.2-1.js">Copy</button></div><pre><code><span class="kw">let</span> count = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; n; i++) {
+  <span class="kw">for</span> (<span class="kw">let</span> j = <span class="num">0</span>; j &lt; n; j++) {
+    <span class="kw">for</span> (<span class="kw">let</span> k = <span class="num">0</span>; k &lt; n; k++) {
+      count++;
+    }
+  }
+}</code></pre></div>
+<p>For each <code>i</code>, all values of <code>j</code> are visited. For each pair of <code>i</code> and <code>j</code>, all values of <code>k</code> are visited.</p>
+<p>Total: <strong><code>n × n × n = n³</code> → O(n³)</strong>.</p>
+<p>If <code>n = 4</code>, the innermost statement runs <strong>64 times</strong>.</p>
+</div></details><details class="tp" id="topic-4-3"><summary><span class="tn">4.3</span><span class="tt">Different input sizes: n × m</span><span class="cxb" style="--cc:#2563eb">O(n × m)</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><p>Suppose one array has <code>n</code> elements and another has <code>m</code> elements:</p>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-4.3-1.js</span><button class="copybtn" type="button" aria-label="Copy example-4.3-1.js">Copy</button></div><pre><code><span class="kw">let</span> count = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; arr1.length; i++) {
+  <span class="kw">for</span> (<span class="kw">let</span> j = <span class="num">0</span>; j &lt; arr2.length; j++) {
+    count++;
+  }
+}</code></pre></div>
+<p>If <code>arr1.length = 3</code> and <code>arr2.length = 5</code>, total work is:</p>
+<div class="formula" aria-label="Calculation">3 × 5 = 15</div>
+
+
+<div class="callout ok"><span class="cl">Result</span><strong>Time: O(n × m).</strong></div>
+<div class="callout info"><span class="cl">Independent inputs</span>Keep both variables because the arrays can grow independently. If both lengths are <code>n</code>, this becomes <strong>O(n²)</strong>.</div>
+</div></details><details class="tp" id="topic-4-4"><summary><span class="tn">4.4</span><span class="tt">Triangular loops: j = i + 1</span><span class="cxb" style="--cc:#2563eb">O(n²)</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><p>This pattern compares each element with the elements <strong>after it</strong>:</p>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-4.4-1.js</span><button class="copybtn" type="button" aria-label="Copy example-4.4-1.js">Copy</button></div><pre><code><span class="kw">let</span> count = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; n; i++) {
+  <span class="kw">for</span> (<span class="kw">let</span> j = i + <span class="num">1</span>; j &lt; n; j++) {
+    count++;
+  }
+}</code></pre></div>
+<p>For <code>n = 5</code>:</p>
+<div class="tscroll" tabindex="0" aria-label="Scrollable comparison table"><table>
+<thead>
+<tr>
+<th><code>i</code></th>
+<th align="right">Starting <code>j</code></th>
+<th>Values visited by <code>j</code></th>
+<th align="right">Inner iterations</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td align="right">1</td>
+<td>1, 2, 3, 4</td>
+<td align="right">4</td>
+</tr>
+<tr>
+<td>1</td>
+<td align="right">2</td>
+<td>2, 3, 4</td>
+<td align="right">3</td>
+</tr>
+<tr>
+<td>2</td>
+<td align="right">3</td>
+<td>3, 4</td>
+<td align="right">2</td>
+</tr>
+<tr>
+<td>3</td>
+<td align="right">4</td>
+<td>4</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td>4</td>
+<td align="right">5</td>
+<td>None</td>
+<td align="right">0</td>
+</tr>
+</tbody></table></div>
+<p>Total:</p>
+<div class="formula" aria-label="Calculation">4 + 3 + 2 + 1 + 0 = 10</div>
+
+
+<p>Generally:</p>
+<div class="formula" aria-label="Calculation">(n − 1) + (n − 2) + … + 1 = n(n − 1)/2 = (n² − n)/2</div>
+
+
+<p>Ignore the constant factor and lower-order term: <strong>O(n²)</strong>.</p>
+<p>Although it does roughly half as much work as the full double loop, its growth is still quadratic.</p>
+<figure class="dfig matrix-figure"><figcaption class="dtitle">Full grid vs triangular grid · n = 5</figcaption><div class="matrix-duo"><div><h4>Full double loop</h4><div class="matrix" aria-hidden="true"><span></span><b>j=0</b><b>j=1</b><b>j=2</b><b>j=3</b><b>j=4</b><b>i=0</b><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><b>i=1</b><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><b>i=2</b><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><b>i=3</b><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><b>i=4</b><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span></div><p><strong>25</strong> visits · n²</p></div><div><h4>Only pairs where j &gt; i</h4><div class="matrix" aria-hidden="true"><span></span><b>j=0</b><b>j=1</b><b>j=2</b><b>j=3</b><b>j=4</b><b>i=0</b><span class="cell skipped">·</span><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><b>i=1</b><span class="cell skipped">·</span><span class="cell skipped">·</span><span class="cell filled">1</span><span class="cell filled">1</span><span class="cell filled">1</span><b>i=2</b><span class="cell skipped">·</span><span class="cell skipped">·</span><span class="cell skipped">·</span><span class="cell filled">1</span><span class="cell filled">1</span><b>i=3</b><span class="cell skipped">·</span><span class="cell skipped">·</span><span class="cell skipped">·</span><span class="cell skipped">·</span><span class="cell filled">1</span><b>i=4</b><span class="cell skipped">·</span><span class="cell skipped">·</span><span class="cell skipped">·</span><span class="cell skipped">·</span><span class="cell skipped">·</span></div><p><strong>10</strong> visits · n(n − 1)/2</p></div></div><p class="dcap">Each filled square is one execution of count++. Both patterns grow as O(n²).</p></figure></div></details><details class="tp" id="topic-4-5"><summary><span class="tn">4.5</span><span class="tt">Dependent boundaries: j &lt; i</span><span class="cxb" style="--cc:#2563eb">Add the work</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><p>A boundary is <em>dependent</em> when it uses another loop’s variable:</p>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-4.5-1.js</span><button class="copybtn" type="button" aria-label="Copy example-4.5-1.js">Copy</button></div><pre><code><span class="kw">let</span> count = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">1</span>; i &lt;= n; i++) {
+  <span class="kw">for</span> (<span class="kw">let</span> j = <span class="num">0</span>; j &lt; i; j++) {
+    count++;
+  }
+}</code></pre></div>
+<p>Here, the inner loop runs:</p>
+<ul class="plain">
+<li><code>i = 1</code> → 1 time.</li>
+<li><code>i = 2</code> → 2 times.</li>
+<li><code>i = 3</code> → 3 times.</li>
+<li>…</li>
+<li><code>i = n</code> → <code>n</code> times.</li>
+</ul>
+<p>Therefore:</p>
+<div class="formula" aria-label="Calculation">1 + 2 + 3 + … + n = n(n + 1)/2</div>
+
+
+<div class="callout ok"><span class="cl">Result</span><strong>Time: O(n²).</strong></div>
+<div class="callout ok"><span class="cl">How to analyse it</span>The useful habit is: <strong>write the inner-loop counts, then add them.</strong> A dependent boundary does not automatically mean O(n²).</div>
+</div></details><details class="tp" id="topic-4-6"><summary><span class="tn">4.6</span><span class="tt">Nested loops can take O(n)</span><span class="cxb" style="--cc:#2563eb">Two exceptions</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><p>For example, an inner loop with a fixed limit:</p>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-4.6-1.js</span><button class="copybtn" type="button" aria-label="Copy example-4.6-1.js">Copy</button></div><pre><code><span class="kw">let</span> count = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; n; i++) {
+  <span class="kw">for</span> (<span class="kw">let</span> j = <span class="num">0</span>; j &lt; <span class="num">3</span>; j++) {
+    count++;
+  }
+}</code></pre></div>
+<p>Total work: <strong><code>3n</code> → O(n)</strong>.</p>
+<p>Another example uses a pointer that <strong>does not reset</strong>:</p>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-4.6-2.js</span><button class="copybtn" type="button" aria-label="Copy example-4.6-2.js">Copy</button></div><pre><code><span class="kw">let</span> j = <span class="num">0</span>;
+<span class="kw">let</span> count = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; n; i++) {
+  <span class="kw">while</span> (j &lt; n) {
+    count++;
+    j++;
+  }
+}</code></pre></div>
+<p>During the first outer iteration, <code>j</code> moves from <code>0</code> to <code>n</code>. For all remaining outer iterations, <code>j &lt; n</code> is already false.</p>
+<ul class="plain">
+<li>Outer loop: <code>n</code> iterations.</li>
+<li>Inner loop: <code>n</code> iterations <strong>across the entire execution</strong>.</li>
+</ul>
+<p>Total work grows like <strong><code>n + n</code> → O(n)</strong>.</p>
+<p>This is useful when analysing two-pointer and sliding-window algorithms: check how many times each pointer can move in total.</p>
+</div></details></section><section class="lab interactive-panel" id="loop-lab" aria-labelledby="loop-title">
+ <div class="lab-heading"><div><span class="eyebrow">TRY IT YOURSELF · 01</span><h2 id="loop-title">Nested-loop workbench</h2></div><span class="pill">Exact counts</span></div>
+ <p class="gwnote">Change the pattern and input size. Each blue cell represents one execution of <code>count++</code>.</p>
+ <div class="lab-row"><label for="loop-pattern">Pattern <select id="loop-pattern"><option value="square">Full double loop · n × n</option><option value="rect">Different input sizes · n × m</option><option value="triangle">Triangular · j = i + 1</option><option value="dependent">Growing inner bound · j &lt; i</option><option value="fixed">Fixed inner limit · 3</option><option value="shared">Pointer j does not reset</option><option value="geometric">Doubling outer loop · j &lt; i</option></select></label><label for="loop-n">n <input id="loop-n" type="range" min="1" max="12" value="5"><output id="loop-n-value" for="loop-n">5</output></label><label for="loop-m" id="m-control" hidden>m <input id="loop-m" type="range" min="1" max="12" value="3"><output id="loop-m-value" for="loop-m">3</output></label></div>
+ <div class="lab-grid"><pre class="lab-code"><code id="loop-code"></code></pre><div><div class="lab-out" aria-live="polite"><div class="lo"><small>count++ executions</small><b id="loop-count">25</b></div><div class="lo"><small>At 2n · m stays fixed</small><b id="loop-double">100</b></div><div class="lo cxo"><small>Total running time</small><b id="loop-complexity">O(n²)</b></div></div><p class="lab-explanation" id="loop-explanation"></p><div class="visit-rows" id="loop-rows" aria-label="Inner-loop visits by outer iteration"></div></div></div>
+ <noscript><p class="callout amber">Enable JavaScript to use the workbench. All study notes remain available below and above.</p></noscript>
+</section><section class="grp" id="pt5" style="--gc:#7c3aed;--gd:#4c1d95" aria-labelledby="section-5"><div class="grp-h"><span class="grp-i" aria-hidden="true">📉</span><div><h2 id="section-5"><b>5</b> Logarithmic complexity <span class="priority" aria-label="2 star priority">⭐⭐</span></h2><p>Understand doubling, halving, binary search and dependent loop boundaries.</p></div></div><details class="tp" id="topic-5-1" open><summary><span class="tn">5.1</span><span class="tt">A doubling loop: i *= 2</span><span class="cxb" style="--cc:#7c3aed">O(log n)</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-5.1-1.js</span><button class="copybtn" type="button" aria-label="Copy example-5.1-1.js">Copy</button></div><pre><code><span class="kw">let</span> count = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">1</span>; i &lt; n; i *= <span class="num">2</span>) {
+  count++;
+}</code></pre></div>
+<p>For <code>n = 16</code>:</p>
+<div class="tscroll" tabindex="0" aria-label="Scrollable comparison table"><table>
+<thead>
+<tr>
+<th>Iteration</th>
+<th align="right"><code>i</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td>2</td>
+<td align="right">2</td>
+</tr>
+<tr>
+<td>3</td>
+<td align="right">4</td>
+</tr>
+<tr>
+<td>4</td>
+<td align="right">8</td>
+</tr>
+<tr>
+<td>Stop</td>
+<td align="right">16</td>
+</tr>
+</tbody></table></div>
+<p>Only <strong>4 iterations</strong>.</p>
+<p>After <code>k</code> doublings, the value is <span class="math-inline">2<sup>k</sup></span>. To reach <code>n</code>:</p>
+<div class="formula" aria-label="Calculation">2ᵏ = n  ⇒  k = log₂ n</div>
+
+
+<div class="callout ok"><span class="cl">Result</span><strong>Time: O(log n).</strong></div>
+<div class="callout warn"><span class="cl">Avoid an infinite loop</span>Start this loop at <code>1</code>: starting at <code>0</code> would keep it at <code>0</code> forever.</div>
+<figure class="step-figure"><figcaption>Four body executions; stop when i reaches 16.</figcaption><div class="halve"><span>1</span><i aria-hidden="true">× 2</i><span>2</span><i aria-hidden="true">× 2</i><span>4</span><i aria-hidden="true">× 2</i><span>8</span><i aria-hidden="true">× 2</i><span class="end">16</span></div></figure></div></details><details class="tp" id="topic-5-2"><summary><span class="tn">5.2</span><span class="tt">A halving loop: i /= 2</span><span class="cxb" style="--cc:#7c3aed">O(log n)</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-5.2-1.js</span><button class="copybtn" type="button" aria-label="Copy example-5.2-1.js">Copy</button></div><pre><code><span class="kw">let</span> count = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="kw">let</span> i = n; i &gt; <span class="num">1</span>; i /= <span class="num">2</span>) {
+  count++;
+}</code></pre></div>
+<p>For <code>n = 16</code>, the body runs with:</p>
+<p><code>i = 16, 8, 4, 2</code></p>
+<p>At <code>i = 1</code>, it stops. Again, <strong>4 iterations</strong>.</p>
+<p>After <code>k</code> halvings:</p>
+<div class="formula" aria-label="Calculation">n/2ᵏ = 1  ⇒  k = log₂ n</div>
+
+
+<p>Multiplication or division by another <strong>fixed factor greater than 1</strong>, such as <code>3</code>, also gives logarithmic growth. Different fixed logarithm bases differ only by a constant factor.</p>
+<figure class="step-figure"><figcaption>Four body executions; stop when i reaches 1.</figcaption><div class="halve"><span>16</span><i aria-hidden="true">÷ 2</i><span>8</span><i aria-hidden="true">÷ 2</i><span>4</span><i aria-hidden="true">÷ 2</i><span>2</span><i aria-hidden="true">÷ 2</i><span class="end">1</span></div></figure></div></details><details class="tp" id="topic-5-3"><summary><span class="tn">5.3</span><span class="tt">Binary search on a sorted array</span><span class="cxb" style="--cc:#7c3aed">O(log n) worst</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><p>Binary search works on a <strong>sorted array</strong>. Each comparison with the middle element eliminates approximately half of the remaining search range. <a href="https://www.cs.princeton.edu/courses/archive/spr26/cos126/static/lectures/42Algorithms.pdf" target="_blank" rel="noopener noreferrer">cs.princeton.edu</a></p>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-5.3-1.js</span><button class="copybtn" type="button" aria-label="Copy example-5.3-1.js">Copy</button></div><pre><code><span class="kw">function</span> binarySearch(arr, target) {
+  <span class="kw">let</span> left = <span class="num">0</span>;
+  <span class="kw">let</span> right = arr.length - <span class="num">1</span>;
+
+  <span class="kw">while</span> (left &lt;= right) {
+    <span class="kw">const</span> mid = left + Math.floor((right - left) / <span class="num">2</span>);
+
+    <span class="kw">if</span> (arr[mid] === target) {
+      <span class="kw">return</span> mid;
+    }
+
+    <span class="kw">if</span> (arr[mid] &lt; target) {
+      left = mid + <span class="num">1</span>;
+    } <span class="kw">else</span> {
+      right = mid - <span class="num">1</span>;
+    }
+  }
+
+  <span class="kw">return</span> -<span class="num">1</span>;
+}</code></pre></div>
+<p>Example:</p>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-5.3-2.js</span><button class="copybtn" type="button" aria-label="Copy example-5.3-2.js">Copy</button></div><pre><code>binarySearch([<span class="num">10</span>, <span class="num">20</span>, <span class="num">30</span>, <span class="num">40</span>, <span class="num">50</span>, <span class="num">60</span>, <span class="num">70</span>, <span class="num">80</span>], <span class="num">70</span>);</code></pre></div>
+<div class="tscroll" tabindex="0" aria-label="Scrollable comparison table"><table>
+<thead>
+<tr>
+<th>Step</th>
+<th align="right">Middle value</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td align="right">40</td>
+<td>Search values greater than 40</td>
+</tr>
+<tr>
+<td>2</td>
+<td align="right">60</td>
+<td>Search values greater than 60</td>
+</tr>
+<tr>
+<td>3</td>
+<td align="right">70</td>
+<td>Found</td>
+</tr>
+</tbody></table></div>
+<p>The search itself takes <strong>O(log n)</strong> in the worst case. Sorting an unsorted input would be additional work. <a href="https://algs4.cs.princeton.edu/code/javadoc/edu/princeton/cs/algs4/BinarySearch.html" target="_blank" rel="noopener noreferrer">algs4.cs.princeton.edu</a></p>
+<p>This iterative implementation uses <strong>O(1) auxiliary space</strong>.</p>
+</div></details><details class="tp" id="topic-5-4"><summary><span class="tn">5.4</span><span class="tt">O(n) versus O(log n)</span><span class="cxb" style="--cc:#7c3aed">Compare growth</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><p>Compare these two loop patterns:</p>
+<div class="tscroll" tabindex="0" aria-label="Scrollable comparison table"><table>
+<thead>
+<tr>
+<th align="right"><code>n</code></th>
+<th align="right"><code>i = 0; i &lt; n; i++</code></th>
+<th align="right"><code>i = 1; i &lt; n; i *= 2</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">16</td>
+<td align="right">16 iterations</td>
+<td align="right">4 iterations</td>
+</tr>
+<tr>
+<td align="right">1,024</td>
+<td align="right">1,024 iterations</td>
+<td align="right">10 iterations</td>
+</tr>
+<tr>
+<td align="right">1,048,576</td>
+<td align="right">1,048,576 iterations</td>
+<td align="right">20 iterations</td>
+</tr>
+</tbody></table></div>
+<p>When the input size doubles:</p>
+<ul class="plain">
+<li><strong>O(n):</strong> the work grows by approximately a factor of two.</li>
+<li><strong>O(log n):</strong> a doubling or halving loop needs approximately one additional iteration.</li>
+</ul>
+</div></details><details class="tp" id="topic-5-5"><summary><span class="tn">5.5</span><span class="tt">Two nested logarithmic loops</span><span class="cxb" style="--cc:#7c3aed">O((log n)²)</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-5.5-1.js</span><button class="copybtn" type="button" aria-label="Copy example-5.5-1.js">Copy</button></div><pre><code><span class="kw">let</span> count = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">1</span>; i &lt; n; i *= <span class="num">2</span>) {
+  <span class="kw">for</span> (<span class="kw">let</span> j = <span class="num">1</span>; j &lt; n; j *= <span class="num">2</span>) {
+    count++;
+  }
+}</code></pre></div>
+<p>The inner loop resets to <code>j = 1</code> for every outer iteration.</p>
+<ul class="plain">
+<li>Outer: approximately <code>log₂ n</code> iterations.</li>
+<li>Inner: approximately <code>log₂ n</code> iterations per outer iteration.</li>
+</ul>
+<p>Total:</p>
+<div class="formula" aria-label="Calculation">log n × log n = (log n)²</div>
+
+
+<p>For <code>n = 16</code>: <strong><code>4 × 4 = 16</code></strong> executions of <code>count++</code>.</p>
+<div class="callout warn"><span class="cl">Common confusion</span><strong>O((log n)²) is different from O(log(n²))</strong>; the latter simplifies to O(log n).</div>
+</div></details><details class="tp" id="topic-5-6"><summary><span class="tn">5.6</span><span class="tt">A linear loop × a logarithmic loop</span><span class="cxb" style="--cc:#7c3aed">O(n log n)</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-5.6-1.js</span><button class="copybtn" type="button" aria-label="Copy example-5.6-1.js">Copy</button></div><pre><code><span class="kw">let</span> count = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; n; i++) {
+  <span class="kw">for</span> (<span class="kw">let</span> j = <span class="num">1</span>; j &lt; n; j *= <span class="num">2</span>) {
+    count++;
+  }
+}</code></pre></div>
+<p>Total:</p>
+<div class="formula" aria-label="Calculation">n × log n</div>
+
+
+<p>For <code>n = 16</code>: <strong><code>16 × 4 = 64</code></strong> executions.</p>
+<p>If these loops ran <strong>one after another</strong>, their costs would add instead:</p>
+<div class="formula" aria-label="Calculation">O(n + log n) = O(n)</div>
+</div></details><details class="tp" id="topic-5-7"><summary><span class="tn">5.7</span><span class="tt">A doubling outer loop with j &lt; i</span><span class="cxb" style="--cc:#7c3aed">O(n)</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><p>Consider this dependent boundary:</p>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-5.7-1.js</span><button class="copybtn" type="button" aria-label="Copy example-5.7-1.js">Copy</button></div><pre><code><span class="kw">let</span> count = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">1</span>; i &lt; n; i *= <span class="num">2</span>) {
+  <span class="kw">for</span> (<span class="kw">let</span> j = <span class="num">0</span>; j &lt; i; j++) {
+    count++;
+  }
+}</code></pre></div>
+<p>For <code>n = 16</code>:</p>
+<div class="tscroll" tabindex="0" aria-label="Scrollable comparison table"><table>
+<thead>
+<tr>
+<th align="right">Outer <code>i</code></th>
+<th align="right">Inner iterations</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td align="right">2</td>
+<td align="right">2</td>
+</tr>
+<tr>
+<td align="right">4</td>
+<td align="right">4</td>
+</tr>
+<tr>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+</tbody></table></div>
+<p>Total: <strong><code>1 + 2 + 4 + 8 = 15</code></strong>.</p>
+<p>For powers of two, this sum is <code>n - 1</code>; generally it grows linearly.</p>
+<div class="callout ok"><span class="cl">Result</span><strong>Time: O(n).</strong> The inner loop’s changing length matters.</div>
+<div class="callout ok"><span class="cl">Remember the sum</span>1 + 2 + 4 + 8 = 15. Add the changing row lengths; multiplying n by log n would overcount.</div></div></details></section><section class="lab interactive-panel" id="search-lab" aria-labelledby="search-title">
+ <div class="lab-heading"><div><span class="eyebrow">TRY IT YOURSELF · 02</span><h2 id="search-title">Step through binary search</h2></div><span class="pill">Sorted array</span></div>
+ <p class="gwnote">Choose a target, then reveal each middle element and the range that remains.</p>
+ <div class="lab-row"><label for="search-target">Target <select id="search-target"><option value="70">70 · three steps</option><option value="40">40 · first middle</option><option value="80">80 · four steps</option><option value="35">35 · absent</option><option value="10">10 · left side</option></select></label><button type="button" class="primary-button" id="next-step">Next step</button><button type="button" class="secondary-button" id="reset-search">Reset</button><span class="step-counter" id="search-step">0 steps</span></div>
+ <div class="search-array" id="search-array" aria-label="Search array"></div>
+ <div class="search-status" id="search-status" role="status">Ready to search. The active range contains all 8 values.</div>
+ <div class="legend"><span><i class="active-key"></i>Active range</span><span><i class="mid-key"></i>Middle just checked</span><span><i class="found-key"></i>Found</span><span><i class="discard-key"></i>Discarded</span></div>
+ <ol id="search-history" class="search-history"></ol>
+ <p class="gwnote">A step means one midpoint inspection. The implementation uses O(1) auxiliary space.</p>
+</section><section class="grp" id="pt6" style="--gc:#0d9488;--gd:#115e59" aria-labelledby="section-6"><div class="grp-h"><span class="grp-i" aria-hidden="true">⚖️</span><div><h2 id="section-6"><b>6</b> Best, average and worst cases <span class="priority" aria-label="2 star priority">⭐⭐</span></h2><p>Keep the input size fixed. Compare the work for different inputs or targets.</p></div></div><div class="section-intro"><div class="tscroll" tabindex="0" aria-label="Scrollable comparison table"><table>
+<thead>
+<tr>
+<th>Case</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Best</strong></td>
+<td>Minimum work among inputs of size <code>n</code></td>
+</tr>
+<tr>
+<td><strong>Average</strong></td>
+<td>Expected work under a stated assumption about which inputs occur</td>
+</tr>
+<tr>
+<td><strong>Worst</strong></td>
+<td>Maximum work among inputs of size <code>n</code></td>
+</tr>
+</tbody></table></div>
+<div class="callout info"><span class="cl">Keep the input size fixed</span>Best case does <strong>not</strong> mean “a small array,” and worst case does <strong>not</strong> mean “a large array.” Keep <code>n</code> fixed and consider different contents or search targets.</div>
+</div><details class="tp" id="topic-6-1" open><summary><span class="tn">6.1</span><span class="tt">Linear search: all three cases</span><span class="cxb" style="--cc:#0d9488">O(1) → O(n)</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-6.1-1.js</span><button class="copybtn" type="button" aria-label="Copy example-6.1-1.js">Copy</button></div><pre><code><span class="kw">function</span> linearSearch(arr, target) {
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; arr.length; i++) {
+    <span class="kw">if</span> (arr[i] === target) {
+      <span class="kw">return</span> i;
+    }
+  }
+
+  <span class="kw">return</span> -<span class="num">1</span>;
+}</code></pre></div>
+<p>Using:</p>
+<div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example-6.1-2.js</span><button class="copybtn" type="button" aria-label="Copy example-6.1-2.js">Copy</button></div><pre><code><span class="kw">const</span> arr = [<span class="num">10</span>, <span class="num">20</span>, <span class="num">30</span>, <span class="num">40</span>, <span class="num">50</span>];</code></pre></div>
+<div class="tscroll" tabindex="0" aria-label="Scrollable comparison table"><table>
+<thead>
+<tr>
+<th>Case</th>
+<th>Situation</th>
+<th align="right">Comparisons</th>
+<th>Complexity</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Best</td>
+<td>Search for <code>10</code></td>
+<td align="right">1</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td>Average</td>
+<td>Each stored value is equally likely to be searched</td>
+<td align="right">3 on average</td>
+<td>O(n)</td>
+</tr>
+<tr>
+<td>Worst</td>
+<td>Search for <code>50</code> or an absent value</td>
+<td align="right">5</td>
+<td>O(n)</td>
+</tr>
+</tbody></table></div>
+<p>For the average case, assume the target exists and each position is equally likely:</p>
+<div class="formula" aria-label="Calculation">(1 + 2 + … + n)/n = (n + 1)/2</div>
+
+
+<p>That grows linearly, so <strong>O(n)</strong>.</p>
+<div class="callout amber"><span class="cl">Remember</span><strong>Average case is not simply “searching for the middle element.”</strong> It is an average across possible inputs, weighted by their probabilities.</div>
+<figure class="dfig"><figcaption class="dtitle">Same array. Different search targets.</figcaption><div class="case-strip"><div><span class="mini-label">Best · target 10</span><div class="array-line"><b class="hit">10</b><b>20</b><b>30</b><b>40</b><b>50</b></div><p>1 element checked · O(1)</p></div><div><span class="mini-label">Worst · target 50</span><div class="array-line"><b class="seen">10</b><b class="seen">20</b><b class="seen">30</b><b class="seen">40</b><b class="hit">50</b></div><p>5 elements checked · O(n)</p></div></div><p class="dcap">n stays 5 in both cases. Average cost assumes a distribution of targets.</p></figure></div></details><details class="tp" id="topic-6-2"><summary><span class="tn">6.2</span><span class="tt">Binary search: best, average and worst</span><span class="cxb" style="--cc:#0d9488">Best: O(1)</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><p>For the binary-search code above:</p>
+<div class="tscroll" tabindex="0" aria-label="Scrollable comparison table"><table>
+<thead>
+<tr>
+<th>Case</th>
+<th>Situation</th>
+<th>Complexity</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Best</td>
+<td>Target equals the first middle element</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td>Average</td>
+<td>Target is equally likely to be any stored distinct value</td>
+<td>O(log n)</td>
+</tr>
+<tr>
+<td>Worst</td>
+<td>Search follows one of the longest paths</td>
+<td>O(log n)</td>
+</tr>
+</tbody></table></div>
+<p>With <code>[10, 20, 30, 40, 50, 60, 70, 80]</code>, searching for <code>40</code> finishes on the first comparison.</p>
+<p>An absent target also requires following the search until the remaining range becomes empty.</p>
+</div></details><details class="tp" id="topic-6-3"><summary><span class="tn">6.3</span><span class="tt">Hash Map / Set lookup assumptions</span><span class="cxb" style="--cc:#0d9488">Average: O(1)</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><p>For typical hash-table implementations, assuming constant-time hashing and key comparison:</p>
+<div class="tscroll" tabindex="0" aria-label="Scrollable comparison table"><table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Average lookup time</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>map.get(key)</code></td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td><code>map.has(key)</code></td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td><code>set.has(value)</code></td>
+<td>O(1)</td>
+</tr>
+</tbody></table></div>
+<p>Hashing helps locate the relevant storage position without scanning every element.</p>
+<p>However, in a conventional hash table, many keys colliding at the same location can make a lookup take <strong>O(n)</strong>. The precise worst case depends on the implementation.</p>
+<div class="callout amber"><span class="cl">JavaScript detail</span>For JavaScript specifically, the language specification requires average access time to be <strong>sublinear</strong>—growing more slowly than <code>n</code>. It does <strong>not</strong> guarantee O(1) access for every implementation. <a href="https://tc39.es/ecma262/multipage/keyed-collections.html" target="_blank" rel="noopener noreferrer">tc39.es</a></div>
+<p>For DSA interviews, a precise statement is:</p>
+<blockquote class="callout info"><span class="cl">Interview answer</span>
+<p>“Assuming a typical hash-table implementation, Map and Set lookups take O(1) on average.”</p>
+</blockquote>
+<p>Also distinguish <strong>one lookup</strong> from <strong>building the collection</strong>: inserting <code>n</code> elements takes O(n) expected total time under the usual hash-table assumptions.</p>
+</div></details><details class="tp" id="topic-6-4"><summary><span class="tn">6.4</span><span class="tt">Why worst-case analysis matters</span><span class="cxb" style="--cc:#0d9488">Big O ≠ worst</span><span class="chev" aria-hidden="true">▼</span></summary><div class="tbody"><p>For example, linear search may find the first element immediately. But if the target is missing from an array of one million elements, it must examine all one million.</p>
+<p>Worst-case analysis helps you:</p>
+<ul class="plain">
+<li>Estimate the maximum growth in work for an input size.</li>
+<li>Compare algorithms without relying on favourable inputs.</li>
+<li>Judge whether a solution is likely to fit a DSA problem’s constraints.</li>
+</ul>
+<div class="callout warn"><span class="cl">Important distinction</span><strong>Big O itself does not mean “worst case.”</strong> It describes an upper bound. You can state a Big O bound for best-case, average-case or worst-case running time—so name the case when it matters.</div>
+</div></details></section><section class="grp" id="revision" style="--gc:#2563eb;--gd:#1e3a8a"><div class="grp-h"><span class="grp-i" aria-hidden="true">📌</span><div><h2>Quick revision</h2><p>Read the bounds, check resets, then count the total work.</p></div></div><div class="card card-pad"><div class="tscroll" tabindex="0" aria-label="Scrollable revision table"><table><thead><tr><th>Pattern</th><th>Work expression</th><th>Time</th></tr></thead><tbody><tr><td>Two full nested loops</td><td>n × n</td><td>O(n²)</td></tr><tr><td>Three full nested loops</td><td>n × n × n</td><td>O(n³)</td></tr><tr><td>Different array lengths</td><td>n × m</td><td>O(nm)</td></tr><tr><td>Triangular: j = i + 1</td><td>n(n − 1)/2</td><td>O(n²)</td></tr><tr><td>Growing bound: j &lt; i</td><td>n(n + 1)/2</td><td>O(n²)</td></tr><tr><td>Inner loop runs 3 times</td><td>3n</td><td>O(n)</td></tr><tr><td>Pointer never resets</td><td>n outer + n total inner visits</td><td>O(n)</td></tr><tr><td>Counter doubles or halves</td><td>About log₂ n iterations</td><td>O(log n)</td></tr><tr><td>Two logarithmic loops</td><td>About (log₂ n)² body executions</td><td>O((log n)²)</td></tr><tr><td>Linear × logarithmic</td><td>About n log₂ n body executions</td><td>O(n log n)</td></tr><tr><td>Outer doubles; inner runs i times</td><td>1 + 2 + 4 + … &lt; 2n</td><td>O(n)</td></tr></tbody></table></div><p class="gwnote">Assumes constant work in the innermost body. Exact log-loop counts depend on the starting value and stopping condition.</p></div><div class="revs"><div class="rev" style="--rc:#7c3aed"><h3>How to read a loop</h3><ul><li><b>Bounds</b>How many values can each counter visit?</li><li><b>Reset</b>Does the inner counter restart every time?</li><li><b>Sum</b>If row lengths change, add those lengths.</li><li><b>Simplify</b>Drop fixed factors and lower-order terms.</li></ul></div><div class="rev" style="--rc:#0d9488"><h3>How to name the case</h3><ul><li><b>Best</b>Minimum work for a fixed input size.</li><li><b>Average</b>Expected work under stated assumptions.</li><li><b>Worst</b>Maximum work for a fixed input size.</li><li><b>Big O</b>An upper bound; it does not name a case.</li></ul></div></div></section>
+<footer class="page-footer"><span>DSA study notes · Topics 4–6</span><a href="#top">Back to top ↑</a></footer>
+</main><div id="copy-status" class="sr-only" role="status"></div><script>(() => {
+ 'use strict';
+ const $ = id => document.getElementById(id);
+ const topics = [...document.querySelectorAll('details.tp')];
+ $('openAll').addEventListener('click',()=>topics.forEach(d=>{d.open=true;}));
+ $('closeAll').addEventListener('click',()=>topics.forEach(d=>{d.open=false;}));
+ let printState;
+ window.addEventListener('beforeprint',()=>{printState=topics.map(d=>d.open);topics.forEach(d=>{d.open=true;});});
+ window.addEventListener('afterprint',()=>{if(printState)topics.forEach((d,i)=>{d.open=printState[i];});});
+ $('printNotes').addEventListener('click',()=>window.print());
+ function openAnchor(){
+   const id=decodeURIComponent(location.hash.slice(1));
+   const target=document.getElementById(id);
+   if(target&&target.matches('details.tp'))target.open=true;
+ }
+ window.addEventListener('hashchange',openAnchor);openAnchor();
+
+ document.querySelectorAll('.copybtn').forEach(button=>button.addEventListener('click',async()=>{
+  const code=button.closest('.code-block').querySelector('code');
+  let copied=false;
+  try{if(navigator.clipboard){await navigator.clipboard.writeText(code.textContent);copied=true;}}catch{}
+  if(!copied){
+   const area=document.createElement('textarea');area.value=code.textContent;area.style.cssText='position:fixed;left:-9999px;top:0;';document.body.append(area);area.select();
+   try{copied=document.execCommand('copy');}catch{}finally{area.remove();button.focus({preventScroll:true});}
+  }
+  if(copied){button.textContent='✓ Copied';button.classList.add('done');$('copy-status').textContent='Code copied to clipboard.';}
+  else{const range=document.createRange();range.selectNodeContents(code);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);button.textContent='Select & copy';$('copy-status').textContent='Copy unavailable. Code is selected; press Ctrl+C or Command+C.';}
+  clearTimeout(button.copyTimer);button.copyTimer=setTimeout(()=>{button.textContent='Copy';button.classList.remove('done');},1800);
+ }));
+
+ const loopPatterns={
+  square:{complexity:'O(n²)',code:'for (let i = 0; i < n; i++) {\n  for (let j = 0; j < n; j++) {\n    count++;\n  }\n}',rows:n=>Array.from({length:n},(_,i)=>({i,count:n})),note:'The inner counter resets for every outer iteration. Multiply n by n.'},
+  rect:{complexity:'O(n × m)',code:'for (let i = 0; i < n; i++) {\n  for (let j = 0; j < m; j++) {\n    count++;\n  }\n}',rows:(n,m)=>Array.from({length:n},(_,i)=>({i,count:m})),note:'n and m can grow independently. The 2n comparison doubles n and keeps m fixed.'},
+  triangle:{complexity:'O(n²)',code:'for (let i = 0; i < n; i++) {\n  for (let j = i + 1; j < n; j++) {\n    count++;\n  }\n}',rows:n=>Array.from({length:n},(_,i)=>({i,count:n-i-1})),note:'Add the shrinking row lengths: (n − 1) + (n − 2) + … + 0.'},
+  dependent:{complexity:'O(n²)',code:'for (let i = 1; i <= n; i++) {\n  for (let j = 0; j < i; j++) {\n    count++;\n  }\n}',rows:n=>Array.from({length:n},(_,i)=>({i:i+1,count:i+1})),note:'The inner loop grows with i. Add 1 + 2 + … + n = n(n + 1)/2.'},
+  fixed:{complexity:'O(n)',code:'for (let i = 0; i < n; i++) {\n  for (let j = 0; j < 3; j++) {\n    count++;\n  }\n}',rows:n=>Array.from({length:n},(_,i)=>({i,count:3})),note:'Three visits per outer iteration give 3n. The fixed multiplier does not change linear growth.'},
+  shared:{complexity:'O(n)',code:'let j = 0;\nfor (let i = 0; i < n; i++) {\n  while (j < n) {\n    count++;\n    j++;\n  }\n}',rows:n=>Array.from({length:n},(_,i)=>({i,count:i===0?n:0})),note:'j reaches n in the first row and never resets. count++ runs n times in total; the outer loop also has n iterations.'},
+  geometric:{complexity:'O(n)',code:'for (let i = 1; i < n; i *= 2) {\n  for (let j = 0; j < i; j++) {\n    count++;\n  }\n}',rows:n=>{const result=[];for(let i=1;i<n;i*=2)result.push({i,count:i});return result;},note:'Add the powers of two below n. The sum is less than 2n, so the total time grows linearly.'}
+ };
+ function renderLoop(){
+  const type=$('loop-pattern').value,p=loopPatterns[type],n=+$('loop-n').value,m=+$('loop-m').value;
+  const rows=p.rows(n,m),count=rows.reduce((s,r)=>s+r.count,0),double=p.rows(2*n,m).reduce((s,r)=>s+r.count,0);
+  $('loop-n-value').textContent=n;$('loop-m-value').textContent=m;$('m-control').hidden=type!=='rect';
+  $('loop-count').textContent=count;$('loop-double').textContent=double;$('loop-complexity').textContent=p.complexity;
+  $('loop-code').textContent='let count = 0;\n\n'+p.code;
+  $('loop-explanation').textContent=p.note;
+  $('loop-rows').replaceChildren();
+  for(const row of rows){
+   const div=document.createElement('div');div.className='visit-row';div.setAttribute('aria-label',`i equals ${row.i}: ${row.count} inner iterations`);
+   const label=document.createElement('span');label.textContent='i='+row.i;
+   const dots=document.createElement('div');dots.className='dots';dots.setAttribute('aria-hidden','true');
+   for(let j=0;j<row.count;j++)dots.append(document.createElement('i'));
+   if(!row.count){const z=document.createElement('span');z.className='zero';z.textContent='no inner visits';dots.append(z);}
+   const total=document.createElement('strong');total.textContent=row.count;
+   div.append(label,dots,total);$('loop-rows').append(div);
+  }
+  if(!rows.length)$('loop-rows').textContent='No outer iterations when n = 1 for this pattern.';
+ }
+ ['loop-pattern','loop-n','loop-m'].forEach(id=>$(id).addEventListener(id==='loop-pattern'?'change':'input',renderLoop));renderLoop();
+
+ const array=[10,20,30,40,50,60,70,80];let left=0,right=7,mid=-1,found=false,steps=0,finished=false;
+ function renderArray(){
+  $('search-array').replaceChildren();
+  array.forEach((value,index)=>{
+   const cell=document.createElement('div');cell.className='search-cell';
+   if(index<left||index>right)cell.classList.add('discarded');
+   if(index===mid)cell.classList.add(found?'found':'middle');
+   const num=document.createElement('span');num.textContent=value;
+   const ix=document.createElement('small');ix.textContent='i='+index;
+   cell.setAttribute('aria-label',`Index ${index}, value ${value}${index===mid?(found?', found':', middle just checked'):index<left||index>right?', discarded':', active'}`);
+   cell.append(num,ix);$('search-array').append(cell);
+  });
+  $('search-step').textContent=steps+' step'+(steps===1?'':'s');$('next-step').disabled=finished;
+ }
+ function resetSearch(){left=0;right=array.length-1;mid=-1;found=false;steps=0;finished=false;$('search-history').replaceChildren();$('search-status').textContent='Ready to search. The active range contains all 8 values.';renderArray();}
+ function nextStep(){
+  if(finished)return;
+  const target=+$('search-target').value;mid=left+Math.floor((right-left)/2);steps++;
+  let message;
+  if(array[mid]===target){found=true;finished=true;message=`Middle value ${array[mid]} equals ${target}. Found at index ${mid} after ${steps} midpoint inspection${steps===1?'':'s'}.`;}
+  else{
+   const direction=array[mid]<target?'right':'left';
+   if(array[mid]<target)left=mid+1;else right=mid-1;
+   finished=left>right;
+   message=`Middle value ${array[mid]} is ${array[mid]<target?'less':'greater'} than ${target}. `+(finished?'The range is empty: target not found.':`Search ${direction}; active indices are ${left}–${right}.`);
+  }
+  $('search-status').textContent=message;const li=document.createElement('li');li.textContent=message;$('search-history').append(li);renderArray();
+ }
+ $('next-step').addEventListener('click',nextStep);$('reset-search').addEventListener('click',resetSearch);$('search-target').addEventListener('change',resetSearch);resetSearch();
+})();
+</script></body></html>
