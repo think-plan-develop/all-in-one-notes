@@ -1,130 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SQL Subqueries — Complete Master Guide</title>
 <link rel="stylesheet" href="floating-side-nav.css">
-<nav class="side-nav" aria-label="Section navigation"></nav>
 <script defer src="floating-side-nav.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#f4f7fc;font-family:'Segoe UI',sans-serif;color:#222;font-size:17px;line-height:1.8}
-.wrap{width:90%;max-width:1400px;margin:40px auto}
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#f4f5fa; font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif; color:#1a1a1a; font-size:16px; }
+  .wrap { width:94%; max-width:1120px; margin:32px auto; --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+  .t-blue   { --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+  .t-purple { --accent-dark:#4c1d95; --accent:#7c3aed; --accent-light:#8b5cf6; --content-bg:#f5f3ff; --heading:#5b21b6; --shadow-rgb:124,58,237; }
+  .t-teal   { --accent-dark:#115e59; --accent:#0d9488; --accent-light:#14b8a6; --content-bg:#f0fdfa; --heading:#115e59; --shadow-rgb:13,148,136; }
+  .t-pink   { --accent-dark:#9d174d; --accent:#db2777; --accent-light:#ec4899; --content-bg:#fdf2f8; --heading:#9d174d; --shadow-rgb:219,39,119; }
+  .t-green  { --accent-dark:#065f46; --accent:#059669; --accent-light:#10b981; --content-bg:#ecfdf5; --heading:#065f46; --shadow-rgb:5,150,105; }
+  .t-amber  { --accent-dark:#92400e; --accent:#d97706; --accent-light:#f59e0b; --content-bg:#fffbeb; --heading:#92400e; --shadow-rgb:217,119,6; }
+  .t-rose   { --accent-dark:#9f1239; --accent:#e11d48; --accent-light:#f43f5e; --content-bg:#fff1f2; --heading:#9f1239; --shadow-rgb:225,29,72; }
 
-.hdr{background:linear-gradient(135deg,#2563eb,#7c3aed);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.15);padding:36px 40px 28px}
-.hdr h1{color:#fff;font-size:28px;font-weight:800;margin-bottom:4px}
-.hdr .sub{color:rgba(255,255,255,.8);font-size:15px;margin-bottom:20px}
-.toc{display:flex;flex-wrap:wrap;gap:8px}
-.toc-pill{padding:5px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;user-select:none;border:1px solid}
-.toc-pill.crit{background:rgba(244,63,94,.18);color:#fca5a5;border-color:rgba(244,63,94,.35)}
-.toc-pill.crit:hover{background:rgba(244,63,94,.35)}
-.toc-pill.norm{background:rgba(255,255,255,.12);color:rgba(255,255,255,.9);border-color:rgba(255,255,255,.22)}
-.toc-pill.norm:hover{background:rgba(255,255,255,.22)}
+  /* HEADER */
+  .header { background:linear-gradient(120deg,#1e3a8a,#3b82f6); border-radius:16px; padding:28px 32px; margin-bottom:24px; box-shadow:0 12px 28px rgba(37,99,235,.28); position:relative; overflow:hidden; }
+  .header::after { content:''; position:absolute; top:-60px; right:-60px; width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,.16); color:#fff; font-size:13px; font-weight:800; letter-spacing:.6px; padding:5px 14px; border-radius:20px; margin-bottom:12px; position:relative; }
+  .header h1 { color:#fff; font-size:32px; margin-bottom:8px; font-weight:800; letter-spacing:-.5px; position:relative; }
+  .header p { color:#dbe6ff; font-size:16.5px; margin-bottom:18px; max-width:820px; line-height:1.65; position:relative; }
+  .toc { display:flex; flex-wrap:wrap; gap:9px; position:relative; }
+  .toc a { text-decoration:none; padding:8px 16px; border-radius:20px; font-size:15px; font-weight:700; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.28); }
+  .toc a.crit { background:rgba(244,63,94,.22); border-color:rgba(254,205,211,.5); }
+  .toc a:hover { background:#fff; color:#2563eb; transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,.15); }
 
-.section-title{color:#2563eb;font-size:20px;font-weight:700;margin:30px 0 12px;padding-left:12px;border-left:4px solid #2563eb}
+  /* SUMMARY */
+  .intro-summary-title { font-size:21px; font-weight:800; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .summary-item { display:flex; align-items:center; gap:14px; border-radius:12px; padding:12px 16px; cursor:pointer; transition:transform .15s ease; }
+  .summary-item:hover { transform:translateY(-2px); }
+  .summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.6); }
+  .summary-text { font-size:15.5px; line-height:1.55; font-weight:500; }
+  .summary-text strong { font-weight:800; margin-right:3px; }
+  .summary-text code { font-family:'Fira Code',Consolas,monospace; font-size:15px; background:rgba(255,255,255,.6); padding:1px 6px; border-radius:5px; }
+  .summary-blue   { background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#1e3a8a; } .summary-blue strong { color:#2563eb; }
+  .summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink strong { color:#db2777; }
+  .summary-amber  { background:linear-gradient(135deg,#fffbeb,#fef3c7); color:#92400e; } .summary-amber strong { color:#d97706; }
+  .summary-green  { background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; } .summary-green strong { color:#059669; }
+  .summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple strong { color:#7c3aed; }
+  .summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal strong { color:#0d9488; }
+  @media (max-width:640px) { .summary-grid { grid-template-columns:1fr; } }
 
-.card{background:#fff;border-radius:16px;box-shadow:0 8px 25px rgba(0,0,0,.08);margin:24px 0;overflow:hidden}
-.card-title{background:#1e293b;color:#fff;font-size:21px;font-weight:700;padding:15px 28px;display:flex;align-items:center;gap:12px}
-.card-title .qnum{background:rgba(255,255,255,.15);border-radius:8px;padding:2px 10px;font-size:13px;font-weight:600;white-space:nowrap}
-.card-body{padding:24px 28px}
-.card-body p{color:#334155;font-size:16px;line-height:1.8;margin-bottom:8px}
-.card-body li{color:#475569;font-size:15px;line-height:1.9;margin-left:20px}
-.card-body h3{color:#1e40af;margin:14px 0 5px;font-size:16px}
-.card-body h4{color:#7c3aed;margin:10px 0 4px;font-size:15px}
+  .section-divider { margin:30px 0 14px; position:relative; }
+  .section-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--accent),var(--accent-light),#93c5fd); opacity:.28; }
+  .section-divider span { background:#f4f5fa; padding:0 16px 0 0; position:relative; font-size:22px; font-weight:800; display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; color:var(--heading); }
 
-.short-answer{background:#dcfce7;border-left:4px solid #16a34a;color:#15803d;padding:11px 15px;border-radius:0 8px 8px 0;margin:10px 0;font-size:15px}
-.diagram{background:#eff6ff;border-left:4px dashed #3b82f6;color:#1d4ed8;padding:11px 15px;border-radius:0 8px 8px 0;margin:10px 0;font-family:'Courier New',monospace;font-size:13px;white-space:pre;overflow-x:auto;line-height:1.7}
-.interview{background:#fff7ed;border-left:4px solid #f97316;color:#c2410c;padding:13px 16px;border-radius:0 8px 8px 0;margin:10px 0}
-.remember{background:#f0fdfa;border-left:4px solid #14b8a6;color:#0f766e;padding:11px 15px;border-radius:0 8px 8px 0;margin:10px 0;font-size:15px}
-.tip{background:#fdf2f8;border-left:4px solid #ec4899;color:#9d174d;padding:11px 15px;border-radius:0 8px 8px 0;margin:10px 0;font-size:15px}
-.warning{background:#fff1f2;border-left:4px solid #f43f5e;color:#be123c;padding:11px 15px;border-radius:0 8px 8px 0;margin:10px 0;font-size:15px}
-.note{background:#eef2ff;border-left:4px solid #6366f1;color:#3730a3;padding:11px 15px;border-radius:0 8px 8px 0;margin:10px 0;font-size:15px}
-.analogy{background:#fef3c7;border-left:4px solid #f59e0b;color:#78350f;padding:11px 15px;border-radius:0 8px 8px 0;margin:10px 0;font-size:15px}
+  /* CARDS */
+  .card { border-radius:14px; margin-bottom:16px; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.07); border:1px solid rgba(0,0,0,.04); background:#fff; }
+  .card-title { color:#fff; font-size:18px; font-weight:700; padding:13px 22px; background:linear-gradient(120deg,var(--accent),var(--accent-light)); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .card-title .qnum { background:rgba(255,255,255,.2); border-radius:8px; padding:2px 11px; font-size:14px; font-weight:800; white-space:nowrap; }
+  .card-body { padding:20px 22px 18px; background:var(--content-bg); }
+  .card-body > * + * { margin-top:14px; }
+  .card-body p { color:#333; font-size:16px; line-height:1.7; font-weight:500; }
+  .card-body h3 { font-size:18px; font-weight:800; color:var(--heading); margin-top:22px; }
+  hr.div { border:none; border-top:1px solid rgba(var(--shadow-rgb),.18); }
+  code { font-family:'Fira Code',Consolas,monospace; }
+  .card-body p code, .card-body li code, td code, .short-answer code, .note code, .warning code, .remember code, .tip code, .analogy code, .interview code, th code { font-size:15px; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:2px 7px; border-radius:5px; }
 
-.qlabel{color:#9a3412;background:#ffedd5;border:1px solid #fb923c;font-weight:700;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:4px;font-size:14px}
-.ans-label{color:#0f6e56;background:#e1f5ee;border:1px solid #9fe1cb;font-weight:700;padding:2px 8px;border-radius:6px;display:inline-block;margin:6px 0 4px;font-size:14px}
+  .short-answer { background:linear-gradient(160deg,#fff 0%,var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),.16); border-left:4px solid var(--accent); border-radius:12px; padding:14px 20px 16px; font-size:16.5px; line-height:1.7; font-weight:500; color:#293244; box-shadow:0 6px 16px rgba(var(--shadow-rgb),.09); }
+  .short-answer::before { content:"QUICK TAKE"; display:block; width:fit-content; font-size:13px; font-weight:800; letter-spacing:.9px; color:#fff; background:linear-gradient(120deg,var(--accent),var(--accent-light)); padding:3px 12px; border-radius:20px; margin-bottom:9px; }
 
-.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;margin:2px 3px}
-.badge-blue{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}
-.badge-green{background:#dcfce7;color:#166534;border:1px solid #86efac}
-.badge-orange{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}
-.badge-purple{background:#eeedfe;color:#4c35b5;border:1px solid #c9c4f5}
-.badge-teal{background:#e1f5ee;color:#0f6e56;border:1px solid #9fe1cb}
-.badge-red{background:#fff1f2;color:#be123c;border:1px solid #fecdd3}
-.badge-indigo{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe}
-.badge-pink{background:#fdf2f8;color:#9d174d;border:1px solid #fbcfe8}
+  /* PRIORITY PILLS + BADGES */
+  .prio-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .pill-red,.pill-orange,.pill-star,.badge { display:inline-block; padding:3px 12px; border-radius:20px; font-size:13px; font-weight:800; border:1px solid; }
+  .pill-red { background:#fff1f2; color:#be123c; border-color:#fecdd3; }
+  .pill-orange { background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
+  .pill-star { background:#fef9c3; color:#854d0e; border-color:#fde68a; }
+  .badge-blue{background:#eff6ff;color:#1e40af;border-color:#bfdbfe} .badge-green{background:#dcfce7;color:#166534;border-color:#86efac}
+  .badge-purple{background:#eeedfe;color:#4c35b5;border-color:#c9c4f5} .badge-teal{background:#e1f5ee;color:#0f6e56;border-color:#9fe1cb}
+  .badge-indigo{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
 
-.prio-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 0}
-.pill-red{background:#fff1f2;color:#be123c;border:1px solid #fecdd3;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
-.pill-orange{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
-.pill-star{background:#fef9c3;color:#854d0e;border:1px solid #fde68a;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
+  /* CODE WINDOW */
+  .code-block { --cb-bg:#1a2332; --cb-bar:#111a27; --cb-line:#2a374b; background:var(--cb-bg); border-radius:12px; overflow:hidden; box-shadow:0 10px 24px rgba(15,23,42,.28); border:1px solid #2a374b; }
+  .code-bar { background:var(--cb-bar); padding:9px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid var(--cb-line); }
+  .code-bar .dot { width:11px; height:11px; border-radius:50%; }
+  .dot-red { background:#ff5f57; } .dot-yellow { background:#febc2e; } .dot-green { background:#28c840; }
+  .code-bar .filename { color:#9fb0c8; font-size:15px; margin-left:8px; font-family:'Fira Code',Consolas,monospace; }
+  .code-bar .lang { margin-left:auto; font-size:13px; font-weight:800; letter-spacing:.5px; color:#93c5fd; background:rgba(59,130,246,.16); padding:2px 10px; border-radius:10px; }
+  .code-bar .copy { font-size:14px; font-weight:700; color:#cbd5e1; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:8px; padding:3px 12px; cursor:pointer; margin-left:8px; font-family:inherit; transition:background .15s ease; }
+  .code-bar .copy:hover { background:rgba(255,255,255,.18); }
+  .code-bar .copy.done { color:#86efac; border-color:#86efac; }
+  .code-block pre { padding:12px 0; overflow-x:auto; counter-reset:ln; }
+  .code-block code { color:#d4d4d4; font-size:15px; line-height:1.65; white-space:pre; display:block; width:max-content; min-width:100%; background:none; padding:0; font-weight:400; }
+  .code-block .l { display:block; padding:0 18px 0 0; border-left:3px solid transparent; }
+  .code-block .l::before { counter-increment:ln; content:counter(ln); display:inline-block; width:38px; margin-right:14px; text-align:right; color:#4b5b73; user-select:none; }
+  .code-block .l.hl { background:rgba(59,130,246,.18); border-left-color:#60a5fa; }
+  .code-block .l.hl::before { color:#93c5fd; }
+  .kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .cmt { color:#7a8aa3; font-style:italic; } .num { color:#f78c6c; }
 
-.code-wrap{background:#0f172a;border-radius:10px;overflow:hidden;margin:10px 0}
-.code-top{background:#1e293b;padding:7px 14px;display:flex;align-items:center;gap:7px}
-.code-top .fname{font-size:12px;color:#94a3b8}
-.dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0}
-.d-r{background:#ef4444}.d-y{background:#eab308}.d-g{background:#22c55e}
-.code-body{padding:15px 18px;overflow-x:auto}
-.code-body code{color:#e2e8f0;font-family:'Courier New',monospace;white-space:pre;font-size:13px;line-height:1.7}
-.kw{color:#c084fc}.str{color:#86efac}.type{color:#67e8f9}.fn{color:#fde68a}.num{color:#fb923c}.cm{color:#64748b;font-style:italic}.op{color:#f472b6}
+  /* FLOW DIAGRAMS (dark panel + light steps) */
+  .flow { background:#1a2332; border-radius:12px; padding:16px 18px; border:1px solid #2a374b; box-shadow:0 10px 24px rgba(15,23,42,.22); display:flex; flex-direction:column; gap:14px; }
+  .flow-row { display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; }
+  .flow-label { width:100%; font-size:14px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:#7dd3fc; }
+  .step { flex:1 1 130px; border-radius:10px; padding:10px 12px; font-size:15px; font-weight:700; line-height:1.4; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+  .step code { font-size:15px; background:rgba(255,255,255,.7); padding:1px 6px; border-radius:5px; }
+  .arrow { color:#7dd3fc; font-size:22px; font-weight:800; align-self:center; }
+  .c-src{background:#dbeafe;color:#1e3a8a} .c-proc{background:#ede9fe;color:#5b21b6} .c-dst{background:#d1fae5;color:#065f46} .c-warn{background:#fef3c7;color:#92400e} .c-bad{background:#ffe4e6;color:#9f1239}
 
-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
-th{background:#2563eb;color:#fff;padding:9px 13px;text-align:left;font-weight:600}
-td{padding:8px 13px;border-bottom:1px solid #e2e8f0;color:#334155;vertical-align:top}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:#f8fafc}
-td code{font-family:'Courier New',monospace;font-size:12px;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px}
+  /* CALLOUTS */
+  .note,.warning,.remember,.tip,.analogy,.interview { border-radius:11px; padding:12px 18px; font-size:15.5px; line-height:1.7; font-weight:600; box-shadow:inset 0 0 0 1px rgba(255,255,255,.5); }
+  .note { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+  .warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+  .remember { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+  .tip { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+  .analogy { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+  .interview { background:none; padding:0; border:none; display:flex; flex-direction:column; gap:0; border-radius:12px; overflow:hidden; box-shadow:0 6px 16px rgba(37,99,235,.18); }
+  .interview::before { content:none; }
+  .interview p { margin:0; border-radius:0; padding:12px 18px; font-size:16px !important; line-height:1.7; font-weight:600 !important; }
+  .interview p:first-child { background:linear-gradient(120deg,#1e3a8a,#3b82f6); color:#fff !important; }
+  .interview p:last-child { background:linear-gradient(135deg,#fffbeb,#fde68a); color:#78350f !important; }
+  .interview p:first-child code { background:rgba(255,255,255,.2) !important; color:#fff !important; border:none !important; }
+  .interview p:last-child code { background:rgba(255,255,255,.75) !important; color:#78350f !important; border:none !important; }
+  .qlabel,.ans-label { display:inline-block; font-weight:800; padding:1px 10px; border-radius:6px; font-size:15px; margin-right:6px; }
+  .qlabel { color:#1e3a8a; background:#fff; }
+  .ans-label { color:#fff; background:linear-gradient(120deg,#d97706,#f59e0b); }
 
-.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
-.type-card{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px}
-.type-card .tc-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:6px}
-.type-card h4{color:#1e293b;font-size:15px;margin-bottom:5px}
-.type-card p{font-size:13px;color:#475569;line-height:1.6;margin:0}
+  /* TABLES */
+  .table-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:separate; border-spacing:0 6px; }
+  table th { background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899); color:#fff; font-size:15px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; padding:11px 16px; text-align:left; }
+  table th:first-child { border-radius:10px 0 0 10px; } table th:last-child { border-radius:0 10px 10px 0; }
+  table td { padding:11px 16px; font-size:15.5px; font-weight:600; color:#334155; vertical-align:middle; }
+  table td:first-child { border-radius:10px 0 0 10px; border-left:6px solid var(--rc); font-weight:800; color:var(--rd); }
+  table td:last-child { border-radius:0 10px 10px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background:var(--rb); box-shadow:0 2px 6px rgba(0,0,0,.05); }
+  table td code { background:#fff; color:var(--rd); border:1px solid var(--rc); padding:1px 8px; border-radius:6px; font-weight:700; }
 
-.op-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
-.op-box{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center}
-.op-sym{font-family:'Courier New',monospace;font-size:22px;font-weight:800;color:#2563eb;display:block;margin-bottom:4px}
-.op-meaning{font-size:12px;color:#64748b;font-weight:600}
-.op-ex{font-size:11px;color:#7c3aed;background:#f5f3ff;padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block;font-family:'Courier New',monospace}
-
-.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
-.spec-card{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px}
-.spec-card .sc-op{font-family:'Courier New',monospace;font-size:17px;font-weight:800;color:#7c3aed;margin-bottom:4px}
-.spec-card .sc-desc{font-size:13px;color:#475569;line-height:1.5;margin-bottom:6px}
-.spec-card .sc-ex{font-family:'Courier New',monospace;font-size:11px;color:#0f766e;background:#f0fdfa;padding:3px 7px;border-radius:4px;display:block}
-
-.steps{margin:12px 0}
-.step-item{display:flex;gap:14px;margin-bottom:12px;align-items:flex-start}
-.step-circle{width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px}
-.step-content{flex:1}
-.step-content strong{color:#1e293b;font-size:15px}
-.step-content p{color:#475569;font-size:14px;margin-top:2px}
-
-hr.div{border:none;border-top:1px solid #e2e8f0;margin:14px 0}
-@media(max-width:700px){.type-grid,.spec-grid,.op-row{grid-template-columns:1fr}}
+  /* TYPE / OPERATOR GRIDS */
+  .type-grid,.spec-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .op-row { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .type-card,.spec-card,.op-box { background:#fff; border:1.5px solid rgba(var(--shadow-rgb),.2); border-left:5px solid var(--accent); border-radius:12px; padding:14px 16px; box-shadow:0 4px 12px rgba(var(--shadow-rgb),.08); }
+  .tc-badge { display:inline-block; padding:3px 12px; border-radius:20px; font-size:13px; font-weight:800; margin-bottom:8px; border:1px solid; }
+  .b1{background:#dcfce7;color:#166534;border-color:#86efac} .b2{background:#eff6ff;color:#1e40af;border-color:#bfdbfe} .b3{background:#eeedfe;color:#4c35b5;border-color:#c9c4f5} .b4{background:#fff7ed;color:#9a3412;border-color:#fed7aa}
+  .type-card h4 { color:#1e293b; font-size:17px; margin-bottom:5px; }
+  .type-card p,.spec-card .sc-desc { font-size:15px; color:#475569; line-height:1.6; font-weight:500; }
+  .type-card code { font-size:15px; background:rgba(var(--shadow-rgb),.1); padding:1px 6px; border-radius:5px; }
+  .op-box { text-align:center; }
+  .op-sym { font-family:'Fira Code',Consolas,monospace; font-size:26px; font-weight:800; color:var(--accent); display:block; margin-bottom:4px; }
+  .op-meaning { font-size:15px; color:#475569; font-weight:700; }
+  .op-ex,.sc-ex { font-family:'Fira Code',Consolas,monospace; font-size:14px; color:var(--heading); background:rgba(var(--shadow-rgb),.1); padding:3px 8px; border-radius:6px; display:inline-block; margin-top:6px; text-align:left; word-break:break-word; }
+  .sc-op { font-family:'Fira Code',Consolas,monospace; font-size:19px; font-weight:800; color:var(--accent); margin-bottom:4px; }
+  .sc-ex { display:block; }
+  @media (max-width:700px) { .type-grid,.spec-grid,.op-row { grid-template-columns:1fr; } .header h1 { font-size:26px; } .card-body { padding:16px; } }
 </style>
-
+</head>
+<body>
+<nav class="side-nav" aria-label="Section navigation"></nav>
 <div class="wrap">
 
-<!-- HEADER -->
-<div class="hdr">
+<div class="header">
+  <span class="tag">SQL · POSTGRESQL · SUBQUERIES</span>
   <h1>12. 🔍 SQL Subqueries — Complete Master Guide</h1>
-  <p class="sub">12 topics · What · Why · Types · Operators · WHERE / FROM / SELECT · vs JOIN · vs CTE · Performance</p>
+  <p>12 topics · What · Why · Types · Operators · WHERE / FROM / SELECT · vs JOIN · vs CTE · Performance</p>
   <div class="toc">
-    <div class="toc-pill crit" onclick="goto('s1')">🔴 What & Why</div>
-    <div class="toc-pill crit" onclick="goto('s2')">🔴 Types</div>
-    <div class="toc-pill crit" onclick="goto('s3')">🔴 Comparison Ops</div>
-    <div class="toc-pill crit" onclick="goto('s4')">🔴 Special Ops</div>
-    <div class="toc-pill norm" onclick="goto('s5')">🟡 WHERE Clause</div>
-    <div class="toc-pill norm" onclick="goto('s6')">🟡 FROM Clause</div>
-    <div class="toc-pill norm" onclick="goto('s7')">🟡 SELECT Clause</div>
-    <div class="toc-pill norm" onclick="goto('s8')">🟡 Nested Subqueries</div>
-    <div class="toc-pill norm" onclick="goto('s9')">🟡 vs JOIN</div>
-    <div class="toc-pill norm" onclick="goto('s10')">🟡 vs CTE</div>
-    <div class="toc-pill crit" onclick="goto('s11')">⭐ Performance</div>
+    <a class="crit" onclick="go('s1')">🔴 What &amp; Why</a>
+    <a class="crit" onclick="go('s2')">🔴 Types</a>
+    <a class="crit" onclick="go('s3')">🔴 Comparison Ops</a>
+    <a class="crit" onclick="go('s4')">🔴 Special Ops</a>
+    <a onclick="go('s5')">🟡 WHERE Clause</a>
+    <a onclick="go('s6')">🟡 FROM Clause</a>
+    <a onclick="go('s7')">🟡 SELECT Clause</a>
+    <a onclick="go('s8')">🟡 Nested Subqueries</a>
+    <a onclick="go('s9')">🟡 vs JOIN</a>
+    <a onclick="go('s10')">🟡 vs CTE</a>
+    <a class="crit" onclick="go('s11')">⭐ Performance</a>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════ -->
-<!-- S1 — WHAT & WHY                       -->
-<!-- ══════════════════════════════════════ -->
-<div id="s1">
-<p class="section-title">🔴 Topic 1 & 2 — What is a Subquery & Why Use It?</p>
+<div class="intro-summary">
+  <div class="intro-summary-title">🧩 Key Terms at a Glance</div>
+  <div class="summary-grid">
+    <div class="summary-item summary-blue" onclick="go('s1')"><div class="summary-icon">🔍</div><div class="summary-text"><strong>Subquery:</strong> a query inside a query, always in <code>( )</code>; the inner one runs first.</div></div>
+    <div class="summary-item summary-purple" onclick="go('s2')"><div class="summary-icon">🧬</div><div class="summary-text"><strong>4 types:</strong> single row, multiple row, correlated, non-correlated.</div></div>
+    <div class="summary-item summary-teal" onclick="go('s3')"><div class="summary-icon">⚖️</div><div class="summary-text"><strong>Comparison ops:</strong> <code>= &gt; &lt;</code> need exactly 1 row; use <code>IN / ANY / ALL</code> for many.</div></div>
+    <div class="summary-item summary-pink" onclick="go('s4')"><div class="summary-icon">🎯</div><div class="summary-text"><strong>EXISTS vs NOT IN:</strong> EXISTS is NULL-safe and short-circuits; NOT IN breaks on NULLs.</div></div>
+    <div class="summary-item summary-green" onclick="go('s5')"><div class="summary-icon">📍</div><div class="summary-text"><strong>WHERE / FROM / SELECT:</strong> dynamic filter, derived table, scalar column.</div></div>
+    <div class="summary-item summary-amber" onclick="go('s11')"><div class="summary-icon">⚡</div><div class="summary-text"><strong>Performance:</strong> avoid correlated on big tables, deep nesting → CTE, check <code>EXPLAIN ANALYZE</code>.</div></div>
+  </div>
+</div>
+
+<!-- S1 -->
+<div id="s1" class="t-blue">
+<div class="section-divider section-title"><span>🔴 Topic 1 &amp; 2 — What is a Subquery &amp; Why Use It?</span></div>
 
 <div class="card">
   <div class="card-title"><span class="qnum">Q1</span> What is a Subquery?</div>
@@ -136,22 +204,22 @@ hr.div{border:none;border-top:1px solid #e2e8f0;margin:14px 0}
       <p><span class="ans-label">A:</span> A subquery is a query written inside another query. The inner query (subquery) runs first and its result is handed to the outer query. It is always written inside parentheses <code>( )</code>.</p>
     </div>
     <div class="analogy">🧠 <strong>Analogy:</strong> You ask your friend "Who earns more than the average salary?" Your friend first calculates the average (inner query), then finds people above it (outer query). Two steps, one question.</div>
-    <div class="diagram">SELECT name
+    <div class="flow">
+      <div class="flow-row"><span class="flow-label">How it runs</span>
+        <div class="step c-proc">Inner query<code>SELECT AVG(salary)</code></div><span class="arrow">→</span>
+        <div class="step c-warn">Returns one value<code>55000</code></div><span class="arrow">→</span>
+        <div class="step c-src">Outer query<code>WHERE salary &gt; 55000</code></div><span class="arrow">→</span>
+        <div class="step c-dst">Final rows</div>
+      </div>
+    </div>
+    <div class="code-block" data-file="subquery_intro.sql" data-lang="SQL" data-hl="4">
+<pre><code>-- Find employees earning more than the average salary
+SELECT name, salary
 FROM   employees
 WHERE  salary > (SELECT AVG(salary) FROM employees);
-                 ──────────────────────────────────
-                         ↑ This is the subquery
-                    Runs FIRST → returns one value
-                    Outer query uses that value</div>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">subquery_intro.sql</span></div>
-      <div class="code-body"><code><span class="cm">-- Find employees earning more than the average salary</span>
-<span class="kw">SELECT</span> name, salary
-<span class="kw">FROM</span>   employees
-<span class="kw">WHERE</span>  salary <span class="op">></span> (<span class="kw">SELECT</span> <span class="fn">AVG</span>(salary) <span class="kw">FROM</span> employees);
 
-<span class="cm">-- Step 1 (inner): SELECT AVG(salary) FROM employees → 55000</span>
-<span class="cm">-- Step 2 (outer): SELECT name FROM employees WHERE salary > 55000</span></code></div>
+-- Step 1 (inner): SELECT AVG(salary) FROM employees → 55000
+-- Step 2 (outer): SELECT name FROM employees WHERE salary > 55000</code></pre>
     </div>
     <div class="remember">✅ Subquery = a query inside a query. Always in <code>( )</code>. Inner runs first, outer uses the result.</div>
   </div>
@@ -166,24 +234,22 @@ WHERE  salary > (SELECT AVG(salary) FROM employees);
       <p><span class="qlabel">Q:</span> Why do we use subqueries instead of just writing one query?</p>
       <p><span class="ans-label">A:</span> Subqueries let you use the result of one query as input to another — solving problems that a single flat query cannot handle. They are used when you need a calculated value (like AVG), a list of IDs, or an existence check from another table before filtering your main result.</p>
     </div>
-    <table>
+    <div class="table-scroll"><table>
       <tr><th>Use Case</th><th>Example Problem</th><th>Subquery Solves It By</th></tr>
       <tr><td>Dynamic filter value</td><td>Employees above average salary</td><td>Computing AVG inside the WHERE</td></tr>
       <tr><td>Membership check</td><td>Customers who placed an order</td><td>Returning a list of IDs with IN</td></tr>
       <tr><td>Existence check</td><td>Orders with at least one item</td><td>EXISTS returns true/false</td></tr>
       <tr><td>Derived data</td><td>Top 5 departments by headcount</td><td>Subquery in FROM creates a temp table</td></tr>
       <tr><td>Row-by-row calculation</td><td>Each employee's rank in their dept</td><td>Correlated subquery references outer row</td></tr>
-    </table>
+    </table></div>
     <div class="short-answer">✅ Simple rule: use a subquery when the WHERE condition depends on data you need to calculate first from the same or another table.</div>
   </div>
 </div>
 </div>
 
-<!-- ══════════════════════════════════════ -->
-<!-- S2 — TYPES                            -->
-<!-- ══════════════════════════════════════ -->
-<div id="s2">
-<p class="section-title">🔴 Topic 3 — Types of Subqueries</p>
+<!-- S2 -->
+<div id="s2" class="t-blue">
+<div class="section-divider section-title"><span>🔴 Topic 3 — Types of Subqueries</span></div>
 
 <div class="card">
   <div class="card-title"><span class="qnum">Q3</span> 4 Types of Subqueries — Explained Simply</div>
@@ -191,85 +257,69 @@ WHERE  salary > (SELECT AVG(salary) FROM employees);
     <div class="prio-row"><span class="pill-red">🔴 Critical</span><span class="badge badge-purple">Types</span></div>
     <hr class="div">
     <div class="type-grid">
-      <div class="type-card">
-        <span class="tc-badge" style="background:#dcfce7;color:#166534;border:1px solid #86efac">TYPE 1</span>
-        <h4>Single Row Subquery</h4>
-        <p>Returns exactly <strong>one row, one column</strong>. Used with single-value operators: <code>=  &gt;  &lt;  &gt;=  &lt;=  &lt;&gt;</code></p>
-      </div>
-      <div class="type-card">
-        <span class="tc-badge" style="background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe">TYPE 2</span>
-        <h4>Multiple Row Subquery</h4>
-        <p>Returns <strong>multiple rows</strong>. Used with set operators: <code>IN  NOT IN  ANY  ALL</code></p>
-      </div>
-      <div class="type-card">
-        <span class="tc-badge" style="background:#eeedfe;color:#4c35b5;border:1px solid #c9c4f5">TYPE 3</span>
-        <h4>Correlated Subquery</h4>
-        <p>References a column from the <strong>outer query</strong>. Runs once for every row in the outer query. Slower but powerful.</p>
-      </div>
-      <div class="type-card">
-        <span class="tc-badge" style="background:#fff7ed;color:#9a3412;border:1px solid #fed7aa">TYPE 4</span>
-        <h4>Non-Correlated Subquery</h4>
-        <p>Completely <strong>independent</strong> of the outer query. Runs once, result is reused. Faster than correlated.</p>
-      </div>
+      <div class="type-card"><span class="tc-badge b1">TYPE 1</span><h4>Single Row Subquery</h4><p>Returns exactly <strong>one row, one column</strong>. Used with single-value operators: <code>=  &gt;  &lt;  &gt;=  &lt;=  &lt;&gt;</code></p></div>
+      <div class="type-card"><span class="tc-badge b2">TYPE 2</span><h4>Multiple Row Subquery</h4><p>Returns <strong>multiple rows</strong>. Used with set operators: <code>IN  NOT IN  ANY  ALL</code></p></div>
+      <div class="type-card"><span class="tc-badge b3">TYPE 3</span><h4>Correlated Subquery</h4><p>References a column from the <strong>outer query</strong>. Runs once for every row in the outer query. Slower but powerful.</p></div>
+      <div class="type-card"><span class="tc-badge b4">TYPE 4</span><h4>Non-Correlated Subquery</h4><p>Completely <strong>independent</strong> of the outer query. Runs once, result is reused. Faster than correlated.</p></div>
     </div>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">subquery_types.sql</span></div>
-      <div class="code-body"><code><span class="cm">─── TYPE 1: Single Row ────────────────────────────────────────────────</span>
-<span class="cm">-- Returns ONE value: the max salary</span>
-<span class="kw">SELECT</span> name, salary
-<span class="kw">FROM</span>   employees
-<span class="kw">WHERE</span>  salary = (<span class="kw">SELECT</span> <span class="fn">MAX</span>(salary) <span class="kw">FROM</span> employees);
-<span class="cm">-- Inner query returns: 95000  (one row, one column)</span>
-<span class="cm">-- Outer query: WHERE salary = 95000</span>
+    <div class="code-block" data-file="subquery_types.sql" data-lang="SQL">
+<pre><code>-- ── TYPE 1: Single Row ──────────────────────────────
+-- Returns ONE value: the max salary
+SELECT name, salary
+FROM   employees
+WHERE  salary = (SELECT MAX(salary) FROM employees);
+-- Inner query returns: 95000  (one row, one column)
+-- Outer query: WHERE salary = 95000
 
-<span class="cm">─── TYPE 2: Multiple Row ──────────────────────────────────────────────</span>
-<span class="cm">-- Returns MANY values: all dept IDs where avg salary > 60000</span>
-<span class="kw">SELECT</span> name
-<span class="kw">FROM</span>   employees
-<span class="kw">WHERE</span>  dept_id <span class="kw">IN</span> (
-  <span class="kw">SELECT</span> dept_id
-  <span class="kw">FROM</span>   employees
-  <span class="kw">GROUP BY</span> dept_id
-  <span class="kw">HAVING</span> <span class="fn">AVG</span>(salary) <span class="op">></span> <span class="num">60000</span>
+-- ── TYPE 2: Multiple Row ────────────────────────────
+-- Returns MANY values: all dept IDs where avg salary > 60000
+SELECT name
+FROM   employees
+WHERE  dept_id IN (
+  SELECT dept_id
+  FROM   employees
+  GROUP BY dept_id
+  HAVING AVG(salary) > 60000
 );
-<span class="cm">-- Inner query returns: (2, 5, 7)  (multiple rows)</span>
-<span class="cm">-- Outer query: WHERE dept_id IN (2, 5, 7)</span>
+-- Inner query returns: (2, 5, 7)  (multiple rows)
+-- Outer query: WHERE dept_id IN (2, 5, 7)
 
-<span class="cm">─── TYPE 3: Correlated ────────────────────────────────────────────────</span>
-<span class="cm">-- References outer 'e1.dept_id' — runs once PER outer row</span>
-<span class="kw">SELECT</span> e1.name, e1.salary
-<span class="kw">FROM</span>   employees e1
-<span class="kw">WHERE</span>  e1.salary <span class="op">></span> (
-  <span class="kw">SELECT</span> <span class="fn">AVG</span>(e2.salary)
-  <span class="kw">FROM</span>   employees e2
-  <span class="kw">WHERE</span>  e2.dept_id = e1.dept_id  <span class="cm">-- ← references outer query's row</span>
+-- ── TYPE 3: Correlated ──────────────────────────────
+-- References outer 'e1.dept_id' — runs once PER outer row
+SELECT e1.name, e1.salary
+FROM   employees e1
+WHERE  e1.salary > (
+  SELECT AVG(e2.salary)
+  FROM   employees e2
+  WHERE  e2.dept_id = e1.dept_id  -- ← references outer query's row
 );
-<span class="cm">-- For each employee, compares their salary to THEIR OWN dept average</span>
+-- For each employee, compares their salary to THEIR OWN dept average
 
-<span class="cm">─── TYPE 4: Non-Correlated ────────────────────────────────────────────</span>
-<span class="cm">-- Completely independent — runs ONCE, result reused for all outer rows</span>
-<span class="kw">SELECT</span> name
-<span class="kw">FROM</span>   employees
-<span class="kw">WHERE</span>  salary <span class="op">></span> (<span class="kw">SELECT</span> <span class="fn">AVG</span>(salary) <span class="kw">FROM</span> employees);
-<span class="cm">-- Inner runs once → 55000. All rows checked against 55000.</span></code></div>
+-- ── TYPE 4: Non-Correlated ──────────────────────────
+-- Completely independent — runs ONCE, result reused for all outer rows
+SELECT name
+FROM   employees
+WHERE  salary > (SELECT AVG(salary) FROM employees);
+-- Inner runs once → 55000. All rows checked against 55000.</code></pre>
     </div>
-    <div class="diagram">Correlated vs Non-Correlated:
-
-Non-Correlated:  Inner runs ONCE → outer uses same value for all rows
-                 Faster ✅
-
-Correlated:      Inner runs once PER outer row → N times for N rows
-                 Slower ⚠️ but can reference outer row's values</div>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-label">Non-correlated · faster ✅</span>
+        <div class="step c-proc">Inner runs <strong>ONCE</strong></div><span class="arrow">→</span>
+        <div class="step c-warn">One value reused</div><span class="arrow">→</span>
+        <div class="step c-dst">Outer checks all rows</div></div>
+      <div class="flow-row"><span class="flow-label">Correlated · slower ⚠️</span>
+        <div class="step c-src">Each outer row</div><span class="arrow">→</span>
+        <div class="step c-proc">Inner runs again</div><span class="arrow">→</span>
+        <div class="step c-bad">N times for N rows</div></div>
+    </div>
     <div class="warning">⚠️ <strong>Correlated subquery gotcha:</strong> If your outer table has 1 million rows, the correlated subquery runs 1 million times. Always check if it can be replaced with a JOIN or window function.</div>
   </div>
 </div>
 </div>
 
-<!-- ══════════════════════════════════════ -->
-<!-- S3 — COMPARISON OPERATORS             -->
-<!-- ══════════════════════════════════════ -->
-<div id="s3">
-<p class="section-title">🔴 Topic 4 — Comparison Operators with Subqueries</p>
+<!-- S3 -->
+<div id="s3" class="t-blue">
+<div class="section-divider section-title"><span>🔴 Topic 4 — Comparison Operators with Subqueries</span></div>
 
 <div class="card">
   <div class="card-title"><span class="qnum">Q4</span> Comparison Operators: = &gt; &lt; &gt;= &lt;= &lt;&gt;</div>
@@ -282,35 +332,34 @@ Correlated:      Inner runs once PER outer row → N times for N rows
     </div>
     <div class="op-row">
       <div class="op-box"><span class="op-sym">=</span><div class="op-meaning">Equal to</div><span class="op-ex">salary = (SELECT MAX...)</span></div>
-      <div class="op-box"><span class="op-sym">&gt;</span><div class="op-meaning">Greater than</div><span class="op-ex">salary > (SELECT AVG...)</span></div>
-      <div class="op-box"><span class="op-sym">&lt;</span><div class="op-meaning">Less than</div><span class="op-ex">salary < (SELECT MIN...)</span></div>
-      <div class="op-box"><span class="op-sym">&gt;=</span><div class="op-meaning">Greater or equal</div><span class="op-ex">price >= (SELECT AVG...)</span></div>
-      <div class="op-box"><span class="op-sym">&lt;=</span><div class="op-meaning">Less or equal</div><span class="op-ex">age <= (SELECT AVG...)</span></div>
-      <div class="op-box"><span class="op-sym">&lt;&gt;</span><div class="op-meaning">Not equal</div><span class="op-ex">id <> (SELECT MAX...)</span></div>
+      <div class="op-box"><span class="op-sym">&gt;</span><div class="op-meaning">Greater than</div><span class="op-ex">salary &gt; (SELECT AVG...)</span></div>
+      <div class="op-box"><span class="op-sym">&lt;</span><div class="op-meaning">Less than</div><span class="op-ex">salary &lt; (SELECT MIN...)</span></div>
+      <div class="op-box"><span class="op-sym">&gt;=</span><div class="op-meaning">Greater or equal</div><span class="op-ex">price &gt;= (SELECT AVG...)</span></div>
+      <div class="op-box"><span class="op-sym">&lt;=</span><div class="op-meaning">Less or equal</div><span class="op-ex">age &lt;= (SELECT AVG...)</span></div>
+      <div class="op-box"><span class="op-sym">&lt;&gt;</span><div class="op-meaning">Not equal</div><span class="op-ex">id &lt;&gt; (SELECT MAX...)</span></div>
     </div>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">comparison_ops.sql</span></div>
-      <div class="code-body"><code><span class="cm">-- = : find the employee with max salary</span>
-<span class="kw">SELECT</span> name, salary <span class="kw">FROM</span> employees
-<span class="kw">WHERE</span>  salary = (<span class="kw">SELECT</span> <span class="fn">MAX</span>(salary) <span class="kw">FROM</span> employees);
+    <div class="code-block" data-file="comparison_ops.sql" data-lang="SQL">
+<pre><code>-- = : find the employee with max salary
+SELECT name, salary FROM employees
+WHERE  salary = (SELECT MAX(salary) FROM employees);
 
-<span class="cm">-- > : above average salary</span>
-<span class="kw">SELECT</span> name, salary <span class="kw">FROM</span> employees
-<span class="kw">WHERE</span>  salary <span class="op">></span> (<span class="kw">SELECT</span> <span class="fn">AVG</span>(salary) <span class="kw">FROM</span> employees);
+-- > : above average salary
+SELECT name, salary FROM employees
+WHERE  salary > (SELECT AVG(salary) FROM employees);
 
-<span class="cm">-- < : products cheaper than average price</span>
-<span class="kw">SELECT</span> name, price <span class="kw">FROM</span> products
-<span class="kw">WHERE</span>  price <span class="op"><</span> (<span class="kw">SELECT</span> <span class="fn">AVG</span>(price) <span class="kw">FROM</span> products);
+-- < : products cheaper than average price
+SELECT name, price FROM products
+WHERE  price < (SELECT AVG(price) FROM products);
 
-<span class="cm">-- <> : all employees except the highest paid</span>
-<span class="kw">SELECT</span> name <span class="kw">FROM</span> employees
-<span class="kw">WHERE</span>  salary <span class="op"><></span> (<span class="kw">SELECT</span> <span class="fn">MAX</span>(salary) <span class="kw">FROM</span> employees);
+-- <> : all employees except the highest paid
+SELECT name FROM employees
+WHERE  salary <> (SELECT MAX(salary) FROM employees);
 
-<span class="cm">-- >= : employees at or above 90th percentile salary</span>
-<span class="kw">SELECT</span> name, salary <span class="kw">FROM</span> employees
-<span class="kw">WHERE</span>  salary <span class="op">>=</span> (<span class="kw">SELECT</span> <span class="fn">PERCENTILE_CONT</span>(<span class="num">0.9</span>)
-                   <span class="kw">WITHIN GROUP</span> (<span class="kw">ORDER BY</span> salary)
-                   <span class="kw">FROM</span> employees);</code></div>
+-- >= : employees at or above 90th percentile salary
+SELECT name, salary FROM employees
+WHERE  salary >= (SELECT PERCENTILE_CONT(0.9)
+                   WITHIN GROUP (ORDER BY salary)
+                   FROM employees);</code></pre>
     </div>
     <div class="warning">⚠️ <strong>Critical rule:</strong> Comparison operators (<code>= &gt; &lt;</code> etc.) only work when the subquery returns <strong>exactly 1 row and 1 column</strong>. For multiple rows, use IN / ANY / ALL instead.</div>
     <div class="tip">💡 Use aggregate functions (MAX, MIN, AVG, COUNT) inside single-row subqueries — they always return exactly one value.</div>
@@ -318,11 +367,9 @@ Correlated:      Inner runs once PER outer row → N times for N rows
 </div>
 </div>
 
-<!-- ══════════════════════════════════════ -->
-<!-- S4 — SPECIAL OPERATORS                -->
-<!-- ══════════════════════════════════════ -->
-<div id="s4">
-<p class="section-title">🔴 Topic 5 — Special Operators: IN, NOT IN, EXISTS, NOT EXISTS, ANY, ALL</p>
+<!-- S4 -->
+<div id="s4" class="t-blue">
+<div class="section-divider section-title"><span>🔴 Topic 5 — Special Operators: IN, NOT IN, EXISTS, NOT EXISTS, ANY, ALL</span></div>
 
 <div class="card">
   <div class="card-title"><span class="qnum">Q5</span> Special Operators — Each One Explained</div>
@@ -330,101 +377,76 @@ Correlated:      Inner runs once PER outer row → N times for N rows
     <div class="prio-row"><span class="pill-red">🔴 Critical</span><span class="badge badge-purple">Operators</span></div>
     <hr class="div">
     <div class="spec-grid">
-      <div class="spec-card">
-        <div class="sc-op">IN</div>
-        <div class="sc-desc">Checks if a value is in the subquery's result list. True if it matches any returned value.</div>
-        <span class="sc-ex">WHERE dept_id IN (SELECT id FROM depts WHERE budget > 100000)</span>
-      </div>
-      <div class="spec-card">
-        <div class="sc-op">NOT IN</div>
-        <div class="sc-desc">Opposite of IN. True if value is NOT in the list. <strong>Beware NULL values</strong> — one NULL makes all rows disappear.</div>
-        <span class="sc-ex">WHERE id NOT IN (SELECT customer_id FROM orders)</span>
-      </div>
-      <div class="spec-card">
-        <div class="sc-op">EXISTS</div>
-        <div class="sc-desc">Returns TRUE if subquery returns at least 1 row. Doesn't care about the values — just checks if rows exist. Fast.</div>
-        <span class="sc-ex">WHERE EXISTS (SELECT 1 FROM orders WHERE orders.cust_id = c.id)</span>
-      </div>
-      <div class="spec-card">
-        <div class="sc-op">NOT EXISTS</div>
-        <div class="sc-desc">Returns TRUE if subquery returns zero rows. Best way to find "has no related records" — safer than NOT IN with NULLs.</div>
-        <span class="sc-ex">WHERE NOT EXISTS (SELECT 1 FROM orders WHERE orders.cust_id = c.id)</span>
-      </div>
-      <div class="spec-card">
-        <div class="sc-op">ANY / SOME</div>
-        <div class="sc-desc">Returns TRUE if the comparison is true for at least one value in the subquery result. ANY and SOME are synonyms.</div>
-        <span class="sc-ex">WHERE salary > ANY (SELECT salary FROM employees WHERE dept_id = 5)</span>
-      </div>
-      <div class="spec-card">
-        <div class="sc-op">ALL</div>
-        <div class="sc-desc">Returns TRUE only if the comparison is true for ALL values in the subquery result. Very strict.</div>
-        <span class="sc-ex">WHERE salary > ALL (SELECT salary FROM employees WHERE dept_id = 5)</span>
-      </div>
+      <div class="spec-card"><div class="sc-op">IN</div><div class="sc-desc">Checks if a value is in the subquery's result list. True if it matches any returned value.</div><span class="sc-ex">WHERE dept_id IN (SELECT id FROM depts WHERE budget &gt; 100000)</span></div>
+      <div class="spec-card"><div class="sc-op">NOT IN</div><div class="sc-desc">Opposite of IN. True if value is NOT in the list. <strong>Beware NULL values</strong> — one NULL makes all rows disappear.</div><span class="sc-ex">WHERE id NOT IN (SELECT customer_id FROM orders)</span></div>
+      <div class="spec-card"><div class="sc-op">EXISTS</div><div class="sc-desc">Returns TRUE if subquery returns at least 1 row. Doesn't care about the values — just checks if rows exist. Fast.</div><span class="sc-ex">WHERE EXISTS (SELECT 1 FROM orders WHERE orders.cust_id = c.id)</span></div>
+      <div class="spec-card"><div class="sc-op">NOT EXISTS</div><div class="sc-desc">Returns TRUE if subquery returns zero rows. Best way to find "has no related records" — safer than NOT IN with NULLs.</div><span class="sc-ex">WHERE NOT EXISTS (SELECT 1 FROM orders WHERE orders.cust_id = c.id)</span></div>
+      <div class="spec-card"><div class="sc-op">ANY / SOME</div><div class="sc-desc">Returns TRUE if the comparison is true for at least one value in the subquery result. ANY and SOME are synonyms.</div><span class="sc-ex">WHERE salary &gt; ANY (SELECT salary FROM employees WHERE dept_id = 5)</span></div>
+      <div class="spec-card"><div class="sc-op">ALL</div><div class="sc-desc">Returns TRUE only if the comparison is true for ALL values in the subquery result. Very strict.</div><span class="sc-ex">WHERE salary &gt; ALL (SELECT salary FROM employees WHERE dept_id = 5)</span></div>
     </div>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">special_operators.sql</span></div>
-      <div class="code-body"><code><span class="cm">── IN ─────────────────────────────────────────────────────────────────</span>
-<span class="cm">-- Customers who placed at least one order</span>
-<span class="kw">SELECT</span> name <span class="kw">FROM</span> customers
-<span class="kw">WHERE</span>  id <span class="kw">IN</span> (<span class="kw">SELECT</span> customer_id <span class="kw">FROM</span> orders);
+    <div class="code-block" data-file="special_operators.sql" data-lang="SQL">
+<pre><code>-- ── IN ──────────────────────────────────────────────
+-- Customers who placed at least one order
+SELECT name FROM customers
+WHERE  id IN (SELECT customer_id FROM orders);
 
-<span class="cm">── NOT IN ─────────────────────────────────────────────────────────────</span>
-<span class="cm">-- Customers who NEVER placed an order</span>
-<span class="kw">SELECT</span> name <span class="kw">FROM</span> customers
-<span class="kw">WHERE</span>  id <span class="kw">NOT IN</span> (<span class="kw">SELECT</span> customer_id <span class="kw">FROM</span> orders
-                   <span class="kw">WHERE</span>  customer_id <span class="kw">IS NOT NULL</span>); <span class="cm">-- ← must filter NULLs!</span>
+-- ── NOT IN ──────────────────────────────────────────
+-- Customers who NEVER placed an order
+SELECT name FROM customers
+WHERE  id NOT IN (SELECT customer_id FROM orders
+                   WHERE  customer_id IS NOT NULL); -- ← must filter NULLs!
 
-<span class="cm">── EXISTS ─────────────────────────────────────────────────────────────</span>
-<span class="cm">-- Customers who have at least one order (safer than IN for large sets)</span>
-<span class="kw">SELECT</span> c.name
-<span class="kw">FROM</span>   customers c
-<span class="kw">WHERE</span>  <span class="kw">EXISTS</span> (
-  <span class="kw">SELECT</span> <span class="num">1</span>  <span class="cm">-- SELECT 1 is convention — value doesn't matter, only row existence</span>
-  <span class="kw">FROM</span>   orders o
-  <span class="kw">WHERE</span>  o.customer_id = c.id
+-- ── EXISTS ──────────────────────────────────────────
+-- Customers who have at least one order (safer than IN for large sets)
+SELECT c.name
+FROM   customers c
+WHERE  EXISTS (
+  SELECT 1  -- SELECT 1 is convention — value doesn't matter, only row existence
+  FROM   orders o
+  WHERE  o.customer_id = c.id
 );
 
-<span class="cm">── NOT EXISTS ─────────────────────────────────────────────────────────</span>
-<span class="cm">-- Customers with zero orders (anti-join pattern)</span>
-<span class="kw">SELECT</span> c.name
-<span class="kw">FROM</span>   customers c
-<span class="kw">WHERE</span>  <span class="kw">NOT EXISTS</span> (
-  <span class="kw">SELECT</span> <span class="num">1</span> <span class="kw">FROM</span> orders o <span class="kw">WHERE</span> o.customer_id = c.id
+-- ── NOT EXISTS ──────────────────────────────────────
+-- Customers with zero orders (anti-join pattern)
+SELECT c.name
+FROM   customers c
+WHERE  NOT EXISTS (
+  SELECT 1 FROM orders o WHERE o.customer_id = c.id
 );
 
-<span class="cm">── ANY ────────────────────────────────────────────────────────────────</span>
-<span class="cm">-- Employees earning more than SOME (any one) person in Dept 5</span>
-<span class="kw">SELECT</span> name, salary <span class="kw">FROM</span> employees
-<span class="kw">WHERE</span>  salary <span class="op">></span> <span class="kw">ANY</span> (
-  <span class="kw">SELECT</span> salary <span class="kw">FROM</span> employees <span class="kw">WHERE</span> dept_id = <span class="num">5</span>
+-- ── ANY ─────────────────────────────────────────────
+-- Employees earning more than SOME (any one) person in Dept 5
+SELECT name, salary FROM employees
+WHERE  salary > ANY (
+  SELECT salary FROM employees WHERE dept_id = 5
 );
-<span class="cm">-- True if salary > at least ONE salary in Dept 5</span>
-<span class="cm">-- Equivalent to: salary > MIN(salary in dept 5)</span>
+-- True if salary > at least ONE salary in Dept 5
+-- Equivalent to: salary > MIN(salary in dept 5)
 
-<span class="cm">── ALL ────────────────────────────────────────────────────────────────</span>
-<span class="cm">-- Employees earning more than EVERYONE in Dept 5</span>
-<span class="kw">SELECT</span> name, salary <span class="kw">FROM</span> employees
-<span class="kw">WHERE</span>  salary <span class="op">></span> <span class="kw">ALL</span> (
-  <span class="kw">SELECT</span> salary <span class="kw">FROM</span> employees <span class="kw">WHERE</span> dept_id = <span class="num">5</span>
+-- ── ALL ─────────────────────────────────────────────
+-- Employees earning more than EVERYONE in Dept 5
+SELECT name, salary FROM employees
+WHERE  salary > ALL (
+  SELECT salary FROM employees WHERE dept_id = 5
 );
-<span class="cm">-- True only if salary > EVERY salary in Dept 5</span>
-<span class="cm">-- Equivalent to: salary > MAX(salary in dept 5)</span></code></div>
+-- True only if salary > EVERY salary in Dept 5
+-- Equivalent to: salary > MAX(salary in dept 5)</code></pre>
     </div>
     <div class="warning">⚠️ <strong>NOT IN + NULL = silent disaster.</strong> If any value returned by the subquery is NULL, NOT IN returns no rows at all — because NULL comparisons are UNKNOWN, not FALSE. Always add <code>WHERE col IS NOT NULL</code> inside NOT IN subqueries, or use NOT EXISTS instead.</div>
-    <div class="diagram">IN vs EXISTS — when to prefer which:
-  IN      → small result list, simple membership check
-  EXISTS  → large tables, when you only need "does it exist?" (stops at first match)
-  ANY     → "more than at least one" → equivalent to > MIN(...)
-  ALL     → "more than every single one" → equivalent to > MAX(...)</div>
+    <div class="table-scroll"><table>
+      <tr><th>Operator</th><th>Prefer it when</th></tr>
+      <tr><td>IN</td><td>Small result list, simple membership check</td></tr>
+      <tr><td>EXISTS</td><td>Large tables, when you only need "does it exist?" (stops at first match)</td></tr>
+      <tr><td>ANY</td><td>"More than at least one" → equivalent to <code>&gt; MIN(...)</code></td></tr>
+      <tr><td>ALL</td><td>"More than every single one" → equivalent to <code>&gt; MAX(...)</code></td></tr>
+    </table></div>
   </div>
 </div>
 </div>
 
-<!-- ══════════════════════════════════════ -->
-<!-- S5 — WHERE                            -->
-<!-- ══════════════════════════════════════ -->
-<div id="s5">
-<p class="section-title">🟡 Topic 6 — Subquery in WHERE Clause</p>
+<!-- S5 -->
+<div id="s5" class="t-blue">
+<div class="section-divider section-title"><span>🟡 Topic 6 — Subquery in WHERE Clause</span></div>
 
 <div class="card">
   <div class="card-title"><span class="qnum">Q6</span> Subquery in WHERE Clause — Most Common Use</div>
@@ -435,57 +457,54 @@ Correlated:      Inner runs once PER outer row → N times for N rows
       <p><span class="qlabel">Q:</span> How and why do we use subqueries in the WHERE clause?</p>
       <p><span class="ans-label">A:</span> The WHERE clause filters rows. A subquery in WHERE provides a dynamic filter value — something you don't know at the time of writing the query, but can calculate from the data itself. This is the most common place to use a subquery.</p>
     </div>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">where_subquery.sql</span></div>
-      <div class="code-body"><code><span class="cm">── Example 1: Single value filter ─────────────────────────────────────</span>
-<span class="cm">-- Who earns more than the average salary?</span>
-<span class="kw">SELECT</span> name, salary
-<span class="kw">FROM</span>   employees
-<span class="kw">WHERE</span>  salary <span class="op">></span> (<span class="kw">SELECT</span> <span class="fn">AVG</span>(salary) <span class="kw">FROM</span> employees);
+    <div class="code-block" data-file="where_subquery.sql" data-lang="SQL">
+<pre><code>-- ── Example 1: Single value filter ──────────────────
+-- Who earns more than the average salary?
+SELECT name, salary
+FROM   employees
+WHERE  salary > (SELECT AVG(salary) FROM employees);
 
-<span class="cm">── Example 2: List filter with IN ─────────────────────────────────────</span>
-<span class="cm">-- Employees in departments located in 'New York'</span>
-<span class="kw">SELECT</span> name, dept_id
-<span class="kw">FROM</span>   employees
-<span class="kw">WHERE</span>  dept_id <span class="kw">IN</span> (
-  <span class="kw">SELECT</span> id <span class="kw">FROM</span> departments <span class="kw">WHERE</span> location = <span class="str">'New York'</span>
+-- ── Example 2: List filter with IN ──────────────────
+-- Employees in departments located in 'New York'
+SELECT name, dept_id
+FROM   employees
+WHERE  dept_id IN (
+  SELECT id FROM departments WHERE location = 'New York'
 );
 
-<span class="cm">── Example 3: Correlated subquery in WHERE ────────────────────────────</span>
-<span class="cm">-- Employees earning above their own department's average</span>
-<span class="kw">SELECT</span> e.name, e.salary, e.dept_id
-<span class="kw">FROM</span>   employees e
-<span class="kw">WHERE</span>  e.salary <span class="op">></span> (
-  <span class="kw">SELECT</span> <span class="fn">AVG</span>(e2.salary)
-  <span class="kw">FROM</span>   employees e2
-  <span class="kw">WHERE</span>  e2.dept_id = e.dept_id  <span class="cm">-- links to outer query's current row</span>
+-- ── Example 3: Correlated subquery in WHERE ─────────
+-- Employees earning above their own department's average
+SELECT e.name, e.salary, e.dept_id
+FROM   employees e
+WHERE  e.salary > (
+  SELECT AVG(e2.salary)
+  FROM   employees e2
+  WHERE  e2.dept_id = e.dept_id  -- links to outer query's current row
 );
 
-<span class="cm">── Example 4: EXISTS in WHERE ─────────────────────────────────────────</span>
-<span class="cm">-- Show only departments that have at least one employee</span>
-<span class="kw">SELECT</span> d.name
-<span class="kw">FROM</span>   departments d
-<span class="kw">WHERE</span>  <span class="kw">EXISTS</span> (
-  <span class="kw">SELECT</span> <span class="num">1</span> <span class="kw">FROM</span> employees e <span class="kw">WHERE</span> e.dept_id = d.id
+-- ── Example 4: EXISTS in WHERE ──────────────────────
+-- Show only departments that have at least one employee
+SELECT d.name
+FROM   departments d
+WHERE  EXISTS (
+  SELECT 1 FROM employees e WHERE e.dept_id = d.id
 );
 
-<span class="cm">── Example 5: Date-based dynamic filter ───────────────────────────────</span>
-<span class="cm">-- Orders placed after the most recent cancelled order</span>
-<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders
-<span class="kw">WHERE</span>  order_date <span class="op">></span> (
-  <span class="kw">SELECT</span> <span class="fn">MAX</span>(order_date) <span class="kw">FROM</span> orders <span class="kw">WHERE</span> status = <span class="str">'cancelled'</span>
-);</code></div>
+-- ── Example 5: Date-based dynamic filter ────────────
+-- Orders placed after the most recent cancelled order
+SELECT * FROM orders
+WHERE  order_date > (
+  SELECT MAX(order_date) FROM orders WHERE status = 'cancelled'
+);</code></pre>
     </div>
     <div class="remember">✅ WHERE subquery = dynamic filter. The value to compare against is computed live from the data, not hardcoded.</div>
   </div>
 </div>
 </div>
 
-<!-- ══════════════════════════════════════ -->
-<!-- S6 — FROM                             -->
-<!-- ══════════════════════════════════════ -->
-<div id="s6">
-<p class="section-title">🟡 Topic 7 — Subquery in FROM Clause (Derived Table)</p>
+<!-- S6 -->
+<div id="s6" class="t-blue">
+<div class="section-divider section-title"><span>🟡 Topic 7 — Subquery in FROM Clause (Derived Table)</span></div>
 
 <div class="card">
   <div class="card-title"><span class="qnum">Q7</span> Subquery in FROM Clause — The Derived Table</div>
@@ -497,39 +516,38 @@ Correlated:      Inner runs once PER outer row → N times for N rows
       <p><span class="ans-label">A:</span> When you put a subquery in the FROM clause, the result acts as a temporary table — called a derived table or inline view. The outer query then queries this "virtual table" as if it were a real table. You must give it an alias.</p>
     </div>
     <div class="analogy">🧠 <strong>Analogy:</strong> You create a temporary spreadsheet (inner query), then run another filter/calculation on top of that spreadsheet (outer query). The temp spreadsheet never gets saved — it only exists for this query.</div>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">from_subquery.sql</span></div>
-      <div class="code-body"><code><span class="cm">── Example 1: Department summary then filtered ────────────────────────</span>
-<span class="cm">-- First get avg salary per dept, then filter depts above 60000</span>
-<span class="kw">SELECT</span> dept_id, avg_salary
-<span class="kw">FROM</span>  (<span class="kw">SELECT</span> dept_id, <span class="fn">AVG</span>(salary) <span class="kw">AS</span> avg_salary   <span class="cm">-- inner: build summary</span>
-        <span class="kw">FROM</span>   employees
-        <span class="kw">GROUP BY</span> dept_id) <span class="kw">AS</span> dept_summary              <span class="cm">-- ← MUST have alias</span>
-<span class="kw">WHERE</span>  avg_salary <span class="op">></span> <span class="num">60000</span>;                           <span class="cm">-- outer: filter it</span>
+    <div class="code-block" data-file="from_subquery.sql" data-lang="SQL">
+<pre><code>-- ── Example 1: Department summary then filtered ─────
+-- First get avg salary per dept, then filter depts above 60000
+SELECT dept_id, avg_salary
+FROM  (SELECT dept_id, AVG(salary) AS avg_salary   -- inner: build summary
+        FROM   employees
+        GROUP BY dept_id) AS dept_summary          -- ← MUST have alias
+WHERE  avg_salary > 60000;                         -- outer: filter it
 
-<span class="cm">-- Why not just HAVING? You can, but derived tables let you</span>
-<span class="cm">-- do further joins, calculations, or transformations on top.</span>
+-- Why not just HAVING? You can, but derived tables let you
+-- do further joins, calculations, or transformations on top.
 
-<span class="cm">── Example 2: Derived table joined with another table ─────────────────</span>
-<span class="kw">SELECT</span> d.name, ds.avg_salary, ds.headcount
-<span class="kw">FROM</span>   departments d
-<span class="kw">JOIN</span>  (<span class="kw">SELECT</span> dept_id,
-               <span class="fn">AVG</span>(salary)   <span class="kw">AS</span> avg_salary,
-               <span class="fn">COUNT</span>(*)      <span class="kw">AS</span> headcount
-        <span class="kw">FROM</span>   employees
-        <span class="kw">GROUP BY</span> dept_id) <span class="kw">AS</span> ds
-  <span class="kw">ON</span> d.id = ds.dept_id
-<span class="kw">ORDER BY</span> ds.avg_salary <span class="kw">DESC</span>;
+-- ── Example 2: Derived table joined with another table
+SELECT d.name, ds.avg_salary, ds.headcount
+FROM   departments d
+JOIN  (SELECT dept_id,
+               AVG(salary)   AS avg_salary,
+               COUNT(*)      AS headcount
+        FROM   employees
+        GROUP BY dept_id) AS ds
+  ON d.id = ds.dept_id
+ORDER BY ds.avg_salary DESC;
 
-<span class="cm">── Example 3: Top 3 customers by revenue ─────────────────────────────</span>
-<span class="kw">SELECT</span> c.name, top.total_revenue
-<span class="kw">FROM</span>   customers c
-<span class="kw">JOIN</span>  (<span class="kw">SELECT</span> customer_id, <span class="fn">SUM</span>(amount) <span class="kw">AS</span> total_revenue
-        <span class="kw">FROM</span>   orders
-        <span class="kw">GROUP BY</span> customer_id
-        <span class="kw">ORDER BY</span> total_revenue <span class="kw">DESC</span>
-        <span class="kw">LIMIT</span>  <span class="num">3</span>) <span class="kw">AS</span> top
-  <span class="kw">ON</span> c.id = top.customer_id;</code></div>
+-- ── Example 3: Top 3 customers by revenue ───────────
+SELECT c.name, top.total_revenue
+FROM   customers c
+JOIN  (SELECT customer_id, SUM(amount) AS total_revenue
+        FROM   orders
+        GROUP BY customer_id
+        ORDER BY total_revenue DESC
+        LIMIT  3) AS top
+  ON c.id = top.customer_id;</code></pre>
     </div>
     <div class="warning">⚠️ A derived table MUST have an alias — <code>AS some_name</code> after the closing parenthesis. Forgetting the alias gives a syntax error.</div>
     <div class="note">📌 <strong>Derived table vs CTE:</strong> Both create a temporary result set. CTE (<code>WITH</code>) is cleaner for complex queries — same logic, more readable. Derived tables are older syntax but equally powerful.</div>
@@ -537,11 +555,9 @@ Correlated:      Inner runs once PER outer row → N times for N rows
 </div>
 </div>
 
-<!-- ══════════════════════════════════════ -->
-<!-- S7 — SELECT                           -->
-<!-- ══════════════════════════════════════ -->
-<div id="s7">
-<p class="section-title">🟡 Topic 8 — Subquery in SELECT Clause (Scalar Subquery)</p>
+<!-- S7 -->
+<div id="s7" class="t-blue">
+<div class="section-divider section-title"><span>🟡 Topic 8 — Subquery in SELECT Clause (Scalar Subquery)</span></div>
 
 <div class="card">
   <div class="card-title"><span class="qnum">Q8</span> Subquery in SELECT Clause — Scalar Subquery</div>
@@ -553,55 +569,53 @@ Correlated:      Inner runs once PER outer row → N times for N rows
       <p><span class="ans-label">A:</span> A subquery inside the SELECT list — used to add a computed column to each row in the result. It must return exactly one row and one column (a scalar value). It acts like a calculated extra column, often correlated to reference the current row.</p>
     </div>
     <div class="analogy">🧠 <strong>Analogy:</strong> For each employee row, you want to show their salary alongside the company average. You can't JOIN for this without grouping — a SELECT subquery computes a value and attaches it to each row automatically.</div>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">select_subquery.sql</span></div>
-      <div class="code-body"><code><span class="cm">── Example 1: Show each employee's salary vs company average ──────────</span>
-<span class="kw">SELECT</span>
+    <div class="code-block" data-file="select_subquery.sql" data-lang="SQL">
+<pre><code>-- ── Example 1: Show each employee's salary vs company average
+SELECT
   name,
   salary,
-  (<span class="kw">SELECT</span> <span class="fn">AVG</span>(salary) <span class="kw">FROM</span> employees) <span class="kw">AS</span> company_avg,
-  salary - (<span class="kw">SELECT</span> <span class="fn">AVG</span>(salary) <span class="kw">FROM</span> employees) <span class="kw">AS</span> diff_from_avg
-<span class="kw">FROM</span>   employees;
+  (SELECT AVG(salary) FROM employees) AS company_avg,
+  salary - (SELECT AVG(salary) FROM employees) AS diff_from_avg
+FROM   employees;
 
-<span class="cm">── Example 2: Correlated scalar — each customer's total order count ───</span>
-<span class="kw">SELECT</span>
+-- ── Example 2: Correlated scalar — each customer's total order count
+SELECT
   c.name,
   c.email,
-  (<span class="kw">SELECT</span> <span class="fn">COUNT</span>(*) <span class="kw">FROM</span> orders o
-   <span class="kw">WHERE</span>  o.customer_id = c.id) <span class="kw">AS</span> total_orders  <span class="cm">-- one value per customer</span>
-<span class="kw">FROM</span>   customers c;
+  (SELECT COUNT(*) FROM orders o
+   WHERE  o.customer_id = c.id) AS total_orders  -- one value per customer
+FROM   customers c;
 
-<span class="cm">── Example 3: Latest order date per customer ──────────────────────────</span>
-<span class="kw">SELECT</span>
+-- ── Example 3: Latest order date per customer ───────
+SELECT
   c.name,
-  (<span class="kw">SELECT</span> <span class="fn">MAX</span>(order_date)
-   <span class="kw">FROM</span>   orders o
-   <span class="kw">WHERE</span>  o.customer_id = c.id) <span class="kw">AS</span> last_order_date
-<span class="kw">FROM</span>   customers c;
+  (SELECT MAX(order_date)
+   FROM   orders o
+   WHERE  o.customer_id = c.id) AS last_order_date
+FROM   customers c;
 
-<span class="cm">── Example 4: Department name lookup ─────────────────────────────────</span>
-<span class="kw">SELECT</span>
+-- ── Example 4: Department name lookup ───────────────
+SELECT
   e.name,
   e.salary,
-  (<span class="kw">SELECT</span> d.name <span class="kw">FROM</span> departments d
-   <span class="kw">WHERE</span>  d.id = e.dept_id) <span class="kw">AS</span> department_name
-<span class="kw">FROM</span>   employees e;</code></div>
+  (SELECT d.name FROM departments d
+   WHERE  d.id = e.dept_id) AS department_name
+FROM   employees e;</code></pre>
     </div>
     <div class="warning">⚠️ <strong>Performance warning:</strong> A correlated scalar subquery in SELECT runs once per row. For 100,000 employees, the subquery runs 100,000 times. For large tables, rewrite using LEFT JOIN or window functions instead.</div>
-    <div class="tip">💡 <strong>Better alternative for large tables:</strong>
-<pre style="font-size:13px;margin-top:6px;color:#9d174d">SELECT e.name, e.salary, d.name AS dept_name
+    <div class="tip">💡 <strong>Better alternative for large tables:</strong> same result, runs once.</div>
+    <div class="code-block" data-file="select_alternative.sql" data-lang="SQL">
+<pre><code>SELECT e.name, e.salary, d.name AS dept_name
 FROM   employees e
-LEFT JOIN departments d ON d.id = e.dept_id;</pre>
-    Same result, runs once.</div>
+LEFT JOIN departments d ON d.id = e.dept_id;</code></pre>
+    </div>
   </div>
 </div>
 </div>
 
-<!-- ══════════════════════════════════════ -->
-<!-- S8 — NESTED                           -->
-<!-- ══════════════════════════════════════ -->
-<div id="s8">
-<p class="section-title">🟡 Topic 9 — Nested Subqueries</p>
+<!-- S8 -->
+<div id="s8" class="t-blue">
+<div class="section-divider section-title"><span>🟡 Topic 9 — Nested Subqueries</span></div>
 
 <div class="card">
   <div class="card-title"><span class="qnum">Q9</span> Nested Subqueries — Subquery inside a Subquery</div>
@@ -612,53 +626,48 @@ LEFT JOIN departments d ON d.id = e.dept_id;</pre>
       <p><span class="qlabel">Q:</span> What is a nested subquery and how deep can they go?</p>
       <p><span class="ans-label">A:</span> A nested subquery is a subquery inside another subquery — three or more levels of queries stacked. They are read from innermost to outermost. PostgreSQL supports many levels of nesting but beyond 2-3 levels, readability suffers badly — use CTEs instead.</p>
     </div>
-    <div class="diagram">Execution order — innermost runs first:
-
-SELECT name FROM employees
-WHERE dept_id IN (
-  SELECT id FROM departments          ← Level 2 (runs second)
-  WHERE location_id IN (
-    SELECT id FROM locations          ← Level 1 (runs FIRST)
-    WHERE country = 'India'
-  )
-)
-↑ Level 3 (runs last, uses Level 2 result)</div>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">nested_subqueries.sql</span></div>
-      <div class="code-body"><code><span class="cm">── 2-level nest: employees in NY departments ──────────────────────────</span>
-<span class="kw">SELECT</span> name
-<span class="kw">FROM</span>   employees
-<span class="kw">WHERE</span>  dept_id <span class="kw">IN</span> (
-  <span class="kw">SELECT</span> id
-  <span class="kw">FROM</span>   departments
-  <span class="kw">WHERE</span>  location = <span class="str">'New York'</span>        <span class="cm">-- Level 1 runs first</span>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-label">Execution order — innermost runs first</span>
+        <div class="step c-dst">Level 1 · runs FIRST<code>locations WHERE country = 'India'</code></div><span class="arrow">→</span>
+        <div class="step c-proc">Level 2 · runs second<code>departments WHERE location_id IN (…)</code></div><span class="arrow">→</span>
+        <div class="step c-src">Level 3 · runs last<code>employees WHERE dept_id IN (…)</code></div>
+      </div>
+    </div>
+    <div class="code-block" data-file="nested_subqueries.sql" data-lang="SQL">
+<pre><code>-- ── 2-level nest: employees in NY departments ───────
+SELECT name
+FROM   employees
+WHERE  dept_id IN (
+  SELECT id
+  FROM   departments
+  WHERE  location = 'New York'        -- Level 1 runs first
 );
 
-<span class="cm">── 3-level nest: employees in Indian city departments ─────────────────</span>
-<span class="kw">SELECT</span> name
-<span class="kw">FROM</span>   employees
-<span class="kw">WHERE</span>  dept_id <span class="kw">IN</span> (
-  <span class="kw">SELECT</span> id
-  <span class="kw">FROM</span>   departments
-  <span class="kw">WHERE</span>  location_id <span class="kw">IN</span> (             <span class="cm">-- Level 2</span>
-    <span class="kw">SELECT</span> id
-    <span class="kw">FROM</span>   locations
-    <span class="kw">WHERE</span>  country = <span class="str">'India'</span>          <span class="cm">-- Level 3 (innermost, runs first)</span>
+-- ── 3-level nest: employees in Indian city departments
+SELECT name
+FROM   employees
+WHERE  dept_id IN (
+  SELECT id
+  FROM   departments
+  WHERE  location_id IN (             -- Level 2
+    SELECT id
+    FROM   locations
+    WHERE  country = 'India'          -- Level 3 (innermost, runs first)
   )
 );
 
-<span class="cm">── Same query rewritten as CTE (much more readable!) ──────────────────</span>
-<span class="kw">WITH</span>
-indian_locations <span class="kw">AS</span> (
-  <span class="kw">SELECT</span> id <span class="kw">FROM</span> locations <span class="kw">WHERE</span> country = <span class="str">'India'</span>
+-- ── Same query rewritten as CTE (much more readable!)
+WITH
+indian_locations AS (
+  SELECT id FROM locations WHERE country = 'India'
 ),
-indian_depts <span class="kw">AS</span> (
-  <span class="kw">SELECT</span> id <span class="kw">FROM</span> departments
-  <span class="kw">WHERE</span>  location_id <span class="kw">IN</span> (<span class="kw">SELECT</span> id <span class="kw">FROM</span> indian_locations)
+indian_depts AS (
+  SELECT id FROM departments
+  WHERE  location_id IN (SELECT id FROM indian_locations)
 )
-<span class="kw">SELECT</span> name
-<span class="kw">FROM</span>   employees
-<span class="kw">WHERE</span>  dept_id <span class="kw">IN</span> (<span class="kw">SELECT</span> id <span class="kw">FROM</span> indian_depts);</code></div>
+SELECT name
+FROM   employees
+WHERE  dept_id IN (SELECT id FROM indian_depts);</code></pre>
     </div>
     <div class="warning">⚠️ Beyond 2 levels of nesting, always convert to a CTE — it's the same logic but each step is named and readable. Deeply nested subqueries are a maintenance nightmare.</div>
     <div class="remember">✅ Nested subqueries run <strong>inside-out</strong>. The innermost query runs first. Its result feeds the next level, and so on until the outermost query runs.</div>
@@ -666,11 +675,9 @@ indian_depts <span class="kw">AS</span> (
 </div>
 </div>
 
-<!-- ══════════════════════════════════════ -->
-<!-- S9 — VS JOIN                          -->
-<!-- ══════════════════════════════════════ -->
-<div id="s9">
-<p class="section-title">🟡 Topic 10 — Subquery vs JOIN</p>
+<!-- S9 -->
+<div id="s9" class="t-blue">
+<div class="section-divider section-title"><span>🟡 Topic 10 — Subquery vs JOIN</span></div>
 
 <div class="card">
   <div class="card-title"><span class="qnum">Q10</span> Subquery vs JOIN — When to Use Which</div>
@@ -681,7 +688,7 @@ indian_depts <span class="kw">AS</span> (
       <p><span class="qlabel">Q:</span> What is the difference between a subquery and a JOIN — when do you prefer one over the other?</p>
       <p><span class="ans-label">A:</span> JOIN combines rows from multiple tables horizontally. Subquery uses the result of one query to filter or compute in another. In many cases they produce the same result but modern query planners often make them equally fast. The choice is mainly about readability and intent.</p>
     </div>
-    <table>
+    <div class="table-scroll"><table>
       <tr><th>Scenario</th><th>Prefer</th><th>Why</th></tr>
       <tr><td>Need columns from both tables</td><td>JOIN</td><td>Subquery can't easily return multi-table columns</td></tr>
       <tr><td>Just check if a match exists</td><td>EXISTS subquery</td><td>Cleaner intent, stops at first match</td></tr>
@@ -689,54 +696,51 @@ indian_depts <span class="kw">AS</span> (
       <tr><td>Aggregate then filter</td><td>Subquery or CTE</td><td>Cleaner than HAVING for complex conditions</td></tr>
       <tr><td>Row-level calculation vs another table</td><td>Correlated subquery</td><td>JOIN would need GROUP BY to avoid duplicates</td></tr>
       <tr><td>Large table, performance critical</td><td>JOIN with index</td><td>Correlated subquery runs N times</td></tr>
-    </table>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">subquery_vs_join.sql</span></div>
-      <div class="code-body"><code><span class="cm">── Same result — three ways ───────────────────────────────────────────</span>
-<span class="cm">-- Find customers who placed at least one order</span>
+    </table></div>
+    <div class="code-block" data-file="subquery_vs_join.sql" data-lang="SQL">
+<pre><code>-- ── Same result — three ways ────────────────────────
+-- Find customers who placed at least one order
 
-<span class="cm">-- Way 1: Subquery with IN</span>
-<span class="kw">SELECT</span> name <span class="kw">FROM</span> customers
-<span class="kw">WHERE</span>  id <span class="kw">IN</span> (<span class="kw">SELECT</span> customer_id <span class="kw">FROM</span> orders);
+-- Way 1: Subquery with IN
+SELECT name FROM customers
+WHERE  id IN (SELECT customer_id FROM orders);
 
-<span class="cm">-- Way 2: JOIN (may produce duplicates — needs DISTINCT)</span>
-<span class="kw">SELECT DISTINCT</span> c.name
-<span class="kw">FROM</span>   customers c
-<span class="kw">JOIN</span>   orders o <span class="kw">ON</span> c.id = o.customer_id;
+-- Way 2: JOIN (may produce duplicates — needs DISTINCT)
+SELECT DISTINCT c.name
+FROM   customers c
+JOIN   orders o ON c.id = o.customer_id;
 
-<span class="cm">-- Way 3: EXISTS (best for this use case — no duplicates, fast)</span>
-<span class="kw">SELECT</span> c.name
-<span class="kw">FROM</span>   customers c
-<span class="kw">WHERE</span>  <span class="kw">EXISTS</span> (<span class="kw">SELECT</span> <span class="num">1</span> <span class="kw">FROM</span> orders o <span class="kw">WHERE</span> o.customer_id = c.id);
+-- Way 3: EXISTS (best for this use case — no duplicates, fast)
+SELECT c.name
+FROM   customers c
+WHERE  EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id);
 
-<span class="cm">── When JOIN is clearly better ────────────────────────────────────────</span>
-<span class="cm">-- Need customer name AND order amount together</span>
-<span class="kw">SELECT</span> c.name, o.amount, o.order_date
-<span class="kw">FROM</span>   customers c
-<span class="kw">JOIN</span>   orders o <span class="kw">ON</span> c.id = o.customer_id;
-<span class="cm">-- A subquery cannot return columns from both tables in one row</span>
+-- ── When JOIN is clearly better ─────────────────────
+-- Need customer name AND order amount together
+SELECT c.name, o.amount, o.order_date
+FROM   customers c
+JOIN   orders o ON c.id = o.customer_id;
+-- A subquery cannot return columns from both tables in one row
 
-<span class="cm">── When subquery is clearly better ───────────────────────────────────</span>
-<span class="cm">-- Employees earning more than their own department average</span>
-<span class="cm">-- (subquery is cleaner here — JOIN would need extra GROUP BY)</span>
-<span class="kw">SELECT</span> e.name, e.salary
-<span class="kw">FROM</span>   employees e
-<span class="kw">WHERE</span>  e.salary <span class="op">></span> (<span class="kw">SELECT</span> <span class="fn">AVG</span>(e2.salary) <span class="kw">FROM</span> employees e2
-                    <span class="kw">WHERE</span>  e2.dept_id = e.dept_id);</code></div>
+-- ── When subquery is clearly better ─────────────────
+-- Employees earning more than their own department average
+-- (subquery is cleaner here — JOIN would need extra GROUP BY)
+SELECT e.name, e.salary
+FROM   employees e
+WHERE  e.salary > (SELECT AVG(e2.salary) FROM employees e2
+                    WHERE  e2.dept_id = e.dept_id);</code></pre>
     </div>
     <div class="remember">✅ <strong>Decision rule:</strong> Need columns from both tables → JOIN. Just checking existence → EXISTS. Filtering based on calculated value → Subquery or CTE. When unsure → write both, check EXPLAIN.</div>
   </div>
 </div>
 </div>
 
-<!-- ══════════════════════════════════════ -->
-<!-- S10 — VS CTE                          -->
-<!-- ══════════════════════════════════════ -->
-<div id="s10">
-<p class="section-title">🟡 Topic 11 — Subquery vs CTE</p>
+<!-- S10 -->
+<div id="s10" class="t-blue">
+<div class="section-divider section-title"><span>🟡 Topic 11 — Subquery vs CTE</span></div>
 
 <div class="card">
-  <div class="card-title"><span class="qnum">Q11</span> Subquery vs CTE — Readability, Reuse & Performance</div>
+  <div class="card-title"><span class="qnum">Q11</span> Subquery vs CTE — Readability, Reuse &amp; Performance</div>
   <div class="card-body">
     <div class="prio-row"><span class="pill-orange">🟡 High Impact</span><span class="badge badge-blue">Comparison</span></div>
     <hr class="div">
@@ -744,77 +748,74 @@ indian_depts <span class="kw">AS</span> (
       <p><span class="qlabel">Q:</span> What is the difference between a subquery and a CTE? When do you prefer CTE?</p>
       <p><span class="ans-label">A:</span> Both produce a temporary result set. A CTE (Common Table Expression) is defined with the <code>WITH</code> keyword before the main query and gives the result a name. This makes it reusable in the same query and far more readable for complex logic. Subqueries are inline — fine for simple cases, messy when nested deeply.</p>
     </div>
-    <table>
-      <tr><th></th><th>Subquery</th><th>CTE (WITH)</th></tr>
+    <div class="table-scroll"><table>
+      <tr><th>Aspect</th><th>Subquery</th><th>CTE (WITH)</th></tr>
       <tr><td>Syntax</td><td>Inline inside the main query</td><td>Defined before with a name</td></tr>
       <tr><td>Readability</td><td>Gets messy when nested</td><td>✅ Clean, named steps</td></tr>
       <tr><td>Reusability</td><td>❌ Must repeat if used twice</td><td>✅ Write once, reference multiple times</td></tr>
       <tr><td>Debugging</td><td>Hard — can't run inner part alone</td><td>✅ Can run each CTE independently</td></tr>
       <tr><td>Recursive queries</td><td>❌ Not possible</td><td>✅ WITH RECURSIVE supported</td></tr>
       <tr><td>Performance</td><td>Planner usually optimises well</td><td>In PostgreSQL 12+, same as subquery</td></tr>
-    </table>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">subquery_vs_cte.sql</span></div>
-      <div class="code-body"><code><span class="cm">── Same logic — subquery version (gets messy) ─────────────────────────</span>
-<span class="kw">SELECT</span> d.dept_name, ds.avg_salary
-<span class="kw">FROM</span>   departments d
-<span class="kw">JOIN</span>  (<span class="kw">SELECT</span> dept_id, <span class="fn">AVG</span>(salary) <span class="kw">AS</span> avg_salary
-        <span class="kw">FROM</span>   employees
-        <span class="kw">GROUP BY</span> dept_id
-        <span class="kw">HAVING</span> <span class="fn">AVG</span>(salary) <span class="op">></span> <span class="num">60000</span>) <span class="kw">AS</span> ds
-  <span class="kw">ON</span> d.id = ds.dept_id
-<span class="kw">ORDER BY</span> ds.avg_salary <span class="kw">DESC</span>;
+    </table></div>
+    <div class="code-block" data-file="subquery_vs_cte.sql" data-lang="SQL">
+<pre><code>-- ── Same logic — subquery version (gets messy) ──────
+SELECT d.dept_name, ds.avg_salary
+FROM   departments d
+JOIN  (SELECT dept_id, AVG(salary) AS avg_salary
+        FROM   employees
+        GROUP BY dept_id
+        HAVING AVG(salary) > 60000) AS ds
+  ON d.id = ds.dept_id
+ORDER BY ds.avg_salary DESC;
 
-<span class="cm">── Same logic — CTE version (clean & readable) ────────────────────────</span>
-<span class="kw">WITH</span> high_paying_depts <span class="kw">AS</span> (
-  <span class="kw">SELECT</span> dept_id, <span class="fn">AVG</span>(salary) <span class="kw">AS</span> avg_salary
-  <span class="kw">FROM</span>   employees
-  <span class="kw">GROUP BY</span> dept_id
-  <span class="kw">HAVING</span>   <span class="fn">AVG</span>(salary) <span class="op">></span> <span class="num">60000</span>
+-- ── Same logic — CTE version (clean & readable) ─────
+WITH high_paying_depts AS (
+  SELECT dept_id, AVG(salary) AS avg_salary
+  FROM   employees
+  GROUP BY dept_id
+  HAVING   AVG(salary) > 60000
 )
-<span class="kw">SELECT</span> d.dept_name, h.avg_salary
-<span class="kw">FROM</span>   departments d
-<span class="kw">JOIN</span>   high_paying_depts h <span class="kw">ON</span> d.id = h.dept_id
-<span class="kw">ORDER BY</span> h.avg_salary <span class="kw">DESC</span>;
+SELECT d.dept_name, h.avg_salary
+FROM   departments d
+JOIN   high_paying_depts h ON d.id = h.dept_id
+ORDER BY h.avg_salary DESC;
 
-<span class="cm">── CTE referenced TWICE — impossible with plain subquery ──────────────</span>
-<span class="kw">WITH</span> dept_stats <span class="kw">AS</span> (
-  <span class="kw">SELECT</span> dept_id, <span class="fn">AVG</span>(salary) <span class="kw">AS</span> avg_sal, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> headcount
-  <span class="kw">FROM</span>   employees
-  <span class="kw">GROUP BY</span> dept_id
+-- ── CTE referenced TWICE — impossible with plain subquery
+WITH dept_stats AS (
+  SELECT dept_id, AVG(salary) AS avg_sal, COUNT(*) AS headcount
+  FROM   employees
+  GROUP BY dept_id
 )
-<span class="kw">SELECT</span> d.dept_name,
+SELECT d.dept_name,
        ds.avg_sal,
        ds.headcount,
-       ds.avg_sal * ds.headcount <span class="kw">AS</span> total_salary_budget
-<span class="kw">FROM</span>   departments d
-<span class="kw">JOIN</span>   dept_stats ds <span class="kw">ON</span> d.id = ds.dept_id;
-<span class="cm">-- dept_stats used once but its columns (avg_sal, headcount) used multiple times</span>
+       ds.avg_sal * ds.headcount AS total_salary_budget
+FROM   departments d
+JOIN   dept_stats ds ON d.id = ds.dept_id;
+-- dept_stats used once but its columns (avg_sal, headcount) used multiple times
 
-<span class="cm">── Recursive CTE — not possible with subquery ─────────────────────────</span>
-<span class="kw">WITH RECURSIVE</span> org_chart <span class="kw">AS</span> (
-  <span class="kw">SELECT</span> id, name, manager_id, <span class="num">0</span> <span class="kw">AS</span> level
-  <span class="kw">FROM</span>   employees <span class="kw">WHERE</span> manager_id <span class="kw">IS NULL</span>         <span class="cm">-- CEO (root)</span>
-  <span class="kw">UNION ALL</span>
-  <span class="kw">SELECT</span> e.id, e.name, e.manager_id, oc.level + <span class="num">1</span>
-  <span class="kw">FROM</span>   employees e
-  <span class="kw">JOIN</span>   org_chart oc <span class="kw">ON</span> e.manager_id = oc.id         <span class="cm">-- next level down</span>
+-- ── Recursive CTE — not possible with subquery ──────
+WITH RECURSIVE org_chart AS (
+  SELECT id, name, manager_id, 0 AS level
+  FROM   employees WHERE manager_id IS NULL         -- CEO (root)
+  UNION ALL
+  SELECT e.id, e.name, e.manager_id, oc.level + 1
+  FROM   employees e
+  JOIN   org_chart oc ON e.manager_id = oc.id         -- next level down
 )
-<span class="kw">SELECT</span> name, level <span class="kw">FROM</span> org_chart <span class="kw">ORDER BY</span> level;</code></div>
+SELECT name, level FROM org_chart ORDER BY level;</code></pre>
     </div>
     <div class="remember">✅ <strong>Rule:</strong> Use subquery for simple one-liners. Switch to CTE when the logic has multiple steps, the result is used more than once, or you need recursion.</div>
   </div>
 </div>
 </div>
 
-<!-- ══════════════════════════════════════ -->
-<!-- S11 — PERFORMANCE                     -->
-<!-- ══════════════════════════════════════ -->
-<div id="s11">
-<p class="section-title">⭐ Topic 12 — Performance & Best Practices</p>
+<!-- S11 -->
+<div id="s11" class="t-blue">
+<div class="section-divider section-title"><span>⭐ Topic 12 — Performance &amp; Best Practices</span></div>
 
 <div class="card">
-  <div class="card-title"><span class="qnum">Q12</span> Performance & Best Practices — Write Fast Subqueries</div>
+  <div class="card-title"><span class="qnum">Q12</span> Performance &amp; Best Practices — Write Fast Subqueries</div>
   <div class="card-body">
     <div class="prio-row"><span class="pill-star">⭐ Must Know</span><span class="badge badge-indigo">Performance</span></div>
     <hr class="div">
@@ -824,134 +825,124 @@ indian_depts <span class="kw">AS</span> (
     </div>
 
     <h3>🔴 Rule 1 — Replace Correlated Subquery with JOIN or Window Function</h3>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">perf_1_correlated.sql</span></div>
-      <div class="code-body"><code><span class="cm">-- ❌ Slow: correlated subquery runs once per employee row</span>
-<span class="kw">SELECT</span> name,
-  (<span class="kw">SELECT</span> <span class="fn">COUNT</span>(*) <span class="kw">FROM</span> orders o <span class="kw">WHERE</span> o.customer_id = c.id) <span class="kw">AS</span> total
-<span class="kw">FROM</span>   customers c;
+    <div class="code-block" data-file="perf_1_correlated.sql" data-lang="SQL">
+<pre><code>-- ❌ Slow: correlated subquery runs once per employee row
+SELECT name,
+  (SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.id) AS total
+FROM   customers c;
 
-<span class="cm">-- ✅ Fast: single LEFT JOIN with GROUP BY — runs once</span>
-<span class="kw">SELECT</span> c.name, <span class="fn">COUNT</span>(o.id) <span class="kw">AS</span> total
-<span class="kw">FROM</span>   customers c
-<span class="kw">LEFT JOIN</span> orders o <span class="kw">ON</span> o.customer_id = c.id
-<span class="kw">GROUP BY</span> c.name;
+-- ✅ Fast: single LEFT JOIN with GROUP BY — runs once
+SELECT c.name, COUNT(o.id) AS total
+FROM   customers c
+LEFT JOIN orders o ON o.customer_id = c.id
+GROUP BY c.name;
 
-<span class="cm">-- ✅ Also fast: window function (keeps all columns)</span>
-<span class="kw">SELECT</span> c.name,
-  <span class="fn">COUNT</span>(o.id) <span class="kw">OVER</span> (<span class="kw">PARTITION BY</span> c.id) <span class="kw">AS</span> total
-<span class="kw">FROM</span>   customers c
-<span class="kw">LEFT JOIN</span> orders o <span class="kw">ON</span> o.customer_id = c.id;</code></div>
+-- ✅ Also fast: window function (keeps all columns)
+SELECT c.name,
+  COUNT(o.id) OVER (PARTITION BY c.id) AS total
+FROM   customers c
+LEFT JOIN orders o ON o.customer_id = c.id;</code></pre>
     </div>
 
     <h3>🔴 Rule 2 — Use NOT EXISTS Instead of NOT IN (NULL Safety)</h3>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">perf_2_not_in.sql</span></div>
-      <div class="code-body"><code><span class="cm">-- ❌ Dangerous: NOT IN breaks silently if subquery returns ANY NULL</span>
-<span class="kw">SELECT</span> name <span class="kw">FROM</span> customers
-<span class="kw">WHERE</span>  id <span class="kw">NOT IN</span> (<span class="kw">SELECT</span> customer_id <span class="kw">FROM</span> orders);
-<span class="cm">-- If ANY customer_id in orders is NULL → returns zero rows!</span>
+    <div class="code-block" data-file="perf_2_not_in.sql" data-lang="SQL">
+<pre><code>-- ❌ Dangerous: NOT IN breaks silently if subquery returns ANY NULL
+SELECT name FROM customers
+WHERE  id NOT IN (SELECT customer_id FROM orders);
+-- If ANY customer_id in orders is NULL → returns zero rows!
 
-<span class="cm">-- ✅ Safe: NOT EXISTS handles NULLs correctly</span>
-<span class="kw">SELECT</span> c.name <span class="kw">FROM</span> customers c
-<span class="kw">WHERE</span>  <span class="kw">NOT EXISTS</span> (
-  <span class="kw">SELECT</span> <span class="num">1</span> <span class="kw">FROM</span> orders o <span class="kw">WHERE</span> o.customer_id = c.id
+-- ✅ Safe: NOT EXISTS handles NULLs correctly
+SELECT c.name FROM customers c
+WHERE  NOT EXISTS (
+  SELECT 1 FROM orders o WHERE o.customer_id = c.id
 );
 
-<span class="cm">-- ✅ Also safe: LEFT JOIN anti-join pattern</span>
-<span class="kw">SELECT</span> c.name <span class="kw">FROM</span> customers c
-<span class="kw">LEFT JOIN</span> orders o <span class="kw">ON</span> o.customer_id = c.id
-<span class="kw">WHERE</span>  o.customer_id <span class="kw">IS NULL</span>;</code></div>
+-- ✅ Also safe: LEFT JOIN anti-join pattern
+SELECT c.name FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.id
+WHERE  o.customer_id IS NULL;</code></pre>
     </div>
 
     <h3>🟡 Rule 3 — Use EXISTS for Large Sets, IN for Small Sets</h3>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">perf_3_exists_in.sql</span></div>
-      <div class="code-body"><code><span class="cm">-- IN: builds the full list in memory, then checks each row against it</span>
-<span class="cm">-- Fine for small result sets (hundreds of rows)</span>
-<span class="kw">SELECT</span> name <span class="kw">FROM</span> customers
-<span class="kw">WHERE</span>  country_id <span class="kw">IN</span> (<span class="kw">SELECT</span> id <span class="kw">FROM</span> countries <span class="kw">WHERE</span> region = <span class="str">'Asia'</span>);
-<span class="cm">-- countries is small → IN is fine</span>
+    <div class="code-block" data-file="perf_3_exists_in.sql" data-lang="SQL">
+<pre><code>-- IN: builds the full list in memory, then checks each row against it
+-- Fine for small result sets (hundreds of rows)
+SELECT name FROM customers
+WHERE  country_id IN (SELECT id FROM countries WHERE region = 'Asia');
+-- countries is small → IN is fine
 
-<span class="cm">-- EXISTS: stops as soon as it finds ONE matching row (short-circuit)</span>
-<span class="cm">-- Better for large tables where you only need existence check</span>
-<span class="kw">SELECT</span> c.name <span class="kw">FROM</span> customers c
-<span class="kw">WHERE</span>  <span class="kw">EXISTS</span> (<span class="kw">SELECT</span> <span class="num">1</span> <span class="kw">FROM</span> orders o
-               <span class="kw">WHERE</span>  o.customer_id = c.id
-               <span class="kw">AND</span>    o.amount <span class="op">></span> <span class="num">1000</span>);
-<span class="cm">-- orders may have millions of rows — EXISTS stops at first match</span></code></div>
+-- EXISTS: stops as soon as it finds ONE matching row (short-circuit)
+-- Better for large tables where you only need existence check
+SELECT c.name FROM customers c
+WHERE  EXISTS (SELECT 1 FROM orders o
+               WHERE  o.customer_id = c.id
+               AND    o.amount > 1000);
+-- orders may have millions of rows — EXISTS stops at first match</code></pre>
     </div>
 
     <h3>🟡 Rule 4 — Always Check with EXPLAIN ANALYZE</h3>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">perf_4_explain.sql</span></div>
-      <div class="code-body"><code><span class="cm">-- Always test slow queries with EXPLAIN ANALYZE</span>
-<span class="kw">EXPLAIN ANALYZE</span>
-<span class="kw">SELECT</span> name <span class="kw">FROM</span> employees
-<span class="kw">WHERE</span>  salary <span class="op">></span> (<span class="kw">SELECT</span> <span class="fn">AVG</span>(salary) <span class="kw">FROM</span> employees);
+    <div class="code-block" data-file="perf_4_explain.sql" data-lang="SQL" data-hl="2">
+<pre><code>-- Always test slow queries with EXPLAIN ANALYZE
+EXPLAIN ANALYZE
+SELECT name FROM employees
+WHERE  salary > (SELECT AVG(salary) FROM employees);
 
-<span class="cm">-- What to look for:</span>
-<span class="cm">-- "InitPlan" → non-correlated subquery (runs once) ✅</span>
-<span class="cm">-- "SubPlan"  → correlated subquery (runs per row) ⚠️</span>
-<span class="cm">-- "Seq Scan" → might need an index</span>
-<span class="cm">-- actual time vs estimated rows — big mismatch = stale stats</span></code></div>
+-- What to look for:
+-- "InitPlan" → non-correlated subquery (runs once) ✅
+-- "SubPlan"  → correlated subquery (runs per row) ⚠️
+-- "Seq Scan" → might need an index
+-- actual time vs estimated rows — big mismatch = stale stats</code></pre>
     </div>
 
     <h3>🟡 Rule 5 — Filter Early Inside the Subquery</h3>
-    <div class="code-wrap">
-      <div class="code-top"><span class="dot d-r"></span><span class="dot d-y"></span><span class="dot d-g"></span><span class="fname">perf_5_filter_early.sql</span></div>
-      <div class="code-body"><code><span class="cm">-- ❌ Filter happens late — inner query scans all orders first</span>
-<span class="kw">SELECT</span> name <span class="kw">FROM</span> customers
-<span class="kw">WHERE</span>  id <span class="kw">IN</span> (
-  <span class="kw">SELECT</span> customer_id <span class="kw">FROM</span> orders   <span class="cm">-- all orders scanned</span>
+    <div class="code-block" data-file="perf_5_filter_early.sql" data-lang="SQL">
+<pre><code>-- ❌ Filter happens late — inner query scans all orders first
+SELECT name FROM customers
+WHERE  id IN (
+  SELECT customer_id FROM orders   -- all orders scanned
 )
-<span class="kw">AND</span> country = <span class="str">'India'</span>;              <span class="cm">-- filter happens in outer</span>
+AND country = 'India';              -- filter happens in outer
 
-<span class="cm">-- ✅ Push filters into the subquery — smaller result set earlier</span>
-<span class="kw">SELECT</span> name <span class="kw">FROM</span> customers
-<span class="kw">WHERE</span>  country = <span class="str">'India'</span>            <span class="cm">-- filter first, smaller set</span>
-  <span class="kw">AND</span>  id <span class="kw">IN</span> (
-    <span class="kw">SELECT</span> customer_id <span class="kw">FROM</span> orders
-    <span class="kw">WHERE</span>  order_date <span class="op">>=</span> <span class="str">'2024-01-01'</span>  <span class="cm">-- filter inside subquery too</span>
-  );</code></div>
+-- ✅ Push filters into the subquery — smaller result set earlier
+SELECT name FROM customers
+WHERE  country = 'India'            -- filter first, smaller set
+  AND  id IN (
+    SELECT customer_id FROM orders
+    WHERE  order_date >= '2024-01-01'  -- filter inside subquery too
+  );</code></pre>
     </div>
 
-    <div class="diagram">Performance Decision Tree:
+    <div class="flow">
+      <div class="flow-row"><span class="flow-label">Performance decision tree</span>
+        <div class="step c-warn">Need existence check?</div><span class="arrow">→</span><div class="step c-dst">Use <code>EXISTS</code> (not IN) — short-circuits, faster on large tables</div></div>
+      <div class="flow-row">
+        <div class="step c-warn">Correlated subquery with a large outer table?</div><span class="arrow">→</span><div class="step c-dst">Replace with <code>LEFT JOIN</code> + GROUP BY or window function</div></div>
+      <div class="flow-row">
+        <div class="step c-warn">Using <code>NOT IN</code>?</div><span class="arrow">→</span><div class="step c-dst">Switch to <code>NOT EXISTS</code> — immune to NULL problems</div></div>
+      <div class="flow-row">
+        <div class="step c-warn">Deep nested subquery (3+ levels)?</div><span class="arrow">→</span><div class="step c-dst">Rewrite as a <code>CTE</code> — same performance, readable</div></div>
+      <div class="flow-row">
+        <div class="step c-warn">Query feels slow?</div><span class="arrow">→</span><div class="step c-dst">Run <code>EXPLAIN ANALYZE</code> — find SubPlan nodes, Seq Scans</div></div>
+    </div>
 
-Need existence check?
-  → Use EXISTS (not IN) — short-circuits, faster for large tables
-
-Correlated subquery in SELECT or WHERE with large outer table?
-  → Replace with LEFT JOIN + GROUP BY or window function
-
-Using NOT IN?
-  → Switch to NOT EXISTS — immune to NULL problems
-
-Deep nested subquery (3+ levels)?
-  → Rewrite as CTE — same performance, readable
-
-Query feels slow?
-  → Run EXPLAIN ANALYZE — find SubPlan nodes, Seq Scans</div>
-
-    <table>
+    <div class="table-scroll"><table>
       <tr><th>Anti-Pattern</th><th>Problem</th><th>Fix</th></tr>
       <tr><td>Correlated subquery in SELECT</td><td>Runs N times for N rows</td><td>LEFT JOIN + GROUP BY</td></tr>
       <tr><td>NOT IN with nullable column</td><td>Returns zero rows if any NULL</td><td>NOT EXISTS or LEFT JOIN IS NULL</td></tr>
       <tr><td>IN with huge result set</td><td>Large memory for list</td><td>EXISTS or JOIN</td></tr>
       <tr><td>3+ level nested subqueries</td><td>Unreadable, hard to debug</td><td>CTE (WITH clause)</td></tr>
       <tr><td>= on multi-row subquery</td><td>Runtime error</td><td>Use IN or ANY instead</td></tr>
-    </table>
+    </table></div>
     <div class="remember">✅ <strong>Golden rules:</strong> Avoid correlated subqueries on large tables. Never use NOT IN without NULL check. Use EXISTS for large sets. Deep nesting → CTE. Always EXPLAIN ANALYZE when something is slow.</div>
   </div>
 </div>
 
-<!-- CHEAT SHEET -->
 <div class="card">
   <div class="card-title">📋 Subquery Cheat Sheet — Everything in One Place</div>
   <div class="card-body">
     <div class="prio-row"><span class="pill-red">🔴 Reference</span><span class="badge badge-blue">Keep This</span></div>
     <hr class="div">
-    <table>
+    <div class="table-scroll"><table>
       <tr><th>What you want</th><th>Use</th><th>Returns</th><th>Gotcha</th></tr>
       <tr><td>Equal to computed value</td><td><code>= (SELECT MAX(...))</code></td><td>1 row</td><td>Error if &gt;1 row returned</td></tr>
       <tr><td>Greater/less than computed</td><td><code>&gt; (SELECT AVG(...))</code></td><td>1 row</td><td>Must return exactly 1 row</td></tr>
@@ -963,7 +954,7 @@ Query feels slow?
       <tr><td>Temp result in FROM</td><td>Subquery + alias in FROM</td><td>Table</td><td>Must have alias</td></tr>
       <tr><td>Per-row computed column</td><td>Scalar subquery in SELECT</td><td>1 value</td><td>Runs once per row — slow at scale</td></tr>
       <tr><td>Multi-step logic</td><td><code>WITH cte AS (...)</code></td><td>Named table</td><td>PostgreSQL 12+: same as subquery</td></tr>
-    </table>
+    </table></div>
     <div class="remember">
       <strong>Memory trick for operators:</strong><br>
       Comparison ops (<code>= &gt; &lt;</code>) → need exactly 1 row<br>
@@ -973,13 +964,52 @@ Query feels slow?
     </div>
   </div>
 </div>
+</div>
 
-</div><!-- end s11 -->
+</div>
 
-</div><!-- wrap -->
 <script>
-function goto(id){
-  const el=document.getElementById(id);
-  if(el) el.scrollIntoView({behavior:'smooth'});
-}
+  function go(id) { var el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth' }); }
+
+  function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  var KW = 'SELECT|FROM|WHERE|AS|IN|NOT|EXISTS|ANY|ALL|GROUP|BY|HAVING|ORDER|DESC|ASC|LIMIT|JOIN|LEFT|ON|DISTINCT|IS|NULL|WITH|RECURSIVE|UNION|OVER|PARTITION|WITHIN|AND|OR|EXPLAIN|ANALYZE';
+  var TOK = new RegExp('(--[^\\n]*)|(\'(?:[^\'\\n]|\'\')*\')|\\b(' + KW + ')\\b|\\b(\\d+(?:\\.\\d+)?)\\b|\\b([A-Za-z_]\\w*)(?=\\()', 'gi');
+  function hlSQL(text) {
+    var out = '', last = 0, m;
+    TOK.lastIndex = 0;
+    while ((m = TOK.exec(text))) {
+      out += esc(text.slice(last, m.index));
+      var cls = m[1] ? 'cmt' : m[2] ? 'str' : m[3] ? 'kw' : m[4] ? 'num' : 'fn';
+      out += '<span class="' + cls + '">' + esc(m[0]) + '</span>';
+      last = m.index + m[0].length;
+    }
+    return out + esc(text.slice(last));
+  }
+
+  document.querySelectorAll('.code-block').forEach(function (block) {
+    var code = block.querySelector('code');
+    var raw = code.textContent;
+    var lang = block.dataset.lang || 'SQL';
+    var hl = (block.dataset.hl || '').split(',').map(Number);
+    code.innerHTML = hlSQL(raw).split('\n').map(function (line, i) {
+      return '<span class="l' + (hl.indexOf(i + 1) > -1 ? ' hl' : '') + '">' + (line || ' ') + '</span>';
+    }).join('');
+
+    var bar = document.createElement('div');
+    bar.className = 'code-bar';
+    bar.innerHTML = '<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>' +
+      '<span class="filename">' + block.dataset.file + '</span><span class="lang">' + lang + '</span>' +
+      '<button class="copy" type="button">Copy</button>';
+    block.insertBefore(bar, block.firstChild);
+
+    var btn = bar.querySelector('.copy');
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(raw).then(function () {
+        btn.textContent = 'Copied ✓'; btn.classList.add('done');
+        setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1500);
+      });
+    });
+  });
 </script>
+</body>
+</html>

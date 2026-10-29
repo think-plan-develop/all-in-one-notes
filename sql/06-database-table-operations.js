@@ -1,11 +1,11 @@
-window.notePageData = {
-    "title": "06. SQL Operations — 01 SQL Reference",
+﻿window.notePageData = {
+    "title": "06. SQL Operations â€” 01 SQL Reference",
     "navLabel": "SQL operations sections-01",
     "hero": {
         "type": "introduction",
         "label": "Introduction",
         "heading": "06. SQL Operations",
-        "text": "A practical reference covering database and table operations, constraints, CRUD commands, and the filtering operators used to query data in PostgreSQL — each with the exact syntax you'll actually write."
+        "text": "A practical reference covering database and table operations, constraints, CRUD commands, and the filtering operators used to query data in PostgreSQL â€” each with the exact syntax you'll actually write."
     },
     "nav": [
         { "label": "Database Operations",       "href": "#database-operations" },
@@ -13,9 +13,6 @@ window.notePageData = {
         { "label": "Types of Tables",            "href": "#table-types" },
         { "label": "Table Creation Methods",     "href": "#table-creation-methods" },
         { "label": "Alter Table Operations",     "href": "#alter-table-operations" },
-        { "label": "Constraints",                "href": "#constraints" },
-        { "label": "CRUD Operations",            "href": "#crud-operations" },
-        { "label": "Filtering Data",             "href": "#filtering-data" }
     ],
     "sections": [
         {
@@ -37,7 +34,7 @@ window.notePageData = {
                         },
                         {
                             "term": "DROP DATABASE",
-                            "definition": "Permanently deletes a database and everything inside it — all tables, data, and schemas are unrecoverable once dropped."
+                            "definition": "Permanently deletes a database and everything inside it â€” all tables, data, and schemas are unrecoverable once dropped."
                         }
                     ]
                 },
@@ -64,7 +61,7 @@ window.notePageData = {
                         },
                         {
                             "term": "ALTER TABLE",
-                            "definition": "Modifies an existing table's structure — adding, dropping, or changing columns and constraints — without losing existing data."
+                            "definition": "Modifies an existing table's structure â€” adding, dropping, or changing columns and constraints â€” without losing existing data."
                         },
                         {
                             "term": "RENAME TABLE",
@@ -105,7 +102,7 @@ window.notePageData = {
                         },
                         {
                             "term": "2. Primary Key Table",
-                            "definition": "A table with a PRIMARY KEY constraint — one or more columns whose values uniquely identify every row. PostgreSQL automatically creates a unique index on the PK column(s)."
+                            "definition": "A table with a PRIMARY KEY constraint â€” one or more columns whose values uniquely identify every row. PostgreSQL automatically creates a unique index on the PK column(s)."
                         },
                         {
                             "term": "3. Foreign Key Table",
@@ -156,7 +153,7 @@ window.notePageData = {
                         },
                         {
                             "term": "CREATE TABLE IF NOT EXISTS",
-                            "definition": "Same as CREATE TABLE but silently skips creation if a table with that name already exists — essential for idempotent migrations and deployment scripts."
+                            "definition": "Same as CREATE TABLE but silently skips creation if a table with that name already exists â€” essential for idempotent migrations and deployment scripts."
                         },
                         {
                             "term": "CREATE TABLE LIKE",
@@ -172,8 +169,8 @@ window.notePageData = {
                     "type": "table",
                     "headers": ["Method", "Copies Structure", "Copies Data", "Safe if Exists", "Primary Use"],
                     "rows": [
-                        ["CREATE TABLE",                   "Manual",  "—",   "No",  "Define new tables from scratch"],
-                        ["CREATE TABLE IF NOT EXISTS",     "Manual",  "—",   "Yes", "Idempotent scripts & migrations"],
+                        ["CREATE TABLE",                   "Manual",  "â€”",   "No",  "Define new tables from scratch"],
+                        ["CREATE TABLE IF NOT EXISTS",     "Manual",  "â€”",   "Yes", "Idempotent scripts & migrations"],
                         ["CREATE TABLE LIKE",              "Yes",     "No",  "No",  "Clone a table layout for staging / backup"],
                         ["CREATE TABLE AS SELECT",         "Auto",    "Yes", "No",  "Snapshots & derived datasets"]
                     ]
@@ -181,7 +178,7 @@ window.notePageData = {
                 {
                     "type": "code",
                     "filename": "create_methods.sql",
-                    "text": "-- 1. CREATE TABLE  (standard — full control)\nCREATE TABLE products (\n    id    SERIAL PRIMARY KEY,\n    name  VARCHAR(150) NOT NULL,\n    price NUMERIC(10,2)\n);\n\n-- 2. CREATE TABLE IF NOT EXISTS  (safe for re-runs)\nCREATE TABLE IF NOT EXISTS products (\n    id    SERIAL PRIMARY KEY,\n    name  VARCHAR(150) NOT NULL,\n    price NUMERIC(10,2)\n);\n\n-- 3. CREATE TABLE LIKE  (clone structure only, no data)\nCREATE TABLE products_backup\n    (LIKE products INCLUDING ALL);\n-- INCLUDING ALL copies: columns, defaults, constraints, indexes\n\n-- 4. CREATE TABLE AS SELECT  (structure + data from a query)\nCREATE TABLE expensive_products AS\nSELECT id, name, price\nFROM   products\nWHERE  price > 500;\n-- Note: constraints and indexes are NOT carried over"
+                    "text": "-- 1. CREATE TABLE  (standard â€” full control)\nCREATE TABLE products (\n    id    SERIAL PRIMARY KEY,\n    name  VARCHAR(150) NOT NULL,\n    price NUMERIC(10,2)\n);\n\n-- 2. CREATE TABLE IF NOT EXISTS  (safe for re-runs)\nCREATE TABLE IF NOT EXISTS products (\n    id    SERIAL PRIMARY KEY,\n    name  VARCHAR(150) NOT NULL,\n    price NUMERIC(10,2)\n);\n\n-- 3. CREATE TABLE LIKE  (clone structure only, no data)\nCREATE TABLE products_backup\n    (LIKE products INCLUDING ALL);\n-- INCLUDING ALL copies: columns, defaults, constraints, indexes\n\n-- 4. CREATE TABLE AS SELECT  (structure + data from a query)\nCREATE TABLE expensive_products AS\nSELECT id, name, price\nFROM   products\nWHERE  price > 500;\n-- Note: constraints and indexes are NOT carried over"
                 }
             ]
         },
@@ -211,56 +208,6 @@ window.notePageData = {
          },
 
         {
-            "id": "constraints",
-            "type": "terminology",
-            "label": "6. Constraints",
-            "heading": "Constraints",
-            "blocks": [
-               {
-    "type": "definitions",
-    "items": [
-        {
-            "term": "PRIMARY KEY",
-            "definition": "Uniquely identifies every row in a table. Combines NOT NULL and UNIQUE, and a table can have only one.",
-            "code": "CREATE TABLE users (\n    id SERIAL PRIMARY KEY,\n    name VARCHAR(100)\n);"
-        },
-        {
-            "term": "FOREIGN KEY",
-            "definition": "Restricts a column's values to those existing in another table's primary key, enforcing a relationship between the two tables.",
-            "code": "CREATE TABLE orders (\n    id SERIAL PRIMARY KEY,\n    user_id INT REFERENCES users(id)\n);"
-        },
-        {
-            "term": "UNIQUE",
-            "definition": "Ensures every value in a column is different from all others in that column, though unlike a primary key it allows one NULL value.",
-            "code": "CREATE TABLE users (\n    id SERIAL PRIMARY KEY,\n    email VARCHAR(255) UNIQUE\n);"
-        },
-        {
-            "term": "NOT NULL",
-            "definition": "Forces a column to always have a value — NULL is never accepted for that column.",
-            "code": "CREATE TABLE users (\n    id SERIAL PRIMARY KEY,\n    email VARCHAR(255) NOT NULL\n);"
-        },
-        {
-            "term": "CHECK",
-            "definition": "Validates that a column's value satisfies a custom boolean condition before it can be inserted or updated.",
-            "code": "CREATE TABLE products (\n    id SERIAL PRIMARY KEY,\n    price NUMERIC(10,2) CHECK (price > 0)\n);"
-        },
-        {
-            "term": "DEFAULT",
-            "definition": "Supplies an automatic value for a column when no value is explicitly provided on insert.",
-            "code": "CREATE TABLE orders (\n    id SERIAL PRIMARY KEY,\n    status VARCHAR(20) DEFAULT 'pending'\n);"
-        }
-    ]
-},
-{
-    "type": "code",
-    "filename": "constraints-combined.sql",
-    "text": "-- Parent Table\nCREATE TABLE users (\n    id SERIAL PRIMARY KEY,\n    email VARCHAR(255) UNIQUE NOT NULL,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Child Table Using All Major Constraints\nCREATE TABLE orders (\n    id SERIAL PRIMARY KEY,\n    user_id INT NOT NULL REFERENCES users(id),\n    order_code VARCHAR(20) UNIQUE NOT NULL,\n    total NUMERIC(10,2) NOT NULL CHECK (total >= 0),\n    status VARCHAR(20) DEFAULT 'pending',\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);"
-}
-            ]
-        },
-
-        {
-            "id": "crud-operations",
             "type": "terminology",
             "label": "7. CRUD Operations",
             "heading": "CRUD Operations",
@@ -298,103 +245,5 @@ window.notePageData = {
             ]
         },
 
-        {
-            "id": "filtering-data",
-            "type": "terminology",
-            "label": "8. Filtering Data",
-            "heading": "Filtering Data",
-            "blocks": [
-                {
-                    "type": "definitions",
-                    "items": [
-    {
-        "term": "WHERE",
-        "definition": "Filters rows so only those matching a given condition are returned, updated, or deleted.",
-        "code": "-- Equality\nSELECT * FROM users WHERE status = 'Active';\n\n-- Comparison Operators\nSELECT * FROM employees WHERE salary > 50000;\nSELECT * FROM employees WHERE salary >= 50000;\nSELECT * FROM employees WHERE salary < 100000;\nSELECT * FROM employees WHERE salary <= 100000;\nSELECT * FROM employees WHERE salary <> 75000;"
-    },
-    {
-        "term": "AND",
-        "definition": "Combines multiple conditions in a WHERE clause so that all of them must be true.",
-        "code": "-- All conditions must be true\nSELECT * FROM users\nWHERE status = 'Active'\nAND age >= 18\nAND country = 'India';"
-    },
-    {
-        "term": "OR",
-        "definition": "Combines multiple conditions in a WHERE clause so that at least one of them must be true.",
-        "code": "-- Any condition can be true\nSELECT * FROM users\nWHERE status = 'Active'\nOR status = 'Pending';"
-    },
-    {
-        "term": "NOT",
-        "definition": "Negates a condition, returning rows where the condition is false.",
-        "code": "-- Negate a condition\nSELECT * FROM users\nWHERE NOT status = 'Inactive';\n\n-- NOT IN\nSELECT * FROM users\nWHERE status NOT IN ('Blocked', 'Deleted');"
-    },
-    {
-        "term": "IN",
-        "definition": "Checks whether a column's value matches any value in a given list, avoiding multiple OR conditions.",
-        "code": "-- Match from a list\nSELECT * FROM users\nWHERE status IN ('Active', 'Pending', 'Blocked');\n\n-- IN with Subquery\nSELECT * FROM orders\nWHERE user_id IN (\n    SELECT id\n    FROM users\n    WHERE status = 'Active'\n);"
-    },
-    {
-        "term": "BETWEEN",
-        "definition": "Checks whether a column's value falls within an inclusive range of two values.",
-        "code": "-- Numeric Range\nSELECT * FROM employees\nWHERE salary BETWEEN 50000 AND 100000;\n\n-- Date Range\nSELECT * FROM orders\nWHERE order_date BETWEEN '2025-01-01' AND '2025-12-31';"
-    },
-    {
-        "term": "LIKE",
-        "definition": "Matches a column's text against a pattern using % and _, case-sensitive by default.",
-        "code": "-- Starts With\nSELECT * FROM users\nWHERE name LIKE 'Shiv%';\n\n-- Ends With\nSELECT * FROM users\nWHERE name LIKE '%Singh';\n\n-- Contains\nSELECT * FROM users\nWHERE name LIKE '%iva%';\n\n-- Single Character\nSELECT * FROM users\nWHERE name LIKE 'A_';"
-    },
-    {
-        "term": "ILIKE",
-        "definition": "A PostgreSQL-specific case-insensitive version of LIKE.",
-        "code": "-- Case-Insensitive Search\nSELECT * FROM users\nWHERE name ILIKE 'shiv%';\n\nSELECT * FROM users\nWHERE email ILIKE '%gmail.com';"
-    },
-    {
-        "term": "ANY",
-        "definition": "Compares a value against a set of values and returns true if at least one comparison succeeds.",
-        "code": "-- ANY with Array\nSELECT * FROM employees\nWHERE department_id = ANY (ARRAY[1,2,3]);\n\n-- ANY with Subquery\nSELECT * FROM employees\nWHERE department_id = ANY (\n    SELECT id\n    FROM departments\n    WHERE location = 'Hyderabad'\n);"
-    },
-    {
-        "term": "IS NULL",
-        "definition": "Returns rows where a column contains a NULL value.",
-        "code": "-- Find rows with NULL values\nSELECT *\nFROM users\nWHERE deleted_at IS NULL;"
-    },
-    {
-        "term": "IS NOT NULL",
-        "definition": "Returns rows where a column contains a non-NULL value.",
-        "code": "-- Find rows with non-NULL values\nSELECT *\nFROM users\nWHERE deleted_at IS NOT NULL;"
-    },
-    {
-        "term": "NOT IN",
-        "definition": "Excludes rows whose value matches any value in a specified list.",
-        "code": "-- Exclude values from a list\nSELECT *\nFROM users\nWHERE status NOT IN ('Blocked', 'Deleted');"
-    },
-    {
-        "term": "BETWEEN",
-        "definition": "Filters values within an inclusive range.",
-        "code": "-- Numeric Range\nSELECT *\nFROM employees\nWHERE salary BETWEEN 50000 AND 100000;\n\n-- Date Range\nSELECT *\nFROM orders\nWHERE order_date BETWEEN '2025-01-01' AND '2025-12-31';"
-    },
-    {
-        "term": "SOME",
-        "definition": "Alias of ANY. Returns true if a comparison matches at least one value from a set.",
-        "code": "-- SOME behaves exactly like ANY\nSELECT *\nFROM employees\nWHERE department_id = SOME (ARRAY[1,2,3]);"
-    },
-    {
-        "term": "ALL",
-        "definition": "Returns true only if the comparison is true for every value in the set.",
-        "code": "-- Salary greater than all intern salaries\nSELECT *\nFROM employees\nWHERE salary > ALL (\n    SELECT salary\n    FROM interns\n);"
-    },
-    {
-        "term": "Array Filtering",
-        "definition": "PostgreSQL-specific operators used to query array columns.",
-        "code": "-- Contains (@>)\nSELECT *\nFROM users\nWHERE roles @> ARRAY['admin'];\n\n-- Contained By (<@)\nSELECT *\nFROM users\nWHERE ARRAY['admin'] <@ roles;\n\n-- Overlap (&&)\nSELECT *\nFROM users\nWHERE roles && ARRAY['admin','manager'];\n\n-- ANY with Array\nSELECT *\nFROM users\nWHERE 'admin' = ANY(roles);"
-    },
-    {
-    "term": "JSON Filtering",
-    "definition": "PostgreSQL JSONB operators allow filtering data stored inside JSON documents. The examples below use a products table containing a metadata JSONB column and a users table containing a profile JSONB column.",
-    "code": "-- Sample Table Data\n-- products\n-- +----+----------+-------------------------------------------------------------+\n-- | id | name     | metadata                                                    |\n-- +----+----------+-------------------------------------------------------------+\n-- | 1  | Laptop   | {\"status\":\"active\",\"price\":50000,\"discount\":10}       |\n-- | 2  | Mobile   | {\"status\":\"inactive\",\"price\":15000,\"offer\":true}     |\n-- | 3  | Monitor  | {\"status\":\"active\",\"price\":12000,\"discount\":15}      |\n-- +----+----------+-------------------------------------------------------------+\n--\n-- users\n-- +----+--------+-------------------------------------------------------------+\n-- | id | name   | profile                                                     |\n-- +----+--------+-------------------------------------------------------------+\n-- | 1  | Shivam | {\"address\":{\"city\":\"Hyderabad\",\"country\":\"India\"}} |\n-- | 2  | Rahul  | {\"address\":{\"city\":\"Delhi\",\"country\":\"India\"}}     |\n-- +----+--------+-------------------------------------------------------------+\n\n-- Access JSON Property (->>)\nSELECT *\nFROM products\nWHERE metadata->>'status' = 'active';\n\n-- Numeric Comparison\nSELECT *\nFROM products\nWHERE (metadata->>'price')::NUMERIC > 1000;\n\n-- Nested JSON Access\nSELECT *\nFROM users\nWHERE profile->'address'->>'city' = 'Hyderabad';\n\n-- Check if Key Exists (?)\nSELECT *\nFROM products\nWHERE metadata ? 'discount';\n\n-- Check if Any Key Exists (?|)\nSELECT *\nFROM products\nWHERE metadata ?| ARRAY['discount', 'offer'];\n\n-- Check if All Keys Exist (?&)\nSELECT *\nFROM products\nWHERE metadata ?& ARRAY['discount', 'status'];\n\n-- JSON Contains Object (@>)\nSELECT *\nFROM products\nWHERE metadata @> '{\"status\":\"active\"}';"
-}
-]
-                }
-            ]
-        }
     ]
 };
