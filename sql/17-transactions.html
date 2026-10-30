@@ -1,145 +1,212 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>17. SQL Transactions</title>
-<style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-body{background:#f4f7fc;font-family:'Segoe UI',system-ui,sans-serif;color:#222;font-size:16px}
-.container{width:90%;max-width:1400px;margin:40px auto;padding-bottom:60px}
-p{font-size:17px;line-height:1.85}
-.header{background:linear-gradient(135deg,#2563eb,#7c3aed);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:44px 52px 38px;margin-bottom:36px;color:#fff}
-.header h1{font-size:40px;font-weight:800;margin-bottom:12px;line-height:1.15}
-.header .tag{font-size:17px;opacity:.88;line-height:1.75;margin-bottom:28px}
-.header-eye{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.7;margin-bottom:10px}
-.toc{display:flex;flex-wrap:wrap;gap:9px}
-.toc a{text-decoration:none;font-size:13px;font-weight:700;padding:6px 15px;border-radius:20px;transition:opacity .2s}
-.toc a:hover{opacity:.7}
-.tc-red{background:rgba(239,68,68,.28);color:#fecaca;border:1px solid rgba(239,68,68,.45)}
-.tc-org{background:rgba(249,115,22,.22);color:#fed7aa;border:1px solid rgba(249,115,22,.4)}
-.card{background:#fff;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.09);margin-bottom:30px;overflow:hidden}
-.card-title{background:#1e293b;color:#fff;font-size:26px;font-weight:800;padding:22px 34px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.card-body{padding:34px}
-.card-body p{color:#334155;font-size:17px;line-height:1.85;margin-bottom:16px}
-.card-body h3{color:#1e40af;font-size:21px;font-weight:800;margin:28px 0 12px}
-.card-body h4{color:#7c3aed;font-size:17px;font-weight:700;margin:18px 0 9px}
-.card-body li{color:#475569;font-size:16px;line-height:1.95;margin-left:22px;margin-bottom:5px}
-.short-answer,.diagram,.interview,.remember,.tip,.warning,.note{border-radius:12px;padding:20px 26px;margin:20px 0;font-size:16px;line-height:1.8;border-left:5px solid}
-.short-answer{background:#dcfce7;border-color:#16a34a;color:#14532d}
-.diagram{background:#eff6ff;border:2px dashed #3b82f6;color:#1e3a8a;border-radius:12px}
-.interview{background:#fff7ed;border-color:#f97316;color:#9a3412}
-.remember{background:#f0fdfa;border-color:#14b8a6;color:#134e4a}
-.tip{background:#fdf2f8;border-color:#ec4899;color:#831843}
-.warning{background:#fff1f2;border-color:#f43f5e;color:#881337}
-.note{background:#eef2ff;border-color:#6366f1;color:#312e81}
-.box-label{font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;display:block;opacity:.85}
-.badge{display:inline-block;background:#2563eb;color:#fff;font-size:13px;font-weight:800;padding:5px 14px;border-radius:20px;letter-spacing:.03em;white-space:nowrap}
-.badge-green{background:#16a34a}.badge-orange{background:#ea580c}.badge-purple{background:#7c3aed}
-.badge-red{background:#dc2626}.badge-teal{background:#0f766e}.badge-yellow{background:#ca8a04}
-.tbl-wrap{overflow-x:auto;margin:20px 0}
-table{width:100%;border-collapse:collapse;font-size:15px}
-thead th{background:#2563eb;color:#fff;padding:13px 16px;text-align:left;font-weight:700;font-size:14px}
-thead th:first-child{border-radius:9px 0 0 0}thead th:last-child{border-radius:0 9px 0 0}
-tbody tr:nth-child(even){background:#f8fafc}
-tbody td{padding:12px 16px;border-bottom:1px solid #e2e8f0;color:#334155;vertical-align:top;font-size:14px;line-height:1.65}
-tbody tr:last-child td{border-bottom:none}
-code{font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:13px;background:#f1f5f9;padding:2px 7px;border-radius:5px;color:#1e293b}
-.code-wrap{background:#0f172a;border-radius:12px;overflow:hidden;margin:18px 0}
-.code-bar{background:#1e293b;display:flex;align-items:center;justify-content:space-between;padding:10px 20px}
-.code-dots{display:flex;gap:7px}
-.code-dots span{width:13px;height:13px;border-radius:50%;display:block}
-.dot-r{background:#ef4444}.dot-y{background:#eab308}.dot-g{background:#22c55e}
-.code-filename{font-size:13px;color:#94a3b8;font-family:monospace;font-weight:600}
-.pg-badge{background:#336791;color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px}
-pre{padding:24px 28px;overflow-x:auto;font-size:13.5px;line-height:1.9;font-family:'Cascadia Code','Fira Code',Consolas,monospace;color:#e2e8f0;white-space:pre}
-.kw{color:#c084fc;font-weight:700}.str{color:#86efac}.typ{color:#67e8f9}
-.fn{color:#fbbf24}.num{color:#fb923c}.cm{color:#64748b;font-style:italic}
-.good{color:#4ade80;font-weight:700}.bad{color:#f87171;font-weight:700}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:18px 0}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:18px 0}
-.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:18px 0}
-@media(max-width:720px){.grid2,.grid3,.grid4{grid-template-columns:1fr}}
-.cp-box{border-radius:14px;overflow:hidden;border:2px solid}
-.cp-ok{border-color:#16a34a}.cp-bad{border-color:#f43f5e}.cp-warn{border-color:#f97316}
-.cp-blue{border-color:#3b82f6}.cp-purple{border-color:#7c3aed}.cp-teal{border-color:#0f766e}
-.cp-head{padding:12px 18px;font-size:14px;font-weight:800;display:flex;align-items:center;gap:9px}
-.cp-ok .cp-head{background:#dcfce7;color:#14532d}
-.cp-bad .cp-head{background:#fff1f2;color:#881337}
-.cp-warn .cp-head{background:#fff7ed;color:#9a3412}
-.cp-blue .cp-head{background:#eff6ff;color:#1e3a8a}
-.cp-purple .cp-head{background:#f5f3ff;color:#4c1d95}
-.cp-teal .cp-head{background:#f0fdfa;color:#134e4a}
-.cp-body{padding:16px 18px;font-size:14px;line-height:1.75;background:#fff;color:#334155}
-.cp-body li{font-size:14px;color:#475569;margin-bottom:4px;line-height:1.8}
-.pri-row{display:flex;align-items:flex-start;gap:16px;padding:15px 0;border-bottom:1px solid #f1f5f9}
-.pri-row:last-child{border-bottom:none}
-.pri-content strong{font-size:16px;color:#1e293b;display:block;margin-bottom:3px}
-.pri-content p{font-size:14px;color:#64748b;margin:0;line-height:1.65}
-.topic-num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#2563eb;color:#fff;font-size:14px;font-weight:800;flex-shrink:0}
-.cell-hi{background:#dcfce7;color:#14532d;font-weight:700}
-.cell-warn{background:#fef9c3;color:#713f12;font-weight:700}
-.cell-bad{background:#fee2e2;color:#881337;font-weight:700}
-.divider{border:none;border-top:2px dashed #e2e8f0;margin:30px 0}
-.acid-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:20px 0}
-@media(max-width:720px){.acid-grid{grid-template-columns:1fr 1fr}}
-.acid-card{border-radius:14px;padding:22px 18px;border:2px solid;text-align:center}
-.acid-a{background:#eff6ff;border-color:#3b82f6}
-.acid-c{background:#f0fdf4;border-color:#16a34a}
-.acid-i{background:#f5f3ff;border-color:#7c3aed}
-.acid-d{background:#fff7ed;border-color:#f97316}
-.acid-letter{font-size:52px;font-weight:900;line-height:1;margin-bottom:6px}
-.acid-a .acid-letter{color:#2563eb}
-.acid-c .acid-letter{color:#16a34a}
-.acid-i .acid-letter{color:#7c3aed}
-.acid-d .acid-letter{color:#ea580c}
-.acid-word{font-size:17px;font-weight:800;margin-bottom:9px;color:#1e293b}
-.acid-def{font-size:13.5px;line-height:1.7;color:#475569}
-.lifecycle{display:flex;align-items:center;flex-wrap:wrap;gap:0;margin:24px 0;justify-content:center}
-.lc-step{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:130px}
-.lc-circle{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;box-shadow:0 4px 12px rgba(0,0,0,.15)}
-.lc-label{font-size:15px;font-weight:800;margin-top:10px;color:#1e293b}
-.lc-sub{font-size:12px;color:#64748b;margin-top:4px;max-width:120px;line-height:1.4}
-.lc-arrow{font-size:28px;color:#94a3b8;padding:0 8px;margin-top:-22px}
-.adv-list{list-style:none;margin:0}
-.adv-list li{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #f1f5f9;font-size:15px;color:#334155;line-height:1.7}
-.adv-list li:last-child{border-bottom:none}
-.adv-icon{font-size:20px;flex-shrink:0;margin-top:1px}
-.real-card{border:3px solid #2563eb}
-.real-card .card-title{background:linear-gradient(135deg,#1e3a8a,#5b21b6);font-size:28px}
-</style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>17. SQL Transactions — Complete Guide</title>
 <link rel="stylesheet" href="floating-side-nav.css">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#f4f5fa; font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif; color:#1a1a1a; font-size:16px; }
+  .wrap { width:94%; max-width:1120px; margin:32px auto 60px; --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+
+  /* HEADER */
+  .header { background:linear-gradient(120deg,#1e3a8a,#3b82f6); border-radius:18px; padding:32px 34px 28px; margin-bottom:24px; box-shadow:0 12px 28px rgba(37,99,235,.28); position:relative; overflow:hidden; }
+  .header::before { content:''; position:absolute; bottom:-80px; left:-50px; width:220px; height:220px; border-radius:50%; background:rgba(255,255,255,.06); }
+  .header::after { content:''; position:absolute; top:-60px; right:-60px; width:230px; height:230px; border-radius:50%; background:rgba(255,255,255,.09); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,.16); color:#fff; font-size:13px; font-weight:800; letter-spacing:.7px; padding:5px 14px; border-radius:20px; margin-bottom:12px; position:relative; text-transform:uppercase; }
+  .header h1 { color:#fff; font-size:34px; margin-bottom:10px; font-weight:800; letter-spacing:-.6px; line-height:1.2; position:relative; }
+  .header p { color:#dbe6ff; font-size:17px; margin-bottom:16px; max-width:860px; line-height:1.65; position:relative; }
+  .header p strong { color:#fff; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; position:relative; }
+  .chips span { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.25); font-size:15px; font-weight:700; padding:5px 14px; border-radius:10px; }
+  .toc { display:flex; flex-wrap:wrap; gap:9px; position:relative; }
+  .toc a { text-decoration:none; padding:8px 16px; border-radius:20px; font-size:15px; font-weight:700; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.28); }
+  .toc a.crit { background:rgba(244,63,94,.22); border-color:rgba(254,205,211,.5); }
+  .toc a:hover { background:#fff; color:#2563eb; transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,.15); }
+
+  /* SUMMARY */
+  .intro-summary-title { font-size:21px; font-weight:800; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .summary-item { display:flex; align-items:center; gap:14px; border-radius:12px; padding:12px 16px; transition:transform .15s ease; }
+  .summary-item:hover { transform:translateY(-2px); }
+  .summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.6); }
+  .summary-text { font-size:15.5px; line-height:1.55; font-weight:500; }
+  .summary-text strong { font-weight:800; margin-right:3px; }
+  .summary-text code { font-size:15px; background:rgba(255,255,255,.6); padding:1px 6px; border-radius:5px; }
+  .summary-blue   { background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#1e3a8a; } .summary-blue strong { color:#2563eb; }
+  .summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink strong { color:#db2777; }
+  .summary-amber  { background:linear-gradient(135deg,#fffbeb,#fef3c7); color:#92400e; } .summary-amber strong { color:#d97706; }
+  .summary-green  { background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; } .summary-green strong { color:#059669; }
+  .summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple strong { color:#7c3aed; }
+  .summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal strong { color:#0d9488; }
+
+  /* CARDS */
+  .card { border-radius:14px; margin:18px 0; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.07); border:1px solid rgba(0,0,0,.04); background:#fff; scroll-margin-top:20px; }
+  .card-title { color:#fff; font-size:19px; font-weight:700; padding:13px 22px; background:linear-gradient(120deg,var(--accent),var(--accent-light)); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .topic-num { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.22); font-size:15px; font-weight:800; }
+  .card-body { padding:20px 22px 18px; background:var(--content-bg); }
+  .card-body > * + * { margin-top:14px; }
+  .card-body p { color:#333; font-size:16px; line-height:1.7; font-weight:500; }
+  .card-body h3 { font-size:18px; font-weight:800; color:var(--heading); margin-top:22px; }
+  code { font-family:'Fira Code',Consolas,monospace; }
+  .card-body p code, .card-body li code, td code, .short-answer code, .note code, .warning code, .remember code, .tip code, .analogy code, .interview code, .fn-body code { font-size:15px; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:2px 7px; border-radius:5px; }
+
+  .short-answer { background:linear-gradient(160deg,#fff 0%,var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),.16); border-left:4px solid var(--accent); border-radius:12px; padding:14px 20px 16px; font-size:16.5px; line-height:1.7; font-weight:500; color:#293244; box-shadow:0 6px 16px rgba(var(--shadow-rgb),.09); }
+  .short-answer::before { content:"ONE-LINER"; display:block; width:fit-content; font-size:13px; font-weight:800; letter-spacing:.9px; color:#fff; background:linear-gradient(120deg,var(--accent),var(--accent-light)); padding:3px 12px; border-radius:20px; margin-bottom:9px; }
+
+  .note,.warning,.remember,.tip,.analogy { border-radius:11px; padding:12px 18px; font-size:15.5px; line-height:1.7; font-weight:600; box-shadow:inset 0 0 0 1px rgba(255,255,255,.5); }
+  .note { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
+  .warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
+  .remember,.analogy { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
+  .tip { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+
+  /* INTERVIEW Q (blue) + A (amber) joined */
+  .interview { display:flex; flex-direction:column; border-radius:12px; overflow:hidden; box-shadow:0 6px 16px rgba(37,99,235,.18); }
+  .interview p { margin:0; padding:12px 18px; font-size:16px !important; line-height:1.7; font-weight:600 !important; }
+  .interview p:first-child { background:linear-gradient(120deg,#1e3a8a,#3b82f6); color:#fff !important; }
+  .interview p:last-child { background:linear-gradient(135deg,#fffbeb,#fde68a); color:#78350f !important; }
+  .interview p:first-child code { background:rgba(255,255,255,.2) !important; color:#fff !important; }
+  .interview p:last-child code { background:rgba(255,255,255,.75) !important; color:#78350f !important; }
+  .qlabel,.ans-label { display:inline-block; font-weight:800; padding:1px 10px; border-radius:6px; font-size:15px; margin-right:6px; }
+  .qlabel { color:#1e3a8a; background:#fff; }
+  .ans-label { color:#fff; background:linear-gradient(120deg,#d97706,#f59e0b); }
+
+  /* CODE WINDOW */
+  .code-block { background:#1a2332; border-radius:12px; overflow:hidden; box-shadow:0 10px 24px rgba(15,23,42,.28); border:1px solid #2a374b; min-width:0; }
+  .code-bar { background:#111a27; padding:9px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #2a374b; }
+  .code-bar .dot { width:11px; height:11px; border-radius:50%; }
+  .dot-red { background:#ff5f57; } .dot-yellow { background:#febc2e; } .dot-green { background:#28c840; }
+  .code-bar .filename { color:#9fb0c8; font-size:15px; margin-left:8px; font-family:'Fira Code',Consolas,monospace; }
+  .code-bar .lang { margin-left:auto; font-size:13px; font-weight:800; letter-spacing:.5px; color:#93c5fd; background:rgba(59,130,246,.16); padding:2px 10px; border-radius:10px; }
+  .code-bar .copy { font-size:14px; font-weight:700; color:#cbd5e1; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:8px; padding:3px 12px; cursor:pointer; margin-left:8px; font-family:inherit; transition:background .15s ease; }
+  .code-bar .copy:hover { background:rgba(255,255,255,.18); }
+  .code-bar .copy.done { color:#86efac; border-color:#86efac; }
+  .code-block pre { padding:12px 0; overflow-x:auto; counter-reset:ln; }
+  .code-block code { color:#d4d4d4; font-size:15px; line-height:1.65; white-space:pre; display:block; width:max-content; min-width:100%; background:none; padding:0; font-weight:400; }
+  .code-block .l { display:block; padding:0 18px 0 0; border-left:3px solid transparent; }
+  .code-block .l::before { counter-increment:ln; content:counter(ln); display:inline-block; width:38px; margin-right:14px; text-align:right; color:#4b5b73; user-select:none; }
+  .code-block .l.hl { background:rgba(59,130,246,.18); border-left-color:#60a5fa; }
+  .code-block .l.hl::before { color:#93c5fd; }
+  .kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .typ { color:#67e8f9; } .cmt { color:#7a8aa3; font-style:italic; } .num { color:#f78c6c; }
+
+  /* FLOW */
+  .flow { background:#1a2332; border-radius:12px; padding:16px 18px; border:1px solid #2a374b; box-shadow:0 10px 24px rgba(15,23,42,.22); display:flex; flex-direction:column; gap:14px; }
+  .flow-row { display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; }
+  .flow-label { width:100%; font-size:14px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:#7dd3fc; }
+  .step { flex:1 1 120px; border-radius:10px; padding:10px 12px; font-size:15px; font-weight:700; line-height:1.4; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+  .step small { font-size:14px; font-weight:600; opacity:.8; }
+  .step code { font-size:15px; background:rgba(255,255,255,.7); padding:1px 6px; border-radius:5px; }
+  .arrow { color:#7dd3fc; font-size:22px; font-weight:800; align-self:center; }
+  .c-src{background:#dbeafe;color:#1e3a8a} .c-proc{background:#ede9fe;color:#5b21b6} .c-dst{background:#d1fae5;color:#065f46} .c-warn{background:#fef3c7;color:#92400e} .c-bad{background:#ffe4e6;color:#9f1239}
+
+  /* TABLES */
+  .table-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:separate; border-spacing:0 6px; }
+  table th { background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899); color:#fff; font-size:15px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; padding:11px 16px; text-align:left; }
+  table th:first-child { border-radius:10px 0 0 10px; } table th:last-child { border-radius:0 10px 10px 0; }
+  table td { padding:11px 16px; font-size:15.5px; font-weight:600; color:#334155; vertical-align:middle; }
+  table td:first-child { border-radius:10px 0 0 10px; border-left:6px solid var(--rc); font-weight:800; color:var(--rd); }
+  table td:last-child { border-radius:0 10px 10px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background:var(--rb); box-shadow:0 2px 6px rgba(0,0,0,.05); }
+  table tr:not(:first-child) td.yes { background:#dcfce7; color:#15803d; }
+  table tr:not(:first-child) td.no { background:#fee2e2; color:#b91c1c; }
+  table td code { background:#fff; color:var(--rd); border:1px solid var(--rc); padding:1px 8px; border-radius:6px; font-weight:700; }
+
+  /* CARD GRIDS */
+  .grid2,.grid3 { display:grid; gap:12px; }
+  .grid2 { grid-template-columns:1fr 1fr; } .grid3 { grid-template-columns:repeat(3,1fr); }
+  .why-card,.fn-card { --c:#2563eb; background:#fff; border:1.5px solid rgba(var(--shadow-rgb),.2); border-left:5px solid var(--c); border-radius:12px; padding:14px 16px; box-shadow:0 4px 12px rgba(var(--shadow-rgb),.08); min-width:0; }
+  .cg { --c:#16a34a; } .ca { --c:#d97706; } .cr { --c:#e11d48; } .cp { --c:#7c3aed; }
+  .why-card .wn { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:linear-gradient(120deg,var(--accent),var(--accent-light)); color:#fff; font-size:15px; font-weight:800; margin-bottom:6px; }
+  .why-card h4 { font-size:17px; color:#1e293b; margin-bottom:4px; }
+  .why-card p,.fn-body { font-size:15.5px !important; color:#475569 !important; line-height:1.65 !important; font-weight:500 !important; }
+  .fn-card h4 { font-size:18px; color:var(--c); margin-bottom:6px; }
+  .fn-card ul { margin-left:20px; }
+  .fn-card li { font-size:15.5px; line-height:1.8; color:#475569; font-weight:500; }
+
+  /* ACID */
+  .acid-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .acid-card { --c:#2563eb; background:#fff; border:2px solid var(--c); border-radius:14px; padding:18px 14px; text-align:center; box-shadow:0 6px 16px rgba(var(--shadow-rgb),.1); }
+  .acid-letter { font-size:50px; font-weight:900; line-height:1; color:var(--c); margin-bottom:6px; }
+  .acid-word { font-size:18px; font-weight:800; color:#1e293b; margin-bottom:8px; }
+  .acid-def { font-size:15px; line-height:1.6; color:#475569; font-weight:500; }
+
+  /* DO / DON'T lists */
+  .adv-list { list-style:none; }
+  .adv-list li { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid rgba(0,0,0,.07); font-size:15.5px; color:#334155; line-height:1.65; font-weight:500; margin:0; }
+  .adv-list li:last-child { border-bottom:none; }
+  .adv-icon { font-size:18px; flex-shrink:0; }
+  .adv-list strong { color:#1e293b; }
+  .badge { display:inline-block; color:#fff; font-size:13px; font-weight:800; padding:3px 12px; border-radius:20px; white-space:nowrap; }
+  .bg-blue{background:#2563eb} .bg-green{background:#16a34a} .bg-orange{background:#ea580c} .bg-purple{background:#7c3aed} .bg-red{background:#dc2626} .bg-yellow{background:#ca8a04}
+  @media (max-width:760px) { .grid2,.grid3,.summary-grid { grid-template-columns:1fr; } .acid-grid { grid-template-columns:1fr 1fr; } .header h1 { font-size:27px; } .card-body { padding:16px; } }
+</style>
 </head>
 <body>
-<div class="container">
+<div class="wrap">
 
+<!-- HEADER -->
 <div class="header">
-  <div class="header-eye">SQL Deep Dive — Transactions</div>
-  <h1>17. SQL Transactions — Complete Guide</h1>
-  <p class="tag">ACID, BEGIN/COMMIT/ROLLBACK, SAVEPOINTs, isolation levels, locks, deadlocks, best practices, and a real e-commerce example — PostgreSQL syntax.</p>
+  <span class="tag">SQL Deep Dive · Part 17</span>
+  <h1>17. 🔁 SQL Transactions — Complete Guide</h1>
+  <p>ACID, <strong>BEGIN / COMMIT / ROLLBACK</strong>, SAVEPOINTs, isolation levels, locks, deadlocks, best practices and a real e-commerce example — <strong>PostgreSQL syntax.</strong></p>
+  <div class="chips"><span>12 topics</span><span>ACID · MVCC · WAL</span><span>Isolation levels</span><span>Locks &amp; deadlocks</span></div>
   <nav class="toc">
-    <a href="#s1" class="tc-red">🔴 What is a Transaction?</a>
-    <a href="#s2" class="tc-red">🔴 Why Use?</a>
-    <a href="#s3" class="tc-red">🔴 ACID</a>
-    <a href="#s4" class="tc-org">🟡 Lifecycle</a>
-    <a href="#s5" class="tc-red">🔴 BEGIN/COMMIT/ROLLBACK</a>
-    <a href="#s6" class="tc-org">🟡 SAVEPOINT</a>
-    <a href="#s7" class="tc-org">🟡 Auto vs Manual</a>
-    <a href="#s8" class="tc-red">🔴 Isolation Levels</a>
-    <a href="#s9" class="tc-org">🟡 Locks</a>
-    <a href="#s10" class="tc-org">🟡 Deadlock</a>
-    <a href="#s11" class="tc-red">🔴 Best Practices</a>
-    <a href="#s12" class="tc-red">🔴 Real Example</a>
+    <a class="crit" href="#s1">🔴 What is a Transaction?</a>
+    <a class="crit" href="#s2">🔴 Why Use?</a>
+    <a class="crit" href="#s3">🔴 ACID</a>
+    <a href="#s4">🟡 Lifecycle</a>
+    <a class="crit" href="#s5">🔴 BEGIN/COMMIT/ROLLBACK</a>
+    <a href="#s6">🟡 SAVEPOINT</a>
+    <a href="#s7">🟡 Auto vs Manual</a>
+    <a class="crit" href="#s8">🔴 Isolation Levels</a>
+    <a href="#s9">🟡 Locks</a>
+    <a href="#s10">🟡 Deadlock</a>
+    <a class="crit" href="#s11">🔴 Best Practices</a>
+    <a class="crit" href="#s12">🔴 Real Example</a>
   </nav>
+</div>
+
+<div class="intro-summary">
+  <div class="intro-summary-title">🧩 Key Terms at a Glance</div>
+  <div class="summary-grid">
+    <div class="summary-item summary-blue"><div class="summary-icon">🔁</div><div class="summary-text"><strong>Transaction:</strong> a group of statements treated as one unit — all succeed or all are undone.</div></div>
+    <div class="summary-item summary-purple"><div class="summary-icon">🧪</div><div class="summary-text"><strong>ACID:</strong> Atomicity, Consistency, Isolation, Durability — the reliability guarantees.</div></div>
+    <div class="summary-item summary-green"><div class="summary-icon">✅</div><div class="summary-text"><strong>BEGIN · COMMIT · ROLLBACK:</strong> start, save permanently, or undo everything.</div></div>
+    <div class="summary-item summary-teal"><div class="summary-icon">📍</div><div class="summary-text"><strong>SAVEPOINT:</strong> a named checkpoint — roll back part of a transaction and keep going.</div></div>
+    <div class="summary-item summary-amber"><div class="summary-icon">🔒</div><div class="summary-text"><strong>Isolation &amp; locks:</strong> default <code>READ COMMITTED</code>; <code>FOR UPDATE</code> locks rows.</div></div>
+    <div class="summary-item summary-pink"><div class="summary-icon">💥</div><div class="summary-text"><strong>Deadlock:</strong> circular lock wait — Postgres kills one transaction (<code>40P01</code>); retry it.</div></div>
+  </div>
 </div>
 
 <!-- 1 -->
 <div class="card" id="s1">
   <div class="card-title"><span class="topic-num">1</span> What is a Transaction?</div>
   <div class="card-body">
-    <p>A <strong>transaction</strong> is a group of one or more SQL statements treated as a <em>single unit of work</em>. Either <strong>all succeed</strong> (COMMIT) or <strong>all are undone</strong> (ROLLBACK) — no in-between state ever exists.</p>
-    <div class="short-answer"><span class="box-label">✅ One-liner</span>A transaction is an <strong>all-or-nothing operation</strong>. Transfer ₹5,000 from Account A to B — both the debit and credit must succeed together, or neither happens.</div>
-    <div class="diagram"><span class="box-label">📋 Classic Bank Transfer Problem</span><strong>Step 1:</strong> Deduct ₹5,000 from Account A → succeeds<br><strong>Step 2:</strong> Add ₹5,000 to Account B → system crashes!<br><br><strong>Without transaction:</strong> A lost ₹5,000, B got nothing. Money vanished. 💸<br><strong>With transaction:</strong> Crash → entire operation rolled back. A keeps its money. ✅</div>
+    <div class="short-answer">A transaction is an <strong>all-or-nothing operation</strong>. Transfer ₹5,000 from Account A to B — both the debit and the credit must succeed together, or neither happens.</div>
+
+    <div class="interview">
+      <p><span class="qlabel">Q:</span> What is a transaction in SQL?</p>
+      <p><span class="ans-label">A:</span> A transaction is a group of one or more SQL statements treated as a single unit of work. Either all of them succeed and are saved with <code>COMMIT</code>, or all are undone with <code>ROLLBACK</code> — no in-between state is ever visible.</p>
+    </div>
+
+    <div class="flow">
+      <div class="flow-row"><span class="flow-label">Classic bank-transfer problem — without a transaction</span>
+        <div class="step c-src">Step 1<small>Deduct ₹5,000 from A ✓</small></div><span class="arrow">→</span>
+        <div class="step c-bad">💥 System crashes</div><span class="arrow">→</span>
+        <div class="step c-bad">A lost ₹5,000, B got nothing</div></div>
+      <div class="flow-row"><span class="flow-label">The same crash — with a transaction</span>
+        <div class="step c-src">Step 1<small>Deduct ₹5,000 from A</small></div><span class="arrow">→</span>
+        <div class="step c-bad">💥 System crashes</div><span class="arrow">→</span>
+        <div class="step c-dst">Everything rolled back — A keeps its money ✅</div></div>
+    </div>
   </div>
 </div>
 
@@ -148,456 +215,507 @@ pre{padding:24px 28px;overflow-x:auto;font-size:13.5px;line-height:1.9;font-fami
   <div class="card-title"><span class="topic-num">2</span> Why Do We Use Transactions?</div>
   <div class="card-body">
     <div class="grid2">
-      <div>
-        <div class="pri-row"><span class="badge">1</span><div class="pri-content"><strong>Data integrity across multiple steps</strong><p>When an operation spans multiple SQL statements, transactions guarantee they all complete or all undo — no partial updates.</p></div></div>
-        <div class="pri-row"><span class="badge badge-green">2</span><div class="pri-content"><strong>Recovery from failures</strong><p>Server crash, network drop, app error mid-operation — ROLLBACK brings the DB back to its last consistent state automatically.</p></div></div>
-        <div class="pri-row"><span class="badge badge-purple">3</span><div class="pri-content"><strong>Concurrent access safety</strong><p>Transactions isolate users from each other. User A's half-done update is invisible to User B until committed.</p></div></div>
-        <div class="pri-row"><span class="badge badge-orange">4</span><div class="pri-content"><strong>Consistent business operations</strong><p>Order placement = reduce inventory + create order + charge payment. All three must succeed together or not at all.</p></div></div>
-      </div>
-      <div class="cp-box cp-blue">
-        <div class="cp-head">📦 Real-world scenarios needing transactions</div>
-        <div class="cp-body"><ul>
-          <li>💰 Bank transfer (debit + credit must pair)</li>
-          <li>🛒 E-commerce order (stock + order + payment)</li>
-          <li>✈️ Flight booking (seat + payment + confirmation)</li>
-          <li>📊 Payroll (calculate + update all salaries atomically)</li>
-          <li>🔄 Data migration (transform + insert + delete old)</li>
-          <li>🏦 Ledger entries (debit must always equal credit)</li>
-        </ul></div>
-      </div>
+      <div class="why-card"><span class="wn">1</span><h4>Data integrity across steps</h4><p>When an operation spans several statements, transactions guarantee they all complete or all undo — no partial updates.</p></div>
+      <div class="why-card"><span class="wn">2</span><h4>Recovery from failures</h4><p>Server crash, network drop or app error mid-operation — the database returns to its last consistent state automatically.</p></div>
+      <div class="why-card"><span class="wn">3</span><h4>Concurrent access safety</h4><p>User A's half-done update is invisible to User B until it is committed.</p></div>
+      <div class="why-card"><span class="wn">4</span><h4>Consistent business operations</h4><p>Order placement = reduce inventory + create order + charge payment. All three together, or none.</p></div>
+    </div>
+    <div class="fn-card">
+      <h4>📦 Real-world scenarios needing transactions</h4>
+      <ul>
+        <li>💰 Bank transfer (debit + credit must pair)</li>
+        <li>🛒 E-commerce order (stock + order + payment)</li>
+        <li>✈️ Flight booking (seat + payment + confirmation)</li>
+        <li>📊 Payroll (calculate + update all salaries atomically)</li>
+        <li>🔄 Data migration (transform + insert + delete old)</li>
+        <li>🏦 Ledger entries (debit must always equal credit)</li>
+      </ul>
     </div>
   </div>
 </div>
 
-<!-- 3 ACID -->
+<!-- 3 -->
 <div class="card" id="s3">
   <div class="card-title"><span class="topic-num">3</span> ACID Properties</div>
   <div class="card-body">
-    <p>ACID is the set of four properties that guarantee database transactions are processed reliably. PostgreSQL is fully ACID-compliant.</p>
+    <p>ACID is the set of four properties that make transactions reliable. PostgreSQL is fully ACID-compliant.</p>
     <div class="acid-grid">
-      <div class="acid-card acid-a">
-        <div class="acid-letter">A</div>
-        <div class="acid-word">Atomicity</div>
-        <div class="acid-def">All statements succeed or none do. No partial results. If step 5 of 10 fails, steps 1–4 are rolled back automatically.</div>
-      </div>
-      <div class="acid-card acid-c">
-        <div class="acid-letter">C</div>
-        <div class="acid-word">Consistency</div>
-        <div class="acid-def">The database moves from one valid state to another. All constraints, rules, and triggers must hold before AND after the transaction.</div>
-      </div>
-      <div class="acid-card acid-i">
-        <div class="acid-letter">I</div>
-        <div class="acid-word">Isolation</div>
-        <div class="acid-def">Concurrent transactions don't see each other's uncommitted changes. Each transaction runs in its own private snapshot of the database.</div>
-      </div>
-      <div class="acid-card acid-d">
-        <div class="acid-letter">D</div>
-        <div class="acid-word">Durability</div>
-        <div class="acid-def">Once committed, data is permanently saved — even if the server crashes immediately after. PostgreSQL writes to WAL before confirming.</div>
-      </div>
+      <div class="acid-card" style="--c:#2563eb"><div class="acid-letter">A</div><div class="acid-word">Atomicity</div><div class="acid-def">All statements succeed or none do. If step 5 of 10 fails, steps 1–4 are rolled back automatically.</div></div>
+      <div class="acid-card" style="--c:#16a34a"><div class="acid-letter">C</div><div class="acid-word">Consistency</div><div class="acid-def">The database moves from one valid state to another. Constraints and rules hold before AND after.</div></div>
+      <div class="acid-card" style="--c:#7c3aed"><div class="acid-letter">I</div><div class="acid-word">Isolation</div><div class="acid-def">Concurrent transactions don't see each other's uncommitted changes.</div></div>
+      <div class="acid-card" style="--c:#ea580c"><div class="acid-letter">D</div><div class="acid-word">Durability</div><div class="acid-def">Once committed, data is permanent — even if the server crashes right after. WAL is flushed before COMMIT is confirmed.</div></div>
     </div>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Property</th><th>Guarantees</th><th>PostgreSQL mechanism</th></tr></thead>
-      <tbody>
-        <tr><td><span class="badge">Atomicity</span></td><td>All or nothing</td><td>ROLLBACK, transaction log</td></tr>
-        <tr><td><span class="badge badge-green">Consistency</span></td><td>Valid state → valid state</td><td>Constraints, triggers, CHECK</td></tr>
-        <tr><td><span class="badge badge-purple">Isolation</span></td><td>Transactions don't interfere</td><td>MVCC (Multi-Version Concurrency Control)</td></tr>
-        <tr><td><span class="badge badge-orange">Durability</span></td><td>Committed data survives crashes</td><td>WAL (Write-Ahead Logging), fsync</td></tr>
-      </tbody>
+    <div class="table-scroll"><table>
+      <tr><th>Property</th><th>Guarantees</th><th>PostgreSQL mechanism</th></tr>
+      <tr><td><span class="badge bg-blue">Atomicity</span></td><td>All or nothing</td><td>ROLLBACK + MVCC (aborted row versions are simply invisible)</td></tr>
+      <tr><td><span class="badge bg-green">Consistency</span></td><td>Valid state → valid state</td><td>Constraints, triggers, CHECK</td></tr>
+      <tr><td><span class="badge bg-purple">Isolation</span></td><td>Transactions don't interfere</td><td>MVCC (Multi-Version Concurrency Control)</td></tr>
+      <tr><td><span class="badge bg-orange">Durability</span></td><td>Committed data survives crashes</td><td>WAL (Write-Ahead Logging), fsync</td></tr>
     </table></div>
-    <div class="interview"><span class="box-label">🎯 Interview answer</span>ACID = Atomicity (all-or-nothing), Consistency (valid state transitions), Isolation (no dirty reads between transactions), Durability (committed data survives crashes). PostgreSQL achieves isolation via MVCC and durability via WAL.</div>
+    <div class="interview">
+      <p><span class="qlabel">Q:</span> What does ACID stand for, and how does PostgreSQL provide it?</p>
+      <p><span class="ans-label">A:</span> Atomicity (all-or-nothing), Consistency (valid state transitions), Isolation (no interference between concurrent transactions) and Durability (committed data survives crashes). PostgreSQL achieves isolation through MVCC and durability through the write-ahead log (WAL).</p>
+    </div>
   </div>
 </div>
 
-<!-- 4 LIFECYCLE -->
+<!-- 4 -->
 <div class="card" id="s4">
   <div class="card-title"><span class="topic-num">4</span> Transaction Lifecycle</div>
   <div class="card-body">
-    <div class="lifecycle">
-      <div class="lc-step">
-        <div class="lc-circle" style="background:#2563eb;color:#fff">▶</div>
-        <div class="lc-label">BEGIN</div>
-        <div class="lc-sub">Transaction starts, DB snapshot taken</div>
-      </div>
-      <div class="lc-arrow">→</div>
-      <div class="lc-step">
-        <div class="lc-circle" style="background:#7c3aed;color:#fff">⚡</div>
-        <div class="lc-label">EXECUTE</div>
-        <div class="lc-sub">SQL runs, changes buffered in memory</div>
-      </div>
-      <div class="lc-arrow">→</div>
-      <div class="lc-step">
-        <div class="lc-circle" style="background:#f97316;color:#fff">⚠</div>
-        <div class="lc-label">VALIDATE</div>
-        <div class="lc-sub">Constraints checked, locks held</div>
-      </div>
-      <div class="lc-arrow">→</div>
-      <div class="lc-step">
-        <div class="lc-circle" style="background:#16a34a;color:#fff">✓</div>
-        <div class="lc-label">COMMIT</div>
-        <div class="lc-sub">Written to disk, locks released</div>
-      </div>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-label">Success path</span>
+        <div class="step c-src">▶ BEGIN<small>transaction starts</small></div><span class="arrow">→</span>
+        <div class="step c-proc">⚡ EXECUTE<small>changes invisible to others</small></div><span class="arrow">→</span>
+        <div class="step c-warn">⚠ VALIDATE<small>constraints checked, locks held</small></div><span class="arrow">→</span>
+        <div class="step c-dst">✓ COMMIT<small>durable, locks released</small></div></div>
+      <div class="flow-row"><span class="flow-label">Failure path</span>
+        <div class="step c-src">▶ BEGIN</div><span class="arrow">→</span>
+        <div class="step c-proc">⚡ EXECUTE</div><span class="arrow">→</span>
+        <div class="step c-bad">❌ Error<small>statement or constraint fails</small></div><span class="arrow">→</span>
+        <div class="step c-bad">↩ ROLLBACK<small>state at BEGIN restored, locks released</small></div></div>
     </div>
     <div class="grid2">
-      <div class="cp-box cp-ok"><div class="cp-head">✅ Success Path → COMMIT</div><div class="cp-body">All SQL statements execute without error → constraints pass → COMMIT called → changes permanently written to disk → locks released → other transactions see the new data.</div></div>
-      <div class="cp-box cp-bad"><div class="cp-head">❌ Failure Path → ROLLBACK</div><div class="cp-body">Any statement fails (error, constraint violation, app error) → ROLLBACK → all changes undone → database returns to the state at BEGIN → locks released → no data was harmed.</div></div>
+      <div class="fn-card cg"><h4>✅ Success path → COMMIT</h4><p class="fn-body">All statements run without error → constraints pass → <code>COMMIT</code> → changes are permanently written → locks released → other transactions see the new data.</p></div>
+      <div class="fn-card cr"><h4>❌ Failure path → ROLLBACK</h4><p class="fn-body">Any statement fails → <code>ROLLBACK</code> → all changes undone → the database is back to its state at <code>BEGIN</code> → locks released → no data harmed.</p></div>
     </div>
+    <div class="note">📌 Constraints are checked per statement; only <code>DEFERRABLE</code> constraints wait until <code>COMMIT</code>. What a transaction "sees" depends on its isolation level (Topic 8).</div>
   </div>
 </div>
 
-<!-- 5 BEGIN COMMIT ROLLBACK -->
+<!-- 5 -->
 <div class="card" id="s5">
   <div class="card-title"><span class="topic-num">5</span> BEGIN · COMMIT · ROLLBACK</div>
   <div class="card-body">
     <div class="grid3">
-      <div class="cp-box cp-blue"><div class="cp-head">▶ BEGIN</div><div class="cp-body">Starts a transaction block. All subsequent statements belong to this transaction until COMMIT or ROLLBACK.<br><br><code>BEGIN;</code><br><code>START TRANSACTION;</code><br><br>Both are identical in PostgreSQL. BEGIN is more common.</div></div>
-      <div class="cp-box cp-ok"><div class="cp-head">✅ COMMIT</div><div class="cp-body">Makes all changes permanent. Writes to disk. Releases all locks. Other transactions can now see the committed data.<br><br><code>COMMIT;</code><br><code>COMMIT WORK;</code><br><br>After COMMIT, changes cannot be undone.</div></div>
-      <div class="cp-box cp-bad"><div class="cp-head">↩ ROLLBACK</div><div class="cp-body">Undoes all changes since BEGIN. Restores the DB to its pre-transaction state. Releases all locks.<br><br><code>ROLLBACK;</code><br><code>ROLLBACK WORK;</code><br><br>Called on error or to cancel the operation.</div></div>
+      <div class="fn-card"><h4>▶ BEGIN</h4><p class="fn-body">Starts a transaction block. Every following statement belongs to it until <code>COMMIT</code> or <code>ROLLBACK</code>.<br><br><code>BEGIN;</code><br><code>START TRANSACTION;</code><br><br>Identical in PostgreSQL.</p></div>
+      <div class="fn-card cg"><h4>✅ COMMIT</h4><p class="fn-body">Makes all changes permanent, releases all locks, and lets other transactions see the data.<br><br><code>COMMIT;</code><br><code>COMMIT WORK;</code><br><br>After COMMIT, changes cannot be undone.</p></div>
+      <div class="fn-card cr"><h4>↩ ROLLBACK</h4><p class="fn-body">Undoes all changes since <code>BEGIN</code> and releases all locks.<br><br><code>ROLLBACK;</code><br><code>ROLLBACK WORK;</code><br><br>Called on error or to cancel the operation.</p></div>
     </div>
-    <div class="code-wrap">
-      <div class="code-bar"><div class="code-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div><span class="code-filename">begin_commit_rollback.sql</span><div style="display:flex;align-items:center;gap:8px"><span class="pg-badge">PostgreSQL</span></div></div>
-      <pre><span class="cm">-- Basic transaction structure</span>
-<span class="kw">BEGIN</span>;
-  <span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance - <span class="num">5000</span> <span class="kw">WHERE</span> id = <span class="num">1</span>;
-  <span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance + <span class="num">5000</span> <span class="kw">WHERE</span> id = <span class="num">2</span>;
-<span class="kw">COMMIT</span>;                    <span class="cm">-- both succeed → save permanently</span>
+    <div class="code-block" data-file="begin_commit_rollback.sql" data-lang="SQL" data-hl="2,5,8,11">
+<pre><code>-- Basic transaction structure
+BEGIN;
+  UPDATE accounts SET balance = balance - 5000 WHERE id = 1;
+  UPDATE accounts SET balance = balance + 5000 WHERE id = 2;
+COMMIT;                    -- both succeed → save permanently
 
-<span class="cm">-- Rollback on error</span>
-<span class="kw">BEGIN</span>;
-  <span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance - <span class="num">5000</span> <span class="kw">WHERE</span> id = <span class="num">1</span>;
-  <span class="cm">-- error occurs here...</span>
-<span class="kw">ROLLBACK</span>;                  <span class="cm">-- undo everything, money safe</span>
+-- Rollback on error
+BEGIN;
+  UPDATE accounts SET balance = balance - 5000 WHERE id = 1;
+  -- error occurs here...
+ROLLBACK;                  -- undo everything, money safe
 
-<span class="cm">-- PostgreSQL error state: once an error occurs in a transaction,
--- all subsequent commands fail until ROLLBACK is issued
--- ERROR: current transaction is aborted, commands ignored until ROLLBACK</span></pre>
+-- PostgreSQL error state: once an error occurs in a transaction,
+-- all later commands fail until ROLLBACK is issued:
+-- ERROR: current transaction is aborted, commands ignored until end of transaction block</code></pre>
     </div>
   </div>
 </div>
 
-<!-- 6 SAVEPOINT -->
+<!-- 6 -->
 <div class="card" id="s6">
   <div class="card-title"><span class="topic-num">6</span> SAVEPOINT · ROLLBACK TO SAVEPOINT · RELEASE SAVEPOINT</div>
   <div class="card-body">
-    <p>A <strong>SAVEPOINT</strong> is a named checkpoint inside a transaction. You can roll back to it without cancelling the entire transaction — only the work done after the savepoint is undone. The transaction remains active.</p>
-    <div class="code-wrap">
-      <div class="code-bar"><div class="code-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div><span class="code-filename">savepoint.sql</span><div style="display:flex;align-items:center;gap:8px"><span class="pg-badge">PostgreSQL</span></div></div>
-      <pre><span class="kw">BEGIN</span>;
+    <div class="short-answer">A savepoint is a <strong>named checkpoint inside a transaction</strong>. Roll back to it and only the work after it is undone — the transaction stays active.</div>
+    <div class="code-block" data-file="savepoint.sql" data-lang="SQL" data-hl="5,9,14,19">
+<pre><code>BEGIN;
 
-  <span class="kw">INSERT INTO</span> users (name, email) <span class="kw">VALUES</span> (<span class="str">'Aman'</span>, <span class="str">'a@x.com'</span>);
+  INSERT INTO users (name, email) VALUES ('Aman', 'a@x.com');
 
-  <span class="kw">SAVEPOINT</span> after_user;       <span class="cm">-- checkpoint 1</span>
+  SAVEPOINT after_user;       -- checkpoint 1
 
-  <span class="kw">INSERT INTO</span> orders (user_id, total) <span class="kw">VALUES</span> (<span class="fn">lastval</span>(), <span class="num">500</span>);
+  INSERT INTO orders (user_id, total) VALUES (currval('users_id_seq'), 500);
 
-  <span class="kw">SAVEPOINT</span> after_order;      <span class="cm">-- checkpoint 2</span>
+  SAVEPOINT after_order;      -- checkpoint 2
 
-  <span class="kw">INSERT INTO</span> payments (order_id, amount) <span class="kw">VALUES</span> (<span class="fn">lastval</span>(), <span class="num">500</span>);
-  <span class="cm">-- payment fails!</span>
+  INSERT INTO payments (order_id, amount) VALUES (currval('orders_id_seq'), 500);
+  -- payment fails!
 
-<span class="kw">ROLLBACK TO SAVEPOINT</span> after_order;   <span class="cm">-- undo only payment, keep user + order</span>
+ROLLBACK TO SAVEPOINT after_order;   -- undo only payment, keep user + order
 
-  <span class="kw">INSERT INTO</span> payments (order_id, amount, method)
-  <span class="kw">VALUES</span> (<span class="fn">lastval</span>(), <span class="num">500</span>, <span class="str">'UPI'</span>);    <span class="cm">-- retry with UPI</span>
+  INSERT INTO payments (order_id, amount, method)
+  VALUES (currval('orders_id_seq'), 500, 'UPI');    -- retry with UPI
 
-<span class="kw">RELEASE SAVEPOINT</span> after_order;      <span class="cm">-- clean up the savepoint</span>
+RELEASE SAVEPOINT after_order;      -- clean up the savepoint
 
-<span class="kw">COMMIT</span>;                             <span class="cm">-- all saved!</span>
+COMMIT;                             -- all saved!
 
-
-<span class="cm">-- KEY DIFFERENCE:</span>
-<span class="kw">ROLLBACK TO SAVEPOINT</span> sp1;  <span class="cm">-- undo to sp1, transaction STILL ACTIVE</span>
-<span class="kw">ROLLBACK</span>;                   <span class="cm">-- undo EVERYTHING, transaction ENDS</span></pre>
+-- KEY DIFFERENCE:
+ROLLBACK TO SAVEPOINT sp1;  -- undo to sp1, transaction STILL ACTIVE
+ROLLBACK;                   -- undo EVERYTHING, transaction ENDS</code></pre>
     </div>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Command</th><th>What it does</th><th>Transaction still active?</th></tr></thead>
-      <tbody>
-        <tr><td><code>SAVEPOINT name</code></td><td>Creates a named checkpoint inside the transaction</td><td class="cell-hi">✅ Yes</td></tr>
-        <tr><td><code>ROLLBACK TO SAVEPOINT name</code></td><td>Undoes all work done after this savepoint</td><td class="cell-hi">✅ Yes — continues!</td></tr>
-        <tr><td><code>RELEASE SAVEPOINT name</code></td><td>Removes the savepoint, keeps all changes</td><td class="cell-hi">✅ Yes</td></tr>
-        <tr><td><code>ROLLBACK</code></td><td>Undoes everything from BEGIN</td><td class="cell-bad">❌ No — ends</td></tr>
-      </tbody>
+    <div class="tip">💡 Why <code>currval('orders_id_seq')</code> and not <code>lastval()</code>? Sequences are <strong>not rolled back</strong>. After the failed payment insert, <code>lastval()</code> would return the <em>payments</em> sequence value, not the order id. <code>currval('sequence_name')</code> always returns the one you mean (in apps, prefer <code>RETURNING id</code>).</div>
+    <div class="table-scroll"><table>
+      <tr><th>Command</th><th>What it does</th><th>Transaction still active?</th></tr>
+      <tr><td><code>SAVEPOINT name</code></td><td>Creates a named checkpoint inside the transaction</td><td class="yes">✅ Yes</td></tr>
+      <tr><td><code>ROLLBACK TO SAVEPOINT name</code></td><td>Undoes all work done after this savepoint</td><td class="yes">✅ Yes — continues!</td></tr>
+      <tr><td><code>RELEASE SAVEPOINT name</code></td><td>Removes the savepoint, keeps all changes</td><td class="yes">✅ Yes</td></tr>
+      <tr><td><code>ROLLBACK</code></td><td>Undoes everything from BEGIN</td><td class="no">❌ No — ends</td></tr>
     </table></div>
   </div>
 </div>
 
-<!-- 7 AUTO vs MANUAL -->
+<!-- 7 -->
 <div class="card" id="s7">
   <div class="card-title"><span class="topic-num">7</span> Auto Commit vs Manual Commit</div>
   <div class="card-body">
     <div class="grid2">
-      <div class="cp-box cp-warn"><div class="cp-head">⚡ Auto Commit (Default)</div><div class="cp-body">PostgreSQL is in auto-commit mode by default. Every SQL statement is automatically wrapped in its own transaction and committed immediately.<br><br><code>UPDATE users SET name='Aman' WHERE id=1;</code><br>→ Automatically: BEGIN → UPDATE → COMMIT<br><br>⚠️ Danger: each statement commits independently — no rollback across multiple statements.</div></div>
-      <div class="cp-box cp-ok"><div class="cp-head">🛡️ Manual Commit (Explicit BEGIN)</div><div class="cp-body">Explicitly write BEGIN to control when changes commit. Multiple statements run as one atomic unit.<br><br><code>BEGIN;</code><br><code>UPDATE accounts SET balance=balance-5000 WHERE id=1;</code><br><code>UPDATE accounts SET balance=balance+5000 WHERE id=2;</code><br><code>COMMIT;</code><br><br>✅ All succeed together or all roll back together.</div></div>
+      <div class="fn-card ca"><h4>⚡ Auto Commit (default)</h4><p class="fn-body">PostgreSQL wraps every statement in its own transaction and commits immediately.<br><br><code>UPDATE users SET name='Aman' WHERE id=1;</code><br>→ automatically: BEGIN → UPDATE → COMMIT<br><br>⚠️ Each statement commits independently — no rollback across several statements.</p></div>
+      <div class="fn-card cg"><h4>🛡️ Manual Commit (explicit BEGIN)</h4><p class="fn-body">Write <code>BEGIN</code> yourself to control when changes commit. Several statements run as one atomic unit.<br><br>✅ All succeed together or all roll back together.</p></div>
     </div>
-    <div class="code-wrap">
-      <div class="code-bar"><div class="code-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div><span class="code-filename">autocommit.sql</span><div style="display:flex;align-items:center;gap:8px"><span class="pg-badge">PostgreSQL</span></div></div>
-      <pre><span class="cm">-- Auto commit: each statement is its own transaction</span>
-<span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance - <span class="num">5000</span> <span class="kw">WHERE</span> id = <span class="num">1</span>; <span class="cm">-- committed!</span>
-<span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance + <span class="num">5000</span> <span class="kw">WHERE</span> id = <span class="num">2</span>; <span class="cm">-- if this fails: money GONE 💸</span>
+    <div class="code-block" data-file="autocommit.sql" data-lang="SQL">
+<pre><code>-- Auto commit: each statement is its own transaction
+UPDATE accounts SET balance = balance - 5000 WHERE id = 1; -- committed!
+UPDATE accounts SET balance = balance + 5000 WHERE id = 2; -- if this fails: money GONE 💸
 
-<span class="cm">-- Manual commit: safe</span>
-<span class="kw">BEGIN</span>;
-  <span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance - <span class="num">5000</span> <span class="kw">WHERE</span> id = <span class="num">1</span>;
-  <span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance + <span class="num">5000</span> <span class="kw">WHERE</span> id = <span class="num">2</span>;
-<span class="kw">COMMIT</span>;                  <span class="cm">-- if second UPDATE fails → ROLLBACK, A keeps money ✅</span>
+-- Manual commit: safe
+BEGIN;
+  UPDATE accounts SET balance = balance - 5000 WHERE id = 1;
+  UPDATE accounts SET balance = balance + 5000 WHERE id = 2;
+COMMIT;                  -- if the second UPDATE fails → ROLLBACK, A keeps money ✅
 
-<span class="cm">-- Disable auto-commit in psql</span>
-\<span class="kw">set</span> AUTOCOMMIT off
+-- In psql: wrap each statement in an implicit transaction block
+\set AUTOCOMMIT off
 
-<span class="cm">-- In app code:</span>
-<span class="cm">-- Python psycopg2:  conn.autocommit = False</span>
-<span class="cm">-- Node.js pg:       client.query('BEGIN')</span>
-<span class="cm">-- Java JDBC:        conn.setAutoCommit(false)</span></pre>
+-- In app code:
+-- Python psycopg2:  conn.autocommit = False   (the default)
+-- Node.js pg:       client.query('BEGIN')
+-- Java JDBC:        conn.setAutoCommit(false)</code></pre>
     </div>
   </div>
 </div>
 
-<!-- 8 ISOLATION -->
+<!-- 8 -->
 <div class="card" id="s8">
   <div class="card-title"><span class="topic-num">8</span> Transaction Isolation Levels</div>
   <div class="card-body">
-    <p>Isolation levels control how much one transaction can see of another's concurrent changes. Higher isolation = more safety, lower performance.</p>
+    <p>Isolation levels control how much one transaction can see of another's concurrent changes. Higher isolation = more safety, usually more conflicts and retries.</p>
+
     <h3>The three concurrency problems</h3>
     <div class="grid3">
-      <div class="cp-box cp-bad"><div class="cp-head">💀 Dirty Read</div><div class="cp-body">Transaction A reads data that B changed but not committed. If B rolls back, A read data that never existed permanently.</div></div>
-      <div class="cp-box cp-warn"><div class="cp-head">⚠️ Non-Repeatable Read</div><div class="cp-body">A reads a row, B updates + commits it, A reads same row again and gets different value. Same query, different result in same transaction.</div></div>
-      <div class="cp-box cp-warn"><div class="cp-head">👻 Phantom Read</div><div class="cp-body">A runs a range query, B inserts a matching row + commits, A runs same query again and sees new phantom rows that weren't there before.</div></div>
+      <div class="fn-card cr"><h4>💀 Dirty Read</h4><p class="fn-body">A reads data that B changed but has not committed. If B rolls back, A read data that never officially existed.</p></div>
+      <div class="fn-card ca"><h4>⚠️ Non-Repeatable Read</h4><p class="fn-body">A reads a row, B updates and commits it, A reads the same row again and gets a different value — same query, different result.</p></div>
+      <div class="fn-card ca"><h4>👻 Phantom Read</h4><p class="fn-body">A runs a range query, B inserts a matching row and commits, A repeats the query and sees a new "phantom" row.</p></div>
     </div>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Isolation Level</th><th>Dirty Read</th><th>Non-Repeatable Read</th><th>Phantom Read</th><th>Performance</th></tr></thead>
-      <tbody>
-        <tr><td><span class="badge badge-red">READ UNCOMMITTED</span></td><td class="cell-bad">✗ Possible</td><td class="cell-bad">✗ Possible</td><td class="cell-bad">✗ Possible</td><td class="cell-hi">Fastest</td></tr>
-        <tr><td><span class="badge badge-orange">READ COMMITTED</span></td><td class="cell-hi">✓ Prevented</td><td class="cell-bad">✗ Possible</td><td class="cell-bad">✗ Possible</td><td class="cell-hi">Fast (default)</td></tr>
-        <tr><td><span class="badge badge-yellow">REPEATABLE READ</span></td><td class="cell-hi">✓ Prevented</td><td class="cell-hi">✓ Prevented</td><td class="cell-bad">✗ Possible</td><td>Medium</td></tr>
-        <tr><td><span class="badge badge-green">SERIALIZABLE</span></td><td class="cell-hi">✓ Prevented</td><td class="cell-hi">✓ Prevented</td><td class="cell-hi">✓ Prevented</td><td class="cell-bad">Slowest</td></tr>
-      </tbody>
+
+    <div class="table-scroll"><table>
+      <tr><th>Isolation Level</th><th>Dirty Read</th><th>Non-Repeatable</th><th>Phantom</th><th>In PostgreSQL</th></tr>
+      <tr><td><span class="badge bg-red">READ UNCOMMITTED</span></td><td class="no">Possible*</td><td class="no">Possible</td><td class="no">Possible</td><td>Treated as READ COMMITTED — dirty reads never happen</td></tr>
+      <tr><td><span class="badge bg-orange">READ COMMITTED</span></td><td class="yes">Prevented</td><td class="no">Possible</td><td class="no">Possible</td><td><strong>Default.</strong> Each statement sees a fresh snapshot</td></tr>
+      <tr><td><span class="badge bg-yellow">REPEATABLE READ</span></td><td class="yes">Prevented</td><td class="yes">Prevented</td><td class="no">Possible*</td><td>One snapshot per transaction — phantoms are also prevented</td></tr>
+      <tr><td><span class="badge bg-green">SERIALIZABLE</span></td><td class="yes">Prevented</td><td class="yes">Prevented</td><td class="yes">Prevented</td><td>Strictest; may fail with <code>40001</code> — retry</td></tr>
     </table></div>
-    <div class="note"><span class="box-label">📌 PostgreSQL note</span>PostgreSQL does NOT implement READ UNCOMMITTED — it behaves as READ COMMITTED. Default is <strong>READ COMMITTED</strong>. PostgreSQL uses <strong>MVCC</strong> so readers never block writers and writers never block readers.</div>
-    <div class="code-wrap">
-      <div class="code-bar"><div class="code-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div><span class="code-filename">isolation.sql</span><div style="display:flex;align-items:center;gap:8px"><span class="pg-badge">PostgreSQL</span></div></div>
-      <pre><span class="kw">BEGIN TRANSACTION ISOLATION LEVEL</span> READ COMMITTED;    <span class="cm">-- default</span>
-<span class="kw">BEGIN TRANSACTION ISOLATION LEVEL</span> REPEATABLE READ;
-<span class="kw">BEGIN TRANSACTION ISOLATION LEVEL</span> SERIALIZABLE;
+    <div class="note">📌 *The first three columns show the <strong>SQL standard</strong>. PostgreSQL is stricter: <code>READ UNCOMMITTED</code> behaves as <code>READ COMMITTED</code>, and <code>REPEATABLE READ</code> already prevents phantom reads. Thanks to <strong>MVCC</strong>, readers never block writers and writers never block readers.</div>
 
-<span class="cm">-- Or set after BEGIN</span>
-<span class="kw">BEGIN</span>;
-<span class="kw">SET TRANSACTION ISOLATION LEVEL</span> SERIALIZABLE;
+    <div class="code-block" data-file="isolation.sql" data-lang="SQL">
+<pre><code>BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED;    -- default
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 
-<span class="cm">-- Check current level</span>
-<span class="kw">SHOW</span> transaction_isolation;
+-- Or set it right after BEGIN (before any query)
+BEGIN;
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 
-<span class="cm">-- Use SERIALIZABLE for financial operations</span>
-<span class="kw">BEGIN TRANSACTION ISOLATION LEVEL</span> SERIALIZABLE;
-  <span class="kw">SELECT</span> balance <span class="kw">FROM</span> accounts <span class="kw">WHERE</span> id = <span class="num">1</span>;
-  <span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance - <span class="num">500</span> <span class="kw">WHERE</span> id = <span class="num">1</span>;
-<span class="kw">COMMIT</span>;</pre>
+-- Check the current level
+SHOW transaction_isolation;
+
+-- Use SERIALIZABLE for critical financial operations
+BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+  SELECT balance FROM accounts WHERE id = 1;
+  UPDATE accounts SET balance = balance - 500 WHERE id = 1;
+COMMIT;   -- may fail with serialization_failure (40001): retry the transaction</code></pre>
+    </div>
+
+    <div class="interview">
+      <p><span class="qlabel">Q:</span> What is PostgreSQL's default isolation level, and which anomalies does it allow?</p>
+      <p><span class="ans-label">A:</span> <code>READ COMMITTED</code>. It prevents dirty reads, but a repeated query inside the same transaction can see other transactions' committed changes (non-repeatable and phantom reads). Use <code>REPEATABLE READ</code> or <code>SERIALIZABLE</code> when you need a stable view.</p>
     </div>
   </div>
 </div>
 
-<!-- 9 LOCKS -->
+<!-- 9 -->
 <div class="card" id="s9">
   <div class="card-title"><span class="topic-num">9</span> Locks &amp; Concurrency (Basic)</div>
   <div class="card-body">
-    <p>When multiple transactions access the same data, PostgreSQL uses <strong>locks</strong> to prevent conflicts. MVCC handles most read/write scenarios without locks — but write/write conflicts need explicit locking.</p>
+    <p>MVCC handles most read/write scenarios without locks, but write/write conflicts need explicit locking. PostgreSQL provides row-level locks through <code>SELECT … FOR</code>.</p>
     <div class="grid2">
-      <div class="cp-box cp-blue"><div class="cp-head">🔓 Shared Lock — SELECT FOR SHARE</div><div class="cp-body">Multiple transactions can hold shared locks simultaneously. Readers don't block readers.<br><br><code>SELECT * FROM orders WHERE id=1 FOR SHARE;</code></div></div>
-      <div class="cp-box cp-purple"><div class="cp-head">🔒 Exclusive Lock — SELECT FOR UPDATE</div><div class="cp-body">Only one transaction can hold an exclusive lock. Others must wait until it's released at COMMIT/ROLLBACK.<br><br><code>SELECT * FROM orders WHERE id=1 FOR UPDATE;</code></div></div>
+      <div class="fn-card"><h4>🔓 Shared lock — FOR SHARE</h4><p class="fn-body">Many transactions can hold a shared lock at once; it blocks writers only.<br><br><code>SELECT * FROM orders WHERE id=1 FOR SHARE;</code></p></div>
+      <div class="fn-card cp"><h4>🔒 Exclusive lock — FOR UPDATE</h4><p class="fn-body">Only one transaction can hold it. Others wait until it's released at COMMIT / ROLLBACK.<br><br><code>SELECT * FROM orders WHERE id=1 FOR UPDATE;</code></p></div>
     </div>
-    <div class="code-wrap">
-      <div class="code-bar"><div class="code-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div><span class="code-filename">locks.sql</span><div style="display:flex;align-items:center;gap:8px"><span class="pg-badge">PostgreSQL</span></div></div>
-      <pre><span class="cm">-- FOR UPDATE: lock row before modifying (prevent lost updates)</span>
-<span class="kw">BEGIN</span>;
-  <span class="kw">SELECT</span> balance <span class="kw">FROM</span> accounts <span class="kw">WHERE</span> id = <span class="num">1</span> <span class="kw">FOR UPDATE</span>;
-  <span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance - <span class="num">500</span> <span class="kw">WHERE</span> id = <span class="num">1</span>;
-<span class="kw">COMMIT</span>;
+    <div class="code-block" data-file="locks.sql" data-lang="SQL">
+<pre><code>-- FOR UPDATE: lock the row before modifying it (prevents lost updates)
+BEGIN;
+  SELECT balance FROM accounts WHERE id = 1 FOR UPDATE;
+  UPDATE accounts SET balance = balance - 500 WHERE id = 1;
+COMMIT;
 
-<span class="cm">-- NOWAIT: fail immediately if locked, don't wait</span>
-<span class="kw">SELECT</span> * <span class="kw">FROM</span> accounts <span class="kw">WHERE</span> id = <span class="num">1</span> <span class="kw">FOR UPDATE NOWAIT</span>;
-<span class="cm">-- ERROR: could not obtain lock on row</span>
+-- NOWAIT: fail immediately if the row is locked
+SELECT * FROM accounts WHERE id = 1 FOR UPDATE NOWAIT;
+-- ERROR: could not obtain lock on row in relation "accounts"
 
-<span class="cm">-- SKIP LOCKED: skip locked rows (perfect for job queues)</span>
-<span class="kw">SELECT</span> * <span class="kw">FROM</span> tasks
-<span class="kw">WHERE</span>  status = <span class="str">'pending'</span>
-<span class="kw">LIMIT</span>  <span class="num">1</span>
-<span class="kw">FOR UPDATE SKIP LOCKED</span>;  <span class="cm">-- pick next unlocked task safely</span>
+-- SKIP LOCKED: skip locked rows (perfect for job queues)
+SELECT * FROM tasks
+WHERE  status = 'pending'
+ORDER BY id
+LIMIT  1
+FOR UPDATE SKIP LOCKED;  -- pick the next unlocked task safely
 
-<span class="cm">-- View current locks</span>
-<span class="kw">SELECT</span> pid, relation::regclass, mode, granted
-<span class="kw">FROM</span>   pg_locks <span class="kw">WHERE</span> relation <span class="kw">IS NOT NULL</span>;</pre>
+-- View current locks
+SELECT pid, relation::regclass, mode, granted
+FROM   pg_locks WHERE relation IS NOT NULL;</code></pre>
     </div>
   </div>
 </div>
 
-<!-- 10 DEADLOCK -->
+<!-- 10 -->
 <div class="card" id="s10">
   <div class="card-title"><span class="topic-num">10</span> Deadlock (Basic)</div>
   <div class="card-body">
-    <p>A <strong>deadlock</strong> occurs when two transactions each wait for a lock held by the other — a circular wait neither can escape. PostgreSQL detects this automatically and kills one transaction (the "victim").</p>
-    <div class="diagram"><span class="box-label">📋 How deadlock happens</span><strong>Transaction A:</strong> Holds lock on Row 1 → wants lock on Row 2 (waiting for B)<br><strong>Transaction B:</strong> Holds lock on Row 2 → wants lock on Row 1 (waiting for A)<br><br>🔴 Neither can proceed. PostgreSQL detects the cycle and rolls back one transaction automatically.<br>Error: <code>ERROR: deadlock detected</code> (PostgreSQL error code: 40P01)</div>
-    <div class="code-wrap">
-      <div class="code-bar"><div class="code-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div><span class="code-filename">deadlock.sql</span><div style="display:flex;align-items:center;gap:8px"><span class="pg-badge">PostgreSQL</span></div></div>
-      <pre><span class="cm">-- Session A                          Session B</span>
-<span class="kw">BEGIN</span>;                               <span class="kw">BEGIN</span>;
-<span class="kw">UPDATE</span> accounts                      <span class="kw">UPDATE</span> accounts
-<span class="kw">SET</span> balance = balance - <span class="num">100</span>          <span class="kw">SET</span> balance = balance - <span class="num">200</span>
-<span class="kw">WHERE</span> id = <span class="num">1</span>;  <span class="cm">← holds Row 1</span>        <span class="kw">WHERE</span> id = <span class="num">2</span>;  <span class="cm">← holds Row 2</span>
+    <div class="short-answer">A deadlock is a <strong>circular wait</strong>: two transactions each hold a lock the other needs. PostgreSQL detects it automatically and kills one transaction (the "victim") with error <code>40P01</code>.</div>
 
-<span class="kw">UPDATE</span> accounts                      <span class="kw">UPDATE</span> accounts
-<span class="kw">SET</span> balance = balance + <span class="num">100</span>          <span class="kw">SET</span> balance = balance + <span class="num">200</span>
-<span class="kw">WHERE</span> id = <span class="num">2</span>;  <span class="cm">← WAITING for B</span>     <span class="kw">WHERE</span> id = <span class="num">1</span>;  <span class="cm">← WAITING for A</span>
-<span class="cm">-- DEADLOCK! PostgreSQL kills one transaction automatically</span>
-
-<span class="cm">-- Fix: always lock in consistent order (lower id first)</span>
-<span class="kw">BEGIN</span>;
-  <span class="kw">SELECT</span> * <span class="kw">FROM</span> accounts
-  <span class="kw">WHERE</span>  id <span class="kw">IN</span> (<span class="num">1</span>, <span class="num">2</span>)
-  <span class="kw">ORDER BY</span> id            <span class="cm">-- same order in ALL transactions</span>
-  <span class="kw">FOR UPDATE</span>;
-  <span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance - <span class="num">100</span> <span class="kw">WHERE</span> id = <span class="num">1</span>;
-  <span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance + <span class="num">100</span> <span class="kw">WHERE</span> id = <span class="num">2</span>;
-<span class="kw">COMMIT</span>;</pre>
+    <div class="flow">
+      <div class="flow-row"><span class="flow-label">How a deadlock happens</span>
+        <div class="step c-src">Transaction A<small>holds Row 1</small></div><span class="arrow">→</span>
+        <div class="step c-bad">wants Row 2<small>waiting for B</small></div></div>
+      <div class="flow-row">
+        <div class="step c-proc">Transaction B<small>holds Row 2</small></div><span class="arrow">→</span>
+        <div class="step c-bad">wants Row 1<small>waiting for A</small></div><span class="arrow">→</span>
+        <div class="step c-warn">ERROR: deadlock detected<small>one is rolled back</small></div></div>
     </div>
-    <div class="warning"><span class="box-label">⚠️ Application must handle deadlocks</span>PostgreSQL rolls back the victim and raises error code <code>40P01</code>. Your application must catch this error and <strong>retry the transaction</strong>. Never assume it won't happen.</div>
+
+    <div class="grid2">
+      <div class="code-block" data-file="session_a.sql" data-lang="SQL">
+<pre><code>BEGIN;
+UPDATE accounts
+SET balance = balance - 100
+WHERE id = 1;   -- holds row 1
+
+UPDATE accounts
+SET balance = balance + 100
+WHERE id = 2;   -- WAITS for B</code></pre>
+      </div>
+      <div class="code-block" data-file="session_b.sql" data-lang="SQL">
+<pre><code>BEGIN;
+UPDATE accounts
+SET balance = balance - 200
+WHERE id = 2;   -- holds row 2
+
+UPDATE accounts
+SET balance = balance + 200
+WHERE id = 1;   -- WAITS for A</code></pre>
+      </div>
+    </div>
+    <div class="code-block" data-file="deadlock_fix.sql" data-lang="SQL" data-hl="3,4,5">
+<pre><code>-- Fix: always lock rows in a consistent order (lowest id first)
+BEGIN;
+  SELECT * FROM accounts
+  WHERE  id IN (1, 2)
+  ORDER BY id            -- same order in ALL transactions
+  FOR UPDATE;
+  UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+  UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+COMMIT;</code></pre>
+    </div>
+    <div class="warning">⚠️ <strong>Your application must handle deadlocks.</strong> PostgreSQL rolls back the victim and raises error code <code>40P01</code>. Catch it and <strong>retry the whole transaction</strong> — never assume it won't happen.</div>
+    <div class="interview">
+      <p><span class="qlabel">Q:</span> What is a deadlock and how do you prevent it?</p>
+      <p><span class="ans-label">A:</span> Two transactions wait for each other's locks in a cycle. PostgreSQL detects it and aborts one with <code>40P01</code>. Prevent it by locking rows in a consistent order, keeping transactions short, and retrying the aborted transaction in the application.</p>
+    </div>
   </div>
 </div>
 
-<!-- 11 BEST PRACTICES -->
+<!-- 11 -->
 <div class="card" id="s11">
   <div class="card-title"><span class="topic-num">11</span> Best Practices</div>
   <div class="card-body">
     <div class="grid2">
-      <div>
-        <h3 style="color:#15803d">✅ DO</h3>
+      <div class="fn-card cg">
+        <h4>✅ DO</h4>
         <ul class="adv-list">
-          <li><span class="adv-icon">⚡</span><div><strong>Keep transactions short</strong> — Lock time = blocked time for other users. Do minimum work inside BEGIN…COMMIT.</div></li>
-          <li><span class="adv-icon">🛡️</span><div><strong>Always handle errors and ROLLBACK</strong> — Catch exceptions in app code and always issue ROLLBACK. Leaving a transaction open is dangerous.</div></li>
-          <li><span class="adv-icon">📋</span><div><strong>Use SAVEPOINTs for partial recovery</strong> — For batch processing, savepoint after each item so one failure doesn't cancel the whole batch.</div></li>
-          <li><span class="adv-icon">🔒</span><div><strong>Lock in consistent order</strong> — Always lock multiple rows in the same order (e.g. by primary key ASC) to prevent deadlocks.</div></li>
-          <li><span class="adv-icon">🔄</span><div><strong>Retry on deadlock (error 40P01)</strong> — PostgreSQL kills one victim. Application must detect and retry automatically.</div></li>
-          <li><span class="adv-icon">📊</span><div><strong>Choose the right isolation level</strong> — READ COMMITTED is fine for most use cases. Use SERIALIZABLE only when you truly need it.</div></li>
+          <li><span class="adv-icon">⚡</span><div><strong>Keep transactions short</strong> — lock time = blocked time for other users. Do the minimum inside <code>BEGIN…COMMIT</code>.</div></li>
+          <li><span class="adv-icon">🛡️</span><div><strong>Always handle errors and ROLLBACK</strong> — catch exceptions in app code. Leaving a transaction open is dangerous.</div></li>
+          <li><span class="adv-icon">📋</span><div><strong>Use SAVEPOINTs for partial recovery</strong> — in batch jobs, savepoint per item so one failure doesn't cancel the batch.</div></li>
+          <li><span class="adv-icon">🔒</span><div><strong>Lock in consistent order</strong> — e.g. by primary key ASC — to prevent deadlocks.</div></li>
+          <li><span class="adv-icon">🔄</span><div><strong>Retry on <code>40P01</code> and <code>40001</code></strong> — deadlock victims and serialization failures must be retried.</div></li>
+          <li><span class="adv-icon">📊</span><div><strong>Choose the right isolation level</strong> — <code>READ COMMITTED</code> is fine for most work; use <code>SERIALIZABLE</code> only when needed.</div></li>
         </ul>
       </div>
-      <div>
-        <h3 style="color:#be123c">❌ DON'T</h3>
+      <div class="fn-card cr">
+        <h4>❌ DON'T</h4>
         <ul class="adv-list">
-          <li><span class="adv-icon">🐢</span><div><strong>Don't do heavy work inside a transaction</strong> — Calling external APIs, sending emails, or long reports inside BEGIN…COMMIT holds locks for the entire duration.</div></li>
-          <li><span class="adv-icon">👻</span><div><strong>Don't leave transactions open</strong> — Uncommitted transactions hold locks, consume memory, and block VACUUM. Always COMMIT or ROLLBACK.</div></li>
-          <li><span class="adv-icon">🎭</span><div><strong>Don't ignore transaction errors</strong> — Once a PostgreSQL transaction hits an error it's aborted. Every subsequent command fails until you ROLLBACK.</div></li>
-          <li><span class="adv-icon">🔄</span><div><strong>Don't try to nest transactions</strong> — PostgreSQL doesn't support true nesting. Use SAVEPOINTs for partial rollback capability instead.</div></li>
-          <li><span class="adv-icon">💥</span><div><strong>Don't use SERIALIZABLE everywhere</strong> — Higher isolation = more conflicts and retries. Profile first, escalate isolation only when needed.</div></li>
+          <li><span class="adv-icon">🐢</span><div><strong>Don't do heavy work inside a transaction</strong> — external APIs, emails or long reports hold locks the whole time.</div></li>
+          <li><span class="adv-icon">👻</span><div><strong>Don't leave transactions open</strong> — "idle in transaction" sessions hold locks and block VACUUM cleanup. Consider <code>idle_in_transaction_session_timeout</code>.</div></li>
+          <li><span class="adv-icon">🎭</span><div><strong>Don't ignore transaction errors</strong> — after an error the transaction is aborted; every command fails until you ROLLBACK.</div></li>
+          <li><span class="adv-icon">🔄</span><div><strong>Don't try to nest transactions</strong> — PostgreSQL has no true nesting; a second <code>BEGIN</code> only warns. Use SAVEPOINTs.</div></li>
+          <li><span class="adv-icon">💥</span><div><strong>Don't use SERIALIZABLE everywhere</strong> — more conflicts and retries. Profile first, escalate only when needed.</div></li>
         </ul>
       </div>
     </div>
   </div>
 </div>
 
-<!-- 12 REAL EXAMPLE -->
-<div class="card real-card" id="s12">
+<!-- 12 -->
+<div class="card" id="s12">
   <div class="card-title">🏦 Real Example — E-Commerce Order Transaction</div>
   <div class="card-body">
-    <p>An e-commerce order requires 5 operations: reduce inventory, create order, add order items, create payment, and mark order paid. All 5 must succeed together, or everything rolls back — customer money is safe and inventory is restored.</p>
-    <div class="diagram"><span class="box-label">📋 What must happen atomically</span><strong>1.</strong> Lock + reduce product stock &nbsp;→&nbsp; <strong>2.</strong> Create order &nbsp;→&nbsp; <strong>3.</strong> Add order items &nbsp;→&nbsp; <strong>4.</strong> Create payment record &nbsp;→&nbsp; <strong>5.</strong> Mark order as paid<br><br>If step 4 (payment) fails → steps 1–3 all roll back. Stock restored. No orphan order.</div>
-    <div class="code-wrap">
-      <div class="code-bar"><div class="code-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div><span class="code-filename">ecommerce_order.sql</span><div style="display:flex;align-items:center;gap:8px"><span class="pg-badge">PostgreSQL</span></div></div>
-      <pre><span class="cm">-- Schema</span>
-<span class="kw">CREATE TABLE</span> products (
-  id    <span class="typ">SERIAL PRIMARY KEY</span>, name <span class="typ">TEXT</span>,
-  price <span class="typ">NUMERIC</span>(<span class="num">10</span>,<span class="num">2</span>), stock <span class="typ">INT</span> <span class="kw">CHECK</span> (stock >= <span class="num">0</span>)  <span class="cm">-- can't go negative!</span>
+    <p>Placing an order takes six statements: lock the product, reduce stock, create the order, add the order item, record the payment and mark the order paid. All must succeed together — or everything rolls back, the customer's money is safe and the stock is restored.</p>
+
+    <div class="flow">
+      <div class="flow-row"><span class="flow-label">What must happen atomically</span>
+        <div class="step c-src">Lock product</div><span class="arrow">→</span>
+        <div class="step c-src">Reduce stock</div><span class="arrow">→</span>
+        <div class="step c-proc">Create order</div><span class="arrow">→</span>
+        <div class="step c-proc">Add order item</div><span class="arrow">→</span>
+        <div class="step c-warn">Record payment</div><span class="arrow">→</span>
+        <div class="step c-dst">Mark paid</div></div>
+    </div>
+    <div class="note">📌 If the payment step fails → everything before it rolls back (or roll back to a savepoint and retry). Stock is restored, no orphan order.</div>
+
+    <h3>Schema</h3>
+    <div class="code-block" data-file="ecommerce_schema.sql" data-lang="SQL">
+<pre><code>CREATE TABLE products (
+  id    SERIAL PRIMARY KEY, name TEXT,
+  price NUMERIC(10,2), stock INT CHECK (stock >= 0)  -- can't go negative!
 );
-<span class="kw">CREATE TABLE</span> orders (
-  id <span class="typ">SERIAL PRIMARY KEY</span>, user_id <span class="typ">INT</span>,
-  total <span class="typ">NUMERIC</span>(<span class="num">10</span>,<span class="num">2</span>), status <span class="typ">TEXT</span> <span class="kw">DEFAULT</span> <span class="str">'pending'</span>, created_at <span class="typ">TIMESTAMPTZ</span> <span class="kw">DEFAULT NOW</span>()
+CREATE TABLE orders (
+  id SERIAL PRIMARY KEY, user_id INT,
+  total NUMERIC(10,2), status TEXT DEFAULT 'pending', created_at TIMESTAMPTZ DEFAULT NOW()
 );
-<span class="kw">CREATE TABLE</span> order_items (
-  id <span class="typ">SERIAL PRIMARY KEY</span>, order_id <span class="typ">INT</span> <span class="kw">REFERENCES</span> orders(id),
-  product_id <span class="typ">INT</span> <span class="kw">REFERENCES</span> products(id), qty <span class="typ">INT</span>, unit_price <span class="typ">NUMERIC</span>(<span class="num">10</span>,<span class="num">2</span>)
+CREATE TABLE order_items (
+  id SERIAL PRIMARY KEY, order_id INT REFERENCES orders(id),
+  product_id INT REFERENCES products(id), qty INT, unit_price NUMERIC(10,2)
 );
-<span class="kw">CREATE TABLE</span> payments (
-  id <span class="typ">SERIAL PRIMARY KEY</span>, order_id <span class="typ">INT</span> <span class="kw">REFERENCES</span> orders(id),
-  amount <span class="typ">NUMERIC</span>(<span class="num">10</span>,<span class="num">2</span>), method <span class="typ">TEXT</span>, status <span class="typ">TEXT</span> <span class="kw">DEFAULT</span> <span class="str">'success'</span>
-);
+CREATE TABLE payments (
+  id SERIAL PRIMARY KEY, order_id INT REFERENCES orders(id),
+  amount NUMERIC(10,2), method TEXT, status TEXT DEFAULT 'success'
+);</code></pre>
+    </div>
 
-<span class="cm">-- THE TRANSACTION: place order for user 1, product 5, qty 2</span>
-<span class="kw">BEGIN</span>;
+    <h3>The transaction — user 1 buys 2 × product 5</h3>
+    <div class="code-block" data-file="ecommerce_order.sql" data-lang="SQL" data-hl="4,7,11,22,33">
+<pre><code>BEGIN;
 
-  <span class="cm">-- Step 1: Lock the product row to prevent concurrent oversell</span>
-  <span class="kw">SELECT</span> id, price, stock <span class="kw">FROM</span> products <span class="kw">WHERE</span> id = <span class="num">5</span> <span class="kw">FOR UPDATE</span>;
+  -- Step 1: Lock the product row to prevent concurrent oversell
+  SELECT id, price, stock FROM products WHERE id = 5 FOR UPDATE;
 
-  <span class="cm">-- Step 2: Reduce stock (CHECK constraint catches oversell automatically)</span>
-  <span class="kw">UPDATE</span> products <span class="kw">SET</span> stock = stock - <span class="num">2</span> <span class="kw">WHERE</span> id = <span class="num">5</span>;
-  <span class="cm">-- If stock was 1: violates CHECK(stock >= 0) → ERROR → auto ROLLBACK</span>
+  -- Step 2: Reduce stock (the CHECK constraint stops overselling)
+  UPDATE products SET stock = stock - 2 WHERE id = 5;
+  -- If stock was 1: CHECK (stock >= 0) fails → ERROR → the transaction is
+  -- aborted; issue ROLLBACK (nothing is saved)
 
-  <span class="kw">SAVEPOINT</span> stock_reduced;  <span class="cm">-- checkpoint after stock OK</span>
+  SAVEPOINT stock_reduced;  -- checkpoint after stock OK
 
-  <span class="cm">-- Step 3: Create the order</span>
-  <span class="kw">INSERT INTO</span> orders (user_id, total, status)
-  <span class="kw">VALUES</span> (<span class="num">1</span>, (<span class="kw">SELECT</span> price * <span class="num">2</span> <span class="kw">FROM</span> products <span class="kw">WHERE</span> id = <span class="num">5</span>), <span class="str">'pending'</span>)
-  <span class="kw">RETURNING</span> id;  <span class="cm">-- returns order_id (e.g. 101)</span>
+  -- Step 3: Create the order
+  INSERT INTO orders (user_id, total, status)
+  VALUES (1, (SELECT price * 2 FROM products WHERE id = 5), 'pending')
+  RETURNING id;  -- returns the new order id (101 in this example)
 
-  <span class="cm">-- Step 4: Add order item</span>
-  <span class="kw">INSERT INTO</span> order_items (order_id, product_id, qty, unit_price)
-  <span class="kw">VALUES</span> (<span class="num">101</span>, <span class="num">5</span>, <span class="num">2</span>, (<span class="kw">SELECT</span> price <span class="kw">FROM</span> products <span class="kw">WHERE</span> id = <span class="num">5</span>));
+  -- Step 4: Add the order item (101 = id returned above)
+  INSERT INTO order_items (order_id, product_id, qty, unit_price)
+  VALUES (101, 5, 2, (SELECT price FROM products WHERE id = 5));
 
-  <span class="kw">SAVEPOINT</span> order_created;  <span class="cm">-- checkpoint after order</span>
+  SAVEPOINT order_created;  -- checkpoint after order
 
-  <span class="cm">-- Step 5: Create payment record</span>
-  <span class="kw">INSERT INTO</span> payments (order_id, amount, method)
-  <span class="kw">VALUES</span> (<span class="num">101</span>, <span class="num">1000</span>, <span class="str">'Card'</span>);
-  <span class="cm">-- if payment gateway fails → ROLLBACK TO SAVEPOINT order_created</span>
-  <span class="cm">-- then retry with UPI, or ROLLBACK fully</span>
+  -- Step 5: Create the payment record
+  INSERT INTO payments (order_id, amount, method)
+  VALUES (101, 1000, 'Card');
+  -- if the payment gateway fails → ROLLBACK TO SAVEPOINT order_created
+  -- then retry with UPI, or ROLLBACK fully
 
-  <span class="cm">-- Step 6: Mark paid</span>
-  <span class="kw">UPDATE</span> orders <span class="kw">SET</span> status = <span class="str">'paid'</span> <span class="kw">WHERE</span> id = <span class="num">101</span>;
+  -- Step 6: Mark the order paid
+  UPDATE orders SET status = 'paid' WHERE id = 101;
 
-<span class="kw">COMMIT</span>;  <span class="cm">-- all 5 steps saved atomically!</span>
+COMMIT;  -- all steps saved atomically!</code></pre>
+    </div>
 
-
-<span class="cm">-- Same logic as a reusable PL/pgSQL function</span>
-<span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="fn">place_order</span>(
-  p_user_id <span class="typ">INT</span>, p_product_id <span class="typ">INT</span>, p_qty <span class="typ">INT</span>, p_method <span class="typ">TEXT</span>
-) <span class="kw">RETURNS</span> <span class="typ">INT</span> <span class="kw">LANGUAGE</span> plpgsql <span class="kw">AS</span> $$
-<span class="kw">DECLARE</span>
-  v_price <span class="typ">NUMERIC</span>; v_order_id <span class="typ">INT</span>; v_total <span class="typ">NUMERIC</span>;
-<span class="kw">BEGIN</span>
-  <span class="kw">SELECT</span> price <span class="kw">INTO</span> v_price <span class="kw">FROM</span> products <span class="kw">WHERE</span> id = p_product_id <span class="kw">FOR UPDATE</span>;
-  <span class="kw">IF NOT FOUND THEN</span> <span class="kw">RAISE EXCEPTION</span> <span class="str">'Product % not found'</span>, p_product_id; <span class="kw">END IF</span>;
+    <h3>Same logic as a reusable PL/pgSQL function</h3>
+    <div class="code-block" data-file="place_order.sql" data-lang="SQL">
+<pre><code>CREATE OR REPLACE FUNCTION place_order(
+  p_user_id INT, p_product_id INT, p_qty INT, p_method TEXT
+) RETURNS INT LANGUAGE plpgsql AS $$
+DECLARE
+  v_price NUMERIC; v_order_id INT; v_total NUMERIC;
+BEGIN
+  SELECT price INTO v_price FROM products WHERE id = p_product_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Product % not found', p_product_id; END IF;
 
   v_total := v_price * p_qty;
-  <span class="kw">UPDATE</span> products <span class="kw">SET</span> stock = stock - p_qty <span class="kw">WHERE</span> id = p_product_id;
-  <span class="kw">INSERT INTO</span> orders (user_id, total) <span class="kw">VALUES</span> (p_user_id, v_total) <span class="kw">RETURNING</span> id <span class="kw">INTO</span> v_order_id;
-  <span class="kw">INSERT INTO</span> order_items (order_id, product_id, qty, unit_price) <span class="kw">VALUES</span> (v_order_id, p_product_id, p_qty, v_price);
-  <span class="kw">INSERT INTO</span> payments (order_id, amount, method) <span class="kw">VALUES</span> (v_order_id, v_total, p_method);
-  <span class="kw">UPDATE</span> orders <span class="kw">SET</span> status = <span class="str">'paid'</span> <span class="kw">WHERE</span> id = v_order_id;
-  <span class="kw">RETURN</span> v_order_id;
-<span class="kw">EXCEPTION WHEN OTHERS THEN</span>
-  <span class="kw">RAISE</span>;  <span class="cm">-- re-raise triggers ROLLBACK in caller</span>
-<span class="kw">END</span>;
+  UPDATE products SET stock = stock - p_qty WHERE id = p_product_id;
+  INSERT INTO orders (user_id, total) VALUES (p_user_id, v_total) RETURNING id INTO v_order_id;
+  INSERT INTO order_items (order_id, product_id, qty, unit_price) VALUES (v_order_id, p_product_id, p_qty, v_price);
+  INSERT INTO payments (order_id, amount, method) VALUES (v_order_id, v_total, p_method);
+  UPDATE orders SET status = 'paid' WHERE id = v_order_id;
+  RETURN v_order_id;
+END;
 $$;
 
-<span class="cm">-- Call the function atomically</span>
-<span class="kw">BEGIN</span>;
-  <span class="kw">SELECT</span> <span class="fn">place_order</span>(<span class="num">1</span>, <span class="num">5</span>, <span class="num">2</span>, <span class="str">'UPI'</span>);
-<span class="kw">COMMIT</span>;</pre>
+-- A function call is a single statement, so it is already atomic:
+SELECT place_order(1, 5, 2, 'UPI');
+-- Any error inside aborts the whole statement — nothing is half-saved.</code></pre>
     </div>
-    <div class="remember"><span class="box-label">🧠 ACID demonstrated in this example</span>
-      <strong>Atomicity</strong> — all 5 steps commit together or none do.<br>
-      <strong>Consistency</strong> — CHECK(stock &gt;= 0) prevents overselling even under concurrency.<br>
-      <strong>Isolation</strong> — FOR UPDATE locks the product row so two simultaneous orders can't both reduce the same stock.<br>
-      <strong>Durability</strong> — after COMMIT, the order survives a server crash immediately after.
-    </div>
+    <div class="tip">💡 No <code>EXCEPTION WHEN OTHERS THEN RAISE</code> is needed: an unhandled error already aborts the statement, and an unnecessary handler adds subtransaction overhead. Wrap the call in <code>BEGIN … COMMIT</code> only when you combine it with other statements.</div>
+
+    <div class="remember">🧠 <strong>ACID demonstrated in this example</strong><br>
+      <strong>Atomicity</strong> — all six steps commit together or none do.<br>
+      <strong>Consistency</strong> — <code>CHECK (stock &gt;= 0)</code> prevents overselling.<br>
+      <strong>Isolation</strong> — <code>FOR UPDATE</code> locks the product row so two simultaneous orders can't both reduce the same stock.<br>
+      <strong>Durability</strong> — after <code>COMMIT</code>, the order survives a server crash.</div>
   </div>
 </div>
 
 </div>
+
 <script>
-document.querySelectorAll('a[href^="#"]').forEach(a=>{
-  a.addEventListener('click',e=>{
-    e.preventDefault();
-    document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});
+  function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  var KW = 'BEGIN|COMMIT|ROLLBACK|TRANSACTION|ISOLATION|LEVEL|READ|COMMITTED|UNCOMMITTED|REPEATABLE|SERIALIZABLE|SAVEPOINT|RELEASE|TO|SHOW|SET|FOR|UPDATE|SHARE|NOWAIT|SKIP|LOCKED|CREATE|TABLE|PRIMARY|KEY|CHECK|DEFAULT|REFERENCES|INSERT|INTO|VALUES|SELECT|FROM|WHERE|ORDER|BY|LIMIT|RETURNING|IN|IS|NOT|NULL|FUNCTION|REPLACE|OR|RETURNS|LANGUAGE|AS|DECLARE|IF|THEN|END|FOUND|RAISE|EXCEPTION|SET';
+  var TY = 'SERIAL|TEXT|INT|NUMERIC|TIMESTAMPTZ';
+  var TOK = new RegExp('(--[^\\n]*)|(\'(?:[^\'\\n]|\'\')*\')|(\\$\\$)|\\b(' + TY + ')\\b|\\b(' + KW + ')\\b|\\b(\\d+(?:\\.\\d+)?)\\b|\\b([A-Za-z_]\\w*)(?=\\()', 'gi');
+  function hlSQL(text) {
+    var out = '', last = 0, m;
+    TOK.lastIndex = 0;
+    while ((m = TOK.exec(text))) {
+      out += esc(text.slice(last, m.index));
+      var cls = m[1] ? 'cmt' : m[2] ? 'str' : m[3] ? 'kw' : m[4] ? 'typ' : m[5] ? 'kw' : m[6] ? 'num' : 'fn';
+      out += '<span class="' + cls + '">' + esc(m[0]) + '</span>';
+      last = m.index + m[0].length;
+    }
+    return out + esc(text.slice(last));
+  }
+
+  document.querySelectorAll('.code-block').forEach(function (block) {
+    var code = block.querySelector('code');
+    var raw = code.textContent;
+    var lang = block.dataset.lang || 'SQL';
+    var hl = (block.dataset.hl || '').split(',').map(Number);
+    code.innerHTML = hlSQL(raw).split('\n').map(function (line, i) {
+      return '<span class="l' + (hl.indexOf(i + 1) > -1 ? ' hl' : '') + '">' + (line || ' ') + '</span>';
+    }).join('');
+
+    var bar = document.createElement('div');
+    bar.className = 'code-bar';
+    bar.innerHTML = '<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>' +
+      '<span class="filename">' + block.dataset.file + '</span><span class="lang">' + lang + '</span>' +
+      '<button class="copy" type="button">Copy</button>';
+    block.insertBefore(bar, block.firstChild);
+
+    var btn = bar.querySelector('.copy');
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(raw).then(function () {
+        btn.textContent = 'Copied ✓'; btn.classList.add('done');
+        setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1500);
+      });
+    });
   });
-});
+
+  document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var t = document.querySelector(a.getAttribute('href'));
+      if (t) t.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
 </script>
 <nav class="side-nav" aria-label="Section navigation"></nav>
 <script src="floating-side-nav.js"></script>
-</body></html>
+</body>
+</html>
