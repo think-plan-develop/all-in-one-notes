@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PostgreSQL Schema Management &amp; Search Path</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f6f7fb;color:#1a1a1a;font-family:-apple-system,"Segoe UI",Arial,sans-serif}
+.container{width:92%;max-width:1200px;margin:28px auto 44px}
+.header{background:linear-gradient(120deg,#1e3a8a,#3b82f6);color:#fff;border-radius:14px;padding:25px 24px;margin-bottom:16px;box-shadow:0 8px 20px rgba(37,99,235,.25)}
+.header h1{font-size:30px;margin-bottom:5px}.header p{font-size:15px;line-height:1.5;margin-bottom:14px;color:#eff6ff}
+.toc{display:flex;flex-wrap:wrap;gap:6px}.toc a{color:#fff;text-decoration:none;padding:5px 11px;border-radius:16px;background:rgba(255,255,255,.18);font-size:12px;font-weight:700;border:1px solid rgba(255,255,255,.28)}
+.info-box{border-radius:9px;padding:10px 14px;margin:9px 0;font-size:14px;line-height:1.55;font-weight:600}
+.important{background:linear-gradient(135deg,#fffbeb,#fef3c7);color:#92400e;border-left:4px solid #d97706}.tip{background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1e40af}.note{background:linear-gradient(135deg,#e0f2fe,#bae6fd);color:#075985}
+.divider{margin:24px 0 10px;position:relative}.divider:before{content:"";position:absolute;top:50%;left:0;right:0;height:2px;background:#2563eb;opacity:.25}.divider span{background:#f6f7fb;padding-right:12px;position:relative;font-size:21px;font-weight:800;color:#1e3a8a}
+.section{border-radius:11px;margin-bottom:11px;overflow:hidden;background:#fff;box-shadow:0 4px 12px rgba(37,99,235,.12);--c:#2563eb;--c2:#60a5fa;border-left:4px solid var(--c)}
+.section.s2{--c:#0369a1;--c2:#38bdf8}.section.s3{--c:#1d4ed8;--c2:#3b82f6}.section.s4{--c:#1e3a8a;--c2:#3b82f6}
+.section-title{padding:10px 14px;background:linear-gradient(120deg,var(--c),var(--c2));color:#fff;font-size:17px;font-weight:800}
+.section-content{padding:12px 15px}.section-content p{font-size:14px;line-height:1.55;margin-bottom:7px;color:#333}.section-content p:last-child{margin-bottom:0}
+.section-content h3{font-size:15px;color:var(--c);margin:12px 0 5px}.section-content h3:first-child{margin-top:0}
+.section-content ul,.section-content ol{margin:5px 0 8px 19px}.section-content li{font-size:14px;line-height:1.55;margin-bottom:3px;color:#333}
+.section-content li::marker{color:var(--c)}
+code{background:#dbeafe;color:#1e3a8a;padding:2px 5px;border-radius:4px;font:12px Consolas,monospace}
+.code-block{background:#1a1a1a;border-radius:12px;overflow:hidden;margin:12px 0;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+.code-bar{background:#111;padding:8px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #2b2b2b}
+.code-bar .dot{width:9px;height:9px;border-radius:50%}
+.dot-red{background:#ff5f57}.dot-grey{background:#febc2e}.dot-green{background:#28c840}
+.code-bar .filename{color:#999;font-size:12px;margin-left:8px;font-family:'Fira Code',monospace}
+.code-block pre{padding:16px 18px;overflow-x:auto;margin:0}
+.code-block code{background:none;color:#d4d4d4;font-size:13px;font-family:'Fira Code','Consolas',monospace;line-height:1.65;white-space:pre;padding:0}
+.kw{color:#c792ea;font-weight:600}.str{color:#c3e88d}.fn{color:#82aaff}.cmt{color:#7a7a7a;font-style:italic}.num{color:#f78c6c}
+.copybtn{margin-left:auto;border:none;background:rgba(255,255,255,.1);color:#cbd5e1;font-family:'Segoe UI',system-ui,sans-serif;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:8px;cursor:pointer}
+.copybtn:hover{background:rgba(255,255,255,.22);color:#fff}.copybtn.done{background:#16a34a;color:#fff}
+.task{background:linear-gradient(135deg,#eff6ff,#dbeafe);border-left:4px solid #2563eb;border-radius:8px;padding:10px 13px;margin:7px 0;color:#1e3a8a;font-size:14px;line-height:1.55}
+.table-wrap{overflow-x:auto;margin:8px 0}
+table{width:100%;border-collapse:separate;border-spacing:0 8px;min-width:560px}
+th{background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899);color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;padding:12px 16px;text-align:left}
+th:first-child{border-radius:12px 0 0 12px}th:last-child{border-radius:0 12px 12px 0}
+td{padding:12px 16px;font-size:14px;font-weight:600;color:#334155;vertical-align:top;background:var(--rb,#eff6ff);line-height:1.6}
+td:first-child{border-radius:12px 0 0 12px;border-left:6px solid var(--rc,#2563eb);font-weight:800;color:var(--rd,#1e3a8a)}
+td:last-child{border-radius:0 12px 12px 0}
+td code{background:#fff;border:1px solid var(--rc,#2563eb);color:var(--rd,#1e3a8a);font-weight:700}
+tr:nth-child(6n+2){--rc:#db2777;--rb:#fdf2f8;--rd:#9d174d}
+tr:nth-child(6n+3){--rc:#d97706;--rb:#fffbeb;--rd:#92400e}
+tr:nth-child(6n+4){--rc:#059669;--rb:#ecfdf5;--rd:#065f46}
+tr:nth-child(6n+5){--rc:#7c3aed;--rb:#f5f3ff;--rd:#5b21b6}
+tr:nth-child(6n+6){--rc:#0d9488;--rb:#f0fdfa;--rd:#115e59}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:8px 0}
+.card{border-radius:10px;padding:10px 12px;color:#fff;font-size:13px;line-height:1.45}.card b{display:block;font-size:14px;margin-bottom:3px}
+.card:nth-child(1){background:linear-gradient(135deg,#1e3a8a,#2563eb)}.card:nth-child(2){background:linear-gradient(135deg,#0369a1,#38bdf8)}.card:nth-child(3){background:linear-gradient(135deg,#1d4ed8,#60a5fa)}.card:nth-child(4){background:linear-gradient(135deg,#1e40af,#3b82f6)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:6px 0 8px}.chips span{background:#dbeafe;color:#1e3a8a;font-weight:700;font-size:13px;padding:5px 12px;border-radius:16px;border:1px solid #bfdbfe}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin:8px 0}
+.cmp>div{border-radius:10px;padding:10px 14px;font-size:14px;line-height:1.55;color:#1e293b}
+.cmp .l{background:linear-gradient(180deg,#e0f2fe,#fff 60%);border-top:5px solid #0369a1}.cmp .r{background:linear-gradient(180deg,#dbeafe,#fff 60%);border-top:5px solid #1e3a8a}
+.cmp h4{font-size:15px;margin-bottom:4px;color:#1e3a8a}
+.steps{counter-reset:s;list-style:none;margin:6px 0 0!important}
+.steps li{counter-increment:s;position:relative;padding:8px 12px 8px 46px;margin-bottom:7px;background:#eff6ff;border-radius:9px;font-size:14px}
+.steps li:before{content:counter(s);position:absolute;left:10px;top:8px;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.steps li b{color:#1e3a8a;display:block}
+.qa{background:#fff;border-radius:11px;box-shadow:0 4px 12px rgba(37,99,235,.1);margin-bottom:10px;overflow:hidden;border-left:4px solid #2563eb}
+.qa .q{padding:9px 14px;font-weight:800;font-size:14.5px;color:#1e3a8a;background:linear-gradient(120deg,#eff6ff,#fff)}
+.qa .a{padding:8px 14px 10px;font-size:14px;line-height:1.55;color:#333}.qa .a p{margin-bottom:5px}.qa ul{margin:4px 0 2px 19px}
+.qa:nth-of-type(even){border-left-color:#0369a1}.qa:nth-of-type(3n){border-left-color:#1e3a8a}
+.mem{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:8px 0}
+.mem div{background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:#fff;border-radius:10px;padding:10px 13px;font-size:14px}.mem b{font-size:15px;display:block;margin-bottom:2px}
+.mem div:nth-child(2){background:linear-gradient(135deg,#0369a1,#38bdf8)}.mem div:nth-child(3){background:linear-gradient(135deg,#1d4ed8,#60a5fa)}
+@media(max-width:768px){.container{width:96%;margin-top:16px}.header h1{font-size:24px}.section-content{padding:10px 12px}.cards,.cmp,.mem{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="header">
+    <h1>🗂️ PostgreSQL Schema Management &amp; Search Path</h1>
+    <p>Organize database objects into schemas, reset your practice environment, and control where PostgreSQL looks for tables.</p>
+    <nav class="toc"><a href="#schema">Schema</a><a href="#drop">DROP SCHEMA</a><a href="#create">CREATE SCHEMA</a><a href="#path">search_path</a><a href="#script">Setup Script</a><a href="#remember">Remember</a><a href="#interview">Interview Q&amp;A</a><a href="#revision">Quick Revision</a></nav>
+  </header>
+
+  <div class="divider" id="schema"><span>1. What is a Schema?</span></div>
+  <section class="section">
+    <div class="section-title">Schema = a folder inside a database</div>
+    <div class="section-content">
+      <p>A schema is a logical container inside a database that organizes database objects. It can contain:</p>
+      <div class="chips"><span>Tables</span><span>Views</span><span>Indexes</span><span>Functions</span><span>Sequences</span><span>Triggers</span></div>
+      <h3>Database structure</h3>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">structure</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>my_database
+│
+├── public (Default Schema)
+│   ├── users
+│   ├── products
+│   └── orders
+│
+└── sql_practice (Custom Schema)
+    ├── users
+    ├── employees
+    └── orders</code></pre></div>
+      <h3>Why do we use schemas?</h3>
+      <div class="cards">
+        <div class="card"><b>1. Organization</b>Keep related tables together.</div>
+        <div class="card"><b>2. Isolation</b>Separate practice tables from production or other project tables.</div>
+        <div class="card"><b>3. No naming conflicts</b>Multiple schemas can contain tables with the same name.</div>
+        <div class="card"><b>4. Security</b>Permissions can be managed at the schema level.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section s2">
+    <div class="section-title">Same table name in different schemas</div>
+    <div class="section-content">
+      <p>PostgreSQL allows the same table name in different schemas.</p>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">same-name.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">SELECT</span> * <span class="kw">FROM</span> public.users;
+
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> sql_practice.users;</code></pre></div>
+      <p>Although both tables are named <code>users</code>, they are different tables because their schema names are different. The complete table name is called a <strong>fully qualified table name</strong>:</p>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">fully-qualified.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>schema_name.table_name</code></pre></div>
+    </div>
+  </section>
+
+  <div class="divider" id="drop"><span>2. DROP SCHEMA IF EXISTS</span></div>
+  <section class="section s3">
+    <div class="section-title">Purpose: delete an existing schema</div>
+    <div class="section-content">
+      <h3>Syntax</h3>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">syntax.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">DROP SCHEMA</span> [<span class="kw">IF EXISTS</span>] schema_name [<span class="kw">CASCADE</span> | <span class="kw">RESTRICT</span>];</code></pre></div>
+      <h3>Example</h3>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">drop-schema.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">DROP SCHEMA IF EXISTS</span> sql_practice <span class="kw">CASCADE</span>;</code></pre></div>
+      <h3>Explanation</h3>
+      <div class="table-wrap"><table>
+        <tr><th>Keyword</th><th>Description</th></tr>
+        <tr><td><code>DROP SCHEMA</code></td><td>Deletes a schema.</td></tr>
+        <tr><td><code>IF EXISTS</code></td><td>Prevents an error if the schema does not exist.</td></tr>
+        <tr><td><code>sql_practice</code></td><td>Name of the schema to delete.</td></tr>
+        <tr><td><code>CASCADE</code></td><td>Also deletes objects inside the schema and handles dependent objects.</td></tr>
+      </table></div>
+    </div>
+  </section>
+
+  <section class="section s4">
+    <div class="section-title">What does CASCADE mean?</div>
+    <div class="section-content">
+      <p>Suppose your schema contains:</p>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">structure</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>sql_practice
+│
+├── employees
+├── customers
+├── orders
+└── products</code></pre></div>
+      <p>When you execute:</p>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">cascade.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">DROP SCHEMA</span> sql_practice <span class="kw">CASCADE</span>;</code></pre></div>
+      <p>PostgreSQL deletes:</p>
+      <ul>
+        <li>The <code>sql_practice</code> schema.</li>
+        <li>All tables inside it.</li>
+        <li>Other objects inside it, such as views and functions.</li>
+        <li>Dependent objects outside the schema where necessary.</li>
+      </ul>
+      <div class="info-box important"><strong>⚠️ Important:</strong> <code>CASCADE</code> can permanently delete data and dependent objects. Use it carefully.</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">What is RESTRICT?</div>
+    <div class="section-content">
+      <p><code>RESTRICT</code> prevents deletion if the schema contains objects.</p>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">restrict.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">DROP SCHEMA IF EXISTS</span> sql_practice <span class="kw">RESTRICT</span>;</code></pre></div>
+      <div class="info-box tip">It is the default behavior when neither <code>CASCADE</code> nor <code>RESTRICT</code> is specified.</div>
+      <h3>Difference</h3>
+      <div class="cmp">
+        <div class="l"><h4>CASCADE</h4>Deletes dependent objects too.<br><em>Useful for resetting practice environments.</em></div>
+        <div class="r"><h4>RESTRICT</h4>Prevents deletion if the schema contains objects.<br><em>Useful for safer deletion.</em></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider" id="create"><span>3. CREATE SCHEMA</span></div>
+  <section class="section s2">
+    <div class="section-title">Purpose: create a new schema in the current database</div>
+    <div class="section-content">
+      <h3>Syntax</h3>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">syntax.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">CREATE SCHEMA</span> schema_name;</code></pre></div>
+      <h3>Example</h3>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">create-schema.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">CREATE SCHEMA</span> sql_practice;</code></pre></div>
+      <p>This creates a schema named <code>sql_practice</code>. Your database structure now looks like:</p>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">structure</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>my_database
+│
+├── public
+│
+└── sql_practice</code></pre></div>
+      <p>You can now create tables inside this schema.</p>
+    </div>
+  </section>
+
+  <section class="section s3">
+    <div class="section-title">Create a table inside a schema</div>
+    <div class="section-content">
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">create-table-in-schema.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">CREATE TABLE</span> sql_practice.employees (
+    employee_id <span class="kw">SERIAL PRIMARY KEY</span>,
+    employee_name <span class="kw">VARCHAR</span>(<span class="num">100</span>),
+    salary <span class="kw">NUMERIC</span>(<span class="num">10</span>, <span class="num">2</span>)
+);</code></pre></div>
+      <p>Notice <code>sql_practice.employees</code>. Here:</p>
+      <ul>
+        <li><code>sql_practice</code> = Schema name</li>
+        <li><code>employees</code> = Table name</li>
+      </ul>
+      <div class="info-box note">You can also create tables without specifying the schema if you configure the search path.</div>
+    </div>
+  </section>
+
+  <div class="divider" id="path"><span>4. SET search_path</span></div>
+  <section class="section s4">
+    <div class="section-title">Purpose: choose which schemas PostgreSQL searches by default</div>
+    <div class="section-content">
+      <h3>Syntax</h3>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">syntax.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">SET</span> search_path <span class="kw">TO</span> schema_name;</code></pre></div>
+      <h3>Example</h3>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">set-search-path.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">SET</span> search_path <span class="kw">TO</span> sql_practice;</code></pre></div>
+      <p>Now PostgreSQL searches the <code>sql_practice</code> schema first when you refer to a table without specifying its schema.</p>
+      <div class="cmp">
+        <div class="l"><h4>Without SET search_path</h4>You must specify the schema name explicitly.
+          <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">SELECT</span> * <span class="kw">FROM</span> sql_practice.employees;</code></pre></div></div>
+        <div class="r"><h4>With SET search_path</h4>You can directly use the table name.
+          <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">SELECT</span> * <span class="kw">FROM</span> employees;</code></pre></div></div>
+      </div>
+      <p>PostgreSQL looks for <code>employees</code> in the schemas listed in your search path.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">Multiple schemas in search_path</div>
+    <div class="section-content">
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">multiple-schemas.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">SET</span> search_path <span class="kw">TO</span> sql_practice, public;</code></pre></div>
+      <p>PostgreSQL searches in this order:</p>
+      <ol class="steps">
+        <li><b>sql_practice</b>Searched first.</li>
+        <li><b>public</b>Searched second.</li>
+      </ol>
+      <p style="margin-top:8px">If both schemas contain a table named <code>users</code>, PostgreSQL uses <code>sql_practice.users</code> when you write:</p>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">lookup.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">SELECT</span> * <span class="kw">FROM</span> users;</code></pre></div>
+      <p>You can still explicitly access the other table:</p>
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">explicit.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="kw">SELECT</span> * <span class="kw">FROM</span> public.users;</code></pre></div>
+    </div>
+  </section>
+
+  <div class="divider" id="script"><span>5. Complete Practice Setup Script</span></div>
+  <section class="section s3">
+    <div class="section-title">A common script for starting a new SQL practice session</div>
+    <div class="section-content">
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">practice-setup.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="cmt">-- Step 1: Delete the existing practice schema</span>
+<span class="kw">DROP SCHEMA IF EXISTS</span> sql_practice <span class="kw">CASCADE</span>;
+
+<span class="cmt">-- Step 2: Create a fresh practice schema</span>
+<span class="kw">CREATE SCHEMA</span> sql_practice;
+
+<span class="cmt">-- Step 3: Set the default schema</span>
+<span class="kw">SET</span> search_path <span class="kw">TO</span> sql_practice;
+
+<span class="cmt">-- Step 4: Create a table</span>
+<span class="kw">CREATE TABLE</span> employees (
+    employee_id <span class="kw">SERIAL PRIMARY KEY</span>,
+    employee_name <span class="kw">VARCHAR</span>(<span class="num">100</span>),
+    salary <span class="kw">NUMERIC</span>(<span class="num">10</span>, <span class="num">2</span>)
+);
+
+<span class="cmt">-- Step 5: Insert sample data</span>
+<span class="kw">INSERT INTO</span> employees (employee_name, salary)
+<span class="kw">VALUES</span>
+    (<span class="str">'John'</span>, <span class="num">50000</span>),
+    (<span class="str">'David'</span>, <span class="num">60000</span>);
+
+<span class="cmt">-- Step 6: Retrieve records</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> employees;</code></pre></div>
+      <h3>What happens when you execute this script?</h3>
+      <ol class="steps">
+        <li><b>DROP SCHEMA</b>Removes the previous practice schema and its objects.</li>
+        <li><b>CREATE SCHEMA</b>Creates a fresh <code>sql_practice</code> schema.</li>
+        <li><b>SET search_path</b>Makes <code>sql_practice</code> the default schema for the current session.</li>
+        <li><b>CREATE TABLE</b>Creates the <code>employees</code> table inside <code>sql_practice</code>.</li>
+        <li><b>INSERT</b>Adds sample employee records.</li>
+        <li><b>SELECT</b>Retrieves records from the employees table.</li>
+      </ol>
+    </div>
+  </section>
+
+  <div class="divider" id="remember"><span>6. Important Things to Remember</span></div>
+  <section class="section s4">
+    <div class="section-content">
+      <div class="table-wrap"><table>
+        <tr><th>Concept</th><th>Purpose</th><th>Example</th></tr>
+        <tr><td><code>SCHEMA</code></td><td>Organizes database objects</td><td><code>sql_practice</code></td></tr>
+        <tr><td><code>CREATE SCHEMA</code></td><td>Creates a schema</td><td><code>CREATE SCHEMA sql_practice;</code></td></tr>
+        <tr><td><code>DROP SCHEMA</code></td><td>Deletes a schema</td><td><code>DROP SCHEMA sql_practice;</code></td></tr>
+        <tr><td><code>IF EXISTS</code></td><td>Avoids an error if the schema is missing</td><td><code>DROP SCHEMA IF EXISTS ...</code></td></tr>
+        <tr><td><code>CASCADE</code></td><td>Deletes dependent objects too</td><td><code>DROP SCHEMA ... CASCADE;</code></td></tr>
+        <tr><td><code>RESTRICT</code></td><td>Prevents deletion when objects exist</td><td><code>DROP SCHEMA ... RESTRICT;</code></td></tr>
+        <tr><td><code>SET search_path</code></td><td>Sets default schema lookup order</td><td><code>SET search_path TO sql_practice;</code></td></tr>
+        <tr><td>Fully qualified name</td><td>Accesses an object using its schema</td><td><code>sql_practice.employees</code></td></tr>
+      </table></div>
+    </div>
+  </section>
+
+  <div class="divider" id="interview"><span>7. Common Interview Questions</span></div>
+  <div class="qa"><div class="q">Q1. What is the difference between a database and a schema?</div><div class="a"><ul><li><strong>Database:</strong> The main container that holds data and schemas.</li><li><strong>Schema:</strong> A logical container inside a database that organizes tables and other objects.</li></ul></div></div>
+  <div class="qa"><div class="q">Q2. Can two schemas have tables with the same name?</div><div class="a"><p>Yes.</p><div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code>public.users
+sql_practice.users</code></pre></div></div></div>
+  <div class="qa"><div class="q">Q3. What happens if you don't set the search_path?</div><div class="a"><p>PostgreSQL uses its default search path, commonly <code>"$user", public</code>, subject to configuration.</p></div></div>
+  <div class="qa"><div class="q">Q4. Does SET search_path create a schema?</div><div class="a"><p>No. It only changes the schema lookup order for the current session.</p></div></div>
+  <div class="qa"><div class="q">Q5. What is the difference between CASCADE and RESTRICT?</div><div class="a"><ul><li><strong>CASCADE:</strong> Deletes dependent objects.</li><li><strong>RESTRICT:</strong> Prevents deletion when the schema contains objects.</li></ul></div></div>
+  <div class="qa"><div class="q">Q6. Does SET search_path permanently change the database?</div><div class="a"><p>No. Regular <code>SET</code> applies to the current session. It does not permanently change the database configuration.</p></div></div>
+
+  <div class="divider" id="revision"><span>8. Quick Revision</span></div>
+  <section class="section">
+    <div class="section-title">Remember these three commands</div>
+    <div class="section-content">
+      <div class="code-block"><div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">three-commands.sql</span><button class="copybtn" type="button">📋 Copy</button></div><pre><code><span class="cmt">-- Delete an existing practice schema</span>
+<span class="kw">DROP SCHEMA IF EXISTS</span> sql_practice <span class="kw">CASCADE</span>;
+
+<span class="cmt">-- Create a new practice schema</span>
+<span class="kw">CREATE SCHEMA</span> sql_practice;
+
+<span class="cmt">-- Set it as the default schema</span>
+<span class="kw">SET</span> search_path <span class="kw">TO</span> sql_practice;</code></pre></div>
+      <h3>Easy way to remember</h3>
+      <div class="mem">
+        <div><b>DROP</b>= Delete</div>
+        <div><b>CREATE</b>= Create</div>
+        <div><b>SET search_path</b>= Choose where PostgreSQL should look by default</div>
+      </div>
+      <div class="info-box tip"><strong>💡 My recommendation:</strong> Keep this setup script at the beginning of your PostgreSQL practice SQL file. Whenever you want a fresh practice environment, execute it again. Just remember that <code>CASCADE</code> deletes all the existing practice data in that schema.</div>
+    </div>
+  </section>
+</div>
+<script>
+document.querySelectorAll('.copybtn').forEach(function(b){
+  b.addEventListener('click',function(){
+    var txt=b.closest('.code-block').querySelector('pre').innerText;
+    function done(){b.textContent='✓ Copied';b.classList.add('done');setTimeout(function(){b.textContent='📋 Copy';b.classList.remove('done')},1400)}
+    if(navigator.clipboard)navigator.clipboard.writeText(txt).then(done,done);else done();
+  });
+});
+</script>
+</body>
+</html>
