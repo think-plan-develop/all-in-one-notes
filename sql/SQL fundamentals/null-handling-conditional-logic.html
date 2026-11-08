@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL — NULL Handling & Conditional Logic</title>
+</head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
+
+  /* HEADER */
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 20px; padding: 46px 40px; margin-bottom: 44px; box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3); position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:14px; position:relative; }
+  .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 700px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a { text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700; transition: all 0.2s ease; cursor: pointer; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* topic dropdown */
+  .topic-dropdown { position: relative; margin-bottom: 18px; display: inline-block; }
+  .topic-dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.16); color: #fff; font-size: 13.5px; font-weight: 800; padding: 9px 18px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.32); transition: background 0.2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display: none; }
+  .topic-dropdown summary:hover { background: rgba(255,255,255,0.26); }
+  .topic-dropdown[open] summary::after { transform: rotate(180deg); }
+  .topic-dropdown summary::after { content: '▾'; margin-left: 2px; transition: transform 0.2s ease; font-size: 11px; }
+  .topic-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; background: #fff; border-radius: 12px; padding: 8px; min-width: 240px; box-shadow: 0 14px 30px rgba(0,0,0,0.22); display: flex; flex-direction: column; gap: 3px; }
+  .topic-menu a { text-decoration: none; color: #1a1a1a; font-size: 14px; font-weight: 700; padding: 9px 14px; border-radius: 8px; display: flex; align-items: center; gap: 9px; transition: background 0.15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background: var(--content-bg); color: var(--accent); }
+  .topic-menu .group-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.6px; color: #94a3b8; padding: 8px 14px 2px; text-transform: uppercase; }
+
+  /* SUMMARY GRID */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-2px); }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; } .summary-blue .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; } .summary-pink .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; } .summary-amber .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; } .summary-green .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; } .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; } .summary-teal .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* CARDS */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+  .card-content p code, .card-content li code, td code, .short-answer code, .tip code, .note code, .warning code, .remember code { font-family: 'Fira Code','Consolas',monospace; font-size: 0.88em; background: rgba(var(--shadow-rgb),0.1); color: var(--heading); padding: 2px 7px; border-radius: 5px; }
+  .card-content ul { margin: 6px 0 14px 22px; }
+  .card-content li { font-size: 15.5px; line-height: 1.85; color: #334155; font-weight: 500; }
+
+  .short-answer { position: relative; background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%); border: 1px solid rgba(var(--shadow-rgb), 0.16); border-left: 4px solid var(--accent); border-radius: 14px; padding: 20px 24px 22px; margin-bottom: 24px; font-size: 17px; line-height: 1.75; font-weight: 500; color: #293244; box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1); }
+  .short-answer::before { content: "QUICK TAKE"; display: block; width: fit-content; font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff; background: linear-gradient(120deg, var(--accent), var(--accent-light)); padding: 5px 13px; border-radius: 20px; margin-bottom: 13px; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35); }
+  .short-answer strong { color: var(--heading); }
+
+  /* CODE */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; } .dot-grey { background: #febc2e; } .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code','Consolas',monospace; line-height: 1.65; white-space: pre; }
+  .kw { color: #c792ea; font-weight: 600; } .str { color: #c3e88d; } .fn { color: #82aaff; } .type { color: #f07178; } .cmt { color: #7a7a7a; font-style: italic; } .num { color: #f78c6c; }
+
+  /* CALLOUTS */
+  .tip, .note, .warning, .remember { border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+  .tip { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; background: #fff; }
+  table tr:nth-child(even) td { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+
+  @media (max-width: 768px) { .header h1 { font-size: 26px; } .toc a { padding: 6px 12px; font-size: 12px; } .card-content { padding: 20px; } }
+
+  /* ═══════════ COLORFUL TABLES (shared) ═══════════ */
+  table { border-collapse: separate !important; border-spacing: 0 8px !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
+  table th { background: linear-gradient(120deg,#2563eb,#7c3aed,#ec4899) !important; color: #fff !important; font-size: 13px !important; font-weight: 800 !important; letter-spacing: .7px; text-transform: uppercase; padding: 13px 18px !important; border: none !important; }
+  table th:first-child { border-radius: 12px 0 0 12px; }
+  table th:last-child { border-radius: 0 12px 12px 0; }
+  table td { border: none !important; padding: 13px 18px !important; font-weight: 600 !important; color: #334155 !important; vertical-align: middle !important; }
+  table td:first-child { border-radius: 12px 0 0 12px; border-left: 6px solid var(--rc) !important; font-weight: 800 !important; color: var(--rd) !important; }
+  table td:last-child { border-radius: 0 12px 12px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background: var(--rb) !important; box-shadow: 0 3px 8px rgba(0,0,0,.05); transition: transform .15s ease; }
+  table tr:not(:first-child):hover td { filter: brightness(.97); }
+  table td code { background: #fff !important; color: var(--rd) !important; border: 1px solid var(--rc); padding: 2px 8px !important; border-radius: 6px !important; font-weight: 700; }
+
+  .card-content.compact { padding: 16px 20px; }
+  .card-content.compact p { font-size: 14.5px; line-height: 1.7; margin-bottom: 10px; }
+  .card-content.compact li { font-size: 14px; line-height: 1.7; }
+  .card-content.compact h4 { font-size: 15px; margin: 14px 0 6px; }
+  .card-content.compact .code-block { margin: 8px 0; }
+  .card-content.compact .code-block pre { padding: 11px 14px; }
+  .card-content.compact .code-block code { font-size: 12.5px; line-height: 1.55; }
+  .card-content.compact table th, .card-content.compact table td { padding: 8px 12px !important; font-size: 13px !important; }
+  .card-content.compact .tip, .card-content.compact .note, .card-content.compact .warning, .card-content.compact .remember { padding: 10px 14px; font-size: 13.5px; margin: 8px 0; line-height: 1.6; }
+  .header { padding: 34px 36px; margin-bottom: 30px; }
+  .header h1 { font-size: 28px; }
+  .header p { font-size: 15px; margin-bottom: 18px; }
+  .section-divider { margin: 34px 0 16px; }
+  .section-divider span { font-size: 19px; }
+  .card { margin-bottom: 16px; }
+</style>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <span class="tag">SQL · POSTGRESQL · NULL HANDLING</span>
+      <h1>❓ SQL — NULL, COALESCE &amp; CASE WHEN</h1>
+      <p>How to handle missing values (<code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px">NULL</code>) and write conditions inside SQL queries in PostgreSQL.</p>
+
+      <details class="topic-dropdown">
+        <summary>📁 MERN / JS Topics</summary>
+        <div class="topic-menu">
+          <span class="group-label">Node / Express</span>
+          <a href="interview-error-handling.html">🧯 Error Handling (Plain JS)</a>
+          <a href="interview-zod-validation.html">✅ Zod Validation (Plain JS)</a>
+          <a href="interview-crud-api.html">🔧 Express + Mongoose CRUD API</a>
+          <span class="group-label">Practice Sets</span>
+          <a href="interview-array-patterns-25.html">🧩 25 Array/String Pattern Questions</a>
+          <a href="interview-array-patterns-25.html">🧩 25 Array/String Pattern Questions</a>
+          <a href="interview-js-dsa-80.html">🧠 80 JS + DSA Coding Questions</a>
+          <a href="interview-mern-practice-70.html">🏋️ 78 MERN Practice Questions</a>
+          <span class="group-label">CSS</span>
+          <a href="interview-css-positioning.html">📐 Positioning &amp; Responsive Cheat Sheet</a>
+          <span class="group-label">Next.js</span>
+          <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+          <a href="interview-nextjs-data.html">📡 Data, Caching &amp; UI States</a>
+          <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+          <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+          <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+          <a href="interview-nextjs-qa.html">Next.js Interview Q&amp;A</a>
+          <span class="group-label">React / JavaScript</span>
+          <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+          <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+          <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+          <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+          <a href="interview-routing.html">🧭 React Router Interview</a>
+          <span class="group-label">MongoDB</span>
+          <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+          <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+                    <span class="group-label">SQL</span>
+          <a href="interview-sql-cte.html">🔗 SQL CTEs — Compact Notes</a>
+          <a class="current" href="interview-sql-null-case.html">❓ NULL, COALESCE &amp; CASE WHEN</a>
+          <a href="interview-sql-distinct.html">🔎 SQL DISTINCT</a>
+          <span class="group-label">SQL</span>
+          <a href="interview-sql-cte.html">🔗 SQL CTEs — Compact Notes</a>
+          <a href="interview-sql-null-case.html">❓ NULL, COALESCE &amp; CASE WHEN</a>
+          <a href="interview-sql-distinct.html">🔎 SQL DISTINCT</a>
+          <span class="group-label">PostgreSQL</span>
+          <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+          <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+        
+        </div>
+      </details>
+
+      <div class="toc"><a onclick="document.getElementById('null').scrollIntoView({behavior:'smooth'});return false;">NULL / IS NULL / IS NOT NULL</a><a onclick="document.getElementById('coalesce').scrollIntoView({behavior:'smooth'});return false;">COALESCE</a><a onclick="document.getElementById('case').scrollIntoView({behavior:'smooth'});return false;">CASE WHEN</a><a onclick="document.getElementById('nullif').scrollIntoView({behavior:'smooth'});return false;">NULLIF</a><a onclick="document.getElementById('practice').scrollIntoView({behavior:'smooth'});return false;">Practice</a></div>
+    </div>
+
+<div class="card"><div class="card-content compact">
+        <p>This topic explains how to handle missing values (<code>NULL</code>) and how to write conditions inside SQL queries. Four concepts to learn: <code>NULL</code> / <code>IS NULL</code> / <code>IS NOT NULL</code>, <code>COALESCE()</code>, <code>CASE WHEN</code>, and <code>NULLIF()</code>.</p>
+</div></div>
+
+    <div class="section-divider" id="null"><span>1. NULL, IS NULL &amp; IS NOT NULL</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <h3 style="font-size:16px;margin:20px 0 8px;padding-left:10px;border-left:4px solid var(--accent);color:var(--heading)">a. Understanding NULL</h3>
+        <p><code>NULL</code> represents a missing, unknown, or unavailable value in a database. It is different from:</p>
+        <div class="table-scroll"><table><tr><th>Value</th><th>Meaning</th></tr><tr><td><code>NULL</code></td><td>Missing or unknown value</td></tr><tr><td><code>0</code></td><td>Actual numeric zero</td></tr><tr><td><code>''</code></td><td>Empty string</td></tr><tr><td><code>'NULL'</code></td><td>Text containing the word NULL</td></tr></table></div>
+        <h4>Example</h4>
+        <p>Suppose the <code>employees</code> table contains:</p>
+        <div class="table-scroll"><table><tr><th>employee_id</th><th>employee_name</th><th>manager_id</th></tr><tr><td>1</td><td>Rahul</td><td>NULL</td></tr><tr><td>2</td><td>Amit</td><td>1</td></tr><tr><td>3</td><td>Priya</td><td>1</td></tr><tr><td>4</td><td>Neha</td><td>NULL</td></tr></table></div>
+        <p>Here, <code>NULL</code> in <code>manager_id</code> means the employee has no recorded manager.</p>
+        <h4>Important: NULL comparison</h4>
+        <p>You cannot check NULL using normal comparison operators.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">wrong.sql</span></div>
+          <pre><code><span class="cmt">-- Incorrect</span>
+<span class="kw">SELECT</span> *
+<span class="kw">FROM</span> employees
+<span class="kw">WHERE</span> manager_id = <span class="kw">NULL</span>;</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">right.sql</span></div>
+          <pre><code><span class="cmt">-- Correct</span>
+<span class="kw">SELECT</span> *
+<span class="kw">FROM</span> employees
+<span class="kw">WHERE</span> manager_id <span class="kw">IS</span> <span class="kw">NULL</span>;</code></pre>
+        </div>
+        <p>To find employees whose manager is available:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">is-not-null.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> *
+<span class="kw">FROM</span> employees
+<span class="kw">WHERE</span> manager_id <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span>;</code></pre>
+        </div>
+        <h4>Why not use <code>= NULL</code>?</h4>
+        <p>SQL uses three-valued logic: <strong>TRUE</strong>, <strong>FALSE</strong>, and <strong>UNKNOWN</strong>. When you compare a value with <code>NULL</code>, the result is generally UNKNOWN, not TRUE or FALSE.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">null-equals-null.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> <span class="kw">NULL</span> = <span class="kw">NULL</span>;</code></pre>
+        </div>
+        <p>Result: <code>NULL</code> (unknown). Therefore, use <code>IS NULL</code> and <code>IS NOT NULL</code>.</p>
+        <h3 style="font-size:16px;margin:20px 0 8px;padding-left:10px;border-left:4px solid var(--accent);color:var(--heading)">b. IS NULL</h3>
+        <p><code>IS NULL</code> checks whether a column contains a missing value.</p>
+        <h4>Example 1: Find employees without a manager</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> *
+<span class="kw">FROM</span> employees
+<span class="kw">WHERE</span> manager_id <span class="kw">IS</span> <span class="kw">NULL</span>;</code></pre>
+        </div>
+        <h4>Example 2: Find customers without an email address</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> *
+<span class="kw">FROM</span> customers
+<span class="kw">WHERE</span> email <span class="kw">IS</span> <span class="kw">NULL</span>;</code></pre>
+        </div>
+        <h4>Example 3: Find orders without a sales representative</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> *
+<span class="kw">FROM</span> orders
+<span class="kw">WHERE</span> sales_rep_id <span class="kw">IS</span> <span class="kw">NULL</span>;</code></pre>
+        </div>
+        <h3 style="font-size:16px;margin:20px 0 8px;padding-left:10px;border-left:4px solid var(--accent);color:var(--heading)">c. IS NOT NULL</h3>
+        <p><code>IS NOT NULL</code> checks whether a column contains a value.</p>
+        <h4>Example 1: Find employees who have a manager</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> *
+<span class="kw">FROM</span> employees
+<span class="kw">WHERE</span> manager_id <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span>;</code></pre>
+        </div>
+        <h4>Example 2: Find customers who have an email address</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> *
+<span class="kw">FROM</span> customers
+<span class="kw">WHERE</span> email <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span>;</code></pre>
+        </div>
+        <h4>Example 3: Find orders assigned to a sales representative</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> *
+<span class="kw">FROM</span> orders
+<span class="kw">WHERE</span> sales_rep_id <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span>;</code></pre>
+        </div>
+        <h4>IS NULL vs IS NOT NULL</h4>
+        <div class="table-scroll"><table><tr><th>Operator</th><th>Purpose</th></tr><tr><td><code>IS NULL</code></td><td>Find missing values</td></tr><tr><td><code>IS NOT NULL</code></td><td>Find available values</td></tr></table></div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="coalesce"><span>2. COALESCE()</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p><code>COALESCE()</code> returns the first non-NULL value from the provided arguments. It checks values from left to right.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">syntax.sql</span></div>
+          <pre><code><span class="fn">COALESCE</span>(value1, value2, value3, ...)</code></pre>
+        </div>
+        <h4>COALESCE() — SQL Query Syntax Rules</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">query.sql</span></div>
+          <pre><code><span class="kw">SELECT</span>
+    column1,
+    <span class="fn">COALESCE</span>(column2, default_value) <span class="kw">AS</span> alias_name
+<span class="kw">FROM</span> table_name;</code></pre>
+        </div>
+        <p>Important syntax points:</p>
+        <ol style="margin:6px 0 14px 22px;color:#334155;font-size:14px;line-height:1.7">
+          <li>Write <code>COALESCE()</code> inside the <code>SELECT</code> statement, like a column.</li>
+          <li>Use a comma <code>,</code> between columns and <code>COALESCE()</code>.</li>
+          <li>Inside <code>COALESCE()</code>, separate the column and default value using a comma.</li>
+          <li>Give an alias using <code>AS</code> after the closing bracket <code>)</code>.</li>
+          <li>Do not put a comma before <code>FROM</code>.</li>
+          <li>No special <code>WHERE</code> condition is required.</li>
+        </ol>
+        <h4>Example: Replace a NULL salary with zero</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">query.sql</span></div>
+          <pre><code><span class="kw">SELECT</span>
+    employee_name,
+    salary,
+    <span class="fn">COALESCE</span>(salary, <span class="num">0</span>) <span class="kw">AS</span> updated_salary
+<span class="kw">FROM</span> employees;</code></pre>
+        </div>
+        <div class="note"><strong>Remember:</strong> <code>COALESCE()</code> is written like a column expression, not as a separate SQL clause.</div>
+        <h4>Example 1: Replace NULL with default text</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span>
+    employee_name,
+    <span class="fn">COALESCE</span>(manager_id::<span class="kw">TEXT</span>, <span class="str">&#x27;No Manager&#x27;</span>) <span class="kw">AS</span> manager
+<span class="kw">FROM</span> employees;</code></pre>
+        </div>
+        <p>Possible output:</p>
+        <div class="table-scroll"><table><tr><th>employee_name</th><th>manager</th></tr><tr><td>Rahul</td><td>No Manager</td></tr><tr><td>Amit</td><td>1</td></tr><tr><td>Priya</td><td>1</td></tr></table></div>
+        <ul><li>If <code>manager_id</code> is NULL, it returns <code>'No Manager'</code>.</li><li>Otherwise, it returns the manager ID as text.</li><li><code>::TEXT</code> converts the integer into text because both <code>COALESCE</code> arguments must have compatible data types.</li></ul>
+        <h4>Example 2: Replace NULL salary with zero</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span>
+    employee_name,
+    <span class="fn">COALESCE</span>(salary, <span class="num">0</span>) <span class="kw">AS</span> salary
+<span class="kw">FROM</span> employees;</code></pre>
+        </div>
+        <p>If salary is NULL, the query displays <code>0</code>.</p>
+        <h4>Example 3: Multiple fallback values</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span>
+    <span class="fn">COALESCE</span>(email, <span class="str">&#x27;No Email Available&#x27;</span>) <span class="kw">AS</span> contact
+<span class="kw">FROM</span> customers;</code></pre>
+        </div>
+        <p>You can provide multiple fallback values:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span>
+    <span class="fn">COALESCE</span>(email, phone, <span class="str">&#x27;No Contact Available&#x27;</span>) <span class="kw">AS</span> contact
+<span class="kw">FROM</span> customers;</code></pre>
+        </div>
+        <ol style="margin:6px 0 14px 22px;color:#334155;font-size:15px;line-height:1.8"><li>Email if available.</li><li>Otherwise, phone if available.</li><li>Otherwise, <code>'No Contact Available'</code>.</li></ol>
+        <div class="note"><strong>Note:</strong> the example assumes a <code>phone</code> column exists; check your table schema before running it.</div>
+        <h4>Important points</h4>
+        <ul><li><code>COALESCE()</code> does not update the original table.</li><li>It only changes the value displayed in the query result.</li><li>It returns the first non-NULL value.</li><li>All arguments must have compatible data types.</li></ul>
+      </div>
+    </div>
+
+    <div class="section-divider" id="case"><span>3. CASE WHEN</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p><code>CASE WHEN</code> is used to apply conditional logic in SQL. Think of it like <code>if / else if / else</code> in JavaScript. SQL checks conditions from top to bottom, and the first matching condition is returned.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">syntax.sql</span></div>
+          <pre><code><span class="kw">CASE</span>
+    <span class="kw">WHEN</span> condition1 <span class="kw">THEN</span> result1
+    <span class="kw">WHEN</span> condition2 <span class="kw">THEN</span> result2
+    <span class="kw">ELSE</span> default_result
+<span class="kw">END</span></code></pre>
+        </div>
+        <h4>Example 1: Categorize employees based on salary</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span>
+    employee_name,
+    salary,
+    <span class="kw">CASE</span>
+        <span class="kw">WHEN</span> salary &gt;= <span class="num">100000</span> <span class="kw">THEN</span> <span class="str">&#x27;High Salary&#x27;</span>
+        <span class="kw">WHEN</span> salary &gt;= <span class="num">70000</span> <span class="kw">THEN</span> <span class="str">&#x27;Medium Salary&#x27;</span>
+        <span class="kw">ELSE</span> <span class="str">&#x27;Low Salary&#x27;</span>
+    <span class="kw">END</span> <span class="kw">AS</span> salary_category
+<span class="kw">FROM</span> employees;</code></pre>
+        </div>
+        <p>Possible output:</p>
+        <div class="table-scroll"><table><tr><th>employee_name</th><th>salary</th><th>salary_category</th></tr><tr><td>Rahul</td><td>120000</td><td>High Salary</td></tr><tr><td>Amit</td><td>85000</td><td>Medium Salary</td></tr><tr><td>Priya</td><td>50000</td><td>Low Salary</td></tr></table></div>
+        <ul><li>Salary greater than or equal to 100000 → High Salary.</li><li>Otherwise, salary greater than or equal to 70000 → Medium Salary.</li><li>Otherwise → Low Salary.</li></ul>
+        <h4>Example 2: Categorize orders based on status</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span>
+    order_id,
+    status,
+    <span class="kw">CASE</span>
+        <span class="kw">WHEN</span> status = <span class="str">&#x27;Delivered&#x27;</span> <span class="kw">THEN</span> <span class="str">&#x27;Completed&#x27;</span>
+        <span class="kw">WHEN</span> status = <span class="str">&#x27;Cancelled&#x27;</span> <span class="kw">THEN</span> <span class="str">&#x27;Failed&#x27;</span>
+        <span class="kw">WHEN</span> status = <span class="str">&#x27;Pending&#x27;</span> <span class="kw">THEN</span> <span class="str">&#x27;In Progress&#x27;</span>
+        <span class="kw">ELSE</span> <span class="str">&#x27;Other&#x27;</span>
+    <span class="kw">END</span> <span class="kw">AS</span> order_category
+<span class="kw">FROM</span> orders;</code></pre>
+        </div>
+        <h4>Example 3: CASE WHEN with NULL</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span>
+    employee_name,
+    <span class="kw">CASE</span>
+        <span class="kw">WHEN</span> manager_id <span class="kw">IS</span> <span class="kw">NULL</span> <span class="kw">THEN</span> <span class="str">&#x27;Top Level Employee&#x27;</span>
+        <span class="kw">ELSE</span> <span class="str">&#x27;Has Manager&#x27;</span>
+    <span class="kw">END</span> <span class="kw">AS</span> manager_status
+<span class="kw">FROM</span> employees;</code></pre>
+        </div>
+        <p>This checks whether the employee has a manager.</p>
+        <h4>Example 4: CASE WHEN with UPDATE</h4>
+        <p>You can also use <code>CASE WHEN</code> to update values conditionally.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">UPDATE</span> employees
+<span class="kw">SET</span> salary =
+    <span class="kw">CASE</span>
+        <span class="kw">WHEN</span> department_id = <span class="num">1</span> <span class="kw">THEN</span> salary + <span class="num">10000</span>
+        <span class="kw">WHEN</span> department_id = <span class="num">2</span> <span class="kw">THEN</span> salary + <span class="num">5000</span>
+        <span class="kw">ELSE</span> salary
+    <span class="kw">END</span>;</code></pre>
+        </div>
+        <ul><li>Increases salary by 10000 for department 1.</li><li>Increases salary by 5000 for department 2.</li><li>Leaves other employees' salaries unchanged.</li></ul>
+        <div class="warning"><strong>Important:</strong> this is an actual <code>UPDATE</code>. It modifies the table, so use a suitable <code>WHERE</code> condition if you only intend to update selected employees.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="nullif"><span>4. NULLIF()</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p><code>NULLIF()</code> compares two values. If both values are equal, it returns NULL. Otherwise, it returns the first value.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">syntax.sql</span></div>
+          <pre><code><span class="fn">NULLIF</span>(value1, value2)</code></pre>
+        </div>
+        <h4>Example 1: Basic example</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> <span class="fn">NULLIF</span>(<span class="num">10</span>, <span class="num">10</span>);   <span class="cmt">-- NULL</span>
+<span class="kw">SELECT</span> <span class="fn">NULLIF</span>(<span class="num">10</span>, <span class="num">20</span>);   <span class="cmt">-- 10</span></code></pre>
+        </div>
+        <h4>Example 2: Avoid division by zero</h4>
+        <p>Suppose you want to calculate revenue per unit.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">q.sql</span></div>
+          <pre><code><span class="kw">SELECT</span>
+    product_name,
+    price / <span class="fn">NULLIF</span>(stock_quantity, <span class="num">0</span>) <span class="kw">AS</span> revenue_per_unit
+<span class="kw">FROM</span> products;</code></pre>
+        </div>
+        <p>If <code>stock_quantity</code> is zero, <code>NULLIF()</code> returns NULL instead of zero, avoiding a division-by-zero error.</p>
+      </div>
+    </div>
+
+    <div class="section-divider" id="compare"><span>5. COALESCE vs CASE WHEN vs NULLIF</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>These functions may look similar, but they solve different problems.</p>
+        <div class="table-scroll"><table><tr><th>Function</th><th>Purpose</th><th>Example</th></tr><tr><td><code>COALESCE()</code></td><td>Returns first non-NULL value</td><td><code>COALESCE(salary, 0)</code></td></tr><tr><td><code>CASE WHEN</code></td><td>Applies conditional logic</td><td><code>CASE WHEN salary &gt; 70000 THEN 'High' END</code></td></tr><tr><td><code>NULLIF()</code></td><td>Returns NULL when two values match</td><td><code>NULLIF(stock_quantity, 0)</code></td></tr><tr><td><code>IS NULL</code></td><td>Checks for NULL</td><td><code>WHERE salary IS NULL</code></td></tr><tr><td><code>IS NOT NULL</code></td><td>Checks for non-NULL</td><td><code>WHERE salary IS NOT NULL</code></td></tr></table></div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="differences"><span>6. Important differences to remember</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="table-scroll"><table><tr><th>Requirement</th><th>Use</th></tr><tr><td>Find missing values</td><td><code>IS NULL</code></td></tr><tr><td>Find available values</td><td><code>IS NOT NULL</code></td></tr><tr><td>Replace missing values in output</td><td><code>COALESCE()</code></td></tr><tr><td>Categorize records based on conditions</td><td><code>CASE WHEN</code></td></tr><tr><td>Convert a specific value into NULL</td><td><code>NULLIF()</code></td></tr><tr><td>Avoid division by zero</td><td><code>NULLIF()</code></td></tr></table></div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="practice"><span>7. Practice Questions</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Use your existing PostgreSQL practice database.</p>
+        <div class="table-scroll"><table><tr><th>#</th><th>Question</th><th>Concept</th></tr><tr><td>Q1</td><td>Find employees who do not have a manager. Display their employee name and manager ID.</td><td><code>IS NULL</code></td></tr><tr><td>Q2</td><td>Display all customers and their email addresses. If email is NULL, display <code>'Email Not Available'</code>.</td><td><code>COALESCE()</code></td></tr><tr><td>Q3</td><td>Display employee name, salary, and a salary category: salary ≥ 100000 → High; salary ≥ 70000 → Medium; otherwise → Low.</td><td><code>CASE WHEN</code></td></tr><tr><td>Q4</td><td>Display all orders and create a new column called <code>delivery_status</code>: Delivered → Completed; Pending → In Progress; Cancelled → Cancelled; otherwise → Other.</td><td><code>CASE WHEN</code></td></tr><tr><td>Q5</td><td>Calculate <code>price / stock_quantity</code> for each product, avoiding division by zero.</td><td><code>NULLIF()</code></td></tr></table></div>
+        <h4>Recommended learning order</h4>
+        <ol style="margin:6px 0 14px 22px;color:#334155;font-size:15px;line-height:1.8"><li>Understand <code>NULL</code> and three-valued logic.</li><li>Learn <code>IS NULL</code> and <code>IS NOT NULL</code>.</li><li>Learn <code>COALESCE()</code> to handle missing values.</li><li>Learn <code>CASE WHEN</code> for conditional logic.</li><li>Learn <code>NULLIF()</code> for special cases such as division by zero.</li></ol>
+        <div class="remember"><strong>Recommendation:</strong> focus most on <code>IS NULL</code>, <code>COALESCE()</code> and <code>CASE WHEN</code>. These are particularly useful when writing real-world SQL queries and backend APIs.</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

@@ -1,149 +1,234 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SQL CTEs — Compact Notes</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{--navy:#172554;--blue:#2563eb;--blue2:#60a5fa;--ink:#172033;--muted:#5b6475;--paper:#f6f7fb;--line:#e4e9f3}
-html{scroll-behavior:smooth;scroll-padding-top:24px}
-body{background:var(--paper);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:var(--ink);line-height:1.65}
-.container{width:min(1120px,92%);margin:42px auto 70px}
-.hero{position:relative;overflow:hidden;border-radius:22px;padding:38px 38px 32px;margin-bottom:28px;color:white;background:linear-gradient(125deg,#172554 0%,#1d4ed8 62%,#60a5fa 100%);box-shadow:0 16px 38px #1d4ed833}
-.hero:after{content:"WITH";position:absolute;right:24px;top:6px;font:800 clamp(60px,10vw,130px)/1 monospace;color:#ffffff12;letter-spacing:-8px;pointer-events:none}
-.eyebrow{font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#bfdbfe;margin-bottom:10px}
-h1{font-size:clamp(30px,4vw,44px);line-height:1.12;letter-spacing:-1.3px;margin-bottom:12px;position:relative}
-.hero p{max-width:760px;color:#eaf2ff;font-size:16px;margin-bottom:24px}
-.nav{display:flex;flex-wrap:wrap;gap:8px;position:relative}
-.nav a{color:white;text-decoration:none;border:1px solid #ffffff55;background:#ffffff18;padding:7px 13px;border-radius:999px;font-size:12px;font-weight:700;transition:.2s}
-.nav a:hover{background:white;color:#1d4ed8}
-.quick{background:linear-gradient(120deg,#d1fae5,#ecfdf5);border:1px solid #a7f3d0;color:#065f46;border-radius:13px;padding:17px 20px;margin:0 0 28px;line-height:1.75;font-size:15px}
-.quick strong{color:#047857}
-.section-heading{display:flex;align-items:center;gap:12px;margin:36px 0 16px;font-size:23px;letter-spacing:-.5px}
-.section-heading:after{content:"";height:2px;flex:1;background:linear-gradient(90deg,#93c5fd,#e9eef8);border-radius:4px}
-.section-number{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#dbeafe;color:#1d4ed8;font-size:15px;font-weight:900}
-.card{overflow:hidden;border-radius:16px;background:white;border:1px solid #e3e8f2;box-shadow:0 8px 24px #14264b0b;margin-bottom:20px}
-.card-head{display:flex;align-items:center;gap:12px;padding:17px 22px;color:white;background:linear-gradient(115deg,#1e40af,#3b82f6)}
-.card-head.green{background:linear-gradient(115deg,#065f46,#10b981)}
-.card-head.orange{background:linear-gradient(115deg,#9a3412,#f97316)}
-.card-head.purple{background:linear-gradient(115deg,#5b21b6,#8b5cf6)}
-.icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:#ffffff25;font-size:18px;flex-shrink:0}
-.card-head h3{font-size:18px;line-height:1.3}
-.pill{margin-left:auto;border-radius:999px;padding:4px 10px;background:#ffffff24;font-size:10px;letter-spacing:.8px;font-weight:800;white-space:nowrap}
-.content{padding:22px 24px 24px}
-.content p{font-size:15px;color:#354052;line-height:1.8;margin:0 0 12px}
-.content p:last-child{margin-bottom:0}
-.content ul,.content ol{padding-left:22px;margin:8px 0 15px}
-.content li{font-size:14.5px;color:#354052;line-height:1.8;margin:3px 0}
-.code{border-radius:12px;overflow:hidden;background:#111827;margin:14px 0 16px;box-shadow:0 7px 18px #0f172a20}
-.codebar{display:flex;align-items:center;gap:6px;padding:10px 14px;background:#0b1220;border-bottom:1px solid #283246}
-.dot{width:9px;height:9px;border-radius:50%}.red{background:#fb7185}.yellow{background:#fbbf24}.green{background:#34d399}
-.filename{font:600 11px/1.3 ui-monospace,SFMono-Regular,Consolas,monospace;color:#a7b3c8;margin-left:7px}
-.copy{margin-left:auto;border:1px solid #3a465b;color:#cbd5e1;background:#182235;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer}
-.copy:hover{background:#29364c}
-pre{padding:18px;overflow:auto;color:#e5e7eb;font:13px/1.8 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2}
-.kw{color:#c4b5fd;font-weight:700}.fn{color:#93c5fd}.str{color:#86efac}.num{color:#fdba74}.comment{color:#7f8ba1;font-style:italic}.name{color:#f9a8d4}
-.explain{display:grid;gap:9px;margin:12px 0}
-.step{display:flex;gap:12px;align-items:flex-start;background:#f8fafc;border:1px solid #e7edf6;border-radius:10px;padding:11px 13px;font-size:14px;color:#364152}
-.step b{display:grid;place-items:center;flex:0 0 25px;height:25px;border-radius:8px;background:#dbeafe;color:#1d4ed8;font-size:12px}
-.note{border-radius:10px;padding:13px 16px;margin:14px 0 0;font-size:14px;line-height:1.75;font-weight:600}
-.note.blue{background:#eff6ff;color:#1e40af;border-left:4px solid #3b82f6}
-.note.green{background:#ecfdf5;color:#065f46;border-left:4px solid #10b981}
-.note.orange{background:#fff7ed;color:#9a3412;border-left:4px solid #f97316}
-.note.purple{background:#f5f3ff;color:#5b21b6;border-left:4px solid #8b5cf6}
-.table-wrap{overflow-x:auto;border:1px solid #e3e8f2;border-radius:13px;margin:14px 0 2px}
-table{width:100%;border-collapse:collapse;min-width:520px}
-th{text-align:left;padding:13px 16px;background:#1e40af;color:white;font-size:13px}
-td{padding:12px 16px;border-bottom:1px solid #e9edf5;background:#fff;font-size:13.5px;color:#354052;vertical-align:top}
-tr:nth-child(even) td{background:#f7f9fe}tr:last-child td{border-bottom:0}
-td code,.content code,.quick code{font:12.5px ui-monospace,SFMono-Regular,Consolas,monospace;background:#eaf1ff;color:#1d4ed8;border-radius:5px;padding:2px 5px}
-/* Code samples must not inherit the blue inline-code styling from .content code. */
-.code pre code{font:inherit;color:#e5e7eb;background:transparent;border:0;border-radius:0;padding:0}
-.code pre code .kw{color:#c4b5fd;font-weight:700}
-.code pre code .fn{color:#93c5fd}
-.code pre code .str{color:#86efac}
-.code pre code .num{color:#fdba74}
-.code pre code .comment{color:#7f8ba1;font-style:italic}
-.code pre code .name{color:#f9a8d4}
-.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0 24px}
-.summary{border:1px solid #e1e8f4;border-radius:13px;padding:16px;background:white;box-shadow:0 5px 16px #14264b08}
-.summary .big{font-size:22px;margin-bottom:6px}.summary h3{font-size:14px;margin-bottom:5px}.summary p{font-size:12.5px;color:#687386;line-height:1.6}
-.footer{margin-top:34px;padding:22px;border-radius:14px;background:#172554;color:#dbeafe;font-size:14px;line-height:1.8}
-.footer strong{color:#fff}
-@media(max-width:700px){.container{width:94%;margin:18px auto 40px}.hero{padding:28px 22px;border-radius:17px}.hero:after{right:10px;top:10px;font-size:65px}.hero p{font-size:14px}.section-heading{font-size:20px;margin-top:28px}.card-head{padding:15px 16px}.content{padding:17px}.summary-grid{grid-template-columns:1fr}.pill{font-size:9px}.nav a{font-size:11px}.code pre{font-size:12px;padding:14px}}
-@media print{body{background:#fff}.container{width:100%;margin:0}.hero,.card,.quick,.summary,.footer{box-shadow:none;break-inside:avoid}.nav{display:none}.copy{display:none}.card{break-inside:avoid}}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL CTEs — Compact Notes</title>
 </head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
+
+  /* HEADER */
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 20px; padding: 46px 40px; margin-bottom: 44px; box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3); position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:14px; position:relative; }
+  .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 700px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a { text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700; transition: all 0.2s ease; cursor: pointer; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* topic dropdown */
+  .topic-dropdown { position: relative; margin-bottom: 18px; display: inline-block; }
+  .topic-dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.16); color: #fff; font-size: 13.5px; font-weight: 800; padding: 9px 18px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.32); transition: background 0.2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display: none; }
+  .topic-dropdown summary:hover { background: rgba(255,255,255,0.26); }
+  .topic-dropdown[open] summary::after { transform: rotate(180deg); }
+  .topic-dropdown summary::after { content: '▾'; margin-left: 2px; transition: transform 0.2s ease; font-size: 11px; }
+  .topic-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; background: #fff; border-radius: 12px; padding: 8px; min-width: 240px; box-shadow: 0 14px 30px rgba(0,0,0,0.22); display: flex; flex-direction: column; gap: 3px; }
+  .topic-menu a { text-decoration: none; color: #1a1a1a; font-size: 14px; font-weight: 700; padding: 9px 14px; border-radius: 8px; display: flex; align-items: center; gap: 9px; transition: background 0.15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background: var(--content-bg); color: var(--accent); }
+  .topic-menu .group-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.6px; color: #94a3b8; padding: 8px 14px 2px; text-transform: uppercase; }
+
+  /* SUMMARY GRID */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-2px); }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; } .summary-blue .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; } .summary-pink .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; } .summary-amber .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; } .summary-green .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; } .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; } .summary-teal .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* CARDS */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+  .card-content p code, .card-content li code, td code, .short-answer code, .tip code, .note code, .warning code, .remember code { font-family: 'Fira Code','Consolas',monospace; font-size: 0.88em; background: rgba(var(--shadow-rgb),0.1); color: var(--heading); padding: 2px 7px; border-radius: 5px; }
+  .card-content ul { margin: 6px 0 14px 22px; }
+  .card-content li { font-size: 15.5px; line-height: 1.85; color: #334155; font-weight: 500; }
+
+  .short-answer { position: relative; background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%); border: 1px solid rgba(var(--shadow-rgb), 0.16); border-left: 4px solid var(--accent); border-radius: 14px; padding: 20px 24px 22px; margin-bottom: 24px; font-size: 17px; line-height: 1.75; font-weight: 500; color: #293244; box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1); }
+  .short-answer::before { content: "QUICK TAKE"; display: block; width: fit-content; font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff; background: linear-gradient(120deg, var(--accent), var(--accent-light)); padding: 5px 13px; border-radius: 20px; margin-bottom: 13px; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35); }
+  .short-answer strong { color: var(--heading); }
+
+  /* CODE */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; } .dot-grey { background: #febc2e; } .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code','Consolas',monospace; line-height: 1.65; white-space: pre; }
+  .kw { color: #c792ea; font-weight: 600; } .str { color: #c3e88d; } .fn { color: #82aaff; } .type { color: #f07178; } .cmt { color: #7a7a7a; font-style: italic; } .num { color: #f78c6c; }
+
+  /* CALLOUTS */
+  .tip, .note, .warning, .remember { border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+  .tip { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; background: #fff; }
+  table tr:nth-child(even) td { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+
+  @media (max-width: 768px) { .header h1 { font-size: 26px; } .toc a { padding: 6px 12px; font-size: 12px; } .card-content { padding: 20px; } }
+
+  /* ═══════════ COLORFUL TABLES (shared) ═══════════ */
+  table { border-collapse: separate !important; border-spacing: 0 8px !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
+  table th { background: linear-gradient(120deg,#2563eb,#7c3aed,#ec4899) !important; color: #fff !important; font-size: 13px !important; font-weight: 800 !important; letter-spacing: .7px; text-transform: uppercase; padding: 13px 18px !important; border: none !important; }
+  table th:first-child { border-radius: 12px 0 0 12px; }
+  table th:last-child { border-radius: 0 12px 12px 0; }
+  table td { border: none !important; padding: 13px 18px !important; font-weight: 600 !important; color: #334155 !important; vertical-align: middle !important; }
+  table td:first-child { border-radius: 12px 0 0 12px; border-left: 6px solid var(--rc) !important; font-weight: 800 !important; color: var(--rd) !important; }
+  table td:last-child { border-radius: 0 12px 12px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background: var(--rb) !important; box-shadow: 0 3px 8px rgba(0,0,0,.05); transition: transform .15s ease; }
+  table tr:not(:first-child):hover td { filter: brightness(.97); }
+  table td code { background: #fff !important; color: var(--rd) !important; border: 1px solid var(--rc); padding: 2px 8px !important; border-radius: 6px !important; font-weight: 700; }
+
+  .card-content.compact { padding: 16px 20px; }
+  .card-content.compact p { font-size: 14.5px; line-height: 1.7; margin-bottom: 10px; }
+  .card-content.compact li { font-size: 14px; line-height: 1.7; }
+  .card-content.compact h4 { font-size: 15px; margin: 14px 0 6px; }
+  .card-content.compact .code-block { margin: 8px 0; }
+  .card-content.compact .code-block pre { padding: 11px 14px; }
+  .card-content.compact .code-block code { font-size: 12.5px; line-height: 1.55; }
+  .card-content.compact table th, .card-content.compact table td { padding: 8px 12px !important; font-size: 13px !important; }
+  .card-content.compact .tip, .card-content.compact .note, .card-content.compact .warning, .card-content.compact .remember { padding: 10px 14px; font-size: 13.5px; margin: 8px 0; line-height: 1.6; }
+  .header { padding: 34px 36px; margin-bottom: 30px; }
+  .header h1 { font-size: 28px; }
+  .header p { font-size: 15px; margin-bottom: 18px; }
+  .section-divider { margin: 34px 0 16px; }
+  .section-divider span { font-size: 19px; }
+  .card { margin-bottom: 16px; }
+</style>
 <body>
-<main class="container">
-<header class="hero">
-  <div class="eyebrow">SQL learning notes · Query building blocks</div>
-  <h1>SQL CTEs — Compact Notes</h1>
-  <p>A practical guide to Common Table Expressions: make complex SQL easier to read by naming intermediate result sets and building queries in clear, logical steps.</p>
-  <nav class="nav" aria-label="Page sections">
-    <a href="#basic">Basic CTE</a><a href="#multiple">Multiple CTEs</a><a href="#recursive">Recursive CTE</a><a href="#choose">Which type?</a><a href="#compare">CTE vs Subquery vs View</a><a href="#remember">Remember</a>
-  </nav>
-</header>
+  <div class="container">
 
-<div class="quick"><strong>📌 In short:</strong> A CTE (Common Table Expression) is a temporary, named result set defined with <code>WITH</code>. It exists for one SQL statement and helps split complicated query logic into readable steps.</div>
+    <div class="header">
+      <span class="tag">SQL · CTE · POSTGRESQL</span>
+      <h1>🔗 SQL CTEs — Compact Notes</h1>
+      <p>Break complex queries into readable steps with <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px">WITH</code>.</p>
 
-<h2 class="section-heading"><span class="section-number">✦</span>Key ideas at a glance</h2>
-<div class="summary-grid">
-  <article class="summary"><div class="big">🧱</div><h3>Basic CTE</h3><p>Name one intermediate result to simplify a query.</p></article>
-  <article class="summary"><div class="big">🪜</div><h3>Multiple CTEs</h3><p>Chain focused steps; later CTEs can use earlier ones.</p></article>
-  <article class="summary"><div class="big">🔁</div><h3>Recursive CTE</h3><p>Repeat a query step to generate sequences or traverse hierarchies.</p></article>
-</div>
+      <details class="topic-dropdown">
+        <summary>📁 MERN / JS Topics</summary>
+        <div class="topic-menu">
+          <span class="group-label">Node / Express</span>
+          <a href="interview-error-handling.html">🧯 Error Handling (Plain JS)</a>
+          <a href="interview-zod-validation.html">✅ Zod Validation (Plain JS)</a>
+          <a href="interview-crud-api.html">🔧 Express + Mongoose CRUD API</a>
+          <span class="group-label">Practice Sets</span>
+          <a href="interview-array-patterns-25.html">🧩 25 Array/String Pattern Questions</a>
+          <a href="interview-js-dsa-80.html">🧠 80 JS + DSA Coding Questions</a>
+          <a href="interview-mern-practice-70.html">🏋️ 78 MERN Practice Questions</a>
+          <span class="group-label">CSS</span>
+          <a href="interview-css-positioning.html">📐 Positioning &amp; Responsive Cheat Sheet</a>
+          <span class="group-label">Next.js</span>
+          <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+          <a href="interview-nextjs-data.html">📡 Data, Caching &amp; UI States</a>
+          <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+          <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+          <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+          <a href="interview-nextjs-qa.html">Next.js Interview Q&amp;A</a>
+          <span class="group-label">React / JavaScript</span>
+          <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+          <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+          <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+          <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+          <a href="interview-routing.html">🧭 React Router Interview</a>
+          <span class="group-label">MongoDB</span>
+          <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+          <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+          <span class="group-label">SQL</span>
+          <a class="current" href="interview-sql-cte.html">🔗 SQL CTEs — Compact Notes</a>
+          <a href="interview-sql-null-case.html">❓ NULL, COALESCE &amp; CASE WHEN</a>
+          <span class="group-label">PostgreSQL</span>
+          <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+          <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+        
+        </div>
+      </details>
 
-<section id="basic">
-  <h2 class="section-heading"><span class="section-number">01</span>Basic CTE — <code>WITH</code></h2>
-  <article class="card">
-    <div class="card-head"><span class="icon">🧱</span><h3>Define a named result set</h3><span class="pill">START HERE</span></div>
-    <div class="content">
-      <p><strong>Use when:</strong> You want to simplify a query, reuse an intermediate result within one statement, or filter aggregated data.</p>
-      <div class="code">
-        <div class="codebar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="filename">basic-cte.sql</span><button class="copy" onclick="copyCode(this)">Copy SQL</button></div>
-        <pre><code><span class="kw">WITH</span> dept_avg <span class="kw">AS</span> (
+      <div class="toc"><a onclick="document.getElementById('basic').scrollIntoView({behavior:'smooth'});return false;">Basic</a><a onclick="document.getElementById('multiple').scrollIntoView({behavior:'smooth'});return false;">Multiple</a><a onclick="document.getElementById('recursive').scrollIntoView({behavior:'smooth'});return false;">Recursive</a><a onclick="document.getElementById('which').scrollIntoView({behavior:'smooth'});return false;">Which to use</a><a onclick="document.getElementById('compare').scrollIntoView({behavior:'smooth'});return false;">CTE vs Subquery vs View</a></div>
+    </div>
+
+<div class="card"><div class="card-content compact">
+        <p>A CTE (Common Table Expression) is a temporary, named result set defined using <code>WITH</code>. It makes complex SQL queries easier to read by breaking them into steps.</p>
+</div></div>
+
+    <div class="section-divider" id="basic"><span>1. Basic CTE — WITH</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Use when: you want to simplify a query, reuse an intermediate result within one statement, or filter aggregated data.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">basic-cte.sql</span></div>
+          <pre><code><span class="kw">WITH</span> dept_avg <span class="kw">AS</span> (
     <span class="kw">SELECT</span> department, <span class="fn">AVG</span>(salary) <span class="kw">AS</span> avg_salary
     <span class="kw">FROM</span> employees
-    <span class="kw">GROUP BY</span> department
+    <span class="kw">GROUP</span> <span class="kw">BY</span> department
 )
 <span class="kw">SELECT</span> *
 <span class="kw">FROM</span> dept_avg
 <span class="kw">WHERE</span> avg_salary &gt; <span class="num">60000</span>;</code></pre>
-      </div>
-      <p><strong>How it works</strong></p>
-      <div class="explain">
-        <div class="step"><b>1</b><span><code>WITH dept_avg AS (...)</code> defines the CTE.</span></div>
-        <div class="step"><b>2</b><span>The CTE calculates the average salary for each department.</span></div>
-        <div class="step"><b>3</b><span>The main query returns departments whose average salary is above 60,000.</span></div>
-      </div>
-      <p><strong>General syntax</strong></p>
-      <div class="code">
-        <div class="codebar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="filename">cte-template.sql</span><button class="copy" onclick="copyCode(this)">Copy SQL</button></div>
-        <pre><code><span class="kw">WITH</span> cte_name <span class="kw">AS</span> (
+        </div>
+        <h4>How it works</h4>
+        <ol style="margin:6px 0 14px 22px;color:#334155;font-size:15px;line-height:1.8"><li><code>WITH dept_avg AS (...)</code> defines the CTE.</li><li>The CTE calculates average salary per department.</li><li>The main query filters departments with an average above 60,000.</li></ol>
+        <h4>Syntax</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">syntax.sql</span></div>
+          <pre><code><span class="kw">WITH</span> cte_name <span class="kw">AS</span> (
     <span class="kw">SELECT</span> ...
 )
 <span class="kw">SELECT</span> *
 <span class="kw">FROM</span> cte_name;</code></pre>
+        </div>
       </div>
-      <div class="note blue">💡 Think of a CTE as a named step that makes the main query easier to understand.</div>
     </div>
-  </article>
-</section>
 
-<section id="multiple">
-  <h2 class="section-heading"><span class="section-number">02</span>Multiple CTEs</h2>
-  <article class="card">
-    <div class="card-head green"><span class="icon">🪜</span><h3>Build a query in dependent steps</h3><span class="pill">CHAIN LOGIC</span></div>
-    <div class="content">
-      <p><strong>Use when:</strong> A query has multiple dependent steps, such as calculating totals and then filtering results.</p>
-      <div class="code">
-        <div class="codebar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="filename">multiple-ctes.sql</span><button class="copy" onclick="copyCode(this)">Copy SQL</button></div>
-        <pre><code><span class="kw">WITH</span> dept_totals <span class="kw">AS</span> (
+    <div class="section-divider" id="multiple"><span>2. Multiple CTEs</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Use when: a query has multiple dependent steps, such as calculating totals and then filtering results.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">multiple-ctes.sql</span></div>
+          <pre><code><span class="kw">WITH</span> dept_totals <span class="kw">AS</span> (
     <span class="kw">SELECT</span> department, <span class="fn">SUM</span>(salary) <span class="kw">AS</span> total_salary
     <span class="kw">FROM</span> employees
-    <span class="kw">GROUP BY</span> department
+    <span class="kw">GROUP</span> <span class="kw">BY</span> department
 ),
 high_salary_depts <span class="kw">AS</span> (
     <span class="kw">SELECT</span> *
@@ -152,117 +237,60 @@ high_salary_depts <span class="kw">AS</span> (
 )
 <span class="kw">SELECT</span> *
 <span class="kw">FROM</span> high_salary_depts;</code></pre>
+        </div>
+        <h4>Key points</h4>
+        <ul><li>Separate CTEs with commas.</li><li>Later CTEs can reference earlier CTEs.</li><li>Keep each CTE focused on one logical step.</li></ul>
       </div>
-      <p><strong>Key points</strong></p>
-      <ul>
-        <li>Separate CTE definitions with commas.</li>
-        <li>Later CTEs can reference earlier CTEs.</li>
-        <li>Keep each CTE focused on one logical step.</li>
-      </ul>
-      <div class="note green">✓ Read it from top to bottom: calculate department totals first, filter those totals next, then select the final result.</div>
     </div>
-  </article>
-</section>
 
-<section id="recursive">
-  <h2 class="section-heading"><span class="section-number">03</span>Recursive CTEs</h2>
-  <article class="card">
-    <div class="card-head purple"><span class="icon">🔁</span><h3>Repeat a step until the condition stops it</h3><span class="pill">ITERATION</span></div>
-    <div class="content">
-      <p><strong>Use when:</strong> You need to process hierarchical data or generate sequences, such as employee-manager trees or category hierarchies.</p>
-      <div class="code">
-        <div class="codebar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="filename">recursive-cte.sql</span><button class="copy" onclick="copyCode(this)">Copy SQL</button></div>
-        <pre><code><span class="kw">WITH RECURSIVE</span> numbers <span class="kw">AS</span> (
-    <span class="comment">-- Anchor: starting value</span>
+    <div class="section-divider" id="recursive"><span>3. Recursive CTEs</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Use when: you need to process hierarchical data or generate sequences, such as employee-manager trees or category hierarchies.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">recursive-cte.sql</span></div>
+          <pre><code><span class="kw">WITH</span> <span class="kw">RECURSIVE</span> numbers <span class="kw">AS</span> (
+    <span class="cmt">-- Anchor: starting value</span>
     <span class="kw">SELECT</span> <span class="num">1</span> <span class="kw">AS</span> n
 
-    <span class="kw">UNION ALL</span>
+    <span class="kw">UNION</span> <span class="kw">ALL</span>
 
-    <span class="comment">-- Recursive step</span>
+    <span class="cmt">-- Recursive step</span>
     <span class="kw">SELECT</span> n + <span class="num">1</span>
     <span class="kw">FROM</span> numbers
     <span class="kw">WHERE</span> n &lt; <span class="num">5</span>
 )
 <span class="kw">SELECT</span> n
 <span class="kw">FROM</span> numbers;</code></pre>
+        </div>
+        <p>Output: <code>1, 2, 3, 4, 5</code></p>
+        <h4>How recursion works</h4>
+        <ol style="margin:6px 0 14px 22px;color:#334155;font-size:15px;line-height:1.8"><li><strong>Anchor query:</strong> starts the result (<code>1</code>).</li><li><strong>Recursive query:</strong> generates the next value (<code>n + 1</code>).</li><li><strong>Stopping condition:</strong> <code>WHERE n &lt; 5</code> prevents infinite recursion.</li></ol>
+        <div class="note"><strong>Important:</strong> PostgreSQL and MySQL use <code>WITH RECURSIVE</code>; SQL Server uses <code>WITH</code> without the <code>RECURSIVE</code> keyword.</div>
       </div>
-      <div class="note blue"><strong>Output:</strong> <code>1, 2, 3, 4, 5</code></div>
-      <p style="margin-top:15px"><strong>How recursion works</strong></p>
-      <div class="explain">
-        <div class="step"><b>1</b><span><strong>Anchor query:</strong> Starts the result with <code>1</code>.</span></div>
-        <div class="step"><b>2</b><span><strong>Recursive query:</strong> Generates the next value using <code>n + 1</code>.</span></div>
-        <div class="step"><b>3</b><span><strong>Stopping condition:</strong> <code>WHERE n &lt; 5</code> stops the sequence after 5.</span></div>
+    </div>
+
+    <div class="section-divider" id="which"><span>4. Which should you use?</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="table-scroll"><table><tr><th>Type</th><th>Best use</th></tr><tr><td>Basic CTE</td><td>Simplify one query</td></tr><tr><td>Multiple CTEs</td><td>Break complex logic into steps</td></tr><tr><td>Recursive CTE</td><td>Traverse hierarchies or generate sequences</td></tr></table></div>
       </div>
-      <div class="note orange">⚠️ Always define a valid stopping condition to prevent unbounded recursion.</div>
-      <div class="note purple">Database syntax: PostgreSQL and MySQL use <code>WITH RECURSIVE</code>; SQL Server uses <code>WITH</code> without the <code>RECURSIVE</code> keyword.</div>
     </div>
-  </article>
-</section>
 
-<section id="choose">
-  <h2 class="section-heading"><span class="section-number">04</span>Which should you use?</h2>
-  <article class="card">
-    <div class="card-head"><span class="icon">🧭</span><h3>Choose by the problem</h3></div>
-    <div class="content">
-      <div class="table-wrap"><table>
-        <thead><tr><th>Type</th><th>Best use</th><th>Typical pattern</th></tr></thead>
-        <tbody>
-          <tr><td><strong>Basic CTE</strong></td><td>Simplify one query</td><td>One named result set</td></tr>
-          <tr><td><strong>Multiple CTEs</strong></td><td>Break complex logic into steps</td><td>Several comma-separated CTEs</td></tr>
-          <tr><td><strong>Recursive CTE</strong></td><td>Traverse hierarchies or generate sequences</td><td>Anchor + recursive step + stop condition</td></tr>
-        </tbody>
-      </table></div>
+    <div class="section-divider" id="compare"><span>5. CTE vs Subquery vs View</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="table-scroll"><table><tr><th>Feature</th><th>CTE</th><th>Subquery</th><th>View</th></tr><tr><td>Definition</td><td><code>WITH</code></td><td>Nested <code>SELECT</code></td><td><code>CREATE VIEW</code></td></tr><tr><td>Reusable across statements</td><td>No</td><td>No</td><td>Yes</td></tr><tr><td>Main purpose</td><td>Readable query steps</td><td>Local query logic</td><td>Reusable database query</td></tr><tr><td>Recursive support</td><td>Yes</td><td>Not directly in standard SQL</td><td>Depends on database and definition</td></tr></table></div>
+      </div>
     </div>
-  </article>
-</section>
 
-<section id="compare">
-  <h2 class="section-heading"><span class="section-number">05</span>CTE vs Subquery vs View</h2>
-  <article class="card">
-    <div class="card-head"><span class="icon">⚖️</span><h3>Quick comparison</h3></div>
-    <div class="content">
-      <div class="table-wrap"><table>
-        <thead><tr><th>Feature</th><th>CTE</th><th>Subquery</th><th>View</th></tr></thead>
-        <tbody>
-          <tr><td><strong>Definition</strong></td><td><code>WITH</code></td><td>Nested <code>SELECT</code></td><td><code>CREATE VIEW</code></td></tr>
-          <tr><td><strong>Reusable across statements</strong></td><td>No</td><td>No</td><td>Yes</td></tr>
-          <tr><td><strong>Main purpose</strong></td><td>Readable query steps</td><td>Local query logic</td><td>Reusable database query</td></tr>
-          <tr><td><strong>Recursive support</strong></td><td>Yes</td><td>Not directly in standard SQL</td><td>Depends on database and definition</td></tr>
-        </tbody>
-      </table></div>
+    <div class="section-divider" id="remember"><span>Remember</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <ul><li>A CTE is not necessarily a physical temporary table; the database decides how to execute it.</li><li>A CTE exists for one SQL statement.</li><li>Use <code>UNION ALL</code> in recursive CTEs when you want to retain generated rows.</li><li>Always define a valid stopping condition for recursion.</li><li>Learn in this order: Basic CTE → Multiple CTEs → Recursive CTEs.</li></ul>
+      </div>
     </div>
-  </article>
-</section>
 
-<section id="remember">
-  <h2 class="section-heading"><span class="section-number">✓</span>Remember</h2>
-  <div class="card">
-    <div class="content">
-      <ul>
-        <li>A CTE is <strong>not necessarily a physical temporary table</strong>; the database decides how to execute it.</li>
-        <li>A CTE exists for <strong>one SQL statement</strong>.</li>
-        <li>Use <code>UNION ALL</code> in recursive CTEs when you want to retain generated rows.</li>
-        <li>Always define a valid stopping condition for recursion.</li>
-        <li>Learn in this order: <strong>Basic CTE → Multiple CTEs → Recursive CTEs.</strong></li>
-      </ul>
-      <div class="note green">Learning path: start with one named result, chain multiple logical steps, then move on to recursion.</div>
-    </div>
   </div>
-</section>
-
-<footer class="footer"><strong>SQL CTEs — final takeaway</strong><br>Use <code>WITH</code> to make query logic clearer, multiple CTEs to organize dependent steps, and recursive CTEs for sequences or hierarchical relationships. Keep each step focused and recursion bounded.</footer>
-</main>
-<script>
-function copyCode(button){
-  const code = button.closest('.code').querySelector('pre code').innerText;
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(code).then(()=>{button.textContent='Copied!';setTimeout(()=>button.textContent='Copy SQL',1400);});
-  } else {
-    const area=document.createElement('textarea');area.value=code;document.body.appendChild(area);area.select();
-    try{document.execCommand('copy');button.textContent='Copied!';setTimeout(()=>button.textContent='Copy SQL',1400);}catch(e){button.textContent='Select SQL manually';}
-    area.remove();
-  }
-}
-</script>
 </body>
 </html>

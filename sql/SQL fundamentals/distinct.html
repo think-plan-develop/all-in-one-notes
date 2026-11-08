@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL DISTINCT — Unique Values & Duplicate Removal</title>
+</head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
+
+  /* HEADER */
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 20px; padding: 46px 40px; margin-bottom: 44px; box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3); position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:14px; position:relative; }
+  .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 700px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a { text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700; transition: all 0.2s ease; cursor: pointer; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* topic dropdown */
+  .topic-dropdown { position: relative; margin-bottom: 18px; display: inline-block; }
+  .topic-dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.16); color: #fff; font-size: 13.5px; font-weight: 800; padding: 9px 18px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.32); transition: background 0.2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display: none; }
+  .topic-dropdown summary:hover { background: rgba(255,255,255,0.26); }
+  .topic-dropdown[open] summary::after { transform: rotate(180deg); }
+  .topic-dropdown summary::after { content: '▾'; margin-left: 2px; transition: transform 0.2s ease; font-size: 11px; }
+  .topic-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; background: #fff; border-radius: 12px; padding: 8px; min-width: 240px; box-shadow: 0 14px 30px rgba(0,0,0,0.22); display: flex; flex-direction: column; gap: 3px; }
+  .topic-menu a { text-decoration: none; color: #1a1a1a; font-size: 14px; font-weight: 700; padding: 9px 14px; border-radius: 8px; display: flex; align-items: center; gap: 9px; transition: background 0.15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background: var(--content-bg); color: var(--accent); }
+  .topic-menu .group-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.6px; color: #94a3b8; padding: 8px 14px 2px; text-transform: uppercase; }
+
+  /* SUMMARY GRID */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-2px); }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; } .summary-blue .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; } .summary-pink .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; } .summary-amber .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; } .summary-green .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; } .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; } .summary-teal .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* CARDS */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+  .card-content p code, .card-content li code, td code, .short-answer code, .tip code, .note code, .warning code, .remember code { font-family: 'Fira Code','Consolas',monospace; font-size: 0.88em; background: rgba(var(--shadow-rgb),0.1); color: var(--heading); padding: 2px 7px; border-radius: 5px; }
+  .card-content ul { margin: 6px 0 14px 22px; }
+  .card-content li { font-size: 15.5px; line-height: 1.85; color: #334155; font-weight: 500; }
+
+  .short-answer { position: relative; background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%); border: 1px solid rgba(var(--shadow-rgb), 0.16); border-left: 4px solid var(--accent); border-radius: 14px; padding: 20px 24px 22px; margin-bottom: 24px; font-size: 17px; line-height: 1.75; font-weight: 500; color: #293244; box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1); }
+  .short-answer::before { content: "QUICK TAKE"; display: block; width: fit-content; font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff; background: linear-gradient(120deg, var(--accent), var(--accent-light)); padding: 5px 13px; border-radius: 20px; margin-bottom: 13px; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35); }
+  .short-answer strong { color: var(--heading); }
+
+  /* CODE */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; } .dot-grey { background: #febc2e; } .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code','Consolas',monospace; line-height: 1.65; white-space: pre; }
+  .kw { color: #c792ea; font-weight: 600; } .str { color: #c3e88d; } .fn { color: #82aaff; } .type { color: #f07178; } .cmt { color: #7a7a7a; font-style: italic; } .num { color: #f78c6c; }
+
+  /* CALLOUTS */
+  .tip, .note, .warning, .remember { border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+  .tip { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; background: #fff; }
+  table tr:nth-child(even) td { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+
+  @media (max-width: 768px) { .header h1 { font-size: 26px; } .toc a { padding: 6px 12px; font-size: 12px; } .card-content { padding: 20px; } }
+
+  /* ═══════════ COLORFUL TABLES (shared) ═══════════ */
+  table { border-collapse: separate !important; border-spacing: 0 8px !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
+  table th { background: linear-gradient(120deg,#2563eb,#7c3aed,#ec4899) !important; color: #fff !important; font-size: 13px !important; font-weight: 800 !important; letter-spacing: .7px; text-transform: uppercase; padding: 13px 18px !important; border: none !important; }
+  table th:first-child { border-radius: 12px 0 0 12px; }
+  table th:last-child { border-radius: 0 12px 12px 0; }
+  table td { border: none !important; padding: 13px 18px !important; font-weight: 600 !important; color: #334155 !important; vertical-align: middle !important; }
+  table td:first-child { border-radius: 12px 0 0 12px; border-left: 6px solid var(--rc) !important; font-weight: 800 !important; color: var(--rd) !important; }
+  table td:last-child { border-radius: 0 12px 12px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background: var(--rb) !important; box-shadow: 0 3px 8px rgba(0,0,0,.05); transition: transform .15s ease; }
+  table tr:not(:first-child):hover td { filter: brightness(.97); }
+  table td code { background: #fff !important; color: var(--rd) !important; border: 1px solid var(--rc); padding: 2px 8px !important; border-radius: 6px !important; font-weight: 700; }
+
+  .card-content.compact { padding: 16px 20px; }
+  .card-content.compact p { font-size: 14.5px; line-height: 1.7; margin-bottom: 10px; }
+  .card-content.compact li { font-size: 14px; line-height: 1.7; }
+  .card-content.compact h4 { font-size: 15px; margin: 14px 0 6px; }
+  .card-content.compact .code-block { margin: 8px 0; }
+  .card-content.compact .code-block pre { padding: 11px 14px; }
+  .card-content.compact .code-block code { font-size: 12.5px; line-height: 1.55; }
+  .card-content.compact table th, .card-content.compact table td { padding: 8px 12px !important; font-size: 13px !important; }
+  .card-content.compact .tip, .card-content.compact .note, .card-content.compact .warning, .card-content.compact .remember { padding: 10px 14px; font-size: 13.5px; margin: 8px 0; line-height: 1.6; }
+  .header { padding: 34px 36px; margin-bottom: 30px; }
+  .header h1 { font-size: 28px; }
+  .header p { font-size: 15px; margin-bottom: 18px; }
+  .section-divider { margin: 34px 0 16px; }
+  .section-divider span { font-size: 19px; }
+  .card { margin-bottom: 16px; }
+
+  /* design polish */
+  .tiles { list-style:none; margin:4px 0 !important; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  @media (max-width:700px){ .tiles { grid-template-columns:1fr; } }
+  .tiles li { background:#fff; border:1px solid rgba(37,99,235,.14); border-left:4px solid var(--accent); border-radius:10px; padding:9px 12px; font-size:13.5px !important; line-height:1.55 !important; color:#334155; box-shadow:0 3px 8px rgba(0,0,0,.04); }
+  .marks { list-style:none; margin:4px 0 !important; padding:0; display:flex; flex-direction:column; gap:7px; }
+  .marks li { display:flex; align-items:flex-start; gap:10px; border-radius:10px; padding:9px 12px; font-size:13.5px !important; line-height:1.55 !important; border:1.5px solid var(--mb); background:var(--mbg); color:#334155; }
+  .marks li::before { content:var(--mi); flex-shrink:0; width:20px; height:20px; border-radius:6px; background:var(--mc); color:#fff; font-size:12px; font-weight:900; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+  .marks.do { --mb:#bbf7d0; --mbg:linear-gradient(160deg,#f0fdf4,#ecfdf5); --mc:linear-gradient(120deg,#059669,#10b981); --mi:'✓'; }
+  .marks.dont { --mb:#fecaca; --mbg:linear-gradient(160deg,#fff1f2,#ffe4e6); --mc:linear-gradient(120deg,#dc2626,#f43f5e); --mi:'✕'; }
+  .marks.recap { --mb:#bfdbfe; --mbg:linear-gradient(160deg,#eff6ff,#f5f9ff); --mc:linear-gradient(120deg,#2563eb,#3b82f6); --mi:'★'; }
+  .sec-tag { display:inline-block; font-size:10.5px; font-weight:900; letter-spacing:.5px; text-transform:uppercase; color:#fff; padding:3px 11px; border-radius:20px; margin-bottom:8px; }
+  .sec-tag.do { background:linear-gradient(120deg,#059669,#10b981); }
+  .sec-tag.dont { background:linear-gradient(120deg,#dc2626,#f43f5e); }
+</style>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <span class="tag">SQL · DISTINCT · POSTGRESQL</span>
+      <h1>🔎 SQL DISTINCT — Unique Values &amp; Duplicate Removal</h1>
+      <p>Remove duplicate rows from query results, find unique value combinations, and count distinct values.</p>
+
+      <details class="topic-dropdown">
+        <summary>📁 MERN / JS Topics</summary>
+        <div class="topic-menu">
+          <span class="group-label">Node / Express</span>
+          <a href="interview-error-handling.html">🧯 Error Handling (Plain JS)</a>
+          <a href="interview-zod-validation.html">✅ Zod Validation (Plain JS)</a>
+          <a href="interview-crud-api.html">🔧 Express + Mongoose CRUD API</a>
+          <span class="group-label">Practice Sets</span>
+          <a href="interview-array-patterns-25.html">🧩 25 Array/String Pattern Questions</a>
+          <a href="interview-js-dsa-80.html">🧠 80 JS + DSA Coding Questions</a>
+          <a href="interview-mern-practice-70.html">🏋️ 78 MERN Practice Questions</a>
+          <span class="group-label">CSS</span>
+          <a href="interview-css-positioning.html">📐 Positioning &amp; Responsive Cheat Sheet</a>
+          <span class="group-label">Next.js</span>
+          <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+          <a href="interview-nextjs-data.html">📡 Data, Caching &amp; UI States</a>
+          <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+          <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+          <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+          <a href="interview-nextjs-qa.html">Next.js Interview Q&amp;A</a>
+          <span class="group-label">React / JavaScript</span>
+          <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+          <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+          <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+          <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+          <a href="interview-routing.html">🧭 React Router Interview</a>
+          <span class="group-label">MongoDB</span>
+          <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+          <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+          <span class="group-label">SQL</span>
+          <a href="interview-sql-cte.html">🔗 SQL CTEs — Compact Notes</a>
+          <a href="interview-sql-null-case.html">❓ NULL, COALESCE &amp; CASE WHEN</a>
+          <a class="current" href="interview-sql-distinct.html">🔎 SQL DISTINCT</a>
+          <span class="group-label">PostgreSQL</span>
+          <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+          <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+        
+        </div>
+      </details>
+
+      <div class="toc"><a onclick="document.getElementById('notes').scrollIntoView({behavior:'smooth'});return false;">Notes</a><a onclick="document.getElementById('basic-syntax').scrollIntoView({behavior:'smooth'});return false;">Basic Syntax</a><a onclick="document.getElementById('multiple-columns').scrollIntoView({behavior:'smooth'});return false;">Multiple Columns</a><a onclick="document.getElementById('count-distinct').scrollIntoView({behavior:'smooth'});return false;">COUNT DISTINCT</a><a onclick="document.getElementById('filtering-sorting').scrollIntoView({behavior:'smooth'});return false;">Filtering & Sorting</a><a onclick="document.getElementById('comparison').scrollIntoView({behavior:'smooth'});return false;">Comparison</a><a onclick="document.getElementById('use-cases').scrollIntoView({behavior:'smooth'});return false;">Use Cases</a><a onclick="document.getElementById('best-practices').scrollIntoView({behavior:'smooth'});return false;">Best Practices</a><a onclick="document.getElementById('common-mistakes').scrollIntoView({behavior:'smooth'});return false;">Common Mistakes</a><a onclick="document.getElementById('interview').scrollIntoView({behavior:'smooth'});return false;">Interview</a><a onclick="document.getElementById('summary').scrollIntoView({behavior:'smooth'});return false;">Summary</a></div>
+    </div>
+
+<div class="card"><div class="card-content compact">
+        <p>A complete reference for SQL DISTINCT — removing duplicate rows from query results, finding unique values across multiple columns, counting distinct values, combining DISTINCT with WHERE and ORDER BY, and understanding DISTINCT versus GROUP BY.</p>
+</div></div>
+
+    <div class="section-divider" id="notes"><span>1. Key Concepts at a Glance</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <ul class="tiles"><li>DISTINCT removes duplicate rows from the query result.</li><li>SELECT DISTINCT column returns unique values for that column.</li><li>SELECT DISTINCT column1, column2 returns unique combinations of both columns.</li><li>DISTINCT does not delete or modify records in the original table.</li><li>COUNT(DISTINCT column) counts unique non-NULL values.</li><li>DISTINCT can be combined with WHERE and ORDER BY.</li><li>GROUP BY groups rows and is commonly used with aggregate functions.</li><li>In most SQL databases, SELECT DISTINCT treats NULL values as one distinct value.</li><li>DISTINCT applies to all selected columns together, not independently to each column.</li><li>DISTINCT is supported by PostgreSQL, MySQL, SQL Server, and Oracle.</li></ul>
+      </div>
+    </div>
+
+    <div class="section-divider" id="basic-syntax"><span>2. DISTINCT — Basic Usage</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>DISTINCT returns unique rows by eliminating duplicate combinations of values from the selected columns. It affects the query result only and does not change the underlying table.</p>
+        <h4>SELECT DISTINCT</h4>
+        <p>Returns only unique values for the selected column or unique combinations of selected columns.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.sql</span></div>
+          <pre><code><span class="cmt">-- Without DISTINCT: duplicates remain</span>
+<span class="kw">SELECT</span> department
+<span class="kw">FROM</span> employees;
+
+<span class="cmt">-- With DISTINCT: duplicate departments removed</span>
+<span class="kw">SELECT</span> DISTINCT department
+<span class="kw">FROM</span> employees;</code></pre>
+        </div>
+        <h4>DISTINCT with multiple values</h4>
+        <p>DISTINCT considers the complete selected row when identifying duplicates. Duplicate combinations appear only once.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> DISTINCT department, city
+<span class="kw">FROM</span> employees;</code></pre>
+        </div>
+        <h4>DISTINCT with NULL</h4>
+        <p>In most SQL databases, multiple NULL values in a selected column produce one NULL entry in SELECT DISTINCT results.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> DISTINCT phone
+<span class="kw">FROM</span> users;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="multiple-columns"><span>3. DISTINCT Across Multiple Columns</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>When multiple columns are selected, DISTINCT removes duplicate combinations. It does not independently make each column unique.</p>
+        <h4>Unique column combinations</h4>
+        <p>Returns each department-city pair only once. The same city can appear in different departments.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> DISTINCT department, city
+<span class="kw">FROM</span> employee_locations;</code></pre>
+        </div>
+        <h4>Why column order matters</h4>
+        <p>The selected column order determines the output column order. Uniqueness is based on the combination of selected values.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> DISTINCT city, department
+<span class="kw">FROM</span> employee_locations;</code></pre>
+        </div>
+        <h4>DISTINCT does not mean unique per column</h4>
+        <p>A result can contain repeated department values when paired with different cities.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> DISTINCT department, city
+<span class="kw">FROM</span> employee_locations;
+
+<span class="cmt">-- IT + Hyderabad and IT + Bangalore</span>
+<span class="cmt">-- are different combinations.</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="count-distinct"><span>4. COUNT(DISTINCT column)</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>COUNT(DISTINCT column) counts unique non-NULL values. It is useful for calculating unique users, customers, departments, cities, and categories.</p>
+        <h4>Count unique values</h4>
+        <p>Counts each distinct non-NULL value once.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> <span class="fn">COUNT</span>(DISTINCT customer_id) <span class="kw">AS</span> unique_customers
+<span class="kw">FROM</span> orders;</code></pre>
+        </div>
+        <h4>Count distinct values after filtering</h4>
+        <p>WHERE filters rows before the distinct count is calculated.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> <span class="fn">COUNT</span>(DISTINCT customer_id) <span class="kw">AS</span> unique_customers
+<span class="kw">FROM</span> orders
+<span class="kw">WHERE</span> status = <span class="str">&#x27;completed&#x27;</span>;</code></pre>
+        </div>
+        <h4>DISTINCT versus COUNT(*)</h4>
+        <p>COUNT(*) counts rows, including rows containing NULL values. COUNT(DISTINCT column) counts unique non-NULL values in the specified column.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.sql</span></div>
+          <pre><code><span class="kw">SELECT</span>
+  <span class="fn">COUNT</span>(*) <span class="kw">AS</span> total_rows,
+  <span class="fn">COUNT</span>(customer_id) <span class="kw">AS</span> non_null_ids,
+  <span class="fn">COUNT</span>(DISTINCT customer_id) <span class="kw">AS</span> unique_customers
+<span class="kw">FROM</span> orders;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="filtering-sorting"><span>5. DISTINCT with WHERE and ORDER BY</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>DISTINCT works with WHERE to filter records and ORDER BY to sort the resulting unique values.</p>
+        <h4>DISTINCT with WHERE</h4>
+        <p>Filters rows first, then returns unique values from the remaining rows.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> DISTINCT department
+<span class="kw">FROM</span> employees
+<span class="kw">WHERE</span> salary &gt; <span class="num">50000</span>;</code></pre>
+        </div>
+        <h4>DISTINCT with ORDER BY</h4>
+        <p>Returns unique values and sorts them in ascending or descending order.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> DISTINCT department
+<span class="kw">FROM</span> employees
+<span class="kw">ORDER</span> <span class="kw">BY</span> department <span class="kw">ASC</span>;</code></pre>
+        </div>
+        <h4>DISTINCT with multiple conditions</h4>
+        <p>Combines filtering, unique-value selection, and sorting in one query.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">example.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> DISTINCT city
+<span class="kw">FROM</span> customers
+<span class="kw">WHERE</span> status = <span class="str">&#x27;active&#x27;</span>
+  <span class="kw">AND</span> city <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span>
+<span class="kw">ORDER</span> <span class="kw">BY</span> city;</code></pre>
+        </div>
+        <div class="remember"><strong>Logical Query Processing:</strong> For a typical SELECT query, FROM identifies the source, WHERE filters rows, SELECT expressions are evaluated, DISTINCT removes duplicate result rows, and ORDER BY sorts the results. The exact logical processing rules have database-specific details.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="comparison"><span>6. DISTINCT vs GROUP BY</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="table-scroll"><table><tr><th>Point</th><th>DISTINCT</th><th>GROUP BY</th></tr><tr><td>Primary purpose</td><td>Remove duplicate result rows</td><td>Group rows for calculations</td></tr><tr><td>Unique departments</td><td>SELECT DISTINCT department</td><td>SELECT department GROUP BY department</td></tr><tr><td>Aggregate functions</td><td>Can be used with aggregates</td><td>Commonly used with COUNT, SUM, AVG</td></tr><tr><td>Count per department</td><td>Not sufficient by itself</td><td>GROUP BY department with COUNT(*)</td></tr><tr><td>Output</td><td>Unique selected combinations</td><td>One row per group</td></tr></table></div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">distinct_vs_group_by.sql</span></div>
+          <pre><code><span class="cmt">-- DISTINCT: unique departments</span>
+<span class="kw">SELECT</span> DISTINCT department
+<span class="kw">FROM</span> employees;
+
+<span class="cmt">-- GROUP BY: employee count per department</span>
+<span class="kw">SELECT</span> department, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> employee_count
+<span class="kw">FROM</span> employees
+<span class="kw">GROUP</span> <span class="kw">BY</span> department;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="use-cases"><span>7. Real-World Use Cases</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="table-scroll"><table><tr><th>Query</th><th>What it finds</th></tr><tr><td><code>SELECT DISTINCT city FROM customers</code></td><td>find all cities where customers exist.</td></tr><tr><td><code>COUNT(DISTINCT user_id)</code></td><td>calculate the number of unique users.</td></tr><tr><td><code>SELECT DISTINCT department, role FROM employees</code></td><td>identify unique department-role combinations.</td></tr><tr><td><code>SELECT DISTINCT product_id FROM order_items</code></td><td>find products appearing in orders.</td></tr><tr><td><code>SELECT DISTINCT status FROM orders</code></td><td>discover available order statuses.</td></tr><tr><td><code>SELECT DISTINCT country FROM addresses WHERE country IS NOT NULL</code></td><td>retrieve non-NULL countries.</td></tr><tr><td><code>SELECT DISTINCT category FROM products WHERE is_active = true</code></td><td>retrieve categories of active products.</td></tr></table></div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="best-practices"><span>8. Best Practices</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <span class="sec-tag do">✓ Do</span>
+        <ul class="marks do"><li>Select only the columns needed when using DISTINCT.</li><li>Remember that DISTINCT evaluates the combination of every selected column.</li><li>Use COUNT(DISTINCT column) when you need a count of unique non-NULL values.</li><li>Use GROUP BY when you need aggregates such as counts or sums for each group.</li><li>Use WHERE to filter rows before DISTINCT is applied.</li><li>Do not assume DISTINCT chooses the latest or highest record for each user.</li><li>For the latest record per user, use ROW_NUMBER() with PARTITION BY and ORDER BY in a CTE.</li><li>On large tables, consider query plans and indexes if DISTINCT is slow.</li></ul>
+      </div>
+    </div>
+
+    <div class="section-divider" id="common-mistakes"><span>9. Common Mistakes</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <span class="sec-tag dont">✕ Avoid</span>
+        <ul class="marks dont"><li>Assuming SELECT DISTINCT department, city makes department values unique independently.</li><li>Using DISTINCT to permanently delete duplicate records — it only changes query output.</li><li>Confusing COUNT(DISTINCT column) with COUNT(*).</li><li>Assuming COUNT(DISTINCT column) includes NULL — standard COUNT ignores NULL values.</li><li>Using DISTINCT to choose the latest record without defining which row should win.</li><li>Selecting unnecessary columns, which can prevent otherwise duplicate rows from being considered duplicates.</li><li>Using DISTINCT to hide incorrect JOIN logic instead of fixing the join.</li></ul>
+      </div>
+    </div>
+
+    <div class="section-divider" id="interview"><span>10. DISTINCT Interview Questions</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="table-scroll"><table><tr><th>Question</th><th>Answer</th></tr><tr><td>What is DISTINCT in SQL?</td><td>DISTINCT removes duplicate rows from the query result based on all selected columns, returning only unique values or combinations.</td></tr><tr><td>What is the difference between DISTINCT and GROUP BY?</td><td>DISTINCT removes duplicate result combinations. GROUP BY groups rows and is commonly used with aggregate functions such as COUNT, SUM, and AVG.</td></tr><tr><td>How do you count unique customers?</td><td>Use SELECT COUNT(DISTINCT customer_id) FROM orders. COUNT(DISTINCT) ignores NULL values.</td></tr><tr><td>What happens when DISTINCT is used on two columns?</td><td>SQL returns unique combinations of both columns. A value in the first column can repeat if it is paired with a different value in the second column.</td></tr><tr><td>Does DISTINCT modify the original table?</td><td>No. DISTINCT only affects the query result. It does not delete or modify any stored rows.</td></tr><tr><td>Can DISTINCT be combined with WHERE and ORDER BY?</td><td>Yes. WHERE filters the source rows, DISTINCT removes duplicate result combinations, and ORDER BY sorts the resulting rows.</td></tr><tr><td>Does COUNT(DISTINCT column) count NULL?</td><td>No. COUNT(DISTINCT column) counts unique non-NULL values.</td></tr><tr><td>Can DISTINCT return the latest row for each user?</td><td>Not reliably by itself. Use ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY created_at DESC) in a CTE and filter for rn = 1.</td></tr></table></div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="summary"><span>11. Quick Revision</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <ul class="marks recap"><li>SELECT DISTINCT column returns unique values.</li><li>SELECT DISTINCT column1, column2 returns unique combinations of both columns.</li><li>COUNT(DISTINCT column) counts unique non-NULL values.</li><li>WHERE filters rows before duplicate removal.</li><li>ORDER BY sorts the resulting unique rows.</li><li>DISTINCT does not modify or delete data from the table.</li><li>DISTINCT removes duplicates; GROUP BY groups rows for aggregation.</li><li>Use ROW_NUMBER() instead of DISTINCT when you need a specific row, such as the latest record per user.</li></ul>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
