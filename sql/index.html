@@ -20,7 +20,7 @@
     .back { padding: 7px 14px; }
     .title { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 700; }
     .title i { font-size: 22px; }
-    .search { width: min(320px, 30vw); margin-left: auto; padding: 8px 14px; border: 0; border-radius: 20px; outline: 0; background: #fff; color: #1e293b; }
+    .global-theme-toggle-slot { display: flex; align-items: center; margin-left: auto; }
     .author { font-size: 13px; font-weight: 700; white-space: nowrap; }
     .main { display: flex; flex: 1; min-height: 0; }
 
@@ -29,7 +29,6 @@
     .sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     .sidebar h2 { margin: 2px 8px 14px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }
     .main.sidebar-hidden .sidebar { display: none; }
-    .empty { display: none; margin: 16px 8px; font-size: 13px; color: #64748b; text-align: center; }
 
     .grp { margin: 0 0 8px; }
     .grp-head { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; padding: 10px 12px; font-size: 15px; font-weight: 800; color: var(--c2); background: var(--t); border: 1px solid var(--b); border-left: 5px solid var(--c); border-radius: 4px 14px 14px 4px; }
@@ -132,7 +131,7 @@
       .sidebar.open { transform: translateX(100%); }
       body.nav-hidden .sidebar { top: 0; }
       body.nav-hidden .reopen { z-index: 4; }
-      .author { display: none; } .search { width: 34vw; }
+      .author { display: none; }
     }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   </style>
@@ -143,14 +142,13 @@
     <button class="toggle" id="toggle" type="button" title="Toggle navigation" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="true"><i class="ti ti-menu-2"></i></button>
     <div class="title"><i class="ti ti-database"></i><span>SQL &amp; Database</span></div>
     <button class="back" id="back" title="Return to Dev Hub"><i class="ti ti-arrow-left"></i> Back</button>
-    <input class="search" id="search" type="search" placeholder="Search topics" aria-label="Search topics" />
+    <div class="global-theme-toggle-slot"></div>
     <div class="author">Shivam</div>
   </header>
   <main class="main">
     <nav class="sidebar" id="sidebar" aria-label="Database topics">
       <h2>Database Preparation</h2>
       <div id="links"></div>
-      <p class="empty" id="empty">No topics match your search.</p>
     </nav>
     <iframe name="contentFrame" id="contentFrame" title="Database content" src="note.html?data=01-sql-summary.js"></iframe>
   </main>
@@ -229,7 +227,7 @@
     const linkHTML = (k, i) => {
       const { title, det } = split(k[1]);
       return `
-      <a class="leaf" href="${k[2]}" target="contentFrame" data-search="${esc(k[1].toLowerCase())}">
+      <a class="leaf" href="${k[2]}" target="contentFrame">
         <span class="dot"></span>
         <span class="ci">${String(i + 1).padStart(2, "0")}</span>
         <span class="body"><span class="ttl">${k[3] ? `${IMP} ` : ""}${esc(title)}</span>${det ? `<span class="det">${esc(det)}</span>` : ""}</span>
@@ -240,7 +238,7 @@
     const soloHTML = (t, k, num) => {
       const { title, det } = split(k[1]);
       return `
-      <a class="leaf solo ${t.theme}" href="${k[2]}" target="contentFrame" data-search="${esc((t.text + " " + k[1]).toLowerCase())}">
+      <a class="leaf solo ${t.theme}" href="${k[2]}" target="contentFrame">
         <i class="ti ${t.icon} ci"></i>
         <span class="body"><span class="ttl"><span class="num">${num}.</span>${esc(title)}</span>${det ? `<span class="det">${esc(det)}</span>` : ""}</span>
         ${k[3] ? IMP : ""}
@@ -256,7 +254,7 @@
       if (t.flat) t.nums = t.kids.map(() => ++counter); else t.num = ++counter;
     }));
     const topicHTML = t => t.flat ? t.kids.map((k, i) => soloHTML(t, k, t.nums[i])).join("") : `
-      <details class="sub ${t.theme}" data-search="${esc(t.text.toLowerCase())}">
+      <details class="sub ${t.theme}">
         <summary>
           <i class="ti ${t.icon} ci"></i><span class="txt"><span class="num">${t.num}.</span>${esc(t.text)}</span>
           ${t.star ? IMP : ""}
@@ -269,11 +267,10 @@
 
     const links = document.getElementById("links");
     links.innerHTML = NAV.map(g => `
-      <section class="grp t-${g.key}" data-search="${esc(g.text.toLowerCase())}">
+      <section class="grp t-${g.key}">
         <div class="nav-children">${g.topics.map(topicHTML).join("")}</div>
       </section>`).join("");
 
-    const groups = [...links.querySelectorAll(".grp")];
     const allLinks = [...links.querySelectorAll("a.leaf")];
     const frame = document.getElementById("contentFrame");
     const sidebar = document.getElementById("sidebar");
@@ -318,25 +315,6 @@
     activate(start, false);
     if (start !== allLinks[0]) frame.src = start.getAttribute("href");
 
-    /* search */
-    document.getElementById("search").addEventListener("input", e => {
-      const q = e.target.value.trim().toLowerCase();
-      let any = false;
-      groups.forEach(g => {
-        const gHit = g.dataset.search.includes(q);
-        let gShow = 0;
-        g.querySelectorAll(".sub, a.solo").forEach(s => {
-          const tHit = gHit || s.dataset.search.includes(q);
-          if (s.matches("a.solo")) { s.hidden = !(!q || tHit); if (!s.hidden) gShow++; return; }
-          let n = 0;
-          s.querySelectorAll("a.leaf").forEach(a => { const show = !q || tHit || a.dataset.search.includes(q); a.hidden = !show; if (show) n++; });
-          s.hidden = n === 0; if (n) { gShow++; if (q) s.open = true; }
-        });
-        g.hidden = gShow === 0; if (gShow) any = true;
-      });
-      document.getElementById("empty").style.display = any ? "none" : "block";
-    });
-
     /* sidebar + top bar toggle */
     function setNavHidden(hide) {
       main.classList.toggle("sidebar-hidden", hide && !mobileLayout.matches);
@@ -360,5 +338,6 @@
   </script>
   <nav class="side-nav" aria-label="Section navigation"></nav>
   <script src="floating-side-nav.js"></script>
+<script src="../global-theme.js"></script>
 </body>
 </html>
