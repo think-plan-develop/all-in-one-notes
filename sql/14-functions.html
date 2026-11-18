@@ -1,536 +1,781 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>PostgreSQL Functions — Complete Master Guide</title>
-<link rel="stylesheet" href="floating-side-nav.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PostgreSQL Functions — Complete Notes</title>
+</head>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#f4f5fa; font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif; color:#1a1a1a; font-size:16px; }
-  .wrap { width:94%; max-width:1120px; margin:32px auto 60px; --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
 
   /* HEADER */
-  .header { background:linear-gradient(120deg,#1e3a8a,#3b82f6); border-radius:18px; padding:32px 34px 28px; margin-bottom:24px; box-shadow:0 12px 28px rgba(37,99,235,.28); position:relative; overflow:hidden; }
-  .header::before { content:''; position:absolute; bottom:-80px; left:-50px; width:220px; height:220px; border-radius:50%; background:rgba(255,255,255,.06); }
-  .header::after { content:''; position:absolute; top:-60px; right:-60px; width:230px; height:230px; border-radius:50%; background:rgba(255,255,255,.09); }
-  .header .tag { display:inline-block; background:rgba(255,255,255,.16); color:#fff; font-size:13px; font-weight:800; letter-spacing:.7px; padding:5px 14px; border-radius:20px; margin-bottom:12px; position:relative; text-transform:uppercase; }
-  .header h1 { color:#fff; font-size:34px; margin-bottom:10px; font-weight:800; letter-spacing:-.6px; line-height:1.2; position:relative; }
-  .header p { color:#dbe6ff; font-size:17px; margin-bottom:16px; max-width:850px; line-height:1.65; position:relative; }
-  .header p strong { color:#fff; }
-  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; position:relative; }
-  .chips span { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.25); font-size:15px; font-weight:700; padding:5px 14px; border-radius:10px; }
-  .toc { display:flex; flex-wrap:wrap; gap:9px; position:relative; }
-  .toc a { text-decoration:none; padding:8px 16px; border-radius:20px; font-size:15px; font-weight:700; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.28); }
-  .toc a.crit { background:rgba(244,63,94,.22); border-color:rgba(254,205,211,.5); }
-  .toc a:hover { background:#fff; color:#2563eb; transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,.15); }
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 20px; padding: 46px 40px; margin-bottom: 44px; box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3); position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:14px; position:relative; }
+  .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 700px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a { text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700; transition: all 0.2s ease; cursor: pointer; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
 
-  /* SUMMARY */
-  .intro-summary-title { font-size:21px; font-weight:800; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
-  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .summary-item { display:flex; align-items:center; gap:14px; border-radius:12px; padding:12px 16px; cursor:pointer; transition:transform .15s ease; }
-  .summary-item:hover { transform:translateY(-2px); }
-  .summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.6); }
-  .summary-text { font-size:15.5px; line-height:1.55; font-weight:500; }
-  .summary-text strong { font-weight:800; margin-right:3px; }
-  .summary-text code { font-size:15px; background:rgba(255,255,255,.6); padding:1px 6px; border-radius:5px; }
-  .summary-blue   { background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#1e3a8a; } .summary-blue strong { color:#2563eb; }
-  .summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink strong { color:#db2777; }
-  .summary-amber  { background:linear-gradient(135deg,#fffbeb,#fef3c7); color:#92400e; } .summary-amber strong { color:#d97706; }
-  .summary-green  { background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; } .summary-green strong { color:#059669; }
-  .summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple strong { color:#7c3aed; }
-  .summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal strong { color:#0d9488; }
-  @media (max-width:640px) { .summary-grid { grid-template-columns:1fr; } }
+  /* topic dropdown */
+  .topic-dropdown { position: relative; margin-bottom: 18px; display: inline-block; }
+  .topic-dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.16); color: #fff; font-size: 13.5px; font-weight: 800; padding: 9px 18px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.32); transition: background 0.2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display: none; }
+  .topic-dropdown summary:hover { background: rgba(255,255,255,0.26); }
+  .topic-dropdown[open] summary::after { transform: rotate(180deg); }
+  .topic-dropdown summary::after { content: '▾'; margin-left: 2px; transition: transform 0.2s ease; font-size: 11px; }
+  .topic-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; background: #fff; border-radius: 12px; padding: 8px; min-width: 240px; box-shadow: 0 14px 30px rgba(0,0,0,0.22); display: flex; flex-direction: column; gap: 3px; }
+  .topic-menu a { text-decoration: none; color: #1a1a1a; font-size: 14px; font-weight: 700; padding: 9px 14px; border-radius: 8px; display: flex; align-items: center; gap: 9px; transition: background 0.15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background: var(--content-bg); color: var(--accent); }
+  .topic-menu .group-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.6px; color: #94a3b8; padding: 8px 14px 2px; text-transform: uppercase; }
 
-  /* PART BANNER */
-  .section-banner { background:linear-gradient(120deg,#1e3a8a,#2563eb); border-radius:14px; padding:20px 26px; margin:30px 0 16px; color:#fff; display:flex; align-items:center; gap:16px; box-shadow:0 8px 20px rgba(37,99,235,.25); }
-  .section-banner .sb-icon { font-size:36px; }
-  .section-banner h2 { font-size:23px; font-weight:800; margin-bottom:3px; }
-  .section-banner p { font-size:16px; opacity:.85; line-height:1.55; }
+  /* SUMMARY GRID */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-2px); }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; } .summary-blue .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; } .summary-pink .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; } .summary-amber .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; } .summary-green .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; } .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; } .summary-teal .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
 
   /* CARDS */
-  .card { border-radius:14px; margin-bottom:18px; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.07); border:1px solid rgba(0,0,0,.04); background:#fff; scroll-margin-top:20px; }
-  .card-title { color:#fff; font-size:19px; font-weight:700; padding:13px 22px; background:linear-gradient(120deg,var(--accent),var(--accent-light)); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-  .topic-num { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.22); font-size:15px; font-weight:800; }
-  .card-body { padding:20px 22px 18px; background:var(--content-bg); }
-  .card-body > * + * { margin-top:14px; }
-  .card-body p { color:#333; font-size:16px; line-height:1.7; font-weight:500; }
-  .card-body h3 { font-size:18px; font-weight:800; color:var(--heading); margin-top:22px; }
-  code { font-family:'Fira Code',Consolas,monospace; }
-  .card-body p code, .card-body li code, td code, .short-answer code, .note code, .warning code, .remember code, .tip code, .analogy code, .interview code, .fn-body code { font-size:15px; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:2px 7px; border-radius:5px; }
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+  .card-content p code, .card-content li code, td code, .short-answer code, .tip code, .note code, .warning code, .remember code { font-family: 'Fira Code','Consolas',monospace; font-size: 0.88em; background: rgba(var(--shadow-rgb),0.1); color: var(--heading); padding: 2px 7px; border-radius: 5px; }
+  .card-content ul { margin: 6px 0 14px 22px; }
+  .card-content li { font-size: 15.5px; line-height: 1.85; color: #334155; font-weight: 500; }
 
-  .short-answer { background:linear-gradient(160deg,#fff 0%,var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),.16); border-left:4px solid var(--accent); border-radius:12px; padding:14px 20px 16px; font-size:16.5px; line-height:1.7; font-weight:500; color:#293244; box-shadow:0 6px 16px rgba(var(--shadow-rgb),.09); }
-  .short-answer::before { content:"ONE-LINER"; display:block; width:fit-content; font-size:13px; font-weight:800; letter-spacing:.9px; color:#fff; background:linear-gradient(120deg,var(--accent),var(--accent-light)); padding:3px 12px; border-radius:20px; margin-bottom:9px; }
+  .short-answer { position: relative; background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%); border: 1px solid rgba(var(--shadow-rgb), 0.16); border-left: 4px solid var(--accent); border-radius: 14px; padding: 20px 24px 22px; margin-bottom: 24px; font-size: 17px; line-height: 1.75; font-weight: 500; color: #293244; box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1); }
+  .short-answer::before { content: "QUICK TAKE"; display: block; width: fit-content; font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff; background: linear-gradient(120deg, var(--accent), var(--accent-light)); padding: 5px 13px; border-radius: 20px; margin-bottom: 13px; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35); }
+  .short-answer strong { color: var(--heading); }
+
+  /* CODE */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; } .dot-grey { background: #febc2e; } .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code','Consolas',monospace; line-height: 1.65; white-space: pre; }
+  .kw { color: #c792ea; font-weight: 600; } .str { color: #c3e88d; } .fn { color: #82aaff; } .type { color: #f07178; } .cmt { color: #7a7a7a; font-style: italic; } .num { color: #f78c6c; }
 
   /* CALLOUTS */
-  .note,.warning,.remember,.tip,.analogy { border-radius:11px; padding:12px 18px; font-size:15.5px; line-height:1.7; font-weight:600; box-shadow:inset 0 0 0 1px rgba(255,255,255,.5); }
-  .note { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
-  .warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
-  .remember,.analogy { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
-  .tip { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
-
-  /* INTERVIEW: Q (blue) + A (amber) joined */
-  .interview { display:flex; flex-direction:column; border-radius:12px; overflow:hidden; box-shadow:0 6px 16px rgba(37,99,235,.18); }
-  .interview p { margin:0; padding:12px 18px; font-size:16px !important; line-height:1.7; font-weight:600 !important; }
-  .interview p:first-child { background:linear-gradient(120deg,#1e3a8a,#3b82f6); color:#fff !important; }
-  .interview p:last-child { background:linear-gradient(135deg,#fffbeb,#fde68a); color:#78350f !important; }
-  .interview p:first-child code { background:rgba(255,255,255,.2) !important; color:#fff !important; }
-  .interview p:last-child code { background:rgba(255,255,255,.75) !important; color:#78350f !important; }
-  .qlabel,.ans-label { display:inline-block; font-weight:800; padding:1px 10px; border-radius:6px; font-size:15px; margin-right:6px; }
-  .qlabel { color:#1e3a8a; background:#fff; }
-  .ans-label { color:#fff; background:linear-gradient(120deg,#d97706,#f59e0b); }
-
-  /* CODE WINDOW */
-  .code-block { background:#1a2332; border-radius:12px; overflow:hidden; box-shadow:0 10px 24px rgba(15,23,42,.28); border:1px solid #2a374b; }
-  .code-bar { background:#111a27; padding:9px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #2a374b; }
-  .code-bar .dot { width:11px; height:11px; border-radius:50%; }
-  .dot-red { background:#ff5f57; } .dot-yellow { background:#febc2e; } .dot-green { background:#28c840; }
-  .code-bar .filename { color:#9fb0c8; font-size:15px; margin-left:8px; font-family:'Fira Code',Consolas,monospace; }
-  .code-bar .lang { margin-left:auto; font-size:13px; font-weight:800; letter-spacing:.5px; color:#93c5fd; background:rgba(59,130,246,.16); padding:2px 10px; border-radius:10px; }
-  .code-bar .copy { font-size:14px; font-weight:700; color:#cbd5e1; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:8px; padding:3px 12px; cursor:pointer; margin-left:8px; font-family:inherit; transition:background .15s ease; }
-  .code-bar .copy:hover { background:rgba(255,255,255,.18); }
-  .code-bar .copy.done { color:#86efac; border-color:#86efac; }
-  .code-block pre { padding:12px 0; overflow-x:auto; counter-reset:ln; }
-  .code-block code { color:#d4d4d4; font-size:15px; line-height:1.65; white-space:pre; display:block; width:max-content; min-width:100%; background:none; padding:0; font-weight:400; }
-  .code-block .l { display:block; padding:0 18px 0 0; border-left:3px solid transparent; }
-  .code-block .l::before { counter-increment:ln; content:counter(ln); display:inline-block; width:38px; margin-right:14px; text-align:right; color:#4b5b73; user-select:none; }
-  .code-block .l.hl { background:rgba(59,130,246,.18); border-left-color:#60a5fa; }
-  .code-block .l.hl::before { color:#93c5fd; }
-  .kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .typ { color:#67e8f9; } .cmt { color:#7a8aa3; font-style:italic; } .num { color:#f78c6c; }
-
-  /* FLOW (dark panel + light steps) */
-  .flow { background:#1a2332; border-radius:12px; padding:16px 18px; border:1px solid #2a374b; box-shadow:0 10px 24px rgba(15,23,42,.22); display:flex; flex-direction:column; gap:14px; }
-  .flow-row { display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; }
-  .flow-label { width:100%; font-size:14px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:#7dd3fc; }
-  .step { flex:1 1 130px; border-radius:10px; padding:10px 12px; font-size:15px; font-weight:700; line-height:1.4; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
-  .step code { font-size:15px; background:rgba(255,255,255,.7); padding:1px 6px; border-radius:5px; }
-  .arrow { color:#7dd3fc; font-size:22px; font-weight:800; align-self:center; }
-  .c-src{background:#dbeafe;color:#1e3a8a} .c-proc{background:#ede9fe;color:#5b21b6} .c-dst{background:#d1fae5;color:#065f46} .c-warn{background:#fef3c7;color:#92400e} .c-bad{background:#ffe4e6;color:#9f1239}
+  .tip, .note, .warning, .remember { border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+  .tip { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
 
   /* TABLES */
-  .table-scroll { overflow-x:auto; }
-  table { width:100%; border-collapse:separate; border-spacing:0 6px; }
-  table th { background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899); color:#fff; font-size:15px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; padding:11px 16px; text-align:left; }
-  table th:first-child { border-radius:10px 0 0 10px; } table th:last-child { border-radius:0 10px 10px 0; }
-  table td { padding:11px 16px; font-size:15.5px; font-weight:600; color:#334155; vertical-align:middle; }
-  table td:first-child { border-radius:10px 0 0 10px; border-left:6px solid var(--rc); font-weight:800; color:var(--rd); }
-  table td:last-child { border-radius:0 10px 10px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; background: #fff; }
+  table tr:nth-child(even) td { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+
+  @media (max-width: 768px) { .header h1 { font-size: 26px; } .toc a { padding: 6px 12px; font-size: 12px; } .card-content { padding: 20px; } }
+
+  /* ═══════════ COLORFUL TABLES (shared) ═══════════ */
+  table { border-collapse: separate !important; border-spacing: 0 8px !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
+  table th { background: linear-gradient(120deg,#2563eb,#7c3aed,#ec4899) !important; color: #fff !important; font-size: 13px !important; font-weight: 800 !important; letter-spacing: .7px; text-transform: uppercase; padding: 13px 18px !important; border: none !important; }
+  table th:first-child { border-radius: 12px 0 0 12px; }
+  table th:last-child { border-radius: 0 12px 12px 0; }
+  table td { border: none !important; padding: 13px 18px !important; font-weight: 600 !important; color: #334155 !important; vertical-align: middle !important; }
+  table td:first-child { border-radius: 12px 0 0 12px; border-left: 6px solid var(--rc) !important; font-weight: 800 !important; color: var(--rd) !important; }
+  table td:last-child { border-radius: 0 12px 12px 0; }
   table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
   table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
   table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
   table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
   table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
   table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
-  table tr:not(:first-child) td { background:var(--rb); box-shadow:0 2px 6px rgba(0,0,0,.05); }
-  table td code { background:#fff; color:var(--rd); border:1px solid var(--rc); padding:1px 8px; border-radius:6px; font-weight:700; }
+  table tr:not(:first-child) td { background: var(--rb) !important; box-shadow: 0 3px 8px rgba(0,0,0,.05); transition: transform .15s ease; }
+  table tr:not(:first-child):hover td { filter: brightness(.97); }
+  table td code { background: #fff !important; color: var(--rd) !important; border: 1px solid var(--rc); padding: 2px 8px !important; border-radius: 6px !important; font-weight: 700; }
 
-  /* CARD GRIDS */
-  .grid2,.grid3 { display:grid; gap:12px; }
-  .grid2 { grid-template-columns:1fr 1fr; } .grid3 { grid-template-columns:repeat(3,1fr); }
-  .why-card,.fn-card { background:#fff; border:1.5px solid rgba(var(--shadow-rgb),.2); border-left:5px solid var(--accent); border-radius:12px; padding:14px 16px; box-shadow:0 4px 12px rgba(var(--shadow-rgb),.08); min-width:0; }
-  .why-card .wn { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:linear-gradient(120deg,var(--accent),var(--accent-light)); color:#fff; font-size:15px; font-weight:800; margin-bottom:6px; }
-  .why-card h4 { font-size:17px; color:#1e293b; margin-bottom:4px; }
-  .why-card p,.fn-body { font-size:15.5px !important; color:#475569 !important; line-height:1.65 !important; font-weight:500 !important; }
-  .fn-card h4 { font-size:18px; color:var(--heading); margin-bottom:6px; }
-  .fn-card .code-block { margin-top:12px; }
-  .badge { display:inline-block; color:#fff; font-size:13px; font-weight:800; padding:3px 12px; border-radius:20px; white-space:nowrap; }
-  .bg-blue{background:#2563eb} .bg-green{background:#16a34a} .bg-orange{background:#ea580c} .bg-purple{background:#7c3aed} .bg-teal{background:#0f766e}
-  @media (max-width:760px) { .grid2,.grid3,.summary-grid { grid-template-columns:1fr; } .header h1 { font-size:27px; } .card-body { padding:16px; } }
+  .card-content.compact { padding: 16px 20px; }
+  .card-content.compact p { font-size: 14.5px; line-height: 1.7; margin-bottom: 10px; }
+  .card-content.compact li { font-size: 14px; line-height: 1.7; }
+  .card-content.compact h4 { font-size: 15px; margin: 14px 0 6px; }
+  .card-content.compact .code-block { margin: 8px 0; }
+  .card-content.compact .code-block pre { padding: 11px 14px; }
+  .card-content.compact .code-block code { font-size: 12.5px; line-height: 1.55; }
+  .card-content.compact table th, .card-content.compact table td { padding: 8px 12px !important; font-size: 13px !important; }
+  .card-content.compact .tip, .card-content.compact .note, .card-content.compact .warning, .card-content.compact .remember { padding: 10px 14px; font-size: 13.5px; margin: 8px 0; line-height: 1.6; }
+  .header { padding: 34px 36px; margin-bottom: 30px; }
+  .header h1 { font-size: 28px; }
+  .header p { font-size: 15px; margin-bottom: 18px; }
+  .section-divider { margin: 34px 0 16px; }
+  .section-divider span { font-size: 19px; }
+  .card { margin-bottom: 16px; }
 </style>
-</head>
 <body>
-<div class="wrap">
+  <div class="container">
 
-<!-- HEADER -->
-<div class="header">
-  <span class="tag">PostgreSQL Deep Dive · Part 14</span>
-  <h1>14. ⚡ Functions — Complete Master Guide</h1>
-  <p>What a function is, why it exists, how to create one, parameter modes, the four function types, volatility and production best practices — <strong>PostgreSQL syntax only.</strong></p>
-  <div class="chips"><span>4 topics</span><span>SQL &amp; PL/pgSQL</span><span>Scalar · Table · Void</span><span>Volatility &amp; Security</span></div>
-  <nav class="toc">
-    <a class="crit" href="#fn-what">🔴 What &amp; Why</a>
-    <a class="crit" href="#fn-create">🔴 CREATE FUNCTION</a>
-    <a class="crit" href="#fn-types">🔴 Function Types</a>
-    <a href="#fn-best">🟡 Volatility &amp; Best Practices</a>
-  </nav>
-</div>
+    <div class="header">
+      <span class="tag">SQL · POSTGRESQL · FUNCTIONS</span>
+      <h1>⚙️ PostgreSQL Functions — Complete Notes</h1>
+      <p>Reusable SQL logic with parameters, conditions, loops, exception handling and results: from <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px">CREATE FUNCTION</code> to <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px">RETURNS TABLE</code>.</p>
 
-<div class="intro-summary">
-  <div class="intro-summary-title">🧩 Key Terms at a Glance</div>
-  <div class="summary-grid">
-    <div class="summary-item summary-blue"><div class="summary-icon">⚡</div><div class="summary-text"><strong>Function:</strong> named, reusable logic stored in the database; called by name from queries.</div></div>
-    <div class="summary-item summary-purple"><div class="summary-icon">↩️</div><div class="summary-text"><strong>RETURNS:</strong> a scalar, a table (<code>TABLE</code> / <code>SETOF</code>), or <code>VOID</code>.</div></div>
-    <div class="summary-item summary-teal"><div class="summary-icon">🎛️</div><div class="summary-text"><strong>Parameters:</strong> <code>IN</code> (default), <code>OUT</code>, <code>INOUT</code>, and <code>DEFAULT</code> values.</div></div>
-    <div class="summary-item summary-green"><div class="summary-icon">🗣️</div><div class="summary-text"><strong>LANGUAGE:</strong> <code>sql</code> for one statement, <code>plpgsql</code> for IF / loops / variables.</div></div>
-    <div class="summary-item summary-amber"><div class="summary-icon">🧊</div><div class="summary-text"><strong>Volatility:</strong> <code>VOLATILE</code>, <code>STABLE</code>, <code>IMMUTABLE</code> — tells the planner what it may cache.</div></div>
-    <div class="summary-item summary-pink"><div class="summary-icon">🔐</div><div class="summary-text"><strong>SECURITY DEFINER:</strong> runs with the owner's rights instead of the caller's.</div></div>
-  </div>
-</div>
+      <details class="topic-dropdown">
+        <summary>📁 MERN / JS Topics</summary>
+        <div class="topic-menu">
+          <span class="group-label">Node / Express</span>
+          <a href="interview-error-handling.html">🧯 Error Handling (Plain JS)</a>
+          <a href="interview-zod-validation.html">✅ Zod Validation (Plain JS)</a>
+          <a href="interview-crud-api.html">🔧 Express + Mongoose CRUD API</a>
+          <span class="group-label">Practice Sets</span>
+          <a href="interview-array-patterns-25.html">🧩 25 Array/String Pattern Questions</a>
+          <a href="interview-array-patterns-25.html">🧩 25 Array/String Pattern Questions</a>
+          <a href="interview-js-dsa-80.html">🧠 80 JS + DSA Coding Questions</a>
+          <a href="interview-mern-practice-70.html">🏋️ 78 MERN Practice Questions</a>
+          <span class="group-label">CSS</span>
+          <a href="interview-css-positioning.html">📐 Positioning &amp; Responsive Cheat Sheet</a>
+          <span class="group-label">Next.js</span>
+          <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+          <a href="interview-nextjs-data.html">📡 Data, Caching &amp; UI States</a>
+          <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+          <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+          <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+          <a href="interview-nextjs-qa.html">Next.js Interview Q&amp;A</a>
+          <span class="group-label">React / JavaScript</span>
+          <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+          <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+          <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+          <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+          <a href="interview-routing.html">🧭 React Router Interview</a>
+          <span class="group-label">MongoDB</span>
+          <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+          <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+                    <span class="group-label">SQL</span>
+          <a href="interview-sql-cte.html">🔗 SQL CTEs — Compact Notes</a>
+          <a href="interview-sql-null-case.html">❓ NULL, COALESCE &amp; CASE WHEN</a>
+          <a href="interview-sql-distinct.html">🔎 SQL DISTINCT</a>
+          <a href="interview-sql-date-time.html">📅 PostgreSQL Date &amp; Time Functions</a>
+          <a href="interview-sql-window-functions.html">🪟 PostgreSQL Window Functions</a>
+          <a href="interview-sql-joins.html">🔀 SQL Joins — Visual Notes</a>
+          <a href="interview-sql-subqueries.html">🔍 SQL Subqueries — Master Guide</a>
+          <a class="current" href="interview-sql-functions.html">⚙️ PostgreSQL Functions</a>
+          <a href="interview-sql-date-time.html">📅 PostgreSQL Date &amp; Time Functions</a>
+          <a href="interview-sql-window-functions.html">🪟 PostgreSQL Window Functions</a>
+          <span class="group-label">SQL</span>
+          <a href="interview-sql-cte.html">🔗 SQL CTEs — Compact Notes</a>
+          <a href="interview-sql-null-case.html">❓ NULL, COALESCE &amp; CASE WHEN</a>
+          <a href="interview-sql-distinct.html">🔎 SQL DISTINCT</a>
+          <span class="group-label">PostgreSQL</span>
+          <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+          <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+        
+        
+        </div>
+      </details>
 
-<div class="section-banner">
-  <div class="sb-icon">⚡</div>
-  <div>
-    <h2>Part 1 — Functions</h2>
-    <p>Reusable SQL logic stored in the database. Called on demand, return a value or a table, and encapsulate business rules.</p>
-  </div>
-</div>
-
-<!-- TOPIC 1 -->
-<div class="card" id="fn-what">
-  <div class="card-title"><span class="topic-num">1</span> What is a Function? &amp; Why do we use them?</div>
-  <div class="card-body">
-    <div class="short-answer">A function is a method saved inside PostgreSQL. You write the logic once and call it anywhere — in <code>SELECT</code>, <code>WHERE</code>, triggers, or other functions.</div>
-
-    <div class="interview">
-      <p><span class="qlabel">Q:</span> What is a function in PostgreSQL?</p>
-      <p><span class="ans-label">A:</span> A function is a named, reusable block of SQL or PL/pgSQL logic stored in the database. You call it by name, pass optional parameters, and it returns a value — a scalar, a set of rows, or nothing.</p>
+      <div class="toc"><a onclick="document.getElementById('create').scrollIntoView({behavior:'smooth'});return false;">Create & Call</a><a onclick="document.getElementById('params').scrollIntoView({behavior:'smooth'});return false;">Parameters</a><a onclick="document.getElementById('returns').scrollIntoView({behavior:'smooth'});return false;">Return Types</a><a onclick="document.getElementById('vars').scrollIntoView({behavior:'smooth'});return false;">Variables</a><a onclick="document.getElementById('cond').scrollIntoView({behavior:'smooth'});return false;">Conditions</a><a onclick="document.getElementById('crud').scrollIntoView({behavior:'smooth'});return false;">CRUD</a><a onclick="document.getElementById('return-stmt').scrollIntoView({behavior:'smooth'});return false;">RETURN</a><a onclick="document.getElementById('exceptions').scrollIntoView({behavior:'smooth'});return false;">Exceptions</a><a onclick="document.getElementById('loops').scrollIntoView({behavior:'smooth'});return false;">Loops</a><a onclick="document.getElementById('business').scrollIntoView({behavior:'smooth'});return false;">Business</a><a onclick="document.getElementById('medium').scrollIntoView({behavior:'smooth'});return false;">Intermediate</a><a onclick="document.getElementById('revision').scrollIntoView({behavior:'smooth'});return false;">Revision</a></div>
     </div>
 
-    <div class="analogy">🧠 <strong>Analogy:</strong> A function is like a saved recipe card. You write the steps once; every cook (query) just says the recipe's name and the ingredients (parameters), and gets the dish (result) back. Fix the recipe once and every cook benefits.</div>
+<div class="card"><div class="card-content compact">
+        <p>PostgreSQL functions let you write reusable SQL logic that can accept parameters, perform database operations, apply conditions, and return results.</p>
+        <h4>Why use functions?</h4>
+        <ul><li>Reuse business logic instead of writing the same SQL repeatedly.</li><li>Perform multiple database operations in one place.</li><li>Validate data before inserting or updating.</li><li>Return calculated results or complete datasets.</li><li>Keep application code cleaner.</li></ul>
+</div></div>
 
-    <div class="flow">
-      <div class="flow-row"><span class="flow-label">What happens when you call a function</span>
-        <div class="step c-src">Call<code>add_gst(price)</code></div><span class="arrow">→</span>
-        <div class="step c-proc">Planner finds it by name + argument types</div><span class="arrow">→</span>
-        <div class="step c-warn">Body runs<code>sql</code> or <code>plpgsql</code></div><span class="arrow">→</span>
-        <div class="step c-dst">Value / rows returned to the query</div>
+    <div class="section-divider" id="create"><span>1. Create and Call a Function</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Use <code>CREATE FUNCTION</code> to create a function and <code>SELECT</code> to execute it.</p>
+        <h4>Syntax</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">syntax.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">function_name</span>()
+<span class="kw">RETURNS</span> data_type
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="cmt">-- SQL logic</span>
+    <span class="kw">RETURN</span> value;
+<span class="kw">END</span>;
+$$;</code></pre>
+        </div>
+        <h4>Example</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">get_total_employees.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">get_total_employees</span>()
+<span class="kw">RETURNS</span> <span class="kw">INTEGER</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">DECLARE</span>
+    total <span class="kw">INTEGER</span>;
+<span class="kw">BEGIN</span>
+    <span class="kw">SELECT</span> <span class="fn">COUNT</span>(*) <span class="kw">INTO</span> total
+    <span class="kw">FROM</span> employees;
+
+    <span class="kw">RETURN</span> total;
+<span class="kw">END</span>;
+$$;</code></pre>
+        </div>
+        <p><strong>Call the function:</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">call.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> <span class="fn">get_total_employees</span>();</code></pre>
+        </div>
+        <h4>Important</h4>
+        <ul><li><code>CREATE OR REPLACE</code> creates or updates a function.</li><li><code>LANGUAGE plpgsql</code> enables procedural SQL.</li><li><code>BEGIN</code> and <code>END</code> contain the function logic.</li><li><code>RETURN</code> sends the result back.</li></ul>
       </div>
     </div>
 
-    <h3>Why use functions?</h3>
-    <div class="grid3">
-      <div class="why-card"><span class="wn">1</span><h4>Reusability</h4><p>Write once, use in queries, triggers and other functions. Change it once — all callers benefit.</p></div>
-      <div class="why-card"><span class="wn">2</span><h4>Encapsulate business logic</h4><p>Tax, discount rules, age computation — lives in the DB, not scattered across apps.</p></div>
-      <div class="why-card"><span class="wn">3</span><h4>Security</h4><p>Grant <code>EXECUTE</code> on a function instead of <code>SELECT</code> on tables. Users call it without seeing the tables.</p></div>
-      <div class="why-card"><span class="wn">4</span><h4>Fewer network round-trips</h4><p>Run complex multi-step logic in one DB call instead of many back-and-forth queries from the app.</p></div>
-      <div class="why-card"><span class="wn">5</span><h4>Powers triggers</h4><p>Every trigger calls a trigger function. Functions are the engine behind trigger logic.</p></div>
-      <div class="why-card"><span class="wn">6</span><h4>Consistency</h4><p>Every app, report and script uses the same rule, so results never drift between teams.</p></div>
+    <div class="section-divider" id="params"><span>2. Parameters (IN, OUT, INOUT)</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Parameters let you pass values into functions or get values back.</p>
+        <div class="table-scroll"><table><tr><th>Parameter</th><th>Purpose</th></tr><tr><td><code>IN</code></td><td>Accepts input (default).</td></tr><tr><td><code>OUT</code></td><td>Returns output.</td></tr><tr><td><code>INOUT</code></td><td>Accepts input and returns modified output.</td></tr></table></div>
+        <h4>A. IN — input parameter</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">get_employee.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">get_employee</span>(emp_id <span class="kw">INT</span>)
+<span class="kw">RETURNS</span> <span class="kw">TEXT</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">DECLARE</span>
+    emp_name <span class="kw">TEXT</span>;
+<span class="kw">BEGIN</span>
+    <span class="kw">SELECT</span> employee_name <span class="kw">INTO</span> emp_name
+    <span class="kw">FROM</span> employees
+    <span class="kw">WHERE</span> employee_id = emp_id;
+
+    <span class="kw">RETURN</span> emp_name;
+<span class="kw">END</span>;
+$$;
+
+<span class="cmt">-- Call</span>
+<span class="kw">SELECT</span> <span class="fn">get_employee</span>(<span class="num">1</span>);</code></pre>
+        </div>
+        <h4>B. OUT — output parameter</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">get_employee_count.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">get_employee_count</span>(<span class="kw">OUT</span> total <span class="kw">INT</span>)
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="kw">SELECT</span> <span class="fn">COUNT</span>(*) <span class="kw">INTO</span> total
+    <span class="kw">FROM</span> employees;
+<span class="kw">END</span>;
+$$;
+
+<span class="cmt">-- Call</span>
+<span class="kw">SELECT</span> <span class="fn">get_employee_count</span>();</code></pre>
+        </div>
+        <h4>C. INOUT — input + output</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">increase_salary.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">increase_salary</span>(<span class="kw">INOUT</span> salary <span class="kw">INT</span>)
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    salary := salary + <span class="num">5000</span>;
+<span class="kw">END</span>;
+$$;
+
+<span class="cmt">-- Call</span>
+<span class="kw">SELECT</span> <span class="fn">increase_salary</span>(<span class="num">20000</span>);</code></pre>
+        </div>
+        <div class="remember"><strong>Remember:</strong> <code>IN</code> receives values, <code>OUT</code> sends values, and <code>INOUT</code> does both.</div>
+      </div>
     </div>
 
-    <div class="code-block" data-file="why_functions.sql" data-lang="SQL" data-hl="7,8,9,10,12,13">
-<pre><code>-- Without a function: the rule is repeated everywhere
-SELECT name, (price * 1.18) AS price_with_gst
-FROM products;
-
--- With a function: the logic lives in one place
-CREATE OR REPLACE FUNCTION add_gst(price NUMERIC)
-RETURNS NUMERIC AS $$
-  SELECT price * 1.18;
-$$ LANGUAGE sql;
-
-SELECT name, add_gst(price) AS price_with_gst
-FROM products;
-
--- Change the GST rate once — all queries update</code></pre>
-    </div>
-
-    <h3>Function vs Procedure</h3>
-    <div class="table-scroll"><table>
-      <tr><th>Feature</th><th>Function</th><th>Procedure (PG 11+)</th></tr>
-      <tr><td>Called with</td><td><code>SELECT fn()</code> — inside any query</td><td><code>CALL proc()</code> — standalone only</td></tr>
-      <tr><td>Return value</td><td>Yes (scalar, table or <code>VOID</code>)</td><td>No return value (only <code>OUT</code> params)</td></tr>
-      <tr><td>Use in SELECT / WHERE</td><td>✅ Yes</td><td>❌ No</td></tr>
-      <tr><td>COMMIT / ROLLBACK inside</td><td>❌ No — runs in the caller's transaction</td><td>✅ Yes</td></tr>
-      <tr><td>Trigger body</td><td>✅ Yes (trigger function)</td><td>❌ No</td></tr>
-    </table></div>
-    <div class="remember">✅ Need a value inside a query, or a trigger body → <strong>function</strong>. Need to control transactions (batch jobs that COMMIT in chunks) → <strong>procedure</strong>.</div>
-  </div>
-</div>
-
-<!-- TOPIC 2 -->
-<div class="card" id="fn-create">
-  <div class="card-title"><span class="topic-num">2</span> CREATE FUNCTION — Syntax, Parameters, Return Types, Calling</div>
-  <div class="card-body">
-    <h3>Full anatomy of a function</h3>
-    <div class="code-block" data-file="function_anatomy.sql" data-lang="SQL" data-hl="2,3,6,7,8">
-<pre><code>CREATE OR REPLACE FUNCTION function_name (
-  param1  data_type,             -- IN param (default)
-  param2  data_type DEFAULT 0    -- optional param with a default
+    <div class="section-divider" id="returns"><span>3. Return Types (RETURNS TABLE)</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>A function can return different types of results.</p>
+        <div class="table-scroll"><table><tr><th>Return type</th><th>Purpose</th></tr><tr><td><code>RETURNS INT</code></td><td>Returns an integer.</td></tr><tr><td><code>RETURNS TEXT</code></td><td>Returns text.</td></tr><tr><td><code>RETURNS BOOLEAN</code></td><td>Returns true or false.</td></tr><tr><td><code>RETURNS NUMERIC</code></td><td>Returns decimal values.</td></tr><tr><td><code>RETURNS TABLE</code></td><td>Returns multiple rows and columns.</td></tr><tr><td><code>RETURNS SETOF</code></td><td>Returns multiple values or rows of a specified type.</td></tr></table></div>
+        <h4>A. RETURNS — single value</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">get_salary.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">FUNCTION</span> <span class="fn">get_salary</span>()
+<span class="kw">RETURNS</span> <span class="kw">NUMERIC</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="kw">RETURN</span> <span class="num">50000</span>;
+<span class="kw">END</span>;
+$$;</code></pre>
+        </div>
+        <h4>B. RETURNS TABLE — multiple rows and columns</h4>
+        <p>This is especially important for real projects.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">get_employees.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">get_employees</span>()
+<span class="kw">RETURNS</span> <span class="kw">TABLE</span> (
+    emp_id <span class="kw">INT</span>,
+    emp_name <span class="kw">TEXT</span>,
+    emp_salary <span class="kw">NUMERIC</span>
 )
-RETURNS return_type              -- NUMERIC, TEXT, TABLE(...), VOID, SETOF ...
-LANGUAGE plpgsql                 -- sql | plpgsql (python / javascript need extensions)
-SECURITY INVOKER                 -- run as caller (DEFINER = run as owner)
-STABLE                           -- VOLATILE | STABLE | IMMUTABLE
-AS $$
-DECLARE
-  var1 NUMERIC;                  -- local variables
-BEGIN
-  -- logic
-  RETURN var1;
-END;
-$$;</code></pre>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="kw">RETURN</span> <span class="kw">QUERY</span>
+    <span class="kw">SELECT</span> employee_id, employee_name, salary
+    <span class="kw">FROM</span> employees;
+<span class="kw">END</span>;
+$$;
+
+<span class="cmt">-- Call</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">get_employees</span>();</code></pre>
+        </div>
+        <p>You can also filter the returned data:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">filter.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> *
+<span class="kw">FROM</span> <span class="fn">get_employees</span>()
+<span class="kw">WHERE</span> emp_salary &gt; <span class="num">50000</span>;</code></pre>
+        </div>
+        <h4>Why use RETURNS TABLE?</h4>
+        <ul><li>Return multiple rows and columns.</li><li>Create reusable database queries.</li><li>Use function results like a table in a query.</li><li>Useful for reports, dashboards and APIs.</li></ul>
+      </div>
     </div>
 
-    <div class="table-scroll"><table>
-      <tr><th>Keyword</th><th>Options</th><th>Meaning</th></tr>
-      <tr><td><code>LANGUAGE</code></td><td><code>sql</code>, <code>plpgsql</code>, <code>plpython3u</code></td><td>Language the body is written in</td></tr>
-      <tr><td><code>RETURNS</code></td><td><code>NUMERIC</code>, <code>TEXT</code>, <code>VOID</code>, <code>TABLE(…)</code>, <code>SETOF type</code></td><td>What the function gives back</td></tr>
-      <tr><td><code>VOLATILE</code></td><td>Default — can change data, never cached</td><td>Use when INSERT / UPDATE / DELETE happen inside</td></tr>
-      <tr><td><code>STABLE</code></td><td>Same result within one query if inputs are unchanged</td><td>Reads the DB, no writes — planner can cache per query</td></tr>
-      <tr><td><code>IMMUTABLE</code></td><td>Same result always for the same inputs</td><td>Pure math / string — planner can pre-evaluate</td></tr>
-      <tr><td><code>SECURITY DEFINER</code></td><td>Runs as the function owner</td><td>Caller can't see the tables but the function can</td></tr>
-      <tr><td><code>SECURITY INVOKER</code></td><td>Default — runs as the caller</td><td>Caller needs permission on every table the function touches</td></tr>
-    </table></div>
+    <div class="section-divider" id="vars"><span>4. Variables and SELECT INTO</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Variables store temporary values inside a function.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">syntax.sql</span></div>
+          <pre><code><span class="kw">DECLARE</span>
+    variable_name DATA_TYPE;</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">get_employee_salary.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">get_employee_salary</span>(emp_id <span class="kw">INT</span>)
+<span class="kw">RETURNS</span> <span class="kw">NUMERIC</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">DECLARE</span>
+    emp_salary <span class="kw">NUMERIC</span>;
+<span class="kw">BEGIN</span>
+    <span class="kw">SELECT</span> salary <span class="kw">INTO</span> emp_salary
+    <span class="kw">FROM</span> employees
+    <span class="kw">WHERE</span> employee_id = emp_id;
 
-    <h3>Parameters — IN, OUT, INOUT, DEFAULT</h3>
-    <div class="code-block" data-file="function_params.sql" data-lang="SQL">
-<pre><code>-- IN param (default) — input only
-CREATE OR REPLACE FUNCTION square(n NUMERIC)
-RETURNS NUMERIC LANGUAGE sql AS $$
-  SELECT n * n;
-$$;
-SELECT square(5);  -- 25
-
--- DEFAULT param — optional
-CREATE OR REPLACE FUNCTION greet(name TEXT, greeting TEXT DEFAULT 'Hello')
-RETURNS TEXT LANGUAGE sql AS $$
-  SELECT greeting || ', ' || name || '!';
-$$;
-SELECT greet('Aman');              -- 'Hello, Aman!'
-SELECT greet('Aman', 'Namaste');   -- 'Namaste, Aman!'
-
--- OUT params — multiple return values without a composite type
--- (with OUT params, RETURNS is not written)
-CREATE OR REPLACE FUNCTION min_max(
-  arr NUMERIC[],
-  OUT minimum NUMERIC,
-  OUT maximum NUMERIC
-) LANGUAGE sql AS $$
-  SELECT MIN(x), MAX(x) FROM unnest(arr) x;
-$$;
-SELECT * FROM min_max(ARRAY[3,1,7,2]::NUMERIC[]);  -- minimum=1, maximum=7</code></pre>
-    </div>
-
-    <h3>Calling functions</h3>
-    <div class="code-block" data-file="calling_functions.sql" data-lang="SQL">
-<pre><code>-- In SELECT
-SELECT add_gst(price) FROM products;
-SELECT UPPER(name), square(age) FROM users;
-
--- In WHERE
-SELECT * FROM products WHERE add_gst(price) &lt; 1000;
-
--- Standalone call (VOID or table-returning functions)
-SELECT my_void_function();
-SELECT * FROM get_active_users();
-
--- Named parameter style
-SELECT greet(name => 'Aman', greeting => 'Hey');
-
--- Drop a function
-DROP FUNCTION IF EXISTS square(NUMERIC);
-DROP FUNCTION IF EXISTS greet(TEXT, TEXT);  -- must give param types if overloaded</code></pre>
-    </div>
-    <div class="warning">⚠️ <strong>Overloading:</strong> PostgreSQL identifies a function by <em>name + argument types</em>. <code>CREATE OR REPLACE</code> with different parameter types creates a second function instead of replacing — and <code>DROP FUNCTION name</code> alone fails when it's ambiguous.</div>
-    <div class="tip">💡 Wrapping a column in a function inside <code>WHERE</code> (like <code>add_gst(price) &lt; 1000</code>) stops a normal index on <code>price</code> from being used. Compare against the raw column when you can, or build an expression index (see Topic 4).</div>
-  </div>
-</div>
-
-<!-- TOPIC 3 -->
-<div class="card" id="fn-types">
-  <div class="card-title"><span class="topic-num">3</span> Function Types — Scalar, Table-Returning, Void, PL/pgSQL</div>
-  <div class="card-body">
-    <div class="grid2">
-      <div class="fn-card">
-        <h4>🔢 Scalar Function — returns one value</h4>
-        <p class="fn-body">Returns a single value of any type. Used in SELECT, WHERE and expressions. The most common type.</p>
-        <div class="code-block" data-file="scalar.sql" data-lang="SQL">
-<pre><code>CREATE OR REPLACE FUNCTION
-  full_name(first TEXT, last TEXT)
-RETURNS TEXT
-LANGUAGE sql IMMUTABLE AS $$
-  SELECT first || ' ' || last;
-$$;
-
-SELECT full_name('Aman', 'Sharma');
--- → 'Aman Sharma'
-
-CREATE OR REPLACE FUNCTION
-  age_in_years(dob DATE)
-RETURNS INT
-LANGUAGE sql STABLE AS $$
-  SELECT DATE_PART('year',
-    AGE(CURRENT_DATE, dob))::INT;
+    <span class="kw">RETURN</span> emp_salary;
+<span class="kw">END</span>;
 $$;</code></pre>
         </div>
+        <h4>Understanding SELECT INTO</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">select-into.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> salary <span class="kw">INTO</span> emp_salary
+<span class="kw">FROM</span> employees
+<span class="kw">WHERE</span> employee_id = <span class="num">1</span>;</code></pre>
+        </div>
+        <ul><li>Fetch the employee’s salary.</li><li>Store the result in <code>emp_salary</code>.</li><li>Use that variable later in the function.</li></ul>
+        <div class="warning"><strong>Important:</strong> if no row is found, the variable becomes <code>NULL</code> unless you handle it. If multiple rows are returned, only the first row is assigned (without guaranteed ordering).</div>
       </div>
+    </div>
 
-      <div class="fn-card">
-        <h4>📋 Table-Returning — returns rows</h4>
-        <p class="fn-body">Returns a result set. Used with <code>SELECT * FROM fn()</code>. Two styles: <code>RETURNS TABLE</code> or <code>RETURNS SETOF</code>.</p>
-        <div class="code-block" data-file="table_fn.sql" data-lang="SQL">
-<pre><code>-- RETURNS TABLE style
-CREATE OR REPLACE FUNCTION
-  get_user_orders(uid INT)
-RETURNS TABLE(
-  order_id INT,
-  total    NUMERIC,
-  status   TEXT
+    <div class="section-divider" id="cond"><span>5. Conditions</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Conditions let functions make decisions. PostgreSQL supports <code>IF</code>, <code>ELSIF</code>, <code>ELSE</code> and <code>CASE</code>.</p>
+        <h4>A. IF / ELSE</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">check_salary.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">check_salary</span>(salary <span class="kw">NUMERIC</span>)
+<span class="kw">RETURNS</span> <span class="kw">TEXT</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="kw">IF</span> salary &gt;= <span class="num">70000</span> <span class="kw">THEN</span>
+        <span class="kw">RETURN</span> <span class="str">&#x27;High Salary&#x27;</span>;
+
+    <span class="kw">ELSE</span>
+        <span class="kw">RETURN</span> <span class="str">&#x27;Normal Salary&#x27;</span>;
+    <span class="kw">END</span> <span class="kw">IF</span>;
+<span class="kw">END</span>;
+$$;</code></pre>
+        </div>
+        <h4>B. IF / ELSIF / ELSE</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">elsif.sql</span></div>
+          <pre><code><span class="kw">IF</span> salary &gt;= <span class="num">70000</span> <span class="kw">THEN</span>
+    result := <span class="str">&#x27;High&#x27;</span>;
+
+<span class="kw">ELSIF</span> salary &gt;= <span class="num">30000</span> <span class="kw">THEN</span>
+    result := <span class="str">&#x27;Medium&#x27;</span>;
+
+<span class="kw">ELSE</span>
+    result := <span class="str">&#x27;Low&#x27;</span>;
+<span class="kw">END</span> <span class="kw">IF</span>;</code></pre>
+        </div>
+        <h4>C. CASE</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">case.sql</span></div>
+          <pre><code><span class="kw">CASE</span>
+    <span class="kw">WHEN</span> salary &gt;= <span class="num">70000</span> <span class="kw">THEN</span>
+        result := <span class="str">&#x27;High&#x27;</span>;
+
+    <span class="kw">WHEN</span> salary &gt;= <span class="num">30000</span> <span class="kw">THEN</span>
+        result := <span class="str">&#x27;Medium&#x27;</span>;
+
+    <span class="kw">ELSE</span>
+        result := <span class="str">&#x27;Low&#x27;</span>;
+<span class="kw">END</span> <span class="kw">CASE</span>;</code></pre>
+        </div>
+        <p>Use conditions for: salary classification, order status validation, discount calculation, payment verification.</p>
+      </div>
+    </div>
+
+    <div class="section-divider" id="crud"><span>6. Database Operations (CRUD)</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Functions can perform INSERT, SELECT, UPDATE and DELETE operations.</p>
+        <h4>A. INSERT</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">add_employee.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">add_employee</span>(
+    emp_name <span class="kw">TEXT</span>,
+    emp_salary <span class="kw">NUMERIC</span>
 )
-LANGUAGE sql AS $$
-  SELECT id, total, status
-  FROM   orders
-  WHERE  user_id = uid;
+<span class="kw">RETURNS</span> <span class="kw">TEXT</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="kw">INSERT</span> <span class="kw">INTO</span> <span class="fn">employees</span>(employee_name, salary)
+    <span class="kw">VALUES</span> (emp_name, emp_salary);
+
+    <span class="kw">RETURN</span> <span class="str">&#x27;Employee added successfully&#x27;</span>;
+<span class="kw">END</span>;
 $$;
 
-SELECT * FROM get_user_orders(42);
--- Returns multiple rows like a table</code></pre>
+<span class="cmt">-- Call</span>
+<span class="kw">SELECT</span> <span class="fn">add_employee</span>(<span class="str">&#x27;Rahul&#x27;</span>, <span class="num">50000</span>);</code></pre>
         </div>
+        <h4>B. SELECT</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">select.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> salary <span class="kw">INTO</span> emp_salary
+<span class="kw">FROM</span> employees
+<span class="kw">WHERE</span> employee_id = <span class="num">1</span>;</code></pre>
+        </div>
+        <h4>C. UPDATE</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">update.sql</span></div>
+          <pre><code><span class="kw">UPDATE</span> employees
+<span class="kw">SET</span> salary = salary + <span class="num">5000</span>
+<span class="kw">WHERE</span> employee_id = <span class="num">1</span>;</code></pre>
+        </div>
+        <h4>D. DELETE</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">delete.sql</span></div>
+          <pre><code><span class="kw">DELETE</span> <span class="kw">FROM</span> employees
+<span class="kw">WHERE</span> employee_id = <span class="num">1</span>;</code></pre>
+        </div>
+        <div class="remember"><strong>Practical use:</strong> you can combine validation, conditions and CRUD operations in a single function.</div>
       </div>
+    </div>
 
-      <div class="fn-card">
-        <h4>🔇 Void Function — returns nothing</h4>
-        <p class="fn-body">Performs an action (INSERT, UPDATE, logging) and returns nothing. Like a "procedure" in other languages.</p>
-        <div class="code-block" data-file="void_fn.sql" data-lang="SQL">
-<pre><code>CREATE OR REPLACE FUNCTION
-  archive_old_orders(days INT)
-RETURNS VOID
-LANGUAGE plpgsql AS $$
-BEGIN
-  -- move rows atomically: delete + insert in one statement
-  WITH moved AS (
-    DELETE FROM orders
-    WHERE created_at &lt; NOW() - make_interval(days =&gt; days)
-    RETURNING *
-  )
-  INSERT INTO orders_archive SELECT * FROM moved;
-END;
+    <div class="section-divider" id="return-stmt"><span>7. Return Statements</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p><code>RETURN</code> sends a result back to the caller.</p>
+        <div class="table-scroll"><table><tr><th>Statement</th><th>Purpose</th></tr><tr><td><code>RETURN value</code></td><td>Returns a single value.</td></tr><tr><td><code>RETURN NEXT</code></td><td>Adds one row/value to the result.</td></tr><tr><td><code>RETURN QUERY</code></td><td>Adds results from a query.</td></tr><tr><td><code>RETURN;</code></td><td>Exits a function without returning a value explicitly.</td></tr></table></div>
+        <h4>A. RETURN</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">return.sql</span></div>
+          <pre><code><span class="kw">RETURN</span> <span class="str">&#x27;Success&#x27;</span>;</code></pre>
+        </div>
+        <h4>B. RETURN QUERY</h4>
+        <p>Used with <code>RETURNS TABLE</code> or compatible set-returning functions.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">return-query.sql</span></div>
+          <pre><code><span class="kw">RETURN</span> <span class="kw">QUERY</span>
+<span class="kw">SELECT</span> employee_id, employee_name, salary
+<span class="kw">FROM</span> employees;</code></pre>
+        </div>
+        <h4>C. RETURN NEXT</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">get_employee_ids.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">get_employee_ids</span>()
+<span class="kw">RETURNS</span> <span class="kw">SETOF</span> <span class="kw">INT</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="kw">RETURN</span> <span class="kw">NEXT</span> <span class="num">1</span>;
+    <span class="kw">RETURN</span> <span class="kw">NEXT</span> <span class="num">2</span>;
+    <span class="kw">RETURN</span> <span class="kw">NEXT</span> <span class="num">3</span>;
+<span class="kw">END</span>;
 $$;
 
-SELECT archive_old_orders(90);</code></pre>
+<span class="cmt">-- Call</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">get_employee_ids</span>();</code></pre>
         </div>
+        <div class="warning"><strong>Important:</strong> <code>RETURN QUERY</code> and <code>RETURN NEXT</code> add rows to the result; they do not immediately terminate the function. A final <code>RETURN</code> can end execution.</div>
       </div>
+    </div>
 
-      <div class="fn-card">
-        <h4>🧩 PL/pgSQL Function — multi-step logic</h4>
-        <p class="fn-body">Full procedural language with variables, IF/ELSE, loops and exception handling. Needed for logic beyond one SQL statement.</p>
-        <div class="code-block" data-file="plpgsql_fn.sql" data-lang="SQL">
-<pre><code>CREATE OR REPLACE FUNCTION
-  classify_order(amount NUMERIC)
-RETURNS TEXT
-LANGUAGE plpgsql IMMUTABLE AS $$
-DECLARE
-  category TEXT;
-BEGIN
-  IF    amount &gt;= 10000 THEN category := 'Premium';
-  ELSIF amount &gt;= 1000  THEN category := 'Standard';
-  ELSE                       category := 'Small';
-  END IF;
-  RETURN category;
-END;
+    <div class="section-divider" id="exceptions"><span>8. Exception Handling</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Exception handling manages errors without abruptly terminating the function. Use <code>EXCEPTION</code> with <code>WHEN</code>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">syntax.sql</span></div>
+          <pre><code><span class="kw">BEGIN</span>
+    <span class="cmt">-- SQL logic</span>
+
+<span class="kw">EXCEPTION</span>
+    <span class="kw">WHEN</span> exception_name <span class="kw">THEN</span>
+        <span class="cmt">-- Error handling</span>
+<span class="kw">END</span>;</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">divide_numbers.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">divide_numbers</span>(a <span class="kw">NUMERIC</span>, b <span class="kw">NUMERIC</span>)
+<span class="kw">RETURNS</span> <span class="kw">NUMERIC</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="kw">RETURN</span> a / b;
+
+<span class="kw">EXCEPTION</span>
+    <span class="kw">WHEN</span> division_by_zero <span class="kw">THEN</span>
+        <span class="kw">RETURN</span> <span class="num">0</span>;
+<span class="kw">END</span>;
+$$;
+
+<span class="cmt">-- Call</span>
+<span class="kw">SELECT</span> <span class="fn">divide_numbers</span>(<span class="num">10</span>, <span class="num">0</span>);   <span class="cmt">-- Output: 0</span></code></pre>
+        </div>
+        <h4>Common exceptions</h4>
+        <div class="table-scroll"><table><tr><th>Exception</th><th>Meaning</th></tr><tr><td><code>division_by_zero</code></td><td>Division by zero.</td></tr><tr><td><code>unique_violation</code></td><td>Duplicate unique value.</td></tr><tr><td><code>foreign_key_violation</code></td><td>Foreign key constraint failure.</td></tr><tr><td><code>no_data_found</code></td><td>No row found with <code>SELECT INTO STRICT</code>.</td></tr><tr><td><code>others</code></td><td>Catches other errors.</td></tr></table></div>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">others.sql</span></div>
+          <pre><code><span class="kw">EXCEPTION</span>
+    <span class="kw">WHEN</span> <span class="kw">OTHERS</span> <span class="kw">THEN</span>
+        <span class="kw">RAISE</span> <span class="kw">NOTICE</span> <span class="str">&#x27;Error: %&#x27;</span>, SQLERRM;
+        <span class="kw">RETURN</span> <span class="num">0</span>;</code></pre>
+        </div>
+        <p><code>SQLERRM</code> provides the error message.</p>
+        <div class="note"><strong>Note:</strong> a block with an exception handler rolls back database changes made inside that block before executing the handler.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="loops"><span>9. Loops</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Loops execute SQL statements repeatedly. PostgreSQL supports <code>LOOP</code>, <code>WHILE</code> and <code>FOR</code>.</p>
+        <h4>A. LOOP</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">loop.sql</span></div>
+          <pre><code><span class="kw">DECLARE</span>
+    counter <span class="kw">INT</span> := <span class="num">1</span>;
+<span class="kw">BEGIN</span>
+    <span class="kw">LOOP</span>
+        <span class="kw">EXIT</span> <span class="kw">WHEN</span> counter &gt; <span class="num">5</span>;
+
+        <span class="kw">RAISE</span> <span class="kw">NOTICE</span> <span class="str">&#x27;%&#x27;</span>, counter;
+
+        counter := counter + <span class="num">1</span>;
+    <span class="kw">END</span> <span class="kw">LOOP</span>;
+<span class="kw">END</span>;</code></pre>
+        </div>
+        <h4>B. WHILE LOOP</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">while.sql</span></div>
+          <pre><code><span class="kw">DECLARE</span>
+    counter <span class="kw">INT</span> := <span class="num">1</span>;
+<span class="kw">BEGIN</span>
+    <span class="kw">WHILE</span> counter &lt;= <span class="num">5</span> <span class="kw">LOOP</span>
+        <span class="kw">RAISE</span> <span class="kw">NOTICE</span> <span class="str">&#x27;%&#x27;</span>, counter;
+
+        counter := counter + <span class="num">1</span>;
+    <span class="kw">END</span> <span class="kw">LOOP</span>;
+<span class="kw">END</span>;</code></pre>
+        </div>
+        <h4>C. FOR LOOP</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">for.sql</span></div>
+          <pre><code><span class="kw">BEGIN</span>
+    <span class="kw">FOR</span> counter <span class="kw">IN</span> <span class="num">1</span>..<span class="num">5</span> <span class="kw">LOOP</span>
+        <span class="kw">RAISE</span> <span class="kw">NOTICE</span> <span class="str">&#x27;%&#x27;</span>, counter;
+    <span class="kw">END</span> <span class="kw">LOOP</span>;
+<span class="kw">END</span>;</code></pre>
+        </div>
+        <h4>Important keywords</h4>
+        <ul><li><code>EXIT</code> – stop the loop.</li><li><code>CONTINUE</code> – skip the current iteration.</li><li><code>RAISE NOTICE</code> – display a message.</li></ul>
+        <div class="tip">Loops are useful when processing records one by one, but prefer SQL-based operations such as <code>UPDATE</code> and <code>INSERT ... SELECT</code> when possible.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="business"><span>10. Practical Business Functions</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Common real-world examples where functions are useful.</p>
+        <h4>A. Calculate discount</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">calculate_discount.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">calculate_discount</span>(
+    amount <span class="kw">NUMERIC</span>,
+    discount_percent <span class="kw">NUMERIC</span>
+)
+<span class="kw">RETURNS</span> <span class="kw">NUMERIC</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="kw">RETURN</span> amount - (amount * discount_percent / <span class="num">100</span>);
+<span class="kw">END</span>;
+$$;
+
+<span class="cmt">-- Call</span>
+<span class="kw">SELECT</span> <span class="fn">calculate_discount</span>(<span class="num">10000</span>, <span class="num">10</span>);   <span class="cmt">-- Output: 9000</span></code></pre>
+        </div>
+        <h4>B. Check order status</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">check_order_status.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">check_order_status</span>(order_id <span class="kw">INT</span>)
+<span class="kw">RETURNS</span> <span class="kw">TEXT</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">DECLARE</span>
+    status <span class="kw">TEXT</span>;
+<span class="kw">BEGIN</span>
+    <span class="kw">SELECT</span> orders.status <span class="kw">INTO</span> status
+    <span class="kw">FROM</span> orders
+    <span class="kw">WHERE</span> orders.order_id = check_order_status.order_id;
+
+    <span class="kw">IF</span> status <span class="kw">IS</span> <span class="kw">NULL</span> <span class="kw">THEN</span>
+        <span class="kw">RETURN</span> <span class="str">&#x27;Order not found&#x27;</span>;
+    <span class="kw">END</span> <span class="kw">IF</span>;
+
+    <span class="kw">RETURN</span> status;
+<span class="kw">END</span>;
 $$;</code></pre>
         </div>
+        <h4>C. Transfer money between accounts</h4>
+        <p>A simplified example:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">transfer_money.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">transfer_money</span>(
+    from_id <span class="kw">INT</span>,
+    to_id <span class="kw">INT</span>,
+    amount <span class="kw">NUMERIC</span>
+)
+<span class="kw">RETURNS</span> <span class="kw">TEXT</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="kw">IF</span> amount &lt;= <span class="num">0</span> <span class="kw">THEN</span>
+        <span class="kw">RETURN</span> <span class="str">&#x27;Invalid amount&#x27;</span>;
+    <span class="kw">END</span> <span class="kw">IF</span>;
+
+    <span class="kw">UPDATE</span> accounts
+    <span class="kw">SET</span> balance = balance - amount
+    <span class="kw">WHERE</span> account_id = from_id
+      <span class="kw">AND</span> balance &gt;= amount;
+
+    <span class="kw">IF</span> <span class="kw">NOT</span> <span class="kw">FOUND</span> <span class="kw">THEN</span>
+        <span class="kw">RETURN</span> <span class="str">&#x27;Insufficient balance or account not found&#x27;</span>;
+    <span class="kw">END</span> <span class="kw">IF</span>;
+
+    <span class="kw">UPDATE</span> accounts
+    <span class="kw">SET</span> balance = balance + amount
+    <span class="kw">WHERE</span> account_id = to_id;
+
+    <span class="kw">IF</span> <span class="kw">NOT</span> <span class="kw">FOUND</span> <span class="kw">THEN</span>
+        <span class="kw">RAISE</span> <span class="kw">EXCEPTION</span> <span class="str">&#x27;Destination account not found&#x27;</span>;
+    <span class="kw">END</span> <span class="kw">IF</span>;
+
+    <span class="kw">RETURN</span> <span class="str">&#x27;Transfer successful&#x27;</span>;
+<span class="kw">END</span>;
+$$;</code></pre>
+        </div>
+        <div class="warning">This example demonstrates business logic, but a production money-transfer function should also validate both accounts, lock rows against concurrent transfers, and handle transaction failures safely.</div>
       </div>
     </div>
 
-    <div class="table-scroll"><table>
-      <tr><th>Type</th><th>RETURNS</th><th>Language</th><th>Use for</th></tr>
-      <tr><td><span class="badge bg-blue">Scalar</span></td><td><code>NUMERIC</code>, <code>TEXT</code>, <code>BOOLEAN</code>, etc.</td><td><code>sql</code> or <code>plpgsql</code></td><td>Single value: tax, age, full name</td></tr>
-      <tr><td><span class="badge bg-green">Table-Returning</span></td><td><code>TABLE(…)</code> or <code>SETOF type</code></td><td><code>sql</code> or <code>plpgsql</code></td><td>Multiple rows: user orders, search results</td></tr>
-      <tr><td><span class="badge bg-orange">Void</span></td><td><code>VOID</code></td><td><code>plpgsql</code></td><td>Side-effects only: archive, cleanup, logging</td></tr>
-      <tr><td><span class="badge bg-purple">PL/pgSQL</span></td><td>Any</td><td><code>plpgsql</code></td><td>IF/ELSE, loops, variables, exception handling</td></tr>
-      <tr><td><span class="badge bg-teal">Trigger Function</span></td><td><code>TRIGGER</code></td><td><code>plpgsql</code></td><td>Only used as a trigger body — special return type</td></tr>
-    </table></div>
-  </div>
-</div>
+    <div class="section-divider" id="medium"><span>11. Medium / Intermediate Concepts</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Additional concepts worth learning after the basics.</p>
+        <div class="table-scroll"><table><tr><th>Concept</th><th>Explanation</th></tr><tr><td><code>FOUND</code></td><td>Checks whether the last SQL statement affected or returned any rows.</td></tr><tr><td><code>RAISE NOTICE</code></td><td>Displays debugging messages.</td></tr><tr><td><code>RAISE EXCEPTION</code></td><td>Throws an error and stops normal execution.</td></tr><tr><td><code>SQLERRM</code></td><td>Gets the current exception message.</td></tr><tr><td><code>GET DIAGNOSTICS</code></td><td>Retrieves information such as affected row count.</td></tr><tr><td><code>STRICT</code></td><td>Requires a query to return exactly one row for <code>SELECT INTO</code>.</td></tr><tr><td><code>RETURNING</code></td><td>Returns inserted, updated or deleted row data.</td></tr><tr><td><code>PERFORM</code></td><td>Executes a query when you don’t need its result.</td></tr><tr><td><code>EXECUTE</code></td><td>Executes dynamically constructed SQL.</td></tr><tr><td><code>SECURITY DEFINER</code></td><td>Runs a function with the privileges of its owner.</td></tr><tr><td><code>VOLATILE / STABLE / IMMUTABLE</code></td><td>Describes how a function behaves regarding changes and repeated calls.</td></tr></table></div>
+        <h4>A. FOUND</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">found.sql</span></div>
+          <pre><code><span class="kw">UPDATE</span> employees
+<span class="kw">SET</span> salary = salary + <span class="num">5000</span>
+<span class="kw">WHERE</span> employee_id = <span class="num">1</span>;
 
-<!-- TOPIC 4 (new) -->
-<div class="card" id="fn-best">
-  <div class="card-title"><span class="topic-num">4</span> Volatility, Security &amp; Best Practices</div>
-  <div class="card-body">
-    <div class="interview">
-      <p><span class="qlabel">Q:</span> What is the difference between VOLATILE, STABLE and IMMUTABLE?</p>
-      <p><span class="ans-label">A:</span> They tell the planner how much it may trust the result. <code>IMMUTABLE</code> always gives the same output for the same input, so it can be pre-evaluated and used in indexes. <code>STABLE</code> is constant within a single query. <code>VOLATILE</code> (default) can change at any call, so it is re-run every time.</p>
+<span class="kw">IF</span> <span class="kw">FOUND</span> <span class="kw">THEN</span>
+    <span class="kw">RAISE</span> <span class="kw">NOTICE</span> <span class="str">&#x27;Employee updated&#x27;</span>;
+<span class="kw">ELSE</span>
+    <span class="kw">RAISE</span> <span class="kw">NOTICE</span> <span class="str">&#x27;Employee not found&#x27;</span>;
+<span class="kw">END</span> <span class="kw">IF</span>;</code></pre>
+        </div>
+        <h4>B. GET DIAGNOSTICS</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">diagnostics.sql</span></div>
+          <pre><code><span class="kw">DECLARE</span>
+    affected_rows <span class="kw">INT</span>;
+<span class="kw">BEGIN</span>
+    <span class="kw">UPDATE</span> employees
+    <span class="kw">SET</span> salary = salary + <span class="num">1000</span>
+    <span class="kw">WHERE</span> department_id = <span class="num">1</span>;
+
+    <span class="kw">GET</span> <span class="kw">DIAGNOSTICS</span> affected_rows = <span class="kw">ROW_COUNT</span>;
+
+    <span class="kw">RAISE</span> <span class="kw">NOTICE</span> <span class="str">&#x27;Updated rows: %&#x27;</span>, affected_rows;
+<span class="kw">END</span>;</code></pre>
+        </div>
+        <h4>C. RETURNING</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">returning.sql</span></div>
+          <pre><code><span class="kw">INSERT</span> <span class="kw">INTO</span> <span class="fn">employees</span>(employee_name, salary)
+<span class="kw">VALUES</span> (<span class="str">&#x27;Amit&#x27;</span>, <span class="num">50000</span>)
+<span class="kw">RETURNING</span> employee_id <span class="kw">INTO</span> new_id;</code></pre>
+        </div>
+        <p>Useful when you need the newly generated ID after inserting a record.</p>
+        <h4>D. PERFORM</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">perform.sql</span></div>
+          <pre><code><span class="kw">PERFORM</span> <span class="fn">COUNT</span>(*)
+<span class="kw">FROM</span> employees;</code></pre>
+        </div>
+        <p>Executes a query without storing or returning its result.</p>
+      </div>
     </div>
 
-    <div class="table-scroll"><table>
-      <tr><th>Category</th><th>Example</th><th>Can the planner cache it?</th></tr>
-      <tr><td><code>IMMUTABLE</code></td><td><code>square(n)</code>, <code>full_name()</code></td><td>Yes — pre-evaluated, allowed in expression indexes</td></tr>
-      <tr><td><code>STABLE</code></td><td><code>age_in_years()</code> (uses today's date)</td><td>Once per query only</td></tr>
-      <tr><td><code>VOLATILE</code></td><td><code>archive_old_orders()</code>, anything calling <code>random()</code></td><td>Never — runs on every call</td></tr>
-    </table></div>
-
-    <div class="code-block" data-file="best_practices.sql" data-lang="SQL" data-hl="4,5,12,13,14,17,18">
-<pre><code>-- Expression index: the function MUST be IMMUTABLE
-CREATE INDEX idx_users_full_name
-  ON users (full_name(first_name, last_name));
-
--- SECURITY DEFINER: always pin the search_path
-CREATE OR REPLACE FUNCTION get_salary(emp_id INT)
-RETURNS NUMERIC
-LANGUAGE sql STABLE
-SECURITY DEFINER
-SET search_path = public, pg_temp
-AS $$
-  SELECT salary FROM employees WHERE id = emp_id;
-$$;
-
--- Lock it down: only the app role may call it
-REVOKE EXECUTE ON FUNCTION get_salary(INT) FROM PUBLIC;
-GRANT  EXECUTE ON FUNCTION get_salary(INT) TO app_user;</code></pre>
+    <div class="section-divider" id="revision"><span>Quick revision — what to learn first</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="table-scroll"><table><tr><th>Priority</th><th>Topic</th><th>Importance</th></tr><tr><td>1</td><td>Create and call functions</td><td>Essential</td></tr><tr><td>2</td><td>IN, OUT, INOUT</td><td>Essential</td></tr><tr><td>3</td><td>RETURNS TABLE</td><td>Very important</td></tr><tr><td>4</td><td>Variables and SELECT INTO</td><td>Essential</td></tr><tr><td>5</td><td>IF, ELSE, CASE</td><td>Essential</td></tr><tr><td>6</td><td>CRUD operations</td><td>Essential</td></tr><tr><td>7</td><td>RETURN, RETURN QUERY</td><td>Very important</td></tr><tr><td>8</td><td>Exception handling</td><td>Very important</td></tr><tr><td>9</td><td>Loops</td><td>Intermediate</td></tr><tr><td>10</td><td>Business functions</td><td>Practical</td></tr><tr><td>11</td><td>FOUND, STRICT, RETURNING, etc.</td><td>Intermediate</td></tr></table></div>
+        <div class="remember"><strong>Recommendation:</strong> focus more on <code>RETURNS TABLE</code>, parameters, <code>SELECT INTO</code>, CRUD, conditions and exception handling. These are particularly useful when integrating PostgreSQL functions with Node.js/NestJS APIs.</div>
+      </div>
     </div>
 
-    <div class="warning">⚠️ <strong>Never label a function IMMUTABLE if it reads tables or depends on the date/time.</strong> PostgreSQL trusts the label: an index or cached value built on a wrong IMMUTABLE function silently returns stale or wrong results.</div>
-    <div class="warning">⚠️ <strong>SECURITY DEFINER without <code>SET search_path</code></strong> lets a caller plant a same-named object in their own schema and hijack the function while it runs with the owner's rights. Always pin <code>search_path</code>, and revoke <code>EXECUTE</code> from <code>PUBLIC</code>.</div>
-    <div class="note">📌 Simple <code>LANGUAGE sql</code> functions can be <strong>inlined</strong> by the planner into the calling query, so they often cost nothing extra. PL/pgSQL functions are a black box to the planner — prefer plain SQL when a single statement is enough.</div>
-    <div class="remember">✅ <strong>Golden rules:</strong> Use <code>sql</code> for one statement, <code>plpgsql</code> for logic. Mark volatility honestly. Pin <code>search_path</code> on <code>SECURITY DEFINER</code>. Don't wrap indexed columns in functions inside <code>WHERE</code>.</div>
   </div>
-</div>
-
-</div>
-
-<script>
-  function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-  var KW = 'CREATE|OR|REPLACE|FUNCTION|PROCEDURE|RETURNS|RETURN|LANGUAGE|DEFAULT|OUT|SECURITY|DEFINER|INVOKER|STABLE|IMMUTABLE|VOLATILE|DECLARE|BEGIN|END|IF|THEN|ELSIF|ELSE|INSERT|INTO|DELETE|DROP|EXISTS|SELECT|FROM|WHERE|AS|SET|VOID|TABLE|SETOF|RETURNING|INDEX|ON|USING|CALL|REVOKE|GRANT|EXECUTE|PUBLIC|TO|WITH|CURRENT_DATE|NOT|UPDATE';
-  var TY = 'NUMERIC|TEXT|INT|INTEGER|DATE|BOOLEAN|INTERVAL|TRIGGER';
-  var TOK = new RegExp('(--[^\\n]*)|(\'(?:[^\'\\n]|\'\')*\')|(\\$\\$)|\\b(' + KW + ')\\b|\\b(' + TY + ')\\b|\\b(\\d+(?:\\.\\d+)?)\\b|\\b([A-Za-z_]\\w*)(?=\\()', 'gi');
-  function hlSQL(text) {
-    var out = '', last = 0, m;
-    TOK.lastIndex = 0;
-    while ((m = TOK.exec(text))) {
-      out += esc(text.slice(last, m.index));
-      var cls = m[1] ? 'cmt' : m[2] ? 'str' : (m[3] || m[4]) ? 'kw' : m[5] ? 'typ' : m[6] ? 'num' : 'fn';
-      out += '<span class="' + cls + '">' + esc(m[0]) + '</span>';
-      last = m.index + m[0].length;
-    }
-    return out + esc(text.slice(last));
-  }
-
-  document.querySelectorAll('.code-block').forEach(function (block) {
-    var code = block.querySelector('code');
-    var raw = code.textContent;
-    var lang = block.dataset.lang || 'SQL';
-    var hl = (block.dataset.hl || '').split(',').map(Number);
-    code.innerHTML = hlSQL(raw).split('\n').map(function (line, i) {
-      return '<span class="l' + (hl.indexOf(i + 1) > -1 ? ' hl' : '') + '">' + (line || ' ') + '</span>';
-    }).join('');
-
-    var bar = document.createElement('div');
-    bar.className = 'code-bar';
-    bar.innerHTML = '<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>' +
-      '<span class="filename">' + block.dataset.file + '</span><span class="lang">' + lang + '</span>' +
-      '<button class="copy" type="button">Copy</button>';
-    block.insertBefore(bar, block.firstChild);
-
-    var btn = bar.querySelector('.copy');
-    btn.addEventListener('click', function () {
-      navigator.clipboard.writeText(raw).then(function () {
-        btn.textContent = 'Copied ✓'; btn.classList.add('done');
-        setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1500);
-      });
-    });
-  });
-
-  document.querySelectorAll('a[href^="#"]').forEach(function (a) {
-    a.addEventListener('click', function (e) {
-      e.preventDefault();
-      var t = document.querySelector(a.getAttribute('href'));
-      if (t) t.scrollIntoView({ behavior: 'smooth' });
-    });
-  });
-</script>
-<nav class="side-nav" aria-label="Section navigation"></nav>
-<script src="floating-side-nav.js"></script>
-<script src="../global-theme.js"></script>
 </body>
 </html>
