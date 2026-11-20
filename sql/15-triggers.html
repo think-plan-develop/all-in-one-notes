@@ -1,706 +1,445 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>PostgreSQL Triggers — Complete Master Guide</title>
-<link rel="stylesheet" href="floating-side-nav.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PostgreSQL Triggers</title>
+</head>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#f4f5fa; font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif; color:#1a1a1a; font-size:16px; }
-  .wrap { width:94%; max-width:1120px; margin:32px auto 60px; --accent-dark:#1e3a8a; --accent:#2563eb; --accent-light:#3b82f6; --content-bg:#eff6ff; --heading:#1e3a8a; --shadow-rgb:37,99,235; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
 
   /* HEADER */
-  .header { background:linear-gradient(120deg,#1e3a8a,#3b82f6); border-radius:18px; padding:32px 34px 28px; margin-bottom:24px; box-shadow:0 12px 28px rgba(37,99,235,.28); position:relative; overflow:hidden; }
-  .header::before { content:''; position:absolute; bottom:-80px; left:-50px; width:220px; height:220px; border-radius:50%; background:rgba(255,255,255,.06); }
-  .header::after { content:''; position:absolute; top:-60px; right:-60px; width:230px; height:230px; border-radius:50%; background:rgba(255,255,255,.09); }
-  .header .tag { display:inline-block; background:rgba(255,255,255,.16); color:#fff; font-size:13px; font-weight:800; letter-spacing:.7px; padding:5px 14px; border-radius:20px; margin-bottom:12px; position:relative; text-transform:uppercase; }
-  .header h1 { color:#fff; font-size:34px; margin-bottom:10px; font-weight:800; letter-spacing:-.6px; line-height:1.2; position:relative; }
-  .header p { color:#dbe6ff; font-size:17px; margin-bottom:16px; max-width:860px; line-height:1.65; position:relative; }
-  .header p strong { color:#fff; }
-  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; position:relative; }
-  .chips span { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.25); font-size:15px; font-weight:700; padding:5px 14px; border-radius:10px; }
-  .toc { display:flex; flex-wrap:wrap; gap:9px; position:relative; }
-  .toc a { text-decoration:none; padding:8px 16px; border-radius:20px; font-size:15px; font-weight:700; transition:all .2s ease; cursor:pointer; background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.28); }
-  .toc a.crit { background:rgba(244,63,94,.22); border-color:rgba(254,205,211,.5); }
-  .toc a:hover { background:#fff; color:#2563eb; transform:translateY(-1px); box-shadow:0 4px 10px rgba(0,0,0,.15); }
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 20px; padding: 46px 40px; margin-bottom: 44px; box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3); position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:14px; position:relative; }
+  .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 700px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a { text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700; transition: all 0.2s ease; cursor: pointer; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
 
-  /* SUMMARY */
-  .intro-summary-title { font-size:21px; font-weight:800; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
-  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .summary-item { display:flex; align-items:center; gap:14px; border-radius:12px; padding:12px 16px; transition:transform .15s ease; }
-  .summary-item:hover { transform:translateY(-2px); }
-  .summary-icon { flex-shrink:0; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; background:rgba(255,255,255,.6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.6); }
-  .summary-text { font-size:15.5px; line-height:1.55; font-weight:500; }
-  .summary-text strong { font-weight:800; margin-right:3px; }
-  .summary-text code { font-size:15px; background:rgba(255,255,255,.6); padding:1px 6px; border-radius:5px; }
-  .summary-blue   { background:linear-gradient(135deg,#eff6ff,#dbeafe); color:#1e3a8a; } .summary-blue strong { color:#2563eb; }
-  .summary-pink   { background:linear-gradient(135deg,#fdf2f8,#fce7f3); color:#9d174d; } .summary-pink strong { color:#db2777; }
-  .summary-amber  { background:linear-gradient(135deg,#fffbeb,#fef3c7); color:#92400e; } .summary-amber strong { color:#d97706; }
-  .summary-green  { background:linear-gradient(135deg,#ecfdf5,#d1fae5); color:#065f46; } .summary-green strong { color:#059669; }
-  .summary-purple { background:linear-gradient(135deg,#f5f3ff,#ede9fe); color:#5b21b6; } .summary-purple strong { color:#7c3aed; }
-  .summary-teal   { background:linear-gradient(135deg,#f0fdfa,#ccfbf1); color:#115e59; } .summary-teal strong { color:#0d9488; }
+  /* topic dropdown */
+  .topic-dropdown { position: relative; margin-bottom: 18px; display: inline-block; }
+  .topic-dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.16); color: #fff; font-size: 13.5px; font-weight: 800; padding: 9px 18px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.32); transition: background 0.2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display: none; }
+  .topic-dropdown summary:hover { background: rgba(255,255,255,0.26); }
+  .topic-dropdown[open] summary::after { transform: rotate(180deg); }
+  .topic-dropdown summary::after { content: '▾'; margin-left: 2px; transition: transform 0.2s ease; font-size: 11px; }
+  .topic-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; background: #fff; border-radius: 12px; padding: 8px; min-width: 240px; box-shadow: 0 14px 30px rgba(0,0,0,0.22); display: flex; flex-direction: column; gap: 3px; }
+  .topic-menu a { text-decoration: none; color: #1a1a1a; font-size: 14px; font-weight: 700; padding: 9px 14px; border-radius: 8px; display: flex; align-items: center; gap: 9px; transition: background 0.15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background: var(--content-bg); color: var(--accent); }
+  .topic-menu .group-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.6px; color: #94a3b8; padding: 8px 14px 2px; text-transform: uppercase; }
 
-  .section-banner { background:linear-gradient(120deg,#1e3a8a,#2563eb); border-radius:14px; padding:20px 26px; margin:30px 0 16px; color:#fff; display:flex; align-items:center; gap:16px; box-shadow:0 8px 20px rgba(37,99,235,.25); }
-  .section-banner .sb-icon { font-size:36px; }
-  .section-banner h2 { font-size:23px; font-weight:800; margin-bottom:3px; }
-  .section-banner p { font-size:16px; opacity:.85; line-height:1.55; }
+  /* SUMMARY GRID */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-2px); }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; } .summary-blue .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; } .summary-pink .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; } .summary-amber .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; } .summary-green .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; } .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; } .summary-teal .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
 
   /* CARDS */
-  .card { border-radius:14px; margin-bottom:18px; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.07); border:1px solid rgba(0,0,0,.04); background:#fff; scroll-margin-top:20px; }
-  .card-title { color:#fff; font-size:19px; font-weight:700; padding:13px 22px; background:linear-gradient(120deg,var(--accent),var(--accent-light)); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-  .topic-num { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.22); font-size:15px; font-weight:800; }
-  .card-body { padding:20px 22px 18px; background:var(--content-bg); }
-  .card-body > * + * { margin-top:14px; }
-  .card-body p { color:#333; font-size:16px; line-height:1.7; font-weight:500; }
-  .card-body h3 { font-size:18px; font-weight:800; color:var(--heading); margin-top:22px; }
-  code { font-family:'Fira Code',Consolas,monospace; }
-  .card-body p code, .card-body li code, td code, .short-answer code, .note code, .warning code, .remember code, .tip code, .analogy code, .interview code, .fn-body code, .no-list code { font-size:15px; background:rgba(var(--shadow-rgb),.1); color:var(--heading); padding:2px 7px; border-radius:5px; }
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+  .card-content p code, .card-content li code, td code, .short-answer code, .tip code, .note code, .warning code, .remember code { font-family: 'Fira Code','Consolas',monospace; font-size: 0.88em; background: rgba(var(--shadow-rgb),0.1); color: var(--heading); padding: 2px 7px; border-radius: 5px; }
+  .card-content ul { margin: 6px 0 14px 22px; }
+  .card-content li { font-size: 15.5px; line-height: 1.85; color: #334155; font-weight: 500; }
 
-  .short-answer { background:linear-gradient(160deg,#fff 0%,var(--content-bg) 100%); border:1px solid rgba(var(--shadow-rgb),.16); border-left:4px solid var(--accent); border-radius:12px; padding:14px 20px 16px; font-size:16.5px; line-height:1.7; font-weight:500; color:#293244; box-shadow:0 6px 16px rgba(var(--shadow-rgb),.09); }
-  .short-answer::before { content:"ONE-LINER"; display:block; width:fit-content; font-size:13px; font-weight:800; letter-spacing:.9px; color:#fff; background:linear-gradient(120deg,var(--accent),var(--accent-light)); padding:3px 12px; border-radius:20px; margin-bottom:9px; }
+  .short-answer { position: relative; background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%); border: 1px solid rgba(var(--shadow-rgb), 0.16); border-left: 4px solid var(--accent); border-radius: 14px; padding: 20px 24px 22px; margin-bottom: 24px; font-size: 17px; line-height: 1.75; font-weight: 500; color: #293244; box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1); }
+  .short-answer::before { content: "QUICK TAKE"; display: block; width: fit-content; font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff; background: linear-gradient(120deg, var(--accent), var(--accent-light)); padding: 5px 13px; border-radius: 20px; margin-bottom: 13px; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35); }
+  .short-answer strong { color: var(--heading); }
 
-  .note,.warning,.remember,.tip,.analogy { border-radius:11px; padding:12px 18px; font-size:15.5px; line-height:1.7; font-weight:600; box-shadow:inset 0 0 0 1px rgba(255,255,255,.5); }
-  .note { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#3730a3; }
-  .warning { background:linear-gradient(135deg,#ffe4e6,#fecdd3); color:#9f1239; }
-  .remember,.analogy { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#065f46; }
-  .tip { background:linear-gradient(135deg,#fce7f3,#fbcfe8); color:#9d174d; }
+  /* CODE */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; } .dot-grey { background: #febc2e; } .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code','Consolas',monospace; line-height: 1.65; white-space: pre; }
+  .kw { color: #c792ea; font-weight: 600; } .str { color: #c3e88d; } .fn { color: #82aaff; } .type { color: #f07178; } .cmt { color: #7a7a7a; font-style: italic; } .num { color: #f78c6c; }
 
-  /* INTERVIEW Q (blue) + A (amber) joined */
-  .interview { display:flex; flex-direction:column; border-radius:12px; overflow:hidden; box-shadow:0 6px 16px rgba(37,99,235,.18); }
-  .interview p { margin:0; padding:12px 18px; font-size:16px !important; line-height:1.7; font-weight:600 !important; }
-  .interview p:first-child { background:linear-gradient(120deg,#1e3a8a,#3b82f6); color:#fff !important; }
-  .interview p:last-child { background:linear-gradient(135deg,#fffbeb,#fde68a); color:#78350f !important; }
-  .interview p:first-child code { background:rgba(255,255,255,.2) !important; color:#fff !important; }
-  .interview p:last-child code { background:rgba(255,255,255,.75) !important; color:#78350f !important; }
-  .qlabel,.ans-label { display:inline-block; font-weight:800; padding:1px 10px; border-radius:6px; font-size:15px; margin-right:6px; }
-  .qlabel { color:#1e3a8a; background:#fff; }
-  .ans-label { color:#fff; background:linear-gradient(120deg,#d97706,#f59e0b); }
-
-  /* CODE WINDOW */
-  .code-block { background:#1a2332; border-radius:12px; overflow:hidden; box-shadow:0 10px 24px rgba(15,23,42,.28); border:1px solid #2a374b; }
-  .code-bar { background:#111a27; padding:9px 14px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #2a374b; }
-  .code-bar .dot { width:11px; height:11px; border-radius:50%; }
-  .dot-red { background:#ff5f57; } .dot-yellow { background:#febc2e; } .dot-green { background:#28c840; }
-  .code-bar .filename { color:#9fb0c8; font-size:15px; margin-left:8px; font-family:'Fira Code',Consolas,monospace; }
-  .code-bar .lang { margin-left:auto; font-size:13px; font-weight:800; letter-spacing:.5px; color:#93c5fd; background:rgba(59,130,246,.16); padding:2px 10px; border-radius:10px; }
-  .code-bar .copy { font-size:14px; font-weight:700; color:#cbd5e1; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:8px; padding:3px 12px; cursor:pointer; margin-left:8px; font-family:inherit; transition:background .15s ease; }
-  .code-bar .copy:hover { background:rgba(255,255,255,.18); }
-  .code-bar .copy.done { color:#86efac; border-color:#86efac; }
-  .code-block pre { padding:12px 0; overflow-x:auto; counter-reset:ln; }
-  .code-block code { color:#d4d4d4; font-size:15px; line-height:1.65; white-space:pre; display:block; width:max-content; min-width:100%; background:none; padding:0; font-weight:400; }
-  .code-block .l { display:block; padding:0 18px 0 0; border-left:3px solid transparent; }
-  .code-block .l::before { counter-increment:ln; content:counter(ln); display:inline-block; width:38px; margin-right:14px; text-align:right; color:#4b5b73; user-select:none; }
-  .code-block .l.hl { background:rgba(59,130,246,.18); border-left-color:#60a5fa; }
-  .code-block .l.hl::before { color:#93c5fd; }
-  .kw { color:#c792ea; font-weight:600; } .str { color:#c3e88d; } .fn { color:#82aaff; } .typ { color:#67e8f9; } .cmt { color:#7a8aa3; font-style:italic; } .num { color:#f78c6c; }
-
-  /* FLOW */
-  .flow { background:#1a2332; border-radius:12px; padding:16px 18px; border:1px solid #2a374b; box-shadow:0 10px 24px rgba(15,23,42,.22); display:flex; flex-direction:column; gap:14px; }
-  .flow-row { display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; }
-  .flow-label { width:100%; font-size:14px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:#7dd3fc; }
-  .step { flex:1 1 130px; border-radius:10px; padding:10px 12px; font-size:15px; font-weight:700; line-height:1.4; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
-  .step small { font-size:14px; font-weight:600; opacity:.8; }
-  .step code { font-size:15px; background:rgba(255,255,255,.7); padding:1px 6px; border-radius:5px; }
-  .arrow { color:#7dd3fc; font-size:22px; font-weight:800; align-self:center; }
-  .c-src{background:#dbeafe;color:#1e3a8a} .c-proc{background:#ede9fe;color:#5b21b6} .c-dst{background:#d1fae5;color:#065f46} .c-warn{background:#fef3c7;color:#92400e} .c-bad{background:#ffe4e6;color:#9f1239}
+  /* CALLOUTS */
+  .tip, .note, .warning, .remember { border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+  .tip { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
 
   /* TABLES */
-  .table-scroll { overflow-x:auto; }
-  table { width:100%; border-collapse:separate; border-spacing:0 6px; }
-  table th { background:linear-gradient(120deg,#2563eb,#7c3aed,#ec4899); color:#fff; font-size:15px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; padding:11px 16px; text-align:left; }
-  table th:first-child { border-radius:10px 0 0 10px; } table th:last-child { border-radius:0 10px 10px 0; }
-  table td { padding:11px 16px; font-size:15.5px; font-weight:600; color:#334155; vertical-align:middle; }
-  table td:first-child { border-radius:10px 0 0 10px; border-left:6px solid var(--rc); font-weight:800; color:var(--rd); }
-  table td:last-child { border-radius:0 10px 10px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; background: #fff; }
+  table tr:nth-child(even) td { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+
+  @media (max-width: 768px) { .header h1 { font-size: 26px; } .toc a { padding: 6px 12px; font-size: 12px; } .card-content { padding: 20px; } }
+
+  /* ═══════════ COLORFUL TABLES (shared) ═══════════ */
+  table { border-collapse: separate !important; border-spacing: 0 8px !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
+  table th { background: linear-gradient(120deg,#2563eb,#7c3aed,#ec4899) !important; color: #fff !important; font-size: 13px !important; font-weight: 800 !important; letter-spacing: .7px; text-transform: uppercase; padding: 13px 18px !important; border: none !important; }
+  table th:first-child { border-radius: 12px 0 0 12px; }
+  table th:last-child { border-radius: 0 12px 12px 0; }
+  table td { border: none !important; padding: 13px 18px !important; font-weight: 600 !important; color: #334155 !important; vertical-align: middle !important; }
+  table td:first-child { border-radius: 12px 0 0 12px; border-left: 6px solid var(--rc) !important; font-weight: 800 !important; color: var(--rd) !important; }
+  table td:last-child { border-radius: 0 12px 12px 0; }
   table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
   table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
   table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
   table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
   table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
   table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
-  table tr:not(:first-child) td { background:var(--rb); box-shadow:0 2px 6px rgba(0,0,0,.05); }
-  table tr:not(:first-child) td.yes { background:#dcfce7; color:#15803d; }
-  table tr:not(:first-child) td.no { background:#fee2e2; color:#b91c1c; }
-  table td code { background:#fff; color:var(--rd); border:1px solid var(--rc); padding:1px 8px; border-radius:6px; font-weight:700; }
+  table tr:not(:first-child) td { background: var(--rb) !important; box-shadow: 0 3px 8px rgba(0,0,0,.05); transition: transform .15s ease; }
+  table tr:not(:first-child):hover td { filter: brightness(.97); }
+  table td code { background: #fff !important; color: var(--rd) !important; border: 1px solid var(--rc); padding: 2px 8px !important; border-radius: 6px !important; font-weight: 700; }
 
-  /* CARD GRIDS */
-  .grid2,.grid3 { display:grid; gap:12px; }
-  .grid2 { grid-template-columns:1fr 1fr; } .grid3 { grid-template-columns:repeat(3,1fr); }
-  .why-card,.fn-card { --c:#2563eb; background:#fff; border:1.5px solid rgba(var(--shadow-rgb),.2); border-left:5px solid var(--c); border-radius:12px; padding:14px 16px; box-shadow:0 4px 12px rgba(var(--shadow-rgb),.08); min-width:0; }
-  .cg { --c:#16a34a; } .ca { --c:#d97706; } .cr { --c:#e11d48; } .cp { --c:#7c3aed; }
-  .why-card .wn { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:linear-gradient(120deg,var(--accent),var(--accent-light)); color:#fff; font-size:15px; font-weight:800; margin-bottom:6px; }
-  .why-card h4 { font-size:17px; color:#1e293b; margin-bottom:4px; }
-  .why-card p,.fn-body { font-size:15.5px !important; color:#475569 !important; line-height:1.65 !important; font-weight:500 !important; }
-  .fn-card h4 { font-size:18px; color:var(--c); margin-bottom:6px; }
-  .fn-card .code-block { margin-top:12px; }
-  .no-list { list-style:none; display:flex; flex-direction:column; gap:2px; }
-  .no-list li { font-size:15.5px; line-height:1.65; padding:5px 0; border-bottom:1px solid rgba(0,0,0,.06); color:#334155; font-weight:500; }
-  .no-list li:last-child { border-bottom:none; }
-  .adv-list { list-style:none; }
-  .adv-list li { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid rgba(0,0,0,.07); font-size:15.5px; color:#334155; line-height:1.65; font-weight:500; }
-  .adv-list li:last-child { border-bottom:none; }
-  .adv-icon { font-size:18px; flex-shrink:0; }
-  .adv-list strong { color:#1e293b; }
-  .badge { display:inline-block; color:#fff; font-size:13px; font-weight:800; padding:3px 12px; border-radius:20px; white-space:nowrap; }
-  .bg-blue{background:#2563eb} .bg-green{background:#16a34a} .bg-orange{background:#ea580c} .bg-purple{background:#7c3aed} .bg-teal{background:#0f766e} .bg-red{background:#dc2626} .bg-indigo{background:#4f46e5} .bg-yellow{background:#ca8a04}
-  @media (max-width:760px) { .grid2,.grid3,.summary-grid { grid-template-columns:1fr; } .header h1 { font-size:27px; } .card-body { padding:16px; } }
+  .card-content.compact { padding: 16px 20px; }
+  .card-content.compact p { font-size: 14.5px; line-height: 1.7; margin-bottom: 10px; }
+  .card-content.compact li { font-size: 14px; line-height: 1.7; }
+  .card-content.compact h4 { font-size: 15px; margin: 14px 0 6px; }
+  .card-content.compact .code-block { margin: 8px 0; }
+  .card-content.compact .code-block pre { padding: 11px 14px; }
+  .card-content.compact .code-block code { font-size: 12.5px; line-height: 1.55; }
+  .card-content.compact table th, .card-content.compact table td { padding: 8px 12px !important; font-size: 13px !important; }
+  .card-content.compact .tip, .card-content.compact .note, .card-content.compact .warning, .card-content.compact .remember { padding: 10px 14px; font-size: 13.5px; margin: 8px 0; line-height: 1.6; }
+  .header { padding: 34px 36px; margin-bottom: 30px; }
+  .header h1 { font-size: 28px; }
+  .header p { font-size: 15px; margin-bottom: 18px; }
+  .section-divider { margin: 34px 0 16px; }
+  .section-divider span { font-size: 19px; }
+  .card { margin-bottom: 16px; }
+
+  .flow { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:10px 0; }
+  .flow .step { padding:7px 13px; border-radius:8px; font-weight:700; font-size:12.5px; }
+  .flow .arrow { color:#94a3b8; font-weight:900; }
+  .c-src{background:#dbeafe;color:#1e3a8a} .c-proc{background:#ede9fe;color:#5b21b6} .c-dst{background:#d1fae5;color:#065f46} .c-warn{background:#fef3c7;color:#92400e}
 </style>
-</head>
 <body>
-<div class="wrap">
+  <div class="container">
 
-<!-- HEADER -->
-<div class="header">
-  <span class="tag">PostgreSQL Deep Dive · Part 15</span>
-  <h1>15. 🔔 Triggers — Complete Master Guide</h1>
-  <p>What triggers are, BEFORE / AFTER / INSTEAD OF, creating them in two steps, NEW &amp; OLD records, FOR EACH ROW vs STATEMENT, production patterns and when <em>not</em> to use them — <strong>PostgreSQL syntax only.</strong></p>
-  <div class="chips"><span>6 topics</span><span>BEFORE · AFTER · INSTEAD OF</span><span>NEW / OLD</span><span>Audit · Validation · Soft delete</span></div>
-  <nav class="toc">
-    <a class="crit" href="#tr-what">🔴 What is a Trigger?</a>
-    <a class="crit" href="#tr-types">🔴 Trigger Types</a>
-    <a class="crit" href="#tr-create">🔴 CREATE TRIGGER</a>
-    <a class="crit" href="#tr-new-old">🔴 NEW · OLD · FOR EACH</a>
-    <a href="#tr-perf">🟡 Performance &amp; Practices</a>
-    <a href="#tr-advdis">🟡 Advantages &amp; Disadvantages</a>
-  </nav>
-</div>
+    <div class="header">
+      <span class="tag">SQL · POSTGRESQL · TRIGGERS</span>
+      <h1>⚡ PostgreSQL Triggers</h1>
+      <p>Automatically run a function when an INSERT, UPDATE, DELETE or TRUNCATE happens: timing, <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px">OLD</code>/<code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px">NEW</code>, audit logs and best practices.</p>
 
-<div class="intro-summary">
-  <div class="intro-summary-title">🧩 Key Terms at a Glance</div>
-  <div class="summary-grid">
-    <div class="summary-item summary-blue"><div class="summary-icon">🔔</div><div class="summary-text"><strong>Trigger:</strong> an automatic listener on a table that runs a function when data changes.</div></div>
-    <div class="summary-item summary-purple"><div class="summary-icon">⏱️</div><div class="summary-text"><strong>Timing:</strong> <code>BEFORE</code> can change or cancel the row; <code>AFTER</code> reacts to it; <code>INSTEAD OF</code> is for views.</div></div>
-    <div class="summary-item summary-green"><div class="summary-icon">🟢</div><div class="summary-text"><strong>NEW / OLD:</strong> the incoming row and the existing row — which exist depends on INSERT, UPDATE or DELETE.</div></div>
-    <div class="summary-item summary-teal"><div class="summary-icon">🧱</div><div class="summary-text"><strong>Two steps:</strong> a trigger function that <code>RETURNS TRIGGER</code>, then <code>CREATE TRIGGER</code> to bind it.</div></div>
-    <div class="summary-item summary-amber"><div class="summary-icon">📍</div><div class="summary-text"><strong>ROW vs STATEMENT:</strong> once per affected row, or once per query — big difference on bulk updates.</div></div>
-    <div class="summary-item summary-pink"><div class="summary-icon">⚖️</div><div class="summary-text"><strong>Golden rule:</strong> keep triggers short and fast; use them for timestamps, audit and simple validation.</div></div>
-  </div>
-</div>
+      <details class="topic-dropdown">
+        <summary>📁 MERN / JS Topics</summary>
+        <div class="topic-menu">
+          <span class="group-label">Node / Express</span>
+          <a href="interview-error-handling.html">🧯 Error Handling (Plain JS)</a>
+          <a href="interview-zod-validation.html">✅ Zod Validation (Plain JS)</a>
+          <a href="interview-crud-api.html">🔧 Express + Mongoose CRUD API</a>
+          <span class="group-label">Practice Sets</span>
+          <a href="interview-array-patterns-25.html">🧩 25 Array/String Pattern Questions</a>
+          <a href="interview-array-patterns-25.html">🧩 25 Array/String Pattern Questions</a>
+          <a href="interview-js-dsa-80.html">🧠 80 JS + DSA Coding Questions</a>
+          <a href="interview-mern-practice-70.html">🏋️ 78 MERN Practice Questions</a>
+          <span class="group-label">CSS</span>
+          <a href="interview-css-positioning.html">📐 Positioning &amp; Responsive Cheat Sheet</a>
+          <span class="group-label">Next.js</span>
+          <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+          <a href="interview-nextjs-data.html">📡 Data, Caching &amp; UI States</a>
+          <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+          <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+          <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+          <a href="interview-nextjs-qa.html">Next.js Interview Q&amp;A</a>
+          <span class="group-label">React / JavaScript</span>
+          <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+          <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+          <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+          <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+          <a href="interview-routing.html">🧭 React Router Interview</a>
+          <span class="group-label">MongoDB</span>
+          <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+          <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+                    <span class="group-label">SQL</span>
+          <a href="interview-sql-cte.html">🔗 SQL CTEs — Compact Notes</a>
+          <a href="interview-sql-null-case.html">❓ NULL, COALESCE &amp; CASE WHEN</a>
+          <a href="interview-sql-distinct.html">🔎 SQL DISTINCT</a>
+          <a href="interview-sql-date-time.html">📅 PostgreSQL Date &amp; Time Functions</a>
+          <a href="interview-sql-window-functions.html">🪟 PostgreSQL Window Functions</a>
+          <a href="interview-sql-joins.html">🔀 SQL Joins — Visual Notes</a>
+          <a href="interview-sql-subqueries.html">🔍 SQL Subqueries — Master Guide</a>
+          <a href="interview-sql-functions.html">⚙️ PostgreSQL Functions</a>
+          <a class="current" href="interview-sql-triggers.html">⚡ PostgreSQL Triggers</a>
+          <a href="interview-sql-date-time.html">📅 PostgreSQL Date &amp; Time Functions</a>
+          <a href="interview-sql-window-functions.html">🪟 PostgreSQL Window Functions</a>
+          <span class="group-label">SQL</span>
+          <a href="interview-sql-cte.html">🔗 SQL CTEs — Compact Notes</a>
+          <a href="interview-sql-null-case.html">❓ NULL, COALESCE &amp; CASE WHEN</a>
+          <a href="interview-sql-distinct.html">🔎 SQL DISTINCT</a>
+          <span class="group-label">PostgreSQL</span>
+          <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+          <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+        
+        
+        </div>
+      </details>
 
-<div class="section-banner">
-  <div class="sb-icon">🔔</div>
-  <div>
-    <h2>Triggers</h2>
-    <p>Automatic actions that fire on INSERT, UPDATE, DELETE or TRUNCATE. They run a function before or after the event — or instead of it on a view.</p>
-  </div>
-</div>
-
-<!-- TOPIC 1 -->
-<div class="card" id="tr-what">
-  <div class="card-title"><span class="topic-num">1</span> What is a Trigger? &amp; Why do we use Triggers?</div>
-  <div class="card-body">
-    <div class="short-answer">A trigger is an <strong>automatic event listener on a table</strong>. When data changes, the trigger fires and runs your function — you never call it yourself, so it can't be forgotten.</div>
-
-    <div class="interview">
-      <p><span class="qlabel">Q:</span> What is a trigger in PostgreSQL and why do we use it?</p>
-      <p><span class="ans-label">A:</span> A trigger is a database mechanism that automatically executes a function in response to a data change event (INSERT, UPDATE, DELETE) on a table. Triggers are used for audit trails, auto-timestamps, validation and business rules at the database layer — guaranteeing the logic runs regardless of which application or user modifies the data.</p>
+      <div class="toc"><a onclick="document.getElementById('why').scrollIntoView({behavior:'smooth'});return false;">Why</a><a onclick="document.getElementById('types').scrollIntoView({behavior:'smooth'});return false;">Types</a><a onclick="document.getElementById('function').scrollIntoView({behavior:'smooth'});return false;">Trigger Function</a><a onclick="document.getElementById('create').scrollIntoView({behavior:'smooth'});return false;">Create</a><a onclick="document.getElementById('old-new').scrollIntoView({behavior:'smooth'});return false;">OLD vs NEW</a><a onclick="document.getElementById('audit').scrollIntoView({behavior:'smooth'});return false;">Audit Log</a><a onclick="document.getElementById('internal').scrollIntoView({behavior:'smooth'});return false;">Internals</a><a onclick="document.getElementById('compare').scrollIntoView({behavior:'smooth'});return false;">vs Function/Procedure</a><a onclick="document.getElementById('commands').scrollIntoView({behavior:'smooth'});return false;">Commands</a><a onclick="document.getElementById('points').scrollIntoView({behavior:'smooth'});return false;">Industry Points</a></div>
     </div>
 
-    <div class="analogy">🧠 <strong>Analogy:</strong> A trigger is a motion-sensor light. Nobody flips the switch — the sensor notices movement (a data change) and turns the light on by itself, every single time, no matter who walked in.</div>
+<div class="card"><div class="card-content compact">
+        <p>A <strong>trigger</strong> in PostgreSQL is a database mechanism that automatically executes a function when a specific event occurs on a table or view. You don’t call a trigger manually — PostgreSQL executes it automatically when the configured event happens.</p>
+</div></div>
 
-    <div class="flow">
-      <div class="flow-row"><span class="flow-label">How a trigger fires</span>
-        <div class="step c-warn">App runs<small>INSERT / UPDATE / DELETE</small></div><span class="arrow">→</span>
-        <div class="step c-src">PostgreSQL intercepts<small>checks for triggers</small></div><span class="arrow">→</span>
-        <div class="step c-proc">Trigger fires<small>BEFORE or AFTER</small></div><span class="arrow">→</span>
-        <div class="step c-dst">Trigger function runs<small>NEW / OLD available</small></div><span class="arrow">→</span>
-        <div class="step c-src">Row saved / blocked<small>RETURN NEW or NULL</small></div>
-      </div>
-    </div>
-
-    <h3>Why use triggers?</h3>
-    <div class="grid3">
-      <div class="why-card"><span class="wn">1</span><h4>Audit logging</h4><p>Auto-record who changed what and when — without touching app code.</p></div>
-      <div class="why-card"><span class="wn">2</span><h4>Auto-timestamps</h4><p>Set <code>updated_at = NOW()</code> on every UPDATE automatically.</p></div>
-      <div class="why-card"><span class="wn">3</span><h4>Validation</h4><p>Reject invalid data at DB level — rules no ORM can bypass.</p></div>
-      <div class="why-card"><span class="wn">4</span><h4>Derived data</h4><p>Auto-update a <code>total</code> or <code>item_count</code> when child rows change.</p></div>
-      <div class="why-card"><span class="wn">5</span><h4>Business rules</h4><p>Prevent delete of a paid order, block status rollback — enforced in the DB, not just the app.</p></div>
-      <div class="why-card"><span class="wn">6</span><h4>One place for the rule</h4><p>Works for the app, migrations, scripts and manual SQL alike.</p></div>
-    </div>
-
-    <div class="warning">⚠️ <strong>Key rule:</strong> Triggers are <strong>invisible to applications</strong>. The app inserts a row, the trigger fires silently. Great for guarantees, dangerous when a trigger causes unexpected side effects.</div>
-  </div>
-</div>
-
-<!-- TOPIC 2 -->
-<div class="card" id="tr-types">
-  <div class="card-title"><span class="topic-num">2</span> Trigger Types — BEFORE · AFTER · INSTEAD OF · INSERT / UPDATE / DELETE</div>
-  <div class="card-body">
-    <h3>Timing — when does it fire?</h3>
-    <div class="grid3">
-      <div class="fn-card">
-        <h4>⏮️ BEFORE Trigger</h4>
-        <p class="fn-body">Fires <strong>before</strong> the row is written. Can <strong>modify</strong> <code>NEW</code> or <strong>cancel</strong> the operation.<br><br>Use for: validation, auto-fill fields, normalising data.<br><br><code>RETURN NEW</code> → allow (with modified values)<br><code>RETURN NULL</code> → silently cancel</p>
-      </div>
-      <div class="fn-card cg">
-        <h4>⏭️ AFTER Trigger</h4>
-        <p class="fn-body">Fires <strong>after</strong> the row is written. Cannot change the row. Can read <code>OLD</code> and <code>NEW</code>.<br><br>Use for: audit logging, notifications, updating related tables.<br><br>Return value is ignored — <code>RETURN NULL</code> is fine.</p>
-      </div>
-      <div class="fn-card cp">
-        <h4>🔄 INSTEAD OF Trigger</h4>
-        <p class="fn-body">Fires <strong>instead of</strong> the operation. Works <strong>only on views</strong> — makes a non-updatable view accept INSERT / UPDATE / DELETE by redirecting to the base tables.<br><br>Use for: making complex views updatable.</p>
+    <div class="section-divider" id="why"><span>1. Why do we use Triggers?</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Triggers are mainly used to automate database operations. Common use cases:</p>
+        <div class="table-scroll"><table><tr><th>Use case</th><th>What it does</th></tr><tr><td><strong>Audit logs</strong></td><td>Track who updated or deleted a record and when.</td></tr><tr><td><strong>Automatic timestamps</strong></td><td>Update <code>updated_at</code> whenever a record changes.</td></tr><tr><td><strong>Data validation</strong></td><td>Prevent invalid data from being inserted.</td></tr><tr><td><strong>Business logic</strong></td><td>Automatically update related records.</td></tr><tr><td><strong>History tracking</strong></td><td>Maintain old and new values of records.</td></tr></table></div>
       </div>
     </div>
 
-    <h3>Event — what does it fire on?</h3>
-    <div class="grid3">
-      <div class="fn-card cg">
-        <h4>📥 INSERT Trigger</h4>
-        <p class="fn-body">Fires when a row is inserted.<br><br><strong>NEW</strong> = the row being inserted<br><strong>OLD</strong> = NULL (nothing existed before)<br><br>Use: auto-fill <code>created_at</code>, generate slugs, queue a welcome-email job in an outbox table.</p>
-      </div>
-      <div class="fn-card ca">
-        <h4>✏️ UPDATE Trigger</h4>
-        <p class="fn-body">Fires when a row is updated.<br><br><strong>NEW</strong> = row with new values<br><strong>OLD</strong> = row with old values<br><br>Use: auto-set <code>updated_at</code>, audit what changed, protect certain fields.</p>
-      </div>
-      <div class="fn-card cr">
-        <h4>🗑️ DELETE Trigger</h4>
-        <p class="fn-body">Fires when a row is deleted.<br><br><strong>NEW</strong> = NULL (nothing coming in)<br><strong>OLD</strong> = the row being deleted<br><br>Use: soft-delete, custom cascade logic, archive deleted rows.</p>
+    <div class="section-divider" id="types"><span>2. Types of Triggers</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>PostgreSQL supports triggers based on different events.</p>
+        <div class="table-scroll"><table><tr><th>Trigger</th><th>When it executes</th></tr><tr><td>INSERT</td><td>When a new record is inserted</td></tr><tr><td>UPDATE</td><td>When an existing record is updated</td></tr><tr><td>DELETE</td><td>When a record is deleted</td></tr><tr><td>TRUNCATE</td><td>When a table is truncated</td></tr></table></div>
+        <h4>Based on execution timing</h4>
+        <div class="table-scroll"><table><tr><th>Type</th><th>Description</th></tr><tr><td>BEFORE</td><td>Executes before the operation</td></tr><tr><td>AFTER</td><td>Executes after the operation</td></tr><tr><td>INSTEAD OF</td><td>Executes instead of the operation (views)</td></tr></table></div>
+        <h4>Based on execution level</h4>
+        <div class="table-scroll"><table><tr><th>Type</th><th>Description</th></tr><tr><td>FOR EACH ROW</td><td>Executes for every affected row</td></tr><tr><td>FOR EACH STATEMENT</td><td>Executes once per SQL statement</td></tr></table></div>
       </div>
     </div>
 
-    <div class="flow">
-      <div class="flow-row"><span class="flow-label">Firing order for one UPDATE statement</span>
-        <div class="step c-src">BEFORE STATEMENT<small>once</small></div><span class="arrow">→</span>
-        <div class="step c-proc">BEFORE ROW<small>per row</small></div><span class="arrow">→</span>
-        <div class="step c-warn">Row is written</div><span class="arrow">→</span>
-        <div class="step c-dst">AFTER ROW<small>per row</small></div><span class="arrow">→</span>
-        <div class="step c-src">AFTER STATEMENT<small>once</small></div>
-      </div>
-    </div>
+    <div class="section-divider" id="function"><span>3. Trigger Function</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>In PostgreSQL, a trigger requires a function to execute. A trigger function must return <code>TRIGGER</code>.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">update_timestamp.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">update_timestamp</span>()
+<span class="kw">RETURNS</span> <span class="kw">TRIGGER</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="kw">NEW</span>.updated_at = <span class="kw">CURRENT_TIMESTAMP</span>;
 
-    <div class="table-scroll"><table>
-      <tr><th>Trigger Type</th><th>When fires</th><th>Modify row?</th><th>Cancel?</th><th>OLD?</th><th>NEW?</th></tr>
-      <tr><td><span class="badge bg-blue">BEFORE INSERT</span></td><td>Before row saved</td><td class="yes">✅ Yes</td><td class="yes">✅ RETURN NULL</td><td class="no">❌ NULL</td><td class="yes">✅ Yes</td></tr>
-      <tr><td><span class="badge bg-green">BEFORE UPDATE</span></td><td>Before row saved</td><td class="yes">✅ Yes</td><td class="yes">✅ RETURN NULL</td><td class="yes">✅ Yes</td><td class="yes">✅ Yes</td></tr>
-      <tr><td><span class="badge bg-red">BEFORE DELETE</span></td><td>Before row deleted</td><td>N/A</td><td class="yes">✅ RETURN NULL</td><td class="yes">✅ Yes</td><td class="no">❌ NULL</td></tr>
-      <tr><td><span class="badge bg-orange">AFTER INSERT</span></td><td>After row saved</td><td class="no">❌ No</td><td class="no">❌ No*</td><td class="no">❌ NULL</td><td class="yes">✅ Yes</td></tr>
-      <tr><td><span class="badge bg-teal">AFTER UPDATE</span></td><td>After row saved</td><td class="no">❌ No</td><td class="no">❌ No*</td><td class="yes">✅ Yes</td><td class="yes">✅ Yes</td></tr>
-      <tr><td><span class="badge bg-indigo">AFTER DELETE</span></td><td>After row deleted</td><td class="no">❌ No</td><td class="no">❌ No*</td><td class="yes">✅ Yes</td><td class="no">❌ NULL</td></tr>
-      <tr><td><span class="badge bg-purple">INSTEAD OF</span></td><td>Replaces the operation (views)</td><td>Via logic</td><td>By not doing it</td><td>✅ Yes</td><td>✅ Yes</td></tr>
-    </table></div>
-    <div class="note">📌 *An AFTER trigger's return value is ignored, but it can still undo the whole statement by raising an error (<code>RAISE EXCEPTION</code>). <code>TRUNCATE</code> triggers exist too, but only at statement level.</div>
-  </div>
-</div>
-
-<!-- TOPIC 3 -->
-<div class="card" id="tr-create">
-  <div class="card-title"><span class="topic-num">3</span> How to Create a Trigger — Trigger Function + CREATE TRIGGER</div>
-  <div class="card-body">
-    <div class="note">📌 <strong>Two-step process.</strong> In PostgreSQL a trigger is always created in two steps:<br><strong>Step 1</strong> — create a <em>trigger function</em> that returns <code>TRIGGER</code><br><strong>Step 2</strong> — create the trigger that binds that function to a table and event</div>
-
-    <h3>Step 1 — Trigger Function</h3>
-    <div class="remember">✅ A trigger function <strong>must</strong>: take <strong>no parameters</strong> (it receives <code>NEW</code> / <code>OLD</code> automatically), <strong>return <code>TRIGGER</code></strong>, and be written in <strong>PL/pgSQL</strong> (or another procedural language — plain <code>sql</code> can't be a trigger function).</div>
-    <div class="code-block" data-file="trigger_function.sql" data-lang="SQL" data-hl="5,6">
-<pre><code>CREATE OR REPLACE FUNCTION set_updated_at()
-RETURNS TRIGGER
-LANGUAGE plpgsql AS $$
-BEGIN
-  NEW.updated_at := NOW();   -- modify the new row before saving
-  RETURN NEW;                -- MUST return NEW (or NULL to cancel)
-END;
+    <span class="kw">RETURN</span> <span class="kw">NEW</span>;
+<span class="kw">END</span>;
 $$;</code></pre>
+        </div>
+        <h4>Important concepts</h4>
+        <ul><li><code>NEW</code>: contains the new record (INSERT/UPDATE).</li><li><code>OLD</code>: contains the existing record (UPDATE/DELETE).</li><li><code>RETURN NEW</code>: returns the new record.</li><li><code>RETURN OLD</code>: returns the old record.</li></ul>
+      </div>
     </div>
-    <div class="code-block" data-file="audit_function.sql" data-lang="SQL">
-<pre><code>-- Audit log trigger function
-CREATE OR REPLACE FUNCTION log_user_changes()
-RETURNS TRIGGER
-LANGUAGE plpgsql AS $$
-BEGIN
-  INSERT INTO audit_log (
-    table_name, action, old_data, new_data, changed_at, changed_by
-  ) VALUES (
-    TG_TABLE_NAME,           -- auto-variable: which table
-    TG_OP,                   -- auto-variable: INSERT / UPDATE / DELETE
-    to_jsonb(OLD),           -- old row as JSON (NULL on INSERT)
-    to_jsonb(NEW),           -- new row as JSON (NULL on DELETE)
-    NOW(),
-    current_user
-  );
-  RETURN COALESCE(NEW, OLD); -- works for INSERT, UPDATE and DELETE
-END;
+
+    <div class="section-divider" id="create"><span>4. Create a Trigger</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Suppose we have an employees table.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">employees.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">TABLE</span> <span class="fn">employees</span> (
+    employee_id <span class="kw">SERIAL</span> <span class="kw">PRIMARY</span> <span class="kw">KEY</span>,
+    employee_name <span class="kw">VARCHAR</span>(<span class="num">100</span>),
+    salary <span class="kw">NUMERIC</span>(<span class="num">10</span>,<span class="num">2</span>),
+    updated_at <span class="kw">TIMESTAMP</span>
+);</code></pre>
+        </div>
+        <p>Create a trigger:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">trigger.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">TRIGGER</span> employee_update_trigger
+<span class="kw">BEFORE</span> <span class="kw">UPDATE</span>
+<span class="kw">ON</span> employees
+FOR <span class="kw">EACH</span> <span class="kw">ROW</span>
+<span class="kw">EXECUTE</span> <span class="kw">FUNCTION</span> <span class="fn">update_timestamp</span>();</code></pre>
+        </div>
+        <p>Now update an employee:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">update.sql</span></div>
+          <pre><code><span class="kw">UPDATE</span> employees
+<span class="kw">SET</span> salary = <span class="num">80000</span>
+<span class="kw">WHERE</span> employee_id = <span class="num">1</span>;</code></pre>
+        </div>
+        <div class="remember">PostgreSQL automatically executes the trigger before updating the record and updates <code>updated_at</code>. You don’t need to call the trigger function yourself.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="old-new"><span>5. OLD vs NEW</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>This is one of the most important concepts in triggers.</p>
+        <div class="table-scroll"><table><tr><th>Operation</th><th>OLD</th><th>NEW</th></tr><tr><td>INSERT</td><td>Not available</td><td>New record</td></tr><tr><td>UPDATE</td><td>Previous record</td><td>Updated record</td></tr><tr><td>DELETE</td><td>Deleted record</td><td>Not available</td></tr></table></div>
+        <h4>Example: validate salary</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">check_salary.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">check_salary</span>()
+<span class="kw">RETURNS</span> <span class="kw">TRIGGER</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="kw">IF</span> <span class="kw">NEW</span>.salary &lt; <span class="num">0</span> <span class="kw">THEN</span>
+        <span class="kw">RAISE</span> <span class="kw">EXCEPTION</span> <span class="str">&#x27;Salary cannot be negative&#x27;</span>;
+    <span class="kw">END</span> <span class="kw">IF</span>;
+
+    <span class="kw">RETURN</span> <span class="kw">NEW</span>;
+<span class="kw">END</span>;
 $$;</code></pre>
+        </div>
+        <p>Create trigger:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">salary_validation.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">TRIGGER</span> salary_validation
+<span class="kw">BEFORE</span> <span class="kw">INSERT</span> <span class="kw">OR</span> <span class="kw">UPDATE</span>
+<span class="kw">ON</span> employees
+FOR <span class="kw">EACH</span> <span class="kw">ROW</span>
+<span class="kw">EXECUTE</span> <span class="kw">FUNCTION</span> <span class="fn">check_salary</span>();</code></pre>
+        </div>
+        <p>Now:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">insert.sql</span></div>
+          <pre><code><span class="kw">INSERT</span> <span class="kw">INTO</span> <span class="fn">employees</span>(employee_name, salary)
+<span class="kw">VALUES</span> (<span class="str">&#x27;Rahul&#x27;</span>, -<span class="num">5000</span>);</code></pre>
+        </div>
+        <div class="warning"><strong>Error:</strong> PostgreSQL prevents the insertion because the salary is negative.</div>
+      </div>
     </div>
 
-    <h3>Step 2 — CREATE TRIGGER</h3>
-    <div class="code-block" data-file="create_trigger.sql" data-lang="SQL">
-<pre><code>-- Syntax
-CREATE TRIGGER trigger_name
-  { BEFORE | AFTER | INSTEAD OF }
-  { INSERT | UPDATE [ OF column ] | DELETE | TRUNCATE } [ OR ... ]
-  ON table_name
-  [ FOR EACH ROW | FOR EACH STATEMENT ]
-  [ WHEN (condition) ]
-  EXECUTE FUNCTION function_name();
+    <div class="section-divider" id="audit"><span>6. Real Industry Example — Audit Log</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Suppose an organization wants to track every salary change. Whenever an employee’s salary changes, automatically store the old salary, new salary, and change date in an audit table.</p>
+        <h4>Step 1 — create audit table</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">employee_audit.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">TABLE</span> <span class="fn">employee_audit</span> (
+    audit_id <span class="kw">SERIAL</span> <span class="kw">PRIMARY</span> <span class="kw">KEY</span>,
+    employee_id <span class="kw">INT</span>,
+    old_salary <span class="kw">NUMERIC</span>(<span class="num">10</span>,<span class="num">2</span>),
+    new_salary <span class="kw">NUMERIC</span>(<span class="num">10</span>,<span class="num">2</span>),
+    changed_at <span class="kw">TIMESTAMP</span> <span class="kw">DEFAULT</span> <span class="kw">CURRENT_TIMESTAMP</span>
+);</code></pre>
+        </div>
+        <h4>Step 2 — create trigger function</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">log_salary_change.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">log_salary_change</span>()
+<span class="kw">RETURNS</span> <span class="kw">TRIGGER</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+    <span class="kw">INSERT</span> <span class="kw">INTO</span> <span class="fn">employee_audit</span> (
+        employee_id,
+        old_salary,
+        new_salary
+    )
+    <span class="kw">VALUES</span> (
+        <span class="kw">OLD</span>.employee_id,
+        <span class="kw">OLD</span>.salary,
+        <span class="kw">NEW</span>.salary
+    );
 
-
--- ✅ Auto-set updated_at on every UPDATE
-CREATE TRIGGER trg_users_updated_at
-  BEFORE UPDATE ON users
-  FOR EACH ROW
-  EXECUTE FUNCTION set_updated_at();
-
-
--- ✅ Audit log on INSERT, UPDATE, DELETE
-CREATE TRIGGER trg_users_audit
-  AFTER INSERT OR UPDATE OR DELETE ON users
-  FOR EACH ROW
-  EXECUTE FUNCTION log_user_changes();
-
-
--- ✅ WHEN condition — only fire if email changed
-CREATE TRIGGER trg_email_change
-  AFTER UPDATE ON users
-  FOR EACH ROW
-  WHEN (OLD.email IS DISTINCT FROM NEW.email)
-  EXECUTE FUNCTION notify_email_change();</code></pre>
+    <span class="kw">RETURN</span> <span class="kw">NEW</span>;
+<span class="kw">END</span>;
+$$;</code></pre>
+        </div>
+        <h4>Step 3 — create trigger</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">salary_audit_trigger.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">TRIGGER</span> salary_audit_trigger
+<span class="kw">AFTER</span> <span class="kw">UPDATE</span>
+<span class="kw">ON</span> employees
+FOR <span class="kw">EACH</span> <span class="kw">ROW</span>
+<span class="kw">WHEN</span> (<span class="kw">OLD</span>.salary <span class="kw">IS</span> <span class="kw">DISTINCT</span> <span class="kw">FROM</span> <span class="kw">NEW</span>.salary)
+<span class="kw">EXECUTE</span> <span class="kw">FUNCTION</span> <span class="fn">log_salary_change</span>();</code></pre>
+        </div>
+        <h4>Step 4 — update salary</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">update.sql</span></div>
+          <pre><code><span class="kw">UPDATE</span> employees
+<span class="kw">SET</span> salary = <span class="num">90000</span>
+<span class="kw">WHERE</span> employee_id = <span class="num">1</span>;</code></pre>
+        </div>
+        <h4>Step 5 — check audit log</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">check.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> * <span class="kw">FROM</span> employee_audit;</code></pre>
+        </div>
+        <p>Example result:</p>
+        <div class="table-scroll"><table><tr><th>employee_id</th><th>old_salary</th><th>new_salary</th></tr><tr><td>1</td><td>70000</td><td>90000</td></tr></table></div>
+        <div class="remember">The audit record is inserted automatically.</div>
+      </div>
     </div>
-    <div class="code-block" data-file="manage_triggers.sql" data-lang="SQL">
-<pre><code>-- Manage triggers
-ALTER TABLE users DISABLE TRIGGER trg_users_audit;   -- pause
-ALTER TABLE users ENABLE  TRIGGER trg_users_audit;   -- resume
-DROP TRIGGER IF EXISTS trg_users_audit ON users;     -- delete
 
--- List all triggers on a table
-SELECT trigger_name, event_manipulation, action_timing, action_orientation
-FROM   information_schema.triggers
-WHERE  event_object_table = 'users';</code></pre>
+    <div class="section-divider" id="internal"><span>7. How a Trigger Works Internally</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="flow"><span class="step c-src">Application executes <code>UPDATE employees SET salary = 90000</code></span><span class="arrow">→</span><span class="step c-warn">PostgreSQL detects trigger event</span><span class="arrow">→</span><span class="step c-proc">Trigger function executes: stores old and new salary</span><span class="arrow">→</span><span class="step c-dst">Audit table gets updated</span></div>
+      </div>
     </div>
-    <div class="tip">💡 <code>EXECUTE FUNCTION</code> needs PostgreSQL 11+ (older versions use <code>EXECUTE PROCEDURE</code>). From PostgreSQL 14 you can also write <code>CREATE OR REPLACE TRIGGER</code> to redefine a trigger without dropping it first.</div>
+
+    <div class="section-divider" id="compare"><span>8. Function vs Trigger vs Stored Procedure</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="table-scroll"><table><tr><th>Feature</th><th>Function</th><th>Trigger</th><th>Procedure</th></tr><tr><td>Execution</td><td>Called explicitly</td><td>Automatically</td><td>Called explicitly</td></tr><tr><td>Purpose</td><td>Reusable logic</td><td>Automatic event handling</td><td>Business operations</td></tr><tr><td>Return</td><td>Must return a value or void</td><td>Trigger function returns TRIGGER</td><td>No return value required</td></tr><tr><td>Can execute independently?</td><td>Yes</td><td>No</td><td>Yes</td></tr><tr><td>Common use</td><td>Calculations, fetching data</td><td>Audit logs, validation</td><td>Complex workflows</td></tr></table></div>
+        <div class="remember"><strong>Remember:</strong> Function = you call it. Trigger = the database calls it automatically. Procedure = you call it to execute a set of operations, potentially including transaction control.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="commands"><span>9. Useful Trigger Commands</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">commands.sql</span></div>
+          <pre><code><span class="cmt">-- List triggers</span>
+<span class="kw">SELECT</span> *
+<span class="kw">FROM</span> information_schema.triggers;
+
+<span class="cmt">-- Delete trigger</span>
+<span class="kw">DROP</span> <span class="kw">TRIGGER</span> salary_audit_trigger <span class="kw">ON</span> employees;
+
+<span class="cmt">-- Delete trigger function</span>
+<span class="kw">DROP</span> <span class="kw">FUNCTION</span> <span class="fn">log_salary_change</span>();
+
+<span class="cmt">-- Disable trigger</span>
+<span class="kw">ALTER</span> <span class="kw">TABLE</span> employees
+<span class="kw">DISABLE</span> <span class="kw">TRIGGER</span> salary_audit_trigger;
+
+<span class="cmt">-- Enable trigger</span>
+<span class="kw">ALTER</span> <span class="kw">TABLE</span> employees
+<span class="kw">ENABLE</span> <span class="kw">TRIGGER</span> salary_audit_trigger;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="points"><span>10. Important Industry Points</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <ol style="margin:6px 0 14px 22px;color:#334155;font-size:15px;line-height:1.8"><li>Triggers execute inside the transaction that caused them. If the transaction rolls back, trigger changes also roll back.</li><li>Avoid putting heavy business logic inside triggers because they can affect application performance.</li><li>Triggers can execute other database operations, including INSERT, UPDATE and DELETE.</li><li>Be careful with recursive triggers and triggers that modify the same table.</li><li>Use <code>AFTER</code> triggers for audit logging and <code>BEFORE</code> triggers for validation or modifying incoming data.</li></ol>
+        <div class="remember"><strong>Recommendation:</strong> understand <code>BEFORE</code>, <code>AFTER</code>, <code>OLD</code>, <code>NEW</code>, <code>FOR EACH ROW</code>, and <code>WHEN</code> thoroughly. These are the most useful concepts when working with PostgreSQL triggers in real projects.</div>
+      </div>
+    </div>
+
   </div>
-</div>
-
-<!-- TOPIC 4 -->
-<div class="card" id="tr-new-old">
-  <div class="card-title"><span class="topic-num">4</span> How Triggers Work — NEW · OLD · FOR EACH ROW · FOR EACH STATEMENT</div>
-  <div class="card-body">
-    <h3>NEW and OLD records</h3>
-    <div class="grid2">
-      <div class="fn-card cg">
-        <h4>🟢 NEW — the incoming row</h4>
-        <ul class="no-list">
-          <li>✅ Available in INSERT triggers (the row being inserted)</li>
-          <li>✅ Available in UPDATE triggers (row with new values)</li>
-          <li>❌ NULL in DELETE triggers (nothing coming in)</li>
-          <li>💡 BEFORE trigger: you can modify <code>NEW</code> before saving</li>
-          <li><code>NEW.column_name</code> to read / write any field</li>
-          <li><code>RETURN NEW</code> → save the row (with your changes)</li>
-          <li><code>RETURN NULL</code> → cancel the operation (BEFORE only)</li>
-        </ul>
-      </div>
-      <div class="fn-card ca">
-        <h4>🟠 OLD — the existing row</h4>
-        <ul class="no-list">
-          <li>✅ Available in UPDATE triggers (row before change)</li>
-          <li>✅ Available in DELETE triggers (row being deleted)</li>
-          <li>❌ NULL in INSERT triggers (nothing existed before)</li>
-          <li>💡 Read-only — you can't modify <code>OLD</code></li>
-          <li><code>OLD.column_name</code> to read previous values</li>
-          <li>Used for: audit logging, detecting what changed</li>
-          <li><code>OLD.email IS DISTINCT FROM NEW.email</code> → email changed?</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="code-block" data-file="new_old_examples.sql" data-lang="SQL">
-<pre><code>-- Using NEW to auto-fill fields (BEFORE INSERT)
-CREATE OR REPLACE FUNCTION before_insert_user()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-  NEW.email      := LOWER(NEW.email);   -- normalize email case
-  NEW.created_at := NOW();              -- auto-fill timestamp
-  NEW.slug       := LOWER(REPLACE(NEW.name, ' ', '-'));
-  RETURN NEW;    -- return modified row — this is what gets saved
-END; $$;
-
-
--- Using OLD and NEW to detect changes (AFTER UPDATE)
-CREATE OR REPLACE FUNCTION after_update_status()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-  IF OLD.status IS DISTINCT FROM NEW.status THEN   -- NULL-safe compare
-    INSERT INTO status_history(order_id, from_status, to_status, changed_at)
-    VALUES (NEW.id, OLD.status, NEW.status, NOW());
-  END IF;
-  RETURN NEW;
-END; $$;
-
-
--- Using OLD in BEFORE DELETE to block the delete
-CREATE OR REPLACE FUNCTION before_delete_order()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-  IF OLD.status = 'paid' THEN
-    RAISE EXCEPTION 'Cannot delete a paid order (id=%)', OLD.id;
-  END IF;
-  RETURN OLD;   -- BEFORE DELETE: return OLD to allow it (NEW is NULL here!)
-END; $$;</code></pre>
-    </div>
-    <div class="warning">⚠️ <strong>Common bug:</strong> in a BEFORE DELETE trigger <code>NEW</code> is NULL. Writing <code>RETURN NEW</code> there returns NULL and <strong>silently cancels every delete</strong>. Return <code>OLD</code> — or <code>COALESCE(NEW, OLD)</code> in a function shared by several events.</div>
-
-    <h3>Special trigger variables</h3>
-    <div class="table-scroll"><table>
-      <tr><th>Variable</th><th>Value</th></tr>
-      <tr><td><code>TG_OP</code></td><td><code>'INSERT'</code> | <code>'UPDATE'</code> | <code>'DELETE'</code> | <code>'TRUNCATE'</code></td></tr>
-      <tr><td><code>TG_TABLE_NAME</code></td><td>Name of the table that fired the trigger</td></tr>
-      <tr><td><code>TG_WHEN</code></td><td><code>'BEFORE'</code> | <code>'AFTER'</code> | <code>'INSTEAD OF'</code></td></tr>
-      <tr><td><code>TG_LEVEL</code></td><td><code>'ROW'</code> | <code>'STATEMENT'</code></td></tr>
-      <tr><td><code>TG_NARGS</code></td><td>Number of arguments passed in <code>CREATE TRIGGER</code></td></tr>
-      <tr><td><code>TG_ARGV[0]</code></td><td>First argument passed (if any)</td></tr>
-    </table></div>
-
-    <h3>FOR EACH ROW vs FOR EACH STATEMENT</h3>
-    <div class="grid2">
-      <div class="fn-card">
-        <h4>📍 FOR EACH ROW</h4>
-        <p class="fn-body">Fires <strong>once per affected row</strong>. UPDATE 500 rows → the trigger fires 500 times.<br><br>✅ Has <code>NEW</code> and <code>OLD</code> for that specific row<br>✅ Can modify individual rows (BEFORE only)<br>⚠️ 500 updated rows = 500 trigger calls<br><br>Use for: per-row logging, per-row validation, auto-fill fields.</p>
-      </div>
-      <div class="fn-card cp">
-        <h4>📦 FOR EACH STATEMENT</h4>
-        <p class="fn-body">Fires <strong>once per SQL statement</strong>, however many rows changed. UPDATE 500 rows → 1 call.<br><br>❌ No <code>NEW</code> / <code>OLD</code> row variables<br>✅ Much faster for bulk operations<br>✅ Ideal for cache invalidation, one notification<br><br>Use for: bulk side effects, cache invalidation.</p>
-      </div>
-    </div>
-
-    <div class="code-block" data-file="for_each.sql" data-lang="SQL" data-hl="4,10">
-<pre><code>-- FOR EACH ROW — fires per row (has NEW/OLD)
-CREATE TRIGGER trg_row_level
-  AFTER UPDATE ON orders
-  FOR EACH ROW                    -- ← fires once per updated row
-  EXECUTE FUNCTION log_order_change();
-
--- FOR EACH STATEMENT — fires once per query (no NEW/OLD)
-CREATE TRIGGER trg_stmt_level
-  AFTER UPDATE ON orders
-  FOR EACH STATEMENT              -- ← fires once regardless of rows affected
-  EXECUTE FUNCTION invalidate_order_cache();
-
--- Practical difference:
-UPDATE orders SET status = 'shipped' WHERE created_at &lt; '2024-01-01';
--- affects 50,000 rows
--- FOR EACH ROW       → trigger fires 50,000 times ← potentially slow!
--- FOR EACH STATEMENT → trigger fires 1 time       ← fast</code></pre>
-    </div>
-    <div class="tip">💡 A statement-level trigger has no <code>NEW</code> / <code>OLD</code>, but on PostgreSQL 10+ it can still see every changed row through <strong>transition tables</strong>:</div>
-    <div class="code-block" data-file="transition_tables.sql" data-lang="SQL">
-<pre><code>CREATE TRIGGER trg_orders_bulk
-  AFTER UPDATE ON orders
-  REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
-  FOR EACH STATEMENT
-  EXECUTE FUNCTION log_bulk_update();
--- inside log_bulk_update():  SELECT COUNT(*) FROM new_rows;</code></pre>
-    </div>
-  </div>
-</div>
-
-<!-- TOPIC 5 -->
-<div class="card" id="tr-perf">
-  <div class="card-title"><span class="topic-num">5</span> Performance &amp; Best Practices — Production Use Cases</div>
-  <div class="card-body">
-    <h3>🔴 Use case 1 — Auto updated_at timestamp</h3>
-    <div class="code-block" data-file="uc1_updated_at.sql" data-lang="SQL">
-<pre><code>CREATE OR REPLACE FUNCTION set_updated_at()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END; $$;
-
-CREATE TRIGGER trg_users_updated_at
-  BEFORE UPDATE ON users
-  FOR EACH ROW
-  EXECUTE FUNCTION set_updated_at();
-
--- Apply the same trigger function to multiple tables
-CREATE TRIGGER trg_orders_updated_at
-  BEFORE UPDATE ON orders
-  FOR EACH ROW
-  EXECUTE FUNCTION set_updated_at();   -- reuse the same fn!</code></pre>
-    </div>
-
-    <h3>🔴 Use case 2 — Full audit log</h3>
-    <div class="code-block" data-file="uc2_audit_log.sql" data-lang="SQL">
-<pre><code>CREATE TABLE audit_log (
-  id         SERIAL PRIMARY KEY,
-  table_name TEXT,
-  action     TEXT,
-  old_data   JSONB,
-  new_data   JSONB,
-  changed_at TIMESTAMPTZ DEFAULT NOW(),
-  changed_by TEXT DEFAULT current_user
-);
-
-CREATE OR REPLACE FUNCTION audit_trigger_fn()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-  INSERT INTO audit_log(table_name, action, old_data, new_data)
-  VALUES (
-    TG_TABLE_NAME, TG_OP,
-    CASE WHEN TG_OP = 'INSERT' THEN NULL ELSE to_jsonb(OLD) END,
-    CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE to_jsonb(NEW) END
-  );
-  RETURN COALESCE(NEW, OLD);
-END; $$;
-
-CREATE TRIGGER trg_users_audit
-  AFTER INSERT OR UPDATE OR DELETE ON users
-  FOR EACH ROW
-  EXECUTE FUNCTION audit_trigger_fn();</code></pre>
-    </div>
-
-    <h3>🟡 Use case 3 — Validation: block an invalid state</h3>
-    <div class="code-block" data-file="uc3_validation.sql" data-lang="SQL" data-hl="5,6,7,10,11,12">
-<pre><code>CREATE OR REPLACE FUNCTION validate_order_status()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-  -- Block delete of paid orders
-  IF TG_OP = 'DELETE' AND OLD.status = 'paid' THEN
-    RAISE EXCEPTION 'Cannot delete paid order id=%', OLD.id;
-  END IF;
-  -- Prevent rolling back from 'paid' to 'pending'
-  -- (check TG_OP first: NEW is NULL during a DELETE)
-  IF TG_OP = 'UPDATE' AND OLD.status = 'paid' AND NEW.status = 'pending' THEN
-    RAISE EXCEPTION 'Cannot revert a paid order to pending';
-  END IF;
-  RETURN COALESCE(NEW, OLD);
-END; $$;
-
-CREATE TRIGGER trg_order_validation
-  BEFORE UPDATE OR DELETE ON orders
-  FOR EACH ROW
-  EXECUTE FUNCTION validate_order_status();</code></pre>
-    </div>
-
-    <h3>🟡 Use case 4 — Soft delete: turn DELETE into UPDATE</h3>
-    <div class="code-block" data-file="uc4_soft_delete.sql" data-lang="SQL" data-hl="7">
-<pre><code>CREATE OR REPLACE FUNCTION soft_delete_user()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-  UPDATE users
-  SET    deleted_at = NOW(), active = FALSE
-  WHERE  id = OLD.id;
-  RETURN NULL;   -- cancel the real DELETE — the row stays, just flagged
-END; $$;
-
-CREATE TRIGGER trg_soft_delete
-  BEFORE DELETE ON users
-  FOR EACH ROW
-  EXECUTE FUNCTION soft_delete_user();</code></pre>
-    </div>
-    <div class="warning">⚠️ <strong>Soft delete must <code>RETURN NULL</code>.</strong> Returning <code>OLD</code> lets the DELETE carry on — the row would be flagged and then physically deleted anyway. This is a BEFORE trigger on a table; <code>INSTEAD OF</code> only exists for views.</div>
-
-    <h3>Performance &amp; safety checklist</h3>
-    <div class="table-scroll"><table>
-      <tr><th>Practice</th><th>Why</th></tr>
-      <tr><td>Use <code>WHEN (...)</code> to skip needless calls</td><td>The condition is checked before the function runs — no function-call cost for rows that don't match</td></tr>
-      <tr><td>Prefer <code>FOR EACH STATEMENT</code> for bulk work</td><td>One call instead of one per row</td></tr>
-      <tr><td>Know the firing order</td><td>Several triggers on the same event run <strong>alphabetically by trigger name</strong> — name them deliberately</td></tr>
-      <tr><td>Avoid trigger loops</td><td>A trigger that updates its own table re-fires itself; guard with <code>pg_trigger_depth() = 0</code> or a <code>WHEN</code> clause</td></tr>
-      <tr><td>Index the audit table</td><td>Audit tables grow fast — index <code>table_name</code> and <code>changed_at</code>, and partition or archive old rows</td></tr>
-      <tr><td>Keep the function short</td><td>Its cost is paid on every write to the table</td></tr>
-    </table></div>
-  </div>
-</div>
-
-<!-- TOPIC 6 -->
-<div class="card" id="tr-advdis">
-  <div class="card-title"><span class="topic-num">6</span> Advantages &amp; Disadvantages of Triggers</div>
-  <div class="card-body">
-    <div class="grid2">
-      <div class="fn-card cg">
-        <h4>✅ Advantages</h4>
-        <ul class="adv-list">
-          <li><span class="adv-icon">🔒</span><div><strong>Guaranteed execution</strong> — fires for every INSERT/UPDATE/DELETE, whichever app, ORM or user makes the change. Can't be bypassed by normal DML.</div></li>
-          <li><span class="adv-icon">📋</span><div><strong>Automatic audit logging</strong> — track every data change (who, what, when) without touching app code.</div></li>
-          <li><span class="adv-icon">⏱️</span><div><strong>Auto-timestamps</strong> — <code>updated_at</code> stays accurate even for manual SQL and data migrations.</div></li>
-          <li><span class="adv-icon">🛡️</span><div><strong>Data integrity at DB level</strong> — rules survive ORM changes, API changes and developer mistakes.</div></li>
-          <li><span class="adv-icon">♻️</span><div><strong>Reusable logic</strong> — one trigger function can serve many tables (e.g. <code>set_updated_at</code>).</div></li>
-          <li><span class="adv-icon">🔌</span><div><strong>Decoupled</strong> — the app needn't know about audit logging, timestamps or cascades.</div></li>
-        </ul>
-      </div>
-      <div class="fn-card cr">
-        <h4>❌ Disadvantages</h4>
-        <ul class="adv-list">
-          <li><span class="adv-icon">👻</span><div><strong>Hidden side effects</strong> — a simple INSERT triggers an audit row, a notification and an update elsewhere; new developers can't see it in app code.</div></li>
-          <li><span class="adv-icon">🐢</span><div><strong>Performance overhead</strong> — FOR EACH ROW on a 100k-row UPDATE = 100k trigger calls.</div></li>
-          <li><span class="adv-icon">🐛</span><div><strong>Hard to debug</strong> — errors surface as errors in the DML statement, with confusing context. Harder to test than app code.</div></li>
-          <li><span class="adv-icon">🔄</span><div><strong>Trigger cascades</strong> — a trigger updates table B, whose trigger updates table C. An invisible chain that's hard to trace.</div></li>
-          <li><span class="adv-icon">🧩</span><div><strong>Logic in two places</strong> — some rules in the app, some in triggers: split brain about where rules live.</div></li>
-          <li><span class="adv-icon">📦</span><div><strong>Migration risk</strong> — triggers may be missing from ORM migration files, so a fresh clone behaves differently.</div></li>
-        </ul>
-      </div>
-    </div>
-
-    <h3>Summary — When to use</h3>
-    <div class="table-scroll"><table>
-      <tr><th>Use case</th><th>Trigger?</th><th>Why</th></tr>
-      <tr><td>Auto <code>updated_at</code> on every UPDATE</td><td><span class="badge bg-green">✅ Yes</span></td><td>Can't be forgotten, works for all callers</td></tr>
-      <tr><td>Audit log — who changed what</td><td><span class="badge bg-green">✅ Yes</span></td><td>Guaranteed capture regardless of app layer</td></tr>
-      <tr><td>Validate business rules (block paid-order delete)</td><td><span class="badge bg-green">✅ Yes</span></td><td>DB-level enforcement can't be bypassed</td></tr>
-      <tr><td>Soft delete</td><td><span class="badge bg-green">✅ Yes</span></td><td>BEFORE DELETE flags the row and returns NULL to cancel the real delete</td></tr>
-      <tr><td>Sending emails on row insert</td><td><span class="badge bg-red">❌ No</span></td><td>Triggers shouldn't make HTTP calls — insert into an outbox table or use <code>NOTIFY</code>, and let a worker send</td></tr>
-      <tr><td>Complex multi-step business logic</td><td><span class="badge bg-yellow">⚠️ Careful</span></td><td>Move to the application layer — triggers are hard to debug</td></tr>
-      <tr><td>Bulk UPDATE on millions of rows</td><td><span class="badge bg-red">❌ No / Careful</span></td><td>FOR EACH ROW × 1M = serious slowdown; use statement-level or disable temporarily</td></tr>
-    </table></div>
-
-    <div class="remember">✅ <strong>Golden rules:</strong> Keep trigger functions short and fast — do one thing. Never put complex business logic or external calls in triggers. Use triggers for timestamps, audit logs and simple validation; use application code for emails, API calls and complex workflows. <strong>Document your triggers</strong> — they're invisible to the app layer and will surprise future developers.</div>
-  </div>
-</div>
-
-</div>
-
-<script>
-  function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-  var KW = 'CREATE|OR|REPLACE|FUNCTION|RETURNS|RETURN|LANGUAGE|AS|BEGIN|END|IF|THEN|ELSE|CASE|INSERT|INTO|VALUES|UPDATE|DELETE|TRUNCATE|SELECT|FROM|WHERE|SET|ON|TRIGGER|BEFORE|AFTER|INSTEAD|OF|EACH|ROW|STATEMENT|WHEN|EXECUTE|ALTER|TABLE|DISABLE|ENABLE|DROP|EXISTS|RAISE|EXCEPTION|DEFAULT|NOT|AND|REFERENCING|DISTINCT|IS|NULL|FALSE|TRUE|PRIMARY|KEY|CURRENT_USER|OLD|NEW';
-  var TY = 'TEXT|INT|SERIAL|JSONB|TIMESTAMPTZ|TG_OP|TG_TABLE_NAME|TG_WHEN|TG_LEVEL|TG_NARGS|TG_ARGV';
-  var TOK = new RegExp('(--[^\\n]*)|(\'(?:[^\'\\n]|\'\')*\')|(\\$\\$)|\\b(' + TY + ')\\b|\\b(' + KW + ')\\b|\\b(\\d+(?:\\.\\d+)?)\\b|\\b([A-Za-z_]\\w*)(?=\\()', 'gi');
-  function hlSQL(text) {
-    var out = '', last = 0, m;
-    TOK.lastIndex = 0;
-    while ((m = TOK.exec(text))) {
-      out += esc(text.slice(last, m.index));
-      var cls = m[1] ? 'cmt' : m[2] ? 'str' : m[3] ? 'kw' : m[4] ? 'typ' : m[5] ? 'kw' : m[6] ? 'num' : 'fn';
-      if (m[5] && /^(old|new)$/i.test(m[0])) cls = 'typ';
-      out += '<span class="' + cls + '">' + esc(m[0]) + '</span>';
-      last = m.index + m[0].length;
-    }
-    return out + esc(text.slice(last));
-  }
-
-  document.querySelectorAll('.code-block').forEach(function (block) {
-    var code = block.querySelector('code');
-    var raw = code.textContent;
-    var lang = block.dataset.lang || 'SQL';
-    var hl = (block.dataset.hl || '').split(',').map(Number);
-    code.innerHTML = hlSQL(raw).split('\n').map(function (line, i) {
-      return '<span class="l' + (hl.indexOf(i + 1) > -1 ? ' hl' : '') + '">' + (line || ' ') + '</span>';
-    }).join('');
-
-    var bar = document.createElement('div');
-    bar.className = 'code-bar';
-    bar.innerHTML = '<span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>' +
-      '<span class="filename">' + block.dataset.file + '</span><span class="lang">' + lang + '</span>' +
-      '<button class="copy" type="button">Copy</button>';
-    block.insertBefore(bar, block.firstChild);
-
-    var btn = bar.querySelector('.copy');
-    btn.addEventListener('click', function () {
-      navigator.clipboard.writeText(raw).then(function () {
-        btn.textContent = 'Copied ✓'; btn.classList.add('done');
-        setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1500);
-      });
-    });
-  });
-
-  document.querySelectorAll('a[href^="#"]').forEach(function (a) {
-    a.addEventListener('click', function (e) {
-      e.preventDefault();
-      var t = document.querySelector(a.getAttribute('href'));
-      if (t) t.scrollIntoView({ behavior: 'smooth' });
-    });
-  });
-</script>
-<nav class="side-nav" aria-label="Section navigation"></nav>
-<script src="floating-side-nav.js"></script>
-<script src="../global-theme.js"></script>
 </body>
 </html>
