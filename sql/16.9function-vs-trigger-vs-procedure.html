@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PostgreSQL: Function vs Trigger vs Stored Procedure</title>
+</head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
+
+  /* HEADER */
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 20px; padding: 46px 40px; margin-bottom: 44px; box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3); position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:14px; position:relative; }
+  .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 700px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a { text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700; transition: all 0.2s ease; cursor: pointer; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  /* topic dropdown */
+  .topic-dropdown { position: relative; margin-bottom: 18px; display: inline-block; }
+  .topic-dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.16); color: #fff; font-size: 13.5px; font-weight: 800; padding: 9px 18px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.32); transition: background 0.2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display: none; }
+  .topic-dropdown summary:hover { background: rgba(255,255,255,0.26); }
+  .topic-dropdown[open] summary::after { transform: rotate(180deg); }
+  .topic-dropdown summary::after { content: '▾'; margin-left: 2px; transition: transform 0.2s ease; font-size: 11px; }
+  .topic-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; background: #fff; border-radius: 12px; padding: 8px; min-width: 240px; box-shadow: 0 14px 30px rgba(0,0,0,0.22); display: flex; flex-direction: column; gap: 3px; }
+  .topic-menu a { text-decoration: none; color: #1a1a1a; font-size: 14px; font-weight: 700; padding: 9px 14px; border-radius: 8px; display: flex; align-items: center; gap: 9px; transition: background 0.15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background: var(--content-bg); color: var(--accent); }
+  .topic-menu .group-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.6px; color: #94a3b8; padding: 8px 14px 2px; text-transform: uppercase; }
+
+  /* SUMMARY GRID */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-2px); }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; } .summary-blue .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; } .summary-pink .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; } .summary-amber .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; } .summary-green .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; } .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; } .summary-teal .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  /* SECTION DIVIDER */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+
+  /* CARDS */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+  .card-content p code, .card-content li code, td code, .short-answer code, .tip code, .note code, .warning code, .remember code { font-family: 'Fira Code','Consolas',monospace; font-size: 0.88em; background: rgba(var(--shadow-rgb),0.1); color: var(--heading); padding: 2px 7px; border-radius: 5px; }
+  .card-content ul { margin: 6px 0 14px 22px; }
+  .card-content li { font-size: 15.5px; line-height: 1.85; color: #334155; font-weight: 500; }
+
+  .short-answer { position: relative; background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%); border: 1px solid rgba(var(--shadow-rgb), 0.16); border-left: 4px solid var(--accent); border-radius: 14px; padding: 20px 24px 22px; margin-bottom: 24px; font-size: 17px; line-height: 1.75; font-weight: 500; color: #293244; box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1); }
+  .short-answer::before { content: "QUICK TAKE"; display: block; width: fit-content; font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff; background: linear-gradient(120deg, var(--accent), var(--accent-light)); padding: 5px 13px; border-radius: 20px; margin-bottom: 13px; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35); }
+  .short-answer strong { color: var(--heading); }
+
+  /* CODE */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; } .dot-grey { background: #febc2e; } .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code','Consolas',monospace; line-height: 1.65; white-space: pre; }
+  .kw { color: #c792ea; font-weight: 600; } .str { color: #c3e88d; } .fn { color: #82aaff; } .type { color: #f07178; } .cmt { color: #7a7a7a; font-style: italic; } .num { color: #f78c6c; }
+
+  /* CALLOUTS */
+  .tip, .note, .warning, .remember { border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+  .tip { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; background: #fff; }
+  table tr:nth-child(even) td { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
+
+  @media (max-width: 768px) { .header h1 { font-size: 26px; } .toc a { padding: 6px 12px; font-size: 12px; } .card-content { padding: 20px; } }
+
+  /* ═══════════ COLORFUL TABLES (shared) ═══════════ */
+  table { border-collapse: separate !important; border-spacing: 0 8px !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
+  table th { background: linear-gradient(120deg,#2563eb,#7c3aed,#ec4899) !important; color: #fff !important; font-size: 13px !important; font-weight: 800 !important; letter-spacing: .7px; text-transform: uppercase; padding: 13px 18px !important; border: none !important; }
+  table th:first-child { border-radius: 12px 0 0 12px; }
+  table th:last-child { border-radius: 0 12px 12px 0; }
+  table td { border: none !important; padding: 13px 18px !important; font-weight: 600 !important; color: #334155 !important; vertical-align: middle !important; }
+  table td:first-child { border-radius: 12px 0 0 12px; border-left: 6px solid var(--rc) !important; font-weight: 800 !important; color: var(--rd) !important; }
+  table td:last-child { border-radius: 0 12px 12px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background: var(--rb) !important; box-shadow: 0 3px 8px rgba(0,0,0,.05); transition: transform .15s ease; }
+  table tr:not(:first-child):hover td { filter: brightness(.97); }
+  table td code { background: #fff !important; color: var(--rd) !important; border: 1px solid var(--rc); padding: 2px 8px !important; border-radius: 6px !important; font-weight: 700; }
+
+  .card-content.compact { padding: 16px 20px; }
+  .card-content.compact p { font-size: 14.5px; line-height: 1.7; margin-bottom: 10px; }
+  .card-content.compact li { font-size: 14px; line-height: 1.7; }
+  .card-content.compact h4 { font-size: 15px; margin: 14px 0 6px; }
+  .card-content.compact .code-block { margin: 8px 0; }
+  .card-content.compact .code-block pre { padding: 11px 14px; }
+  .card-content.compact .code-block code { font-size: 12.5px; line-height: 1.55; }
+  .card-content.compact table th, .card-content.compact table td { padding: 8px 12px !important; font-size: 13px !important; }
+  .card-content.compact .tip, .card-content.compact .note, .card-content.compact .warning, .card-content.compact .remember { padding: 10px 14px; font-size: 13.5px; margin: 8px 0; line-height: 1.6; }
+  .header { padding: 34px 36px; margin-bottom: 30px; }
+  .header h1 { font-size: 28px; }
+  .header p { font-size: 15px; margin-bottom: 18px; }
+  .section-divider { margin: 34px 0 16px; }
+  .section-divider span { font-size: 19px; }
+  .card { margin-bottom: 16px; }
+</style>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <span class="tag">SQL · POSTGRESQL · COMPARISON</span>
+      <h1>🧭 Function vs Trigger vs Stored Procedure</h1>
+      <p>A detailed side-by-side comparison of syntax, execution, return types, parameters, transaction control and real use cases.</p>
+
+      <details class="topic-dropdown">
+        <summary>📁 MERN / JS Topics</summary>
+        <div class="topic-menu">
+          <span class="group-label">Node / Express</span>
+          <a href="interview-error-handling.html">🧯 Error Handling (Plain JS)</a>
+          <a href="interview-zod-validation.html">✅ Zod Validation (Plain JS)</a>
+          <a href="interview-crud-api.html">🔧 Express + Mongoose CRUD API</a>
+          <span class="group-label">Practice Sets</span>
+          <a href="interview-array-patterns-25.html">🧩 25 Array/String Pattern Questions</a>
+          <a href="interview-array-patterns-25.html">🧩 25 Array/String Pattern Questions</a>
+          <a href="interview-js-dsa-80.html">🧠 80 JS + DSA Coding Questions</a>
+          <a href="interview-mern-practice-70.html">🏋️ 78 MERN Practice Questions</a>
+          <span class="group-label">CSS</span>
+          <a href="interview-css-positioning.html">📐 Positioning &amp; Responsive Cheat Sheet</a>
+          <span class="group-label">Next.js</span>
+          <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+          <a href="interview-nextjs-data.html">📡 Data, Caching &amp; UI States</a>
+          <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+          <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+          <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+          <a href="interview-nextjs-qa.html">Next.js Interview Q&amp;A</a>
+          <span class="group-label">React / JavaScript</span>
+          <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+          <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+          <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+          <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+          <a href="interview-routing.html">🧭 React Router Interview</a>
+          <span class="group-label">MongoDB</span>
+          <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+          <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+                    <span class="group-label">SQL</span>
+          <a href="interview-sql-cte.html">🔗 SQL CTEs — Compact Notes</a>
+          <a href="interview-sql-null-case.html">❓ NULL, COALESCE &amp; CASE WHEN</a>
+          <a href="interview-sql-distinct.html">🔎 SQL DISTINCT</a>
+          <a href="interview-sql-date-time.html">📅 PostgreSQL Date &amp; Time Functions</a>
+          <a href="interview-sql-window-functions.html">🪟 PostgreSQL Window Functions</a>
+          <a href="interview-sql-joins.html">🔀 SQL Joins — Visual Notes</a>
+          <a href="interview-sql-subqueries.html">🔍 SQL Subqueries — Master Guide</a>
+          <a href="interview-sql-functions.html">⚙️ PostgreSQL Functions</a>
+          <a href="interview-sql-triggers.html">⚡ PostgreSQL Triggers</a>
+          <a href="interview-sql-procedures.html">📦 PostgreSQL Stored Procedures</a>
+          <a class="current" href="interview-sql-compare.html">🧭 Function vs Trigger vs Procedure</a>
+          <a href="interview-sql-date-time.html">📅 PostgreSQL Date &amp; Time Functions</a>
+          <a href="interview-sql-window-functions.html">🪟 PostgreSQL Window Functions</a>
+          <span class="group-label">SQL</span>
+          <a href="interview-sql-cte.html">🔗 SQL CTEs — Compact Notes</a>
+          <a href="interview-sql-null-case.html">❓ NULL, COALESCE &amp; CASE WHEN</a>
+          <a href="interview-sql-distinct.html">🔎 SQL DISTINCT</a>
+          <span class="group-label">PostgreSQL</span>
+          <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+          <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+        
+        
+        </div>
+      </details>
+
+      <div class="toc"><a onclick="document.getElementById('quick').scrollIntoView({behavior:'smooth'});return false;">Quick Comparison</a><a onclick="document.getElementById('function').scrollIntoView({behavior:'smooth'});return false;">Function</a><a onclick="document.getElementById('trigger').scrollIntoView({behavior:'smooth'});return false;">Trigger</a><a onclick="document.getElementById('procedure').scrollIntoView({behavior:'smooth'});return false;">Procedure</a><a onclick="document.getElementById('fn-vs-trigger').scrollIntoView({behavior:'smooth'});return false;">Function vs Trigger Fn</a><a onclick="document.getElementById('usecases').scrollIntoView({behavior:'smooth'});return false;">Use Cases</a><a onclick="document.getElementById('commands').scrollIntoView({behavior:'smooth'});return false;">Commands</a><a onclick="document.getElementById('revision').scrollIntoView({behavior:'smooth'});return false;">Final Revision</a></div>
+    </div>
+
+<div class="card"><div class="card-content compact">
+        <p>All three are used to implement database logic, but their syntax, execution, return types and use cases are different.</p>
+</div></div>
+
+    <div class="section-divider" id="quick"><span>1. Quick Comparison</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="table-scroll"><table><tr><th>Feature</th><th>Function</th><th>Trigger</th><th>Stored Procedure</th></tr><tr><td>Purpose</td><td>Reusable logic</td><td>Automatic event handling</td><td>Business operations</td></tr><tr><td>Execution</td><td>Explicitly called</td><td>Automatically executed</td><td>Explicitly called</td></tr><tr><td>Calling syntax</td><td><code>SELECT</code></td><td>No direct call</td><td><code>CALL</code></td></tr><tr><td>Return type</td><td>Required</td><td><code>RETURNS TRIGGER</code></td><td>No return type required</td></tr><tr><td>Parameters</td><td>IN, OUT, INOUT</td><td>No normal parameters; uses <code>NEW</code> and <code>OLD</code></td><td>IN, OUT, INOUT</td></tr><tr><td>Transaction control</td><td>Not allowed</td><td>Not allowed</td><td>Allowed in supported contexts</td></tr><tr><td>Execution event</td><td>On function call</td><td>INSERT, UPDATE, DELETE, TRUNCATE</td><td>On procedure call</td></tr></table></div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="function"><span>2. Function — Detailed Syntax</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>A function is a reusable block of SQL logic that returns a value, table, or void.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">syntax.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">function_name</span>(
+    parameter_name datatype
+)
+<span class="kw">RETURNS</span> return_datatype
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+
+    <span class="cmt">-- SQL statements</span>
+
+    <span class="kw">RETURN</span> value;
+
+<span class="kw">END</span>;
+$$;</code></pre>
+        </div>
+        <h4>Important syntax components</h4>
+        <div class="table-scroll"><table><tr><th>Keyword</th><th>Purpose</th></tr><tr><td><code>CREATE FUNCTION</code></td><td>Creates a function</td></tr><tr><td><code>OR REPLACE</code></td><td>Replaces an existing definition</td></tr><tr><td><code>RETURNS</code></td><td>Defines the return type</td></tr><tr><td><code>LANGUAGE plpgsql</code></td><td>Specifies the language</td></tr><tr><td><code>DECLARE</code></td><td>Defines local variables (optional)</td></tr><tr><td><code>BEGIN / END</code></td><td>Contains function logic</td></tr><tr><td><code>RETURN</code></td><td>Returns the result</td></tr></table></div>
+        <h4>Example: function with IN parameter</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">get_employee_salary.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">get_employee_salary</span>(
+    emp_id <span class="kw">INT</span>
+)
+<span class="kw">RETURNS</span> <span class="kw">NUMERIC</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">DECLARE</span>
+    emp_salary <span class="kw">NUMERIC</span>;
+<span class="kw">BEGIN</span>
+
+    <span class="kw">SELECT</span> salary
+    <span class="kw">INTO</span> emp_salary
+    <span class="kw">FROM</span> employees
+    <span class="kw">WHERE</span> employee_id = emp_id;
+
+    <span class="kw">RETURN</span> emp_salary;
+
+<span class="kw">END</span>;
+$$;
+
+<span class="cmt">-- Call</span>
+<span class="kw">SELECT</span> <span class="fn">get_employee_salary</span>(<span class="num">1</span>);</code></pre>
+        </div>
+        <h4>Common function return types</h4>
+        <div class="table-scroll"><table><tr><th>Return type</th><th>Usage</th></tr><tr><td><code>RETURNS INT</code></td><td>Return an integer</td></tr><tr><td><code>RETURNS TEXT</code></td><td>Return text</td></tr><tr><td><code>RETURNS BOOLEAN</code></td><td>Return true/false</td></tr><tr><td><code>RETURNS NUMERIC</code></td><td>Return decimal value</td></tr><tr><td><code>RETURNS TABLE(...)</code></td><td>Return multiple rows and columns</td></tr><tr><td><code>RETURNS VOID</code></td><td>Return no meaningful value</td></tr></table></div>
+        <h4>Example: RETURNS TABLE</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">get_employees.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">get_employees</span>()
+<span class="kw">RETURNS</span> <span class="kw">TABLE</span> (
+    emp_id <span class="kw">INT</span>,
+    emp_name <span class="kw">VARCHAR</span>,
+    emp_salary <span class="kw">NUMERIC</span>
+)
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+
+    <span class="kw">RETURN</span> <span class="kw">QUERY</span>
+    <span class="kw">SELECT</span> employee_id, employee_name, salary
+    <span class="kw">FROM</span> employees;
+
+<span class="kw">END</span>;
+$$;
+
+<span class="cmt">-- Call</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">get_employees</span>();</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="trigger"><span>3. Trigger — Detailed Syntax</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>A trigger automatically executes a trigger function when a specific event occurs on a table or view.</p>
+        <div class="warning"><strong>Important:</strong> PostgreSQL triggers require a separate function. You cannot directly write the trigger’s business logic inside <code>CREATE TRIGGER</code>.</div>
+        <h4>Step 1: create trigger function</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">trigger_function.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">trigger_function_name</span>()
+<span class="kw">RETURNS</span> <span class="kw">TRIGGER</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+
+    <span class="cmt">-- Trigger logic</span>
+
+    <span class="kw">RETURN</span> <span class="kw">NEW</span>;
+
+<span class="kw">END</span>;
+$$;</code></pre>
+        </div>
+        <h4>Step 2: create trigger</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">trigger.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">TRIGGER</span> trigger_name
+<span class="kw">BEFORE</span> <span class="kw">INSERT</span> <span class="kw">OR</span> <span class="kw">UPDATE</span> <span class="kw">OR</span> <span class="kw">DELETE</span>
+<span class="kw">ON</span> table_name
+FOR <span class="kw">EACH</span> <span class="kw">ROW</span>
+<span class="kw">EXECUTE</span> <span class="kw">FUNCTION</span> <span class="fn">trigger_function_name</span>();</code></pre>
+        </div>
+        <h4>Important syntax differences</h4>
+        <div class="table-scroll"><table><tr><th>Keyword</th><th>Purpose</th></tr><tr><td><code>RETURNS TRIGGER</code></td><td>Mandatory return type for trigger functions</td></tr><tr><td><code>NEW</code></td><td>Contains new record</td></tr><tr><td><code>OLD</code></td><td>Contains existing record</td></tr><tr><td><code>BEFORE</code></td><td>Executes before the operation</td></tr><tr><td><code>AFTER</code></td><td>Executes after the operation</td></tr><tr><td><code>FOR EACH ROW</code></td><td>Executes for every affected row</td></tr><tr><td><code>FOR EACH STATEMENT</code></td><td>Executes once per SQL statement</td></tr><tr><td><code>WHEN</code></td><td>Optional condition for trigger execution</td></tr><tr><td><code>EXECUTE FUNCTION</code></td><td>Connects trigger to its function</td></tr></table></div>
+        <h4>Example: automatically update timestamp</h4>
+        <p><strong>Step 1 — trigger function</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">update_timestamp.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">FUNCTION</span> <span class="fn">update_timestamp</span>()
+<span class="kw">RETURNS</span> <span class="kw">TRIGGER</span>
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+
+    <span class="kw">NEW</span>.updated_at = CURRENT_TIMESTAMP;
+
+    <span class="kw">RETURN</span> <span class="kw">NEW</span>;
+
+<span class="kw">END</span>;
+$$;</code></pre>
+        </div>
+        <p><strong>Step 2 — create trigger</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">trigger.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">TRIGGER</span> employee_update_trigger
+<span class="kw">BEFORE</span> <span class="kw">UPDATE</span>
+<span class="kw">ON</span> employees
+FOR <span class="kw">EACH</span> <span class="kw">ROW</span>
+<span class="kw">EXECUTE</span> <span class="kw">FUNCTION</span> <span class="fn">update_timestamp</span>();</code></pre>
+        </div>
+        <p><strong>Step 3 — update employee</strong></p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">update.sql</span></div>
+          <pre><code><span class="kw">UPDATE</span> employees
+<span class="kw">SET</span> salary = <span class="num">85000</span>
+<span class="kw">WHERE</span> employee_id = <span class="num">1</span>;</code></pre>
+        </div>
+        <p>PostgreSQL automatically executes the trigger and updates <code>updated_at</code>.</p>
+        <h4>OLD vs NEW</h4>
+        <div class="table-scroll"><table><tr><th>Operation</th><th>OLD</th><th>NEW</th></tr><tr><td>INSERT</td><td>Not available</td><td>New record</td></tr><tr><td>UPDATE</td><td>Previous record</td><td>Updated record</td></tr><tr><td>DELETE</td><td>Deleted record</td><td>Not available</td></tr></table></div>
+        <h4>Trigger timing</h4>
+        <div class="table-scroll"><table><tr><th>Type</th><th>When to use</th></tr><tr><td>BEFORE</td><td>Validation or modifying incoming data</td></tr><tr><td>AFTER</td><td>Audit logging or related operations</td></tr><tr><td>INSTEAD OF</td><td>Handling operations on views</td></tr></table></div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="procedure"><span>4. Stored Procedure — Detailed Syntax</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>A stored procedure is a reusable block of SQL statements designed to perform database operations.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">syntax.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">PROCEDURE</span> <span class="fn">procedure_name</span>(
+    <span class="kw">IN</span> parameter_name datatype
+)
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+
+    <span class="cmt">-- SQL operations</span>
+
+<span class="kw">END</span>;
+$$;</code></pre>
+        </div>
+        <p>Unlike functions, procedures do not require a <code>RETURNS</code> clause.</p>
+        <h4>Example: update employee salary</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">update_salary.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">OR</span> <span class="kw">REPLACE</span> <span class="kw">PROCEDURE</span> <span class="fn">update_salary</span>(
+    <span class="kw">IN</span> emp_id <span class="kw">INT</span>,
+    <span class="kw">IN</span> new_salary <span class="kw">NUMERIC</span>
+)
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">AS</span> $$
+<span class="kw">BEGIN</span>
+
+    <span class="kw">UPDATE</span> employees
+    <span class="kw">SET</span> salary = new_salary
+    <span class="kw">WHERE</span> employee_id = emp_id;
+
+<span class="kw">END</span>;
+$$;
+
+<span class="cmt">-- Call</span>
+<span class="kw">CALL</span> <span class="fn">update_salary</span>(<span class="num">1</span>, <span class="num">90000</span>);</code></pre>
+        </div>
+        <h4>Procedure parameters</h4>
+        <div class="table-scroll"><table><tr><th>Parameter</th><th>Purpose</th></tr><tr><td>IN</td><td>Receives input</td></tr><tr><td>OUT</td><td>Returns output</td></tr><tr><td>INOUT</td><td>Receives and returns modified value</td></tr></table></div>
+        <div class="remember"><strong>Main advantage:</strong> procedures can perform transaction control using <code>COMMIT</code> and <code>ROLLBACK</code> in supported execution contexts.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="fn-vs-trigger"><span>5. Function vs Trigger — Syntax Differences</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>This is particularly important because both use <code>CREATE FUNCTION</code>, but they serve different purposes.</p>
+        <div class="table-scroll"><table><tr><th>Syntax</th><th>Function</th><th>Trigger Function</th></tr><tr><td>Declaration</td><td><code>CREATE FUNCTION</code></td><td><code>CREATE FUNCTION</code></td></tr><tr><td>Return type</td><td><code>RETURNS INT</code>, <code>TEXT</code>, <code>TABLE</code>, etc.</td><td><code>RETURNS TRIGGER</code></td></tr><tr><td>Parameters</td><td>Normal parameters</td><td>No normal parameters</td></tr><tr><td>Data access</td><td>Explicit SQL queries</td><td><code>NEW</code> and <code>OLD</code></td></tr><tr><td>Execution</td><td>Called using <code>SELECT</code></td><td>Called by a trigger</td></tr><tr><td>Return statement</td><td><code>RETURN value</code></td><td><code>RETURN NEW</code> or <code>RETURN OLD</code></td></tr><tr><td>Trigger required?</td><td>No</td><td>Yes</td></tr></table></div>
+        <h4>Remember this distinction</h4>
+        <p><strong>Normal function</strong> — called using SELECT:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">normal.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">FUNCTION</span> <span class="fn">get_salary</span>(emp_id <span class="kw">INT</span>)
+<span class="kw">RETURNS</span> <span class="kw">NUMERIC</span></code></pre>
+        </div>
+        <p><strong>Trigger function</strong> — executed through CREATE TRIGGER:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">trigger-fn.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">FUNCTION</span> <span class="fn">update_salary</span>()
+<span class="kw">RETURNS</span> <span class="kw">TRIGGER</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="usecases"><span>6. Real Industry Use Cases</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="table-scroll"><table><tr><th>Requirement</th><th>Best choice</th></tr><tr><td>Calculate tax or discount</td><td>Function</td></tr><tr><td>Fetch employee details</td><td>Function</td></tr><tr><td>Return data for API</td><td>Function with RETURNS TABLE</td></tr><tr><td>Automatically update timestamp</td><td>Trigger + Function</td></tr><tr><td>Maintain audit logs</td><td>Trigger + Function</td></tr><tr><td>Validate data before insertion</td><td>Trigger + Function</td></tr><tr><td>Transfer money between accounts</td><td>Procedure</td></tr><tr><td>Process orders and update inventory</td><td>Procedure</td></tr><tr><td>Bulk database operations</td><td>Procedure</td></tr></table></div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="commands"><span>7. Useful Management Commands</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">commands.sql</span></div>
+          <pre><code><span class="cmt">-- Delete function</span>
+<span class="kw">DROP</span> <span class="kw">FUNCTION</span> <span class="fn">get_employee_salary</span>(<span class="kw">INT</span>);
+
+<span class="cmt">-- Delete procedure</span>
+<span class="kw">DROP</span> <span class="kw">PROCEDURE</span> <span class="fn">update_salary</span>(<span class="kw">INT</span>, <span class="kw">NUMERIC</span>);
+
+<span class="cmt">-- Delete trigger</span>
+<span class="kw">DROP</span> <span class="kw">TRIGGER</span> employee_update_trigger <span class="kw">ON</span> employees;
+
+<span class="cmt">-- Disable trigger</span>
+<span class="kw">ALTER</span> <span class="kw">TABLE</span> employees
+<span class="kw">DISABLE</span> <span class="kw">TRIGGER</span> employee_update_trigger;
+
+<span class="cmt">-- Enable trigger</span>
+<span class="kw">ALTER</span> <span class="kw">TABLE</span> employees
+<span class="kw">ENABLE</span> <span class="kw">TRIGGER</span> employee_update_trigger;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="revision"><span>8. Final Revision — Remember These Three</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <h4>1. FUNCTION — input → logic → return result</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">function.sql</span></div>
+          <pre><code><span class="kw">SELECT</span> <span class="fn">get_employee_salary</span>(<span class="num">1</span>);</code></pre>
+        </div>
+        <p>Used for calculations, fetching records and reusable logic.</p>
+        <h4>2. TRIGGER — database event → automatic execution</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">trigger.sql</span></div>
+          <pre><code><span class="kw">UPDATE</span> employees
+<span class="kw">SET</span> salary = <span class="num">90000</span>
+<span class="kw">WHERE</span> employee_id = <span class="num">1</span>;</code></pre>
+        </div>
+        <p>Used for audit logs, validation and automatic updates.</p>
+        <h4>3. STORED PROCEDURE — call → multiple operations</h4>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">procedure.sql</span></div>
+          <pre><code><span class="kw">CALL</span> <span class="fn">update_salary</span>(<span class="num">1</span>, <span class="num">90000</span>);</code></pre>
+        </div>
+        <p>Used for transactions, order processing and business workflows.</p>
+        <div class="remember"><strong>Interview tip:</strong> the most important difference is that a function returns a result, a trigger function responds automatically to database events, and a stored procedure performs explicitly requested operations.</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
