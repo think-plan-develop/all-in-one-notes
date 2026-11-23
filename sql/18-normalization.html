@@ -1,769 +1,435 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>18. Normalization — SQL Reference</title>
-    <style>
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL Normalization in PostgreSQL</title>
+</head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f4f5fa; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+  .container { width: 92%; max-width: 1180px; margin: 60px auto; }
+  .container {
+    --accent-dark:  #1e3a8a;
+    --accent:       #2563eb;
+    --accent-light: #3b82f6;
+    --content-bg:   #eff6ff;
+    --heading:      #1e3a8a;
+    --shadow-rgb:   37,99,235;
+  }
 
-      body {
-        background: #f4f7fc;
-        font-family: "Segoe UI", system-ui, sans-serif;
-        color: #222;
-      }
+  /* HEADER */
+  .header { background: linear-gradient(120deg, var(--accent-dark), var(--accent-light)); border-radius: 20px; padding: 46px 40px; margin-bottom: 44px; box-shadow: 0 16px 36px rgba(var(--shadow-rgb), 0.3); position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .header .tag { display:inline-block; background:rgba(255,255,255,0.16); color:#fff; font-size:12px; font-weight:800; letter-spacing:0.6px; padding:5px 14px; border-radius:20px; margin-bottom:14px; position:relative; }
+  .header h1 { color: #fff; font-size: 34px; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.6px; position: relative; }
+  .header p { color: #dbe6ff; font-size: 16.5px; margin-bottom: 26px; max-width: 700px; line-height: 1.6; position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 9px; position: relative; }
+  .toc a { text-decoration: none; padding: 8px 18px; border-radius: 22px; font-size: 13.5px; font-weight: 700; transition: all 0.2s ease; cursor: pointer; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+  .toc a:hover { background: #fff; color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
 
-      .container {
-        width: 90%;
-        max-width: 1400px;
-        margin: 40px auto;
-      }
+  /* topic dropdown */
+  .topic-dropdown { position: relative; margin-bottom: 18px; display: inline-block; }
+  .topic-dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.16); color: #fff; font-size: 13.5px; font-weight: 800; padding: 9px 18px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.32); transition: background 0.2s ease; }
+  .topic-dropdown summary::-webkit-details-marker { display: none; }
+  .topic-dropdown summary:hover { background: rgba(255,255,255,0.26); }
+  .topic-dropdown[open] summary::after { transform: rotate(180deg); }
+  .topic-dropdown summary::after { content: '▾'; margin-left: 2px; transition: transform 0.2s ease; font-size: 11px; }
+  .topic-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 20; background: #fff; border-radius: 12px; padding: 8px; min-width: 240px; box-shadow: 0 14px 30px rgba(0,0,0,0.22); display: flex; flex-direction: column; gap: 3px; }
+  .topic-menu a { text-decoration: none; color: #1a1a1a; font-size: 14px; font-weight: 700; padding: 9px 14px; border-radius: 8px; display: flex; align-items: center; gap: 9px; transition: background 0.15s ease; }
+  .topic-menu a:hover, .topic-menu a.current { background: var(--content-bg); color: var(--accent); }
+  .topic-menu .group-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.6px; color: #94a3b8; padding: 8px 14px 2px; text-transform: uppercase; }
 
-      p { font-size: 17px; line-height: 1.8; }
+  /* SUMMARY GRID */
+  .intro-summary { margin: 0 0 46px; }
+  .intro-summary-title { font-size: 21px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-item { display: flex; align-items: center; gap: 14px; border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: transform 0.15s ease; }
+  .summary-item:hover { transform: translateY(-2px); }
+  .summary-icon { flex-shrink: 0; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6); }
+  .summary-text { font-size: 14.5px; line-height: 1.6; font-weight: 500; }
+  .summary-text strong { font-weight: 800; margin-right: 3px; }
+  .summary-blue   { background: linear-gradient(135deg,#eff6ff,#dbeafe); color: #1e3a8a; } .summary-blue .summary-text strong { color: #2563eb; }
+  .summary-pink   { background: linear-gradient(135deg,#fdf2f8,#fce7f3); color: #9d174d; } .summary-pink .summary-text strong { color: #db2777; }
+  .summary-amber  { background: linear-gradient(135deg,#fffbeb,#fef3c7); color: #92400e; } .summary-amber .summary-text strong { color: #d97706; }
+  .summary-green  { background: linear-gradient(135deg,#ecfdf5,#d1fae5); color: #065f46; } .summary-green .summary-text strong { color: #059669; }
+  .summary-purple { background: linear-gradient(135deg,#f5f3ff,#ede9fe); color: #5b21b6; } .summary-purple .summary-text strong { color: #7c3aed; }
+  .summary-teal   { background: linear-gradient(135deg,#f0fdfa,#ccfbf1); color: #115e59; } .summary-teal .summary-text strong { color: #0d9488; }
+  @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
 
-      /* ── HEADER ─────────────────────────────────────── */
-      .header {
-        background: linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#1d4ed8 100%),
-                    radial-gradient(circle at 88% 18%,rgba(147,197,253,.22),transparent 30%);
-        border-radius: 16px;
-        box-shadow: 0 16px 36px rgba(15,23,42,.22);
-        color: #fff;
-        margin-bottom: 24px;
-        padding: 40px;
-      }
-      .header-eyebrow {
-        font-size: 13px; font-weight: 600; letter-spacing: .1em;
-        text-transform: uppercase; opacity: .75; margin-bottom: 10px;
-      }
-      .header h1 { font-size: 38px; font-weight: 700; margin-bottom: 10px; line-height: 1.2; }
-      .header .tagline { font-size: 17px; opacity: .85; margin-bottom: 28px; line-height: 1.7; }
-      .toc { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
-      .toc a {
-        text-decoration: none; font-size: 13px; font-weight: 600;
-        padding: 6px 14px; border-radius: 20px; transition: opacity .2s;
-      }
-      .toc a:hover { opacity: .75; }
-      .toc-critical { background:rgba(239,68,68,.25); color:#fecaca; border:1px solid rgba(239,68,68,.4); }
-      .toc-high     { background:rgba(250,204,21,.2);  color:#fef08a; border:1px solid rgba(250,204,21,.35); }
+  /* SECTION DIVIDER */
+  .section-divider { margin: 52px 0 24px; position: relative; }
+  .section-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#2563eb,#3b82f6,#93c5fd); opacity: 0.22; }
+  .section-divider span { background: #f4f5fa; padding: 0 18px 0 0; position: relative; font-size: 23px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
 
-      /* ── CARD ────────────────────────────────────────── */
-      .card { background:#fff; border-radius:16px; box-shadow:0 8px 25px rgba(0,0,0,.08); margin-bottom:28px; overflow:hidden; }
-      .card-title {
-        background:#1e293b; color:#fff; font-size:24px; font-weight:700;
-        padding:20px 30px; display:flex; align-items:center; gap:12px;
-      }
-      .card-body { padding:30px; }
-      p.card-p   { color:#334155; font-size:17px; line-height:1.8; margin-bottom:14px; }
-      .card-body h3 { color:#1e40af; font-size:19px; font-weight:700; margin:22px 0 10px; }
-      .card-body h4 { color:#7c3aed; font-size:16px; font-weight:700; margin:16px 0 8px; }
+  /* CARDS */
+  .card { border-radius: 16px; margin-bottom: 26px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.04); background: #fff; }
+  .card-title { color: #fff; font-size: 20px; font-weight: 700; padding: 18px 26px; display: flex; align-items: center; gap: 10px; background: linear-gradient(120deg, var(--accent), var(--accent-light)); letter-spacing: -0.2px; }
+  .card-content { padding: 28px; background: var(--content-bg); }
+  .card-content p { color: #333; font-size: 16.5px; line-height: 1.8; margin-bottom: 14px; font-weight: 500; }
+  .card-content h4 { font-size: 17px; margin-bottom: 8px; margin-top: 20px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+  .card-content p code, .card-content li code, td code, .short-answer code, .tip code, .note code, .warning code, .remember code { font-family: 'Fira Code','Consolas',monospace; font-size: 0.88em; background: rgba(var(--shadow-rgb),0.1); color: var(--heading); padding: 2px 7px; border-radius: 5px; }
+  .card-content ul { margin: 6px 0 14px 22px; }
+  .card-content li { font-size: 15.5px; line-height: 1.85; color: #334155; font-weight: 500; }
 
-      /* ── TEXT BOXES ──────────────────────────────────── */
-      .short-answer,.interview,.remember,.tip,.warning,.note {
-        border-radius:10px; padding:18px 22px; margin:18px 0;
-        font-size:15px; line-height:1.75; border-left:4px solid;
-      }
-      .diagram-box {
-        background:#eff6ff; border:2px dashed #3b82f6; color:#1d4ed8;
-        border-radius:10px; padding:18px 22px; margin:18px 0;
-        font-size:15px; line-height:1.75;
-      }
-      .short-answer { background:#dcfce7; border-color:#16a34a; color:#15803d; }
-      .interview    { background:#fff7ed; border-color:#f97316; color:#c2410c; }
-      .remember     { background:#fef9c3; border-color:#ca8a04; color:#92400e; }
-      .tip          { background:#fdf2f8; border-color:#ec4899; color:#9d174d; }
-      .warning      { background:#fff1f2; border-color:#f43f5e; color:#be123c; }
-      .note         { background:#f0fdfa; border-color:#14b8a6; color:#0f766e; }
-      .box-label {
-        font-weight:700; font-size:12px; letter-spacing:.07em;
-        text-transform:uppercase; margin-bottom:6px; display:block; opacity:.75;
-      }
+  .short-answer { position: relative; background: linear-gradient(160deg, #ffffff 0%, var(--content-bg) 100%); border: 1px solid rgba(var(--shadow-rgb), 0.16); border-left: 4px solid var(--accent); border-radius: 14px; padding: 20px 24px 22px; margin-bottom: 24px; font-size: 17px; line-height: 1.75; font-weight: 500; color: #293244; box-shadow: 0 8px 20px rgba(var(--shadow-rgb), 0.1); }
+  .short-answer::before { content: "QUICK TAKE"; display: block; width: fit-content; font-size: 11px; font-weight: 800; letter-spacing: 0.9px; color: #fff; background: linear-gradient(120deg, var(--accent), var(--accent-light)); padding: 5px 13px; border-radius: 20px; margin-bottom: 13px; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), 0.35); }
+  .short-answer strong { color: var(--heading); }
 
-      /* ── BADGES ──────────────────────────────────────── */
-      .badge {
-        display:inline-block; background:#2563eb; color:#fff;
-        font-size:12px; font-weight:700; padding:4px 12px; border-radius:20px; letter-spacing:.04em;
-      }
-      .badge-green  { background:#16a34a; }
-      .badge-orange { background:#ea580c; }
-      .badge-purple { background:#7c3aed; }
-      .badge-yellow { background:#ca8a04; }
+  /* CODE */
+  .code-block { background: #1a1a1a; border-radius: 12px; overflow: hidden; margin: 16px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+  .code-bar { background: #111; padding: 9px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #2b2b2b; }
+  .code-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; } .dot-grey { background: #febc2e; } .dot-green { background: #28c840; }
+  .code-bar .filename { color: #999; font-size: 12px; margin-left: 8px; font-family: 'Fira Code', monospace; }
+  .code-block pre { padding: 20px; overflow-x: auto; }
+  .code-block code { color: #d4d4d4; font-size: 14px; font-family: 'Fira Code','Consolas',monospace; line-height: 1.65; white-space: pre; }
+  .kw { color: #c792ea; font-weight: 600; } .str { color: #c3e88d; } .fn { color: #82aaff; } .type { color: #f07178; } .cmt { color: #7a7a7a; font-style: italic; } .num { color: #f78c6c; }
 
-      /* ── NF GRID ─────────────────────────────────────── */
-      .nf-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-        margin: 20px 0;
-      }
+  /* CALLOUTS */
+  .tip, .note, .warning, .remember { border-radius: 12px; padding: 16px 20px; margin: 16px 0; font-size: 15.5px; line-height: 1.8; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+  .tip { background: linear-gradient(135deg,#fce7f3,#fbcfe8); color: #9d174d; }
+  .note { background: linear-gradient(135deg,#e0e7ff,#c7d2fe); color: #3730a3; }
+  .warning { background: linear-gradient(135deg,#ffe4e6,#fecdd3); color: #9f1239; }
+  .remember { background: linear-gradient(135deg,#d1fae5,#a7f3d0); color: #065f46; }
 
-      .nf-item {
-        border-radius: 14px;
-        border: 1.5px solid;
-        padding: 22px 24px;
-        display: flex;
-        flex-direction: column;
-        gap: 0;
-      }
-      .nf-item.nf-1  { background:#eff6ff; border-color:#93c5fd; }
-      .nf-item.nf-2  { background:#f0fdf4; border-color:#86efac; }
-      .nf-item.nf-3  { background:#fefce8; border-color:#fde047; }
-      .nf-item.nf-bc { background:#fdf4ff; border-color:#d8b4fe; }
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  table th { background: linear-gradient(120deg,#6366f1,#8b5cf6); color: #fff; font-size: 15.5px; padding: 14px 18px; text-align: left; }
+  table td { padding: 12px 18px; font-size: 14.5px; font-weight: 500; border-bottom: 1px solid #eef0f4; color: #334155; vertical-align: top; background: #fff; }
+  table tr:nth-child(even) td { background: #f8fafc; }
+  .table-scroll { overflow-x: auto; }
 
-      .nf-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 12px;
-      }
-      .nf-header h4 {
-        font-size: 16px;
-        font-weight: 700;
-        color: #1e293b;
-        margin: 0;
-      }
+  @media (max-width: 768px) { .header h1 { font-size: 26px; } .toc a { padding: 6px 12px; font-size: 12px; } .card-content { padding: 20px; } }
 
-      .nf-rule {
-        font-size: 14.5px;
-        color: #334155;
-        line-height: 1.7;
-        margin-bottom: 14px;
-      }
+  /* ═══════════ COLORFUL TABLES (shared) ═══════════ */
+  table { border-collapse: separate !important; border-spacing: 0 8px !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; }
+  table th { background: linear-gradient(120deg,#2563eb,#7c3aed,#ec4899) !important; color: #fff !important; font-size: 13px !important; font-weight: 800 !important; letter-spacing: .7px; text-transform: uppercase; padding: 13px 18px !important; border: none !important; }
+  table th:first-child { border-radius: 12px 0 0 12px; }
+  table th:last-child { border-radius: 0 12px 12px 0; }
+  table td { border: none !important; padding: 13px 18px !important; font-weight: 600 !important; color: #334155 !important; vertical-align: middle !important; }
+  table td:first-child { border-radius: 12px 0 0 12px; border-left: 6px solid var(--rc) !important; font-weight: 800 !important; color: var(--rd) !important; }
+  table td:last-child { border-radius: 0 12px 12px 0; }
+  table tr { --rc:#2563eb; --rb:#eff6ff; --rd:#1e3a8a; }
+  table tr:nth-child(6n+3) { --rc:#db2777; --rb:#fdf2f8; --rd:#9d174d; }
+  table tr:nth-child(6n+4) { --rc:#d97706; --rb:#fffbeb; --rd:#92400e; }
+  table tr:nth-child(6n+5) { --rc:#059669; --rb:#ecfdf5; --rd:#065f46; }
+  table tr:nth-child(6n+6) { --rc:#7c3aed; --rb:#f5f3ff; --rd:#5b21b6; }
+  table tr:nth-child(6n+7) { --rc:#0d9488; --rb:#f0fdfa; --rd:#115e59; }
+  table tr:not(:first-child) td { background: var(--rb) !important; box-shadow: 0 3px 8px rgba(0,0,0,.05); transition: transform .15s ease; }
+  table tr:not(:first-child):hover td { filter: brightness(.97); }
+  table td code { background: #fff !important; color: var(--rd) !important; border: 1px solid var(--rc); padding: 2px 8px !important; border-radius: 6px !important; font-weight: 700; }
 
-      /* definition row inside card */
-      .nf-def-row {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 12px 14px;
-        margin-bottom: 10px;
-        font-size: 13.5px;
-        line-height: 1.65;
-        color: #1e293b;
-      }
-      .nf-def-row strong {
-        display: block;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: .06em;
-        text-transform: uppercase;
-        margin-bottom: 5px;
-        opacity: .6;
-      }
+  .card-content.compact { padding: 16px 20px; }
+  .card-content.compact p { font-size: 14.5px; line-height: 1.7; margin-bottom: 10px; }
+  .card-content.compact li { font-size: 14px; line-height: 1.7; }
+  .card-content.compact h4 { font-size: 15px; margin: 14px 0 6px; }
+  .card-content.compact .code-block { margin: 8px 0; }
+  .card-content.compact .code-block pre { padding: 11px 14px; }
+  .card-content.compact .code-block code { font-size: 12.5px; line-height: 1.55; }
+  .card-content.compact table th, .card-content.compact table td { padding: 8px 12px !important; font-size: 13px !important; }
+  .card-content.compact .tip, .card-content.compact .note, .card-content.compact .warning, .card-content.compact .remember { padding: 10px 14px; font-size: 13.5px; margin: 8px 0; line-height: 1.6; }
+  .header { padding: 34px 36px; margin-bottom: 30px; }
+  .header h1 { font-size: 28px; }
+  .header p { font-size: 15px; margin-bottom: 18px; }
+  .section-divider { margin: 34px 0 16px; }
+  .section-divider span { font-size: 19px; }
+  .card { margin-bottom: 16px; }
 
-      .nf-violation {
-        background: #fff1f2;
-        border-left: 3px solid #f43f5e;
-        color: #be123c;
-        border-radius: 0 6px 6px 0;
-        padding: 8px 12px;
-        font-family: "Cascadia Code","Fira Code","Consolas",monospace;
-        font-size: 12.5px;
-        line-height: 1.6;
-        margin-bottom: 8px;
-      }
-      .nf-fix {
-        background: #dcfce7;
-        border-left: 3px solid #16a34a;
-        color: #15803d;
-        border-radius: 0 6px 6px 0;
-        padding: 8px 12px;
-        font-family: "Cascadia Code","Fira Code","Consolas",monospace;
-        font-size: 12.5px;
-        line-height: 1.6;
-      }
+  .flow { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:10px 0; }
+  .flow .step { padding:7px 13px; border-radius:8px; font-weight:700; font-size:12.5px; }
+  .flow .arrow { color:#94a3b8; font-weight:900; }
+  .c-src{background:#dbeafe;color:#1e3a8a} .c-proc{background:#ede9fe;color:#5b21b6} .c-dst{background:#d1fae5;color:#065f46} .c-warn{background:#fef3c7;color:#92400e} .c-bad{background:#ffe4e6;color:#9f1239}
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:760px){ .pair { grid-template-columns:1fr; } }
+</style>
+<body>
+  <div class="container">
 
-      /* ── DENORM CARD ─────────────────────────────────── */
-      .denorm-card {
-        border-radius: 14px;
-        border: 1.5px solid #fdba74;
-        background: #fff7ed;
-        padding: 22px 24px;
-        margin-top: 20px;
-      }
-      .denorm-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 14px;
-      }
-      .denorm-header h4 {
-        font-size: 16px;
-        font-weight: 700;
-        color: #9a3412;
-        margin: 0;
-      }
-      .denorm-desc {
-        font-size: 14.5px;
-        color: #7c2d12;
-        line-height: 1.7;
-        margin-bottom: 14px;
-      }
-      .denorm-row {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 12px 0;
-        border-bottom: 1px solid #fed7aa;
-      }
-      .denorm-row:last-of-type { border-bottom: none; }
-      .denorm-row-body strong {
-        font-size: 14.5px;
-        color: #1e293b;
-        display: block;
-        margin-bottom: 3px;
-      }
-      .denorm-row-body p {
-        font-size: 13.5px;
-        color: #64748b;
-        line-height: 1.6;
-      }
+    <div class="header">
+      <span class="tag">SQL · POSTGRESQL · DATABASE DESIGN</span>
+      <h1>🗂️ SQL Normalization in PostgreSQL</h1>
+      <p>Split large tables into smaller related ones to reduce duplication and inconsistency: anomalies, 1NF to 5NF with examples, real-world design, and normalization vs denormalization.</p>
 
-      /* ── EVOLUTION ───────────────────────────────────── */
-      .evo { margin: 20px 0; }
-      .evo-step { display:flex; align-items:flex-start; gap:16px; margin-bottom:6px; }
-      .evo-spine { display:flex; flex-direction:column; align-items:center; width:34px; flex-shrink:0; }
-      .evo-dot {
-        width:34px; height:34px; border-radius:50%;
-        display:flex; align-items:center; justify-content:center;
-        font-size:13px; font-weight:700; flex-shrink:0; margin-top:3px;
-      }
-      .evo-line { width:2px; flex:1; min-height:16px; background:#cbd5e1; margin:4px 0; }
-      .evo-content { flex:1; padding-bottom:20px; }
-      .evo-stage { font-size:14px; font-weight:700; margin-bottom:8px; }
-      .evo-note  { font-size:12px; color:#64748b; margin-top:6px; font-style:italic; }
-
-      .mini-tbl { border-collapse:collapse; font-size:12px; font-family:monospace; border:1px solid #cbd5e1; border-radius:6px; overflow:hidden; }
-      .mini-tbl th { background:#1e293b; color:#fff; padding:5px 10px; font-weight:600; }
-      .mini-tbl td { padding:4px 10px; border-top:1px solid #e2e8f0; color:#334155; }
-      .mini-tbl tr:nth-child(even) td { background:#f8fafc; }
-      .cell-bad  { background:#fee2e2!important; color:#b91c1c; font-weight:600; }
-      .cell-warn { background:#fef9c3!important; color:#92400e; }
-      .multi-tbls { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-start; }
-      .tbl-label { font-size:11px; font-weight:700; color:#64748b; margin-bottom:4px; letter-spacing:.05em; text-transform:uppercase; }
-
-      /* ── CODE BLOCK ───────────────────────────────────── */
-      .code-wrap { background:#0f172a; border-radius:10px; overflow:hidden; margin:18px 0; }
-      .code-bar  { background:#1e293b; display:flex; align-items:center; justify-content:space-between; padding:10px 18px; }
-      .code-dots { display:flex; gap:6px; }
-      .code-dots span { width:12px; height:12px; border-radius:50%; display:block; }
-      .dot-r{background:#ef4444;}.dot-y{background:#eab308;}.dot-g{background:#22c55e;}
-      .code-filename { font-size:13px; color:#94a3b8; font-family:monospace; }
-      pre {
-        padding:22px 24px; overflow-x:auto; font-size:13px; line-height:1.75;
-        font-family:"Cascadia Code","Fira Code","Consolas",monospace; color:#e2e8f0;
-      }
-      .kw{color:#c084fc;font-weight:600;}.str{color:#86efac;}.typ{color:#67e8f9;}
-      .fn{color:#fbbf24;}.num{color:#fb923c;}.cm{color:#64748b;font-style:italic;}
-
-      /* ── TABLE ────────────────────────────────────────── */
-      .table-wrap { overflow-x:auto; margin:18px 0; }
-      table { width:100%; border-collapse:collapse; font-size:15px; }
-      thead th { background:#2563eb; color:#fff; padding:12px 16px; text-align:left; font-weight:600; font-size:14px; }
-      thead th:first-child { border-radius:8px 0 0 0; }
-      thead th:last-child  { border-radius:0 8px 0 0; }
-      tbody tr:nth-child(even) { background:#f8fafc; }
-      tbody td { padding:12px 16px; border-bottom:1px solid #e2e8f0; color:#334155; vertical-align:top; }
-      tbody tr:last-child td { border-bottom:none; }
-
-      /* ── PRIORITY ROW ─────────────────────────────────── */
-      .priority-row { display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid #e2e8f0; }
-      .priority-row:last-child { border-bottom:none; }
-      .priority-content strong { font-size:16px; color:#1e293b; }
-      .priority-content p { font-size:14px; color:#64748b; margin-top:3px; line-height:1.6; }
-
-      @media (max-width:700px) {
-        .header h1 { font-size:26px; }
-        .nf-grid   { grid-template-columns:1fr; }
-        .card-title{ font-size:18px; }
-      }
-    </style>
-  <link rel="stylesheet" href="floating-side-nav.css">
-  </head>
-  <body>
-    <div class="container">
-
-      <!-- HEADER -->
-      <div class="header">
-        <div class="header-eyebrow">SQL Deep Dive — Chapter 7</div>
-        <h1>18. Normalization</h1>
-        <p class="tagline">
-          Organizing a database to reduce <strong>data redundancy</strong> and
-          improve <strong>data integrity</strong>.<br />
-          Each Normal Form builds on the last, removing exactly one kind of problem.
-        </p>
-        <nav class="toc">
-          <a href="#nf-forms"   class="toc-critical">🔴 Normal Forms</a>
-          <a href="#evolution"  class="toc-high">🟡 Step-by-step Evolution</a>
-          <a href="#sql-code"   class="toc-high">🟡 SQL Code</a>
-          <a href="#ref-table"  class="toc-high">🟡 Quick Reference</a>
-          <a href="#denorm"     class="toc-high">🟡 Denormalization</a>
-        </nav>
-      </div>
-
-      <!-- WHAT IS NORMALIZATION -->
-      <div class="card">
-        <div class="card-title">📖 What is Normalization?</div>
-        <div class="card-body">
-          <p class="card-p">
-            Normalization is the process of structuring a relational database to
-            reduce <strong>data redundancy</strong> (storing the same data in multiple places)
-            and improve <strong>data integrity</strong> (ensuring data stays correct and consistent).
-          </p>
-          <div class="short-answer">
-            <span class="box-label">✅ Core idea</span>
-            Each Normal Form adds one more rule. You can't skip ahead — 3NF requires 2NF, which requires 1NF.
-            Think of them as layers of data hygiene.
-          </div>
-          <div class="interview">
-            <span class="box-label">🎯 Interview tip</span>
-            "What is normalization?" — Answer:
-            <em>It's the process of organizing tables to eliminate redundancy and dependency anomalies
-            using a series of progressive rules called Normal Forms.</em>
-          </div>
+      <details class="topic-dropdown">
+        <summary>📁 MERN / JS Topics</summary>
+        <div class="topic-menu">
+          <span class="group-label">Node / Express</span>
+          <a href="interview-error-handling.html">🧯 Error Handling (Plain JS)</a>
+          <a href="interview-zod-validation.html">✅ Zod Validation (Plain JS)</a>
+          <a href="interview-crud-api.html">🔧 Express + Mongoose CRUD API</a>
+          <span class="group-label">Practice Sets</span>
+          <a href="interview-array-patterns-25.html">🧩 25 Array/String Pattern Questions</a>
+          <a href="interview-array-patterns-25.html">🧩 25 Array/String Pattern Questions</a>
+          <a href="interview-js-dsa-80.html">🧠 80 JS + DSA Coding Questions</a>
+          <a href="interview-mern-practice-70.html">🏋️ 78 MERN Practice Questions</a>
+          <span class="group-label">CSS</span>
+          <a href="interview-css-positioning.html">📐 Positioning &amp; Responsive Cheat Sheet</a>
+          <span class="group-label">Next.js</span>
+          <a href="interview-nextjs-components.html">🧩 Server vs Client Components</a>
+          <a href="interview-nextjs-data.html">📡 Data, Caching &amp; UI States</a>
+          <a href="interview-nextjs-routing.html">🧱 Advanced Routing (App Router)</a>
+          <a href="interview-nextjs-config.html">🔐 Config, Env Vars &amp; Secrets</a>
+          <a href="interview-nextjs-structure.html">🗂️ Project Structure</a>
+          <a href="interview-nextjs-qa.html">Next.js Interview Q&amp;A</a>
+          <span class="group-label">React / JavaScript</span>
+          <a href="react-interview-challenges.html">⚛️ React Interview Challenges</a>
+          <a href="interview-set2.html">🎙️ Interview Set 2 (4–5 yrs)</a>
+          <a href="interview-set-basic.html">🎙️ Interview — Basic/Medium (60 min)</a>
+          <a href="interview-forms.html">📝 React Forms Deep Dive</a>
+          <a href="interview-routing.html">🧭 React Router Interview</a>
+          <span class="group-label">MongoDB</span>
+          <a href="mongodb-notes.html">🍃 MongoDB &amp; Mongoose Notes</a>
+          <a href="mongodb-query-syntax.html">🧭 Query Operator Syntax</a>
+                    <span class="group-label">SQL</span>
+          <a href="interview-sql-cte.html">🔗 SQL CTEs — Compact Notes</a>
+          <a href="interview-sql-null-case.html">❓ NULL, COALESCE &amp; CASE WHEN</a>
+          <a href="interview-sql-distinct.html">🔎 SQL DISTINCT</a>
+          <a href="interview-sql-date-time.html">📅 PostgreSQL Date &amp; Time Functions</a>
+          <a href="interview-sql-window-functions.html">🪟 PostgreSQL Window Functions</a>
+          <a href="interview-sql-joins.html">🔀 SQL Joins — Visual Notes</a>
+          <a href="interview-sql-subqueries.html">🔍 SQL Subqueries — Master Guide</a>
+          <a href="interview-sql-functions.html">⚙️ PostgreSQL Functions</a>
+          <a href="interview-sql-triggers.html">⚡ PostgreSQL Triggers</a>
+          <a href="interview-sql-procedures.html">📦 PostgreSQL Stored Procedures</a>
+          <a href="interview-sql-compare.html">🧭 Function vs Trigger vs Procedure</a>
+          <a class="current" href="interview-sql-normalization.html">🗂️ SQL Normalization</a>
+          <a href="interview-sql-date-time.html">📅 PostgreSQL Date &amp; Time Functions</a>
+          <a href="interview-sql-window-functions.html">🪟 PostgreSQL Window Functions</a>
+          <span class="group-label">SQL</span>
+          <a href="interview-sql-cte.html">🔗 SQL CTEs — Compact Notes</a>
+          <a href="interview-sql-null-case.html">❓ NULL, COALESCE &amp; CASE WHEN</a>
+          <a href="interview-sql-distinct.html">🔎 SQL DISTINCT</a>
+          <span class="group-label">PostgreSQL</span>
+          <a href="postgresql-data-types.html">🐘 PostgreSQL Data Types &amp; Tables</a>
+          <a href="postgresql-specific-types.html">🐘 PostgreSQL-Specific Types</a>
+        
+        
         </div>
-      </div>
+      </details>
 
-      <!-- NORMAL FORMS -->
-      <div class="card" id="nf-forms">
-        <div class="card-title">📐 The Normal Forms</div>
-        <div class="card-body">
-          <div class="nf-grid">
-
-            <!-- 1NF -->
-            <div class="nf-item nf-1">
-              <div class="nf-header">
-                <span class="badge">1NF</span>
-                <h4>First Normal Form</h4>
-              </div>
-              <p class="nf-rule">
-                Every cell must hold <strong>one atomic value</strong>. No lists, no sets,
-                no comma-separated values in a single cell. Each row must be unique (Primary Key required).
-              </p>
-              <div class="nf-def-row">
-                <strong>📌 Definition</strong>
-                Each cell must hold one atomic value. No lists in a single column.
-                Each row must be unique (Primary Key). If a column stores multiple values,
-                it cannot be filtered, joined, or indexed correctly.
-              </div>
-              <div class="nf-violation">
-                ❌ VIOLATION<br/>
-                skills = 'Node.js, React, SQL'<br/>
-                ← three values crammed in one cell
-              </div>
-              <div class="nf-fix">
-                ✅ FIX<br/>
-                skills(user_id, skill)<br/>
-                ← one row per skill, fully queryable
-              </div>
-            </div>
-
-            <!-- 2NF -->
-            <div class="nf-item nf-2">
-              <div class="nf-header">
-                <span class="badge badge-green">2NF</span>
-                <h4>Second Normal Form</h4>
-              </div>
-              <p class="nf-rule">
-                Must be in 1NF. Every non-key column must depend on the
-                <strong>whole composite primary key</strong> — not just part of it.
-                Only matters when the Primary Key is composite (2+ columns).
-              </p>
-              <div class="nf-def-row">
-                <strong>📌 Definition</strong>
-                Every non-key column must depend on the WHOLE composite key —
-                no partial dependencies. If a column depends only on part of the key,
-                it belongs in a separate table for that part.
-              </div>
-              <div class="nf-violation">
-                ❌ VIOLATION<br/>
-                enrollments(student_id, course_id, student_name)<br/>
-                ← student_name depends only on student_id, not the full composite key
-              </div>
-              <div class="nf-fix">
-                ✅ FIX<br/>
-                Move student_name → students(id, name)<br/>
-                ← depends on its own full PK
-              </div>
-            </div>
-
-            <!-- 3NF -->
-            <div class="nf-item nf-3">
-              <div class="nf-header">
-                <span class="badge badge-yellow">3NF</span>
-                <h4>Third Normal Form</h4>
-              </div>
-              <p class="nf-rule">
-                Must be in 2NF. No non-key column should depend on
-                <strong>another non-key column</strong> — no transitive dependencies.
-                Every column must depend directly on the Primary Key, and nothing else.
-              </p>
-              <div class="nf-def-row">
-                <strong>📌 Definition</strong>
-                No non-key column should depend on another non-key column — no transitive dependencies.
-                If column C depends on column B, and column B depends on the PK, then C has a transitive
-                dependency and must be moved to its own table.
-              </div>
-              <div class="nf-violation">
-                ❌ VIOLATION<br/>
-                employees(id, dept_id, dept_name)<br/>
-                ← dept_name depends on dept_id, not directly on id
-              </div>
-              <div class="nf-fix">
-                ✅ FIX<br/>
-                Move dept_name → departments(id, name)<br/>
-                ← employees keeps only dept_id as FK
-              </div>
-            </div>
-
-            <!-- BCNF -->
-            <div class="nf-item nf-bc">
-              <div class="nf-header">
-                <span class="badge badge-purple">BCNF</span>
-                <h4>Boyce-Codd Normal Form</h4>
-              </div>
-              <p class="nf-rule">
-                Must be in 3NF. For every functional dependency X → Y,
-                <strong>X must be a superkey</strong>. Handles rare edge cases
-                that 3NF misses with overlapping candidate keys.
-              </p>
-              <div class="nf-def-row">
-                <strong>📌 Definition</strong>
-                For every functional dependency X → Y, X must be a superkey.
-                3NF allows some exceptions when Y is part of a candidate key.
-                BCNF removes that exception entirely. In practice, most well-designed
-                3NF tables already satisfy BCNF — you'll rarely need to act on it.
-              </div>
-              <div class="tip" style="margin:12px 0 0;font-size:13px;padding:10px 14px;">
-                <span class="box-label">💡 In practice</span>
-                BCNF violations only occur with overlapping candidate keys — rare in typical apps.
-                Most 3NF tables are already BCNF without any extra work.
-              </div>
-            </div>
-
-          </div>
-
-          <!-- DENORMALIZATION inside same card as its own full-width block -->
-          <div class="denorm-card">
-            <div class="denorm-header">
-              <span class="badge badge-orange">Denorm</span>
-              <h4>Denormalization — Breaking the Rules on Purpose</h4>
-            </div>
-            <p class="denorm-desc">
-              Denormalization is the <strong>deliberate introduction of redundancy</strong> for READ performance.
-              Once normalized, some reads need too many expensive JOINs. That's when you selectively add redundancy back.
-            </p>
-
-            <div class="nf-def-row" style="margin-bottom:14px;">
-              <strong>📌 Definition</strong>
-              Deliberate introduction of redundancy for READ performance — reduces expensive JOINs at query time.
-              EXAMPLE: store total_order_amount on orders instead of computing it from order_items every time.
-              Always normalize first, then denormalize only where profiling shows a real bottleneck.
-            </div>
-
-            <div class="denorm-row">
-              <span class="badge badge-green" style="flex-shrink:0;margin-top:2px;">Normalize</span>
-              <div class="denorm-row-body">
-                <strong>Optimizes write performance &amp; data integrity</strong>
-                <p>One place to update. No risk of data going out of sync. Preferred for transactional, write-heavy systems.</p>
-              </div>
-            </div>
-            <div class="denorm-row">
-              <span class="badge badge-orange" style="flex-shrink:0;margin-top:2px;">Denormalize</span>
-              <div class="denorm-row-body">
-                <strong>Optimizes read performance</strong>
-                <p>Store pre-computed or redundant data to skip JOINs. Preferred for analytics, dashboards, or caching layers.</p>
-              </div>
-            </div>
-
-            <div class="warning" style="margin-top:16px;">
-              <span class="box-label">⚠️ Warning</span>
-              Denormalization creates update anomalies — if you cache <code>item_count</code> on the orders table,
-              you must update it every time an item is added or removed. Always normalize first, then denormalize only where profiling shows a real bottleneck.
-            </div>
-            <div class="remember" style="margin-top:10px;">
-              <span class="box-label">🧠 Remember</span>
-              <strong>Normalize for correctness. Denormalize for speed.</strong> Never denormalize without measuring first.
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- EVOLUTION DIAGRAM -->
-      <div class="card" id="evolution">
-        <div class="card-title">🔄 Step-by-step Evolution</div>
-        <div class="card-body">
-          <p class="card-p">Same order data walked through each normal form. Watch what changes at every stage.</p>
-
-          <div class="evo">
-            <!-- Stage 0 -->
-            <div class="evo-step">
-              <div class="evo-spine">
-                <div class="evo-dot" style="background:#fee2e2;color:#b91c1c;">0</div>
-                <div class="evo-line"></div>
-              </div>
-              <div class="evo-content">
-                <div class="evo-stage" style="color:#b91c1c;">Unnormalized — violates 1NF</div>
-                <table class="mini-tbl">
-                  <tr><th>order_id</th><th>customer</th><th>products</th></tr>
-                  <tr><td>1</td><td>Aman</td><td class="cell-bad">Keyboard, Mouse</td></tr>
-                </table>
-                <div class="evo-note">Two products crammed in one cell — not atomic. Impossible to query individually.</div>
-              </div>
-            </div>
-
-            <!-- Stage 1 -->
-            <div class="evo-step">
-              <div class="evo-spine">
-                <div class="evo-dot" style="background:#dbeafe;color:#1d4ed8;">1</div>
-                <div class="evo-line"></div>
-              </div>
-              <div class="evo-content">
-                <div class="evo-stage" style="color:#1d4ed8;">1NF — one product per row</div>
-                <table class="mini-tbl">
-                  <tr><th>order_id</th><th>customer</th><th>product</th></tr>
-                  <tr><td>1</td><td class="cell-warn">Aman</td><td>Keyboard</td></tr>
-                  <tr><td>1</td><td class="cell-warn">Aman</td><td>Mouse</td></tr>
-                </table>
-                <div class="evo-note">Atomic ✓ — but "Aman" repeats every row. That's a partial dependency on the composite key.</div>
-              </div>
-            </div>
-
-            <!-- Stage 2 -->
-            <div class="evo-step">
-              <div class="evo-spine">
-                <div class="evo-dot" style="background:#dcfce7;color:#15803d;">2</div>
-                <div class="evo-line"></div>
-              </div>
-              <div class="evo-content">
-                <div class="evo-stage" style="color:#15803d;">2NF — customer moved to own table</div>
-                <div class="multi-tbls">
-                  <div>
-                    <div class="tbl-label">order_items</div>
-                    <table class="mini-tbl">
-                      <tr><th>order_id</th><th>product</th></tr>
-                      <tr><td>1</td><td>Keyboard</td></tr>
-                      <tr><td>1</td><td>Mouse</td></tr>
-                    </table>
-                  </div>
-                  <div>
-                    <div class="tbl-label">customers</div>
-                    <table class="mini-tbl">
-                      <tr><th>id</th><th>name</th></tr>
-                      <tr><td>1</td><td>Aman</td></tr>
-                    </table>
-                  </div>
-                </div>
-                <div class="evo-note">No partial dependencies ✓ — but product details may still repeat across many order rows.</div>
-              </div>
-            </div>
-
-            <!-- Stage 3 -->
-            <div class="evo-step">
-              <div class="evo-spine">
-                <div class="evo-dot" style="background:#f0fdf4;color:#0f766e;border:2px solid #14b8a6;">3</div>
-              </div>
-              <div class="evo-content">
-                <div class="evo-stage" style="color:#0f766e;">3NF — product details live in one place</div>
-                <div class="multi-tbls">
-                  <div>
-                    <div class="tbl-label">order_items</div>
-                    <table class="mini-tbl">
-                      <tr><th>order_id</th><th>product_id</th></tr>
-                      <tr><td>1</td><td>101</td></tr>
-                      <tr><td>1</td><td>102</td></tr>
-                    </table>
-                  </div>
-                  <div>
-                    <div class="tbl-label">products</div>
-                    <table class="mini-tbl">
-                      <tr><th>id</th><th>name</th></tr>
-                      <tr><td>101</td><td>Keyboard</td></tr>
-                      <tr><td>102</td><td>Mouse</td></tr>
-                    </table>
-                  </div>
-                  <div>
-                    <div class="tbl-label">customers</div>
-                    <table class="mini-tbl">
-                      <tr><th>id</th><th>name</th></tr>
-                      <tr><td>1</td><td>Aman</td></tr>
-                    </table>
-                  </div>
-                </div>
-                <div class="evo-note">No transitive dependencies ✓ — every column depends directly on its own table's primary key.</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="diagram-box">
-            <span class="box-label">📊 The chain</span>
-            Unnormalized → <strong>1NF</strong> (atomic values, one row per fact) →
-            <strong>2NF</strong> (no partial dependencies on composite key) →
-            <strong>3NF</strong> (no transitive dependencies) →
-            <strong>BCNF</strong> (every determinant is a superkey)
-          </div>
-        </div>
-      </div>
-
-      <!-- SQL CODE -->
-      <div class="card" id="sql-code">
-        <div class="card-title">💻 SQL — Before &amp; After</div>
-        <div class="card-body">
-          <div class="code-wrap">
-            <div class="code-bar">
-              <div class="code-dots">
-                <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
-              </div>
-              <span class="code-filename">normalization.sql</span>
-              <div></div>
-            </div>
-            <pre><span class="cm">-- ❌ BEFORE: one giant table — violates 1NF, 2NF, 3NF</span>
-<span class="kw">CREATE TABLE</span> bad_orders (
-  order_id  <span class="typ">INT</span>,
-  customer  <span class="typ">VARCHAR</span>(<span class="num">100</span>),
-  email     <span class="typ">VARCHAR</span>(<span class="num">100</span>),
-  skills    <span class="typ">TEXT</span>,           <span class="cm">-- 'Node.js, React' — not atomic (1NF ❌)</span>
-  dept_name <span class="typ">VARCHAR</span>(<span class="num">100</span>)    <span class="cm">-- transitive via dept_id (3NF ❌)</span>
-);
-
-<span class="cm">-- ✅ 1NF: atomic values, primary key</span>
-<span class="kw">CREATE TABLE</span> customers (
-  id    <span class="typ">SERIAL</span> <span class="kw">PRIMARY KEY</span>,
-  name  <span class="typ">VARCHAR</span>(<span class="num">100</span>) <span class="kw">NOT NULL</span>,
-  email <span class="typ">VARCHAR</span>(<span class="num">100</span>) <span class="kw">UNIQUE NOT NULL</span>
-);
-
-<span class="cm">-- ✅ 2NF: skill gets its own table — no partial dependency</span>
-<span class="kw">CREATE TABLE</span> customer_skills (
-  customer_id <span class="typ">INT</span> <span class="kw">NOT NULL</span>,
-  skill       <span class="typ">VARCHAR</span>(<span class="num">50</span>) <span class="kw">NOT NULL</span>,
-  <span class="kw">PRIMARY KEY</span> (customer_id, skill),
-  <span class="kw">FOREIGN KEY</span> (customer_id) <span class="kw">REFERENCES</span> <span class="fn">customers</span>(id)
-);
-
-<span class="cm">-- ✅ 3NF: dept_name lives in departments — no transitive dependency</span>
-<span class="kw">CREATE TABLE</span> departments (
-  id   <span class="typ">SERIAL</span> <span class="kw">PRIMARY KEY</span>,
-  name <span class="typ">VARCHAR</span>(<span class="num">100</span>) <span class="kw">NOT NULL</span>
-);
-
-<span class="kw">CREATE TABLE</span> employees (
-  id      <span class="typ">SERIAL</span> <span class="kw">PRIMARY KEY</span>,
-  name    <span class="typ">VARCHAR</span>(<span class="num">100</span>) <span class="kw">NOT NULL</span>,
-  dept_id <span class="typ">INT</span> <span class="kw">REFERENCES</span> <span class="fn">departments</span>(id) <span class="cm">-- only FK, not dept_name</span>
-);
-
-<span class="cm">-- ⚡ DENORMALIZATION: store computed value for read performance</span>
-<span class="kw">CREATE TABLE</span> orders (
-  id           <span class="typ">SERIAL</span> <span class="kw">PRIMARY KEY</span>,
-  customer_id  <span class="typ">INT</span> <span class="kw">REFERENCES</span> <span class="fn">customers</span>(id),
-  total_amount <span class="typ">NUMERIC</span>(<span class="num">10</span>,<span class="num">2</span>),  <span class="cm">-- redundant but skips a SUM() join</span>
-  item_count   <span class="typ">INT</span>            <span class="cm">-- redundant but skips a COUNT() join</span>
-);</pre>
-          </div>
-        </div>
-      </div>
-
-      <!-- QUICK REFERENCE TABLE -->
-      <div class="card" id="ref-table">
-        <div class="card-title">📋 Quick Reference Table</div>
-        <div class="card-body">
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Normal Form</th>
-                  <th>Requirement</th>
-                  <th>Eliminates</th>
-                  <th>Example Fix</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><span class="badge">1NF</span></td>
-                  <td>Atomic values + primary key, one value per cell</td>
-                  <td>Multi-valued cells, repeating groups</td>
-                  <td>Split <code>skills</code> column → separate <code>skills</code> table</td>
-                </tr>
-                <tr>
-                  <td><span class="badge badge-green">2NF</span></td>
-                  <td>1NF + no partial dependencies on composite key</td>
-                  <td>Non-key column depends on only part of a composite PK</td>
-                  <td>Move <code>student_name</code> → <code>students</code> table</td>
-                </tr>
-                <tr>
-                  <td><span class="badge badge-yellow">3NF</span></td>
-                  <td>2NF + no transitive dependencies</td>
-                  <td>Non-key column depends on another non-key column</td>
-                  <td>Move <code>dept_name</code> → <code>departments</code> table</td>
-                </tr>
-                <tr>
-                  <td><span class="badge badge-purple">BCNF</span></td>
-                  <td>3NF + every determinant is a superkey</td>
-                  <td>Remaining 3NF anomalies with overlapping candidate keys</td>
-                  <td>Usually already satisfied in well-designed 3NF</td>
-                </tr>
-                <tr>
-                  <td><span class="badge badge-orange">Denorm</span></td>
-                  <td>Intentional redundancy for read performance</td>
-                  <td>Expensive JOINs and aggregations at read time</td>
-                  <td>Store <code>item_count</code> &amp; <code>total_amount</code> on <code>orders</code></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- DENORMALIZATION DEEP DIVE -->
-      <div class="card" id="denorm">
-        <div class="card-title">⚡ Denormalization — When to Break the Rules</div>
-        <div class="card-body">
-          <p class="card-p">
-            Denormalization is the <strong>deliberate introduction of redundancy</strong> for performance.
-            Once you've fully normalized, you may find that certain reads require too many expensive JOINs.
-            That's when you selectively add back redundancy.
-          </p>
-
-          <div class="priority-row">
-            <span class="badge badge-green">Normalize</span>
-            <div class="priority-content">
-              <strong>Optimizes write performance &amp; data integrity</strong>
-              <p>One place to update. No risk of data going out of sync. Preferred for transactional, write-heavy systems.</p>
-            </div>
-          </div>
-          <div class="priority-row">
-            <span class="badge badge-orange">Denormalize</span>
-            <div class="priority-content">
-              <strong>Optimizes read performance</strong>
-              <p>Store pre-computed or redundant data to skip JOINs. Preferred for analytics, dashboards, or caching layers.</p>
-            </div>
-          </div>
-
-          <div class="warning" style="margin-top:20px;">
-            <span class="box-label">⚠️ Warning</span>
-            Denormalization creates update anomalies — if you cache <code>item_count</code> on the orders table,
-            you must update it every time an item is added or removed. Always normalize first, then denormalize
-            only where profiling shows a real bottleneck.
-          </div>
-          <div class="remember">
-            <span class="box-label">🧠 Remember</span>
-            <strong>Normalize for correctness. Denormalize for speed.</strong> Never denormalize without measuring first.
-          </div>
-        </div>
-      </div>
-
+      <div class="toc"><a onclick="document.getElementById('why').scrollIntoView({behavior:'smooth'});return false;">Why</a><a onclick="document.getElementById('types').scrollIntoView({behavior:'smooth'});return false;">Types</a><a onclick="document.getElementById('1nf').scrollIntoView({behavior:'smooth'});return false;">1NF</a><a onclick="document.getElementById('2nf').scrollIntoView({behavior:'smooth'});return false;">2NF</a><a onclick="document.getElementById('3nf').scrollIntoView({behavior:'smooth'});return false;">3NF</a><a onclick="document.getElementById('bcnf').scrollIntoView({behavior:'smooth'});return false;">BCNF</a><a onclick="document.getElementById('4nf').scrollIntoView({behavior:'smooth'});return false;">4NF</a><a onclick="document.getElementById('5nf').scrollIntoView({behavior:'smooth'});return false;">5NF</a><a onclick="document.getElementById('compare').scrollIntoView({behavior:'smooth'});return false;">Comparison</a><a onclick="document.getElementById('real').scrollIntoView({behavior:'smooth'});return false;">Real-World</a><a onclick="document.getElementById('denorm').scrollIntoView({behavior:'smooth'});return false;">vs Denormalization</a><a onclick="document.getElementById('interview').scrollIntoView({behavior:'smooth'});return false;">Interview</a><a onclick="document.getElementById('quiz').scrollIntoView({behavior:'smooth'});return false;">Quiz</a></div>
     </div>
-    <script>
-      document.querySelectorAll('a[href^="#"]').forEach(a => {
-        a.addEventListener('click', e => {
-          e.preventDefault();
-          document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
-        });
-      });
-    </script>
-  <nav class="side-nav" aria-label="Section navigation"></nav>
-  <script src="floating-side-nav.js"></script>
-  <script src="../global-theme.js"></script>
+
+<div class="card"><div class="card-content compact">
+        <p><strong>Normalization</strong> is a database design technique used to organize data into multiple related tables to reduce data duplication, avoid data inconsistency, and maintain data integrity.</p>
+        <div class="note">In simple words: normalization means dividing a large table into smaller, logically related tables and connecting them using Primary Keys and Foreign Keys. It is an important concept in database design and is frequently asked in SQL interviews.</div>
+</div></div>
+
+    <div class="section-divider" id="why"><span>1. Why do we need Normalization?</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>Consider an <code>orders</code> table. <strong>Before normalization:</strong></p>
+        <div class="table-scroll"><table><tr><th>order_id</th><th>customer_name</th><th>customer_city</th><th>product_name</th><th>price</th></tr><tr><td>101</td><td>Rahul</td><td>Hyderabad</td><td>Laptop</td><td>50000</td></tr><tr><td>102</td><td>Rahul</td><td>Hyderabad</td><td>Mouse</td><td>1000</td></tr><tr><td>103</td><td>Amit</td><td>Mumbai</td><td>Keyboard</td><td>2000</td></tr><tr><td>104</td><td>Rahul</td><td>Hyderabad</td><td>Monitor</td><td>15000</td></tr></table></div>
+        <ul><li>Rahul’s name is repeated three times.</li><li>Rahul’s city is repeated three times.</li><li>Customer information is mixed with order information.</li><li>Updating customer information requires updating multiple records.</li></ul>
+        <h4>Three anomalies</h4>
+        <div class="table-scroll"><table><tr><th>Anomaly</th><th>Example</th></tr><tr><td><strong>1. Update anomaly</strong></td><td>Rahul moves from Hyderabad to Bangalore. You need to update all three records; if you update only two, the database holds inconsistent information.</td></tr><tr><td><strong>2. Insert anomaly</strong></td><td>A new customer, Priya, registers but hasn’t placed an order. You cannot insert her easily if the table requires an <code>order_id</code>.</td></tr><tr><td><strong>3. Delete anomaly</strong></td><td>Amit’s only order is deleted. You may accidentally lose Amit’s customer information as well.</td></tr></table></div>
+        <div class="remember"><strong>Solution: normalization.</strong> Separate customer, order, and product information into different tables.</div>
+        <h4>After normalization</h4>
+        <h4>Customers</h4>
+        <div class="table-scroll"><table><tr><th>customer_id (PK)</th><th>name</th><th>city</th></tr><tr><td>1</td><td>Rahul</td><td>Hyderabad</td></tr><tr><td>2</td><td>Amit</td><td>Mumbai</td></tr><tr><td>3</td><td>Priya</td><td>Delhi</td></tr></table></div>
+        <h4>Orders</h4>
+        <div class="table-scroll"><table><tr><th>order_id (PK)</th><th>customer_id (FK)</th></tr><tr><td>101</td><td>1</td></tr><tr><td>102</td><td>1</td></tr><tr><td>103</td><td>2</td></tr></table></div>
+        <h4>Products</h4>
+        <div class="table-scroll"><table><tr><th>product_id (PK)</th><th>product_name</th><th>price</th></tr><tr><td>1</td><td>Laptop</td><td>50000</td></tr><tr><td>2</td><td>Mouse</td><td>1000</td></tr><tr><td>3</td><td>Keyboard</td><td>2000</td></tr></table></div>
+        <h4>Order Items</h4>
+        <div class="table-scroll"><table><tr><th>order_id (FK)</th><th>product_id (FK)</th></tr><tr><td>101</td><td>1</td></tr><tr><td>102</td><td>2</td></tr><tr><td>103</td><td>3</td></tr></table></div>
+        <ul><li>Customer information is stored only once.</li><li>Multiple orders can reference the same customer.</li><li>Multiple products can be associated with orders.</li><li>Customer information can exist without an order.</li></ul>
+      </div>
+    </div>
+
+    <div class="section-divider" id="types"><span>2. Types of Normalization</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>There are several normal forms. The most important ones for practical SQL development:</p>
+        <div class="table-scroll"><table><tr><th>Form</th><th>Name</th></tr><tr><td>1NF</td><td>First Normal Form</td></tr><tr><td>2NF</td><td>Second Normal Form</td></tr><tr><td>3NF</td><td>Third Normal Form</td></tr><tr><td>BCNF</td><td>Boyce-Codd Normal Form</td></tr><tr><td>4NF</td><td>Fourth Normal Form</td></tr><tr><td>5NF</td><td>Fifth Normal Form</td></tr></table></div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="1nf"><span>3. First Normal Form (1NF)</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p><strong>Rule:</strong> every column should contain a single (atomic) value. No multiple values in a single cell and no repeating groups.</p>
+        <h4>Not in 1NF</h4>
+        <div class="table-scroll"><table><tr><th>student_id</th><th>student_name</th><th>subjects</th></tr><tr><td>1</td><td>Rahul</td><td>Java, SQL</td></tr><tr><td>2</td><td>Amit</td><td>React, Node</td></tr><tr><td>3</td><td>Priya</td><td>Python, SQL</td></tr></table></div>
+        <p><strong>Problem:</strong> the <code>subjects</code> column contains multiple values in one cell.</p>
+        <h4>In 1NF</h4>
+        <div class="table-scroll"><table><tr><th>student_id</th><th>student_name</th><th>subject</th></tr><tr><td>1</td><td>Rahul</td><td>Java</td></tr><tr><td>1</td><td>Rahul</td><td>SQL</td></tr><tr><td>2</td><td>Amit</td><td>React</td></tr><tr><td>2</td><td>Amit</td><td>Node</td></tr><tr><td>3</td><td>Priya</td><td>Python</td></tr><tr><td>3</td><td>Priya</td><td>SQL</td></tr></table></div>
+        <p>Now every cell contains a single value. PostgreSQL example:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">student_subjects.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">TABLE</span> <span class="fn">student_subjects</span> (
+    student_id <span class="kw">INT</span>,
+    student_name <span class="kw">VARCHAR</span>(<span class="num">100</span>),
+    subject <span class="kw">VARCHAR</span>(<span class="num">100</span>)
+);</code></pre>
+        </div>
+        <div class="remember"><strong>Remember:</strong> one cell = one value. No comma-separated multiple values. No repeating columns such as <code>subject1</code>, <code>subject2</code>, <code>subject3</code>.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="2nf"><span>4. Second Normal Form (2NF)</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p><strong>Rule:</strong> the table must already be in 1NF, and every non-key column must depend on the <strong>entire</strong> candidate key, not just a part of a composite key.</p>
+        <p>A <strong>composite key</strong> is a primary key created using two or more columns. Consider <code>student_courses</code>:</p>
+        <div class="table-scroll"><table><tr><th>student_id (PK)</th><th>course_id (PK)</th><th>student_name</th><th>course_name</th></tr><tr><td>1</td><td>101</td><td>Rahul</td><td>Java</td></tr><tr><td>1</td><td>102</td><td>Rahul</td><td>SQL</td></tr><tr><td>2</td><td>101</td><td>Amit</td><td>Java</td></tr></table></div>
+        <p>The composite primary key is <code>(student_id, course_id)</code>. <strong>Problem:</strong> <code>student_name</code> depends only on <code>student_id</code>, and <code>course_name</code> depends only on <code>course_id</code>. Neither depends on the entire composite key — this is called a <strong>partial dependency</strong>.</p>
+        <h4>Convert into 2NF</h4>
+        <h4>Students</h4>
+        <div class="table-scroll"><table><tr><th>student_id (PK)</th><th>student_name</th></tr><tr><td>1</td><td>Rahul</td></tr><tr><td>2</td><td>Amit</td></tr></table></div>
+        <h4>Courses</h4>
+        <div class="table-scroll"><table><tr><th>course_id (PK)</th><th>course_name</th></tr><tr><td>101</td><td>Java</td></tr><tr><td>102</td><td>SQL</td></tr></table></div>
+        <h4>Student Courses</h4>
+        <div class="table-scroll"><table><tr><th>student_id (FK)</th><th>course_id (FK)</th></tr><tr><td>1</td><td>101</td></tr><tr><td>1</td><td>102</td></tr><tr><td>2</td><td>101</td></tr></table></div>
+        <ul><li>Student name depends on student ID.</li><li>Course name depends on course ID.</li><li>The relationship between students and courses uses both keys.</li></ul>
+        <div class="remember"><strong>Remember:</strong> 2NF removes partial dependency.</div>
+        <div class="note"><strong>Interview point:</strong> if a table has a single-column candidate key, it cannot have a partial dependency on a composite key, so if it is already in 1NF, it is automatically in 2NF.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="3nf"><span>5. Third Normal Form (3NF)</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p><strong>Rule:</strong> the table must already be in 2NF, and there should be no <strong>transitive dependency</strong> between non-key attributes. Consider an employee table:</p>
+        <div class="table-scroll"><table><tr><th>employee_id (PK)</th><th>employee_name</th><th>department_id</th><th>department_name</th></tr><tr><td>1</td><td>Rahul</td><td>101</td><td>IT</td></tr><tr><td>2</td><td>Amit</td><td>102</td><td>HR</td></tr><tr><td>3</td><td>Priya</td><td>101</td><td>IT</td></tr></table></div>
+        <div class="flow"><span class="step c-src"><code>employee_id</code></span><span class="arrow">→</span><span class="step c-proc"><code>department_id</code></span><span class="arrow">→</span><span class="step c-warn"><code>department_name</code></span></div>
+        <p>The department name depends on the department ID, not directly on the employee ID. This is called <strong>transitive dependency</strong>.</p>
+        <h4>Convert into 3NF</h4>
+        <h4>Employees</h4>
+        <div class="table-scroll"><table><tr><th>employee_id (PK)</th><th>employee_name</th><th>department_id (FK)</th></tr><tr><td>1</td><td>Rahul</td><td>101</td></tr><tr><td>2</td><td>Amit</td><td>102</td></tr><tr><td>3</td><td>Priya</td><td>101</td></tr></table></div>
+        <h4>Departments</h4>
+        <div class="table-scroll"><table><tr><th>department_id (PK)</th><th>department_name</th></tr><tr><td>101</td><td>IT</td></tr><tr><td>102</td><td>HR</td></tr></table></div>
+        <p>PostgreSQL implementation:</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">3nf.sql</span></div>
+          <pre><code><span class="kw">CREATE</span> <span class="kw">TABLE</span> <span class="fn">departments</span> (
+    department_id <span class="kw">INT</span> <span class="kw">PRIMARY</span> <span class="kw">KEY</span>,
+    department_name <span class="kw">VARCHAR</span>(<span class="num">100</span>)
+);
+
+<span class="kw">CREATE</span> <span class="kw">TABLE</span> <span class="fn">employees</span> (
+    employee_id <span class="kw">INT</span> <span class="kw">PRIMARY</span> <span class="kw">KEY</span>,
+    employee_name <span class="kw">VARCHAR</span>(<span class="num">100</span>),
+    department_id <span class="kw">INT</span> <span class="kw">REFERENCES</span> <span class="fn">departments</span>(department_id)
+);</code></pre>
+        </div>
+        <div class="remember"><strong>Remember:</strong> 3NF removes transitive dependency.</div>
+        <div class="tip"><strong>Memory aid:</strong> every non-key column should depend on the key, the whole key, and nothing but the key. (A simplified aid, particularly useful when learning 2NF and 3NF.)</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="bcnf"><span>6. BCNF (Boyce-Codd Normal Form)</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>BCNF is a stronger version of 3NF. <strong>Rule:</strong> for every non-trivial functional dependency, the determinant must be a <strong>superkey</strong>. In simpler terms, every column (or combination) that determines another column must be capable of uniquely identifying a row.</p>
+        <h4>Student_Instructor</h4>
+        <div class="table-scroll"><table><tr><th>student_id</th><th>instructor</th><th>course</th></tr><tr><td>1</td><td>Amit</td><td>Java</td></tr><tr><td>2</td><td>Amit</td><td>Java</td></tr><tr><td>3</td><td>Rahul</td><td>SQL</td></tr></table></div>
+        <ul><li>Each instructor teaches only one course.</li><li>A student can study under multiple instructors.</li><li>A student-instructor combination uniquely identifies a row.</li></ul>
+        <p>Dependencies: <code>(student_id, instructor) → course</code> and <code>instructor → course</code>. Here <code>instructor</code> determines <code>course</code>, but instructor alone is not a superkey. This violates BCNF.</p>
+        <h4>Convert into BCNF</h4>
+        <h4>Instructor_Courses</h4>
+        <div class="table-scroll"><table><tr><th>instructor</th><th>course</th></tr><tr><td>Amit</td><td>Java</td></tr><tr><td>Rahul</td><td>SQL</td></tr></table></div>
+        <h4>Student_Instructors</h4>
+        <div class="table-scroll"><table><tr><th>student_id</th><th>instructor</th></tr><tr><td>1</td><td>Amit</td></tr><tr><td>2</td><td>Amit</td></tr><tr><td>3</td><td>Rahul</td></tr></table></div>
+        <div class="remember"><strong>Remember:</strong> BCNF removes certain remaining dependency problems that 3NF can allow.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="4nf"><span>7. Fourth Normal Form (4NF)</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p><strong>Rule:</strong> the table must be in BCNF and should not contain independent multivalued dependencies. Consider a student who has multiple skills and multiple hobbies:</p>
+        <h4>student_details</h4>
+        <div class="table-scroll"><table><tr><th>student_id</th><th>skill</th><th>hobby</th></tr><tr><td>1</td><td>Java</td><td>Cricket</td></tr><tr><td>1</td><td>Java</td><td>Music</td></tr><tr><td>1</td><td>SQL</td><td>Cricket</td></tr><tr><td>1</td><td>SQL</td><td>Music</td></tr></table></div>
+        <p>Student 1 has two skills (Java, SQL) and two hobbies (Cricket, Music). Skills and hobbies are independent of each other, which creates unnecessary combinations.</p>
+        <h4>Convert into 4NF</h4>
+        <h4>Student_Skills</h4>
+        <div class="table-scroll"><table><tr><th>student_id</th><th>skill</th></tr><tr><td>1</td><td>Java</td></tr><tr><td>1</td><td>SQL</td></tr></table></div>
+        <h4>Student_Hobbies</h4>
+        <div class="table-scroll"><table><tr><th>student_id</th><th>hobby</th></tr><tr><td>1</td><td>Cricket</td></tr><tr><td>1</td><td>Music</td></tr></table></div>
+        <div class="remember"><strong>Remember:</strong> 4NF removes independent multivalued dependencies.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="5nf"><span>8. Fifth Normal Form (5NF)</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p><strong>Rule:</strong> the table must be in 4NF and should not contain join dependencies that can be further decomposed without losing information. It deals with complex relationships where information can be split into smaller tables and reconstructed through joins.</p>
+        <p>Example: a company works with suppliers, products and projects. A combined table may contain:</p>
+        <div class="table-scroll"><table><tr><th>supplier</th><th>product</th><th>project</th></tr><tr><td>S1</td><td>Laptop</td><td>P1</td></tr><tr><td>S1</td><td>Mouse</td><td>P1</td></tr><tr><td>S2</td><td>Laptop</td><td>P2</td></tr></table></div>
+        <p>In certain cases this can be decomposed into three smaller relationship tables: <code>Supplier_Products</code>, <code>Supplier_Projects</code> and <code>Product_Projects</code>. The decomposition is valid only when the original relationship can be reconstructed exactly through joins without introducing extra combinations.</p>
+        <div class="remember"><strong>Remember:</strong> 5NF handles complex join dependencies and is relatively uncommon in everyday application database design.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="compare"><span>9. All Normal Forms — Comparison</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="table-scroll"><table><tr><th>Normal form</th><th>Main purpose</th></tr><tr><td>1NF</td><td>Remove multiple values in a cell</td></tr><tr><td>2NF</td><td>Remove partial dependency</td></tr><tr><td>3NF</td><td>Remove transitive dependency</td></tr><tr><td>BCNF</td><td>Every determinant must be a superkey</td></tr><tr><td>4NF</td><td>Remove independent multivalued dependencies</td></tr><tr><td>5NF</td><td>Remove non-trivial join dependencies</td></tr></table></div>
+        <h4>Normalization progression</h4>
+        <div class="flow"><span class="step c-src">1NF: atomic values</span><span class="arrow">→</span><span class="step c-proc">2NF: no partial dependency</span><span class="arrow">→</span><span class="step c-dst">3NF: no transitive dependency</span><span class="arrow">→</span><span class="step c-warn">BCNF → 4NF → 5NF: stronger dependency rules</span></div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="real"><span>10. Normalization in real-world projects</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>How normalization is used in an actual e-commerce application built with Node.js, React and PostgreSQL. A poorly designed database might have one table:</p>
+        <h4>orders</h4>
+        <div class="table-scroll"><table><tr><th>order_id</th><th>customer_name</th><th>customer_email</th><th>product_name</th><th>product_price</th></tr><tr><td>1</td><td>Rahul</td><td>rahul@gmail.com</td><td>Laptop</td><td>50000</td></tr><tr><td>2</td><td>Rahul</td><td>rahul@gmail.com</td><td>Mouse</td><td>1000</td></tr></table></div>
+        <p>Instead, you create separate tables:</p>
+        <div class="table-scroll"><table><tr><th>Table</th><th>Columns</th></tr><tr><td><strong>customers</strong></td><td><code>customer_id (PK)</code>, <code>customer_name</code>, <code>email</code></td></tr><tr><td><strong>orders</strong></td><td><code>order_id (PK)</code>, <code>customer_id (FK)</code>, <code>order_date</code></td></tr><tr><td><strong>products</strong></td><td><code>product_id (PK)</code>, <code>product_name</code>, <code>price</code></td></tr><tr><td><strong>order_items</strong></td><td><code>order_item_id (PK)</code>, <code>order_id (FK)</code>, <code>product_id (FK)</code>, <code>quantity</code>, <code>price_at_purchase</code></td></tr></table></div>
+        <h4>Why this structure?</h4>
+        <ol style="margin:6px 0 14px 22px;color:#334155;font-size:15px;line-height:1.8"><li>Customer details are stored once.</li><li>Products can be reused across multiple orders.</li><li>An order can contain multiple products.</li><li>Updating a customer’s email doesn’t require updating every order.</li><li>Order history remains available even if the current product price changes.</li></ol>
+        <div class="note">Notice <code>price_at_purchase</code>: it is intentionally stored in <code>order_items</code> because product prices may change later. We need to preserve the historical price paid by the customer.</div>
+        <h4>Does normalization affect JOIN queries?</h4>
+        <p>Yes. Since data is distributed across multiple tables, we use JOINs to retrieve complete information.</p>
+        <div class="code-block">
+          <div class="code-bar"><span class="dot dot-red"></span><span class="dot dot-grey"></span><span class="dot dot-green"></span><span class="filename">join.sql</span></div>
+          <pre><code><span class="kw">SELECT</span>
+    o.order_id,
+    c.customer_name,
+    p.product_name,
+    oi.quantity,
+    oi.price_at_purchase
+<span class="kw">FROM</span> orders o
+<span class="kw">JOIN</span> customers c
+    <span class="kw">ON</span> o.customer_id = c.customer_id
+<span class="kw">JOIN</span> order_items oi
+    <span class="kw">ON</span> o.order_id = oi.order_id
+<span class="kw">JOIN</span> products p
+    <span class="kw">ON</span> oi.product_id = p.product_id;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="denorm"><span>11. Normalization vs Denormalization</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <p>These two concepts are opposites in terms of their main goals.</p>
+        <div class="table-scroll"><table><tr><th>Normalization</th><th>Denormalization</th></tr><tr><td>Reduces duplicate data</td><td>May introduce duplicate data</td></tr><tr><td>Uses multiple related tables</td><td>Combines or duplicates data</td></tr><tr><td>Improves data consistency</td><td>Can improve read performance</td></tr><tr><td>Requires JOINs</td><td>May reduce JOIN requirements</td></tr><tr><td>Common in transactional databases</td><td>Common in reporting and read-heavy systems</td></tr></table></div>
+        <h4>When do we use denormalization?</h4>
+        <p>Suppose an application has millions of orders and frequently needs to display the customer name, order count and total order amount. Instead of calculating everything through multiple JOINs for every request, we might maintain a summary table or materialized view. This can improve read performance, but requires additional logic to keep the duplicated or aggregated data updated.</p>
+        <div class="remember"><strong>Industry practice:</strong> start with a well-normalized design, then denormalize selectively when actual performance requirements justify it.</div>
+      </div>
+    </div>
+
+    <div class="section-divider" id="interview"><span>12. Interview Questions</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <ol style="margin:6px 0 14px 22px;color:#334155;font-size:15px;line-height:1.8"><li>What is database normalization and why do we need it?</li><li>What are insertion, update, and deletion anomalies?</li><li>What is the difference between 1NF, 2NF, and 3NF?</li><li>What is a composite primary key?</li><li>What is partial dependency?</li><li>What is transitive dependency?</li><li>What is the difference between 3NF and BCNF?</li><li>What is multivalued dependency?</li><li>What is the difference between normalization and denormalization?</li><li>Can normalization reduce database performance?</li></ol>
+      </div>
+    </div>
+
+    <div class="section-divider" id="quiz"><span>13. Test Your Understanding</span></div>
+    <div class="card">
+      <div class="card-content compact">
+        <div class="table-scroll"><table><tr><th>#</th><th>Question</th><th>Answer</th></tr><tr><td>1</td><td>Which normal form removes multiple values from a single cell?</td><td>1NF</td></tr><tr><td>2</td><td>Which normal form removes partial dependency?</td><td>2NF</td></tr><tr><td>3</td><td>Which normal form removes transitive dependency?</td><td>3NF</td></tr><tr><td>4</td><td>What is the main purpose of BCNF?</td><td>Every determinant must be a superkey</td></tr><tr><td>5</td><td>Which normal form handles multivalued dependencies?</td><td>4NF</td></tr><tr><td>6</td><td>What is the recommended starting point for most transactional database designs?</td><td>Normalization</td></tr></table></div>
+        <div class="remember"><strong>Recommendation:</strong> focus deeply on 1NF, 2NF, and 3NF first. Understand functional dependencies, composite keys, and primary/foreign key relationships. These are the foundations you’ll use when designing PostgreSQL tables in real projects.</div>
+      </div>
+    </div>
+
+  </div>
 </body>
 </html>
